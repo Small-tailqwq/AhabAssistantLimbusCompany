@@ -402,7 +402,7 @@ class SettingInterface(QWidget):
             QT_TRANSLATE_NOOP("SwitchSettingCard", "启用罗技驱动模拟"),
             QT_TRANSLATE_NOOP(
                 "SwitchSettingCard",
-                "使用独立 DLL 进行硬件级鼠标输入模拟，需要正确配置 logitech.driver.dll 路径",
+                "使用独立 DLL 进行硬件级键鼠输入模拟，需要正确配置可用的罗技驱动 DLL 路径",
             ),
             config_name="lab_mouse_logitech",
             parent=self.experimental_group,
@@ -641,7 +641,7 @@ class SettingInterface(QWidget):
         self.obs_source_name_card.setContent(cfg.get_value("obs_source_name", ""))
 
     def __onLogitechDllPathCardClicked(self):
-        dll_path, _ = QFileDialog.getOpenFileName(self, "选择 logitech.driver.dll", "", "DLL Files (*.dll)")
+        dll_path, _ = QFileDialog.getOpenFileName(self, "选择罗技驱动 DLL", "", "DLL Files (*.dll)")
         if not dll_path or cfg.get_value("logitech_dll_path") == dll_path:
             return
         cfg.set_value("logitech_dll_path", dll_path)

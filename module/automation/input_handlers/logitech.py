@@ -1,3 +1,4 @@
+import atexit
 import ctypes
 import math
 import os
@@ -16,58 +17,169 @@ from ...game_and_screen import screen
 from ..human_kinematics import HumanKinematics
 from .input import WinAbstractInput
 
+BUTTON_RELEASED = 0
+BUTTON_LEFT = 1
+BUTTON_RIGHT = 2
+BUTTON_MIDDLE = 4
+
+KEY_NAME_ALIASES = {
+    "return": "enter",
+    "control": "ctrl",
+    "back_space": "backspace",
+    "del": "delete",
+    "page_up": "pageup",
+    "page_down": "pagedown",
+    "lwin": "lwindows",
+    "rwin": "rwindows_",
+}
+
 
 class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
-    """基于罗技 G HUB (logitech.driver.dll) 的鼠标硬件级输入类
-    用于规避游戏级的 mouseSynthetic 虚拟检测，并提供坐标插值
-    """
+    """基于可编译罗技驱动 DLL 的硬件级键鼠输入类。"""
 
     def __init__(self):
         super().__init__()
         self.dll_path = cfg.logitech_dll_path
+        self.dll = None
+        self.device_open_func = None
+        self.device_close_func = None
+        self.move_func = None
+        self.move_with_button_func = None
+        self.left_down_func = None
+        self.right_down_func = None
+        self.middle_down_func = None
+        self.mouse_up_func = None
+        self.wheel_up_func = None
+        self.wheel_down_func = None
+        self.press_key_func = None
+        self.release_key_func = None
+        self.release_key_all_func = None
+        self._driver_ready = False
+        self._cleanup_registered = False
+
+        log.info("罗技输入适配器已创建，DLL 将在首次实际键鼠操作时加载。")
+
+    def _require_export(self, export_name: str):
+        try:
+            return getattr(self.dll, export_name)
+        except AttributeError as e:
+            message = (
+                f"当前罗技驱动 DLL 缺少必需导出 `{export_name}`。"
+                f"这通常表示你配置的仍是旧版 DLL，而不是新的 Logitech_driver-main 编译产物。"
+            )
+            raise RuntimeError(message) from e
+
+    def _ensure_driver_ready(self):
+        if self._driver_ready:
+            return
+
+        self.dll_path = cfg.logitech_dll_path
         if not self.dll_path or not os.path.exists(self.dll_path):
-            log.error(f"无法使用实验室鼠标仿真功能：缺失 logitech.driver.dll 或路径错误 ({self.dll_path})。请在配置中提供正确路径。")
-            raise FileNotFoundError(f"logitech.driver.dll 未找到：{self.dll_path}")
+            message = f"罗技驱动 DLL 未找到：{self.dll_path}"
+            log.error(f"无法使用实验室罗技驱动模拟：缺失 DLL 或路径错误 ({self.dll_path})。请在配置中提供正确路径。")
+            raise FileNotFoundError(message)
 
         try:
             self.dll = ctypes.CDLL(self.dll_path)
-            try:
-                open_func = getattr(self.dll, "device_open")
-                status = open_func()
-                if status != 1:
-                    log.error(f"罗技驱动 DLL 初始化设备失败(device_open={status})，请确认环境或是否有驱动！")
-                    raise RuntimeError("罗技驱动 DLL 设备开启失败。")
-            except AttributeError:
-                # 若无 device_open 接口则跳过
-                pass
-            self.move_func = getattr(self.dll, "moveR")
-            self.move_func.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int]
-            self.down_func = getattr(self.dll, "mouse_down")
-            self.down_func.argtypes = [ctypes.c_int]
-            self.up_func = getattr(self.dll, "mouse_up")
-            self.up_func.argtypes = [ctypes.c_int]
 
-            log.info("成功加载罗技鼠标驱动 DLL，启用硬件级模拟保护！")
-            log.info("罗技鼠标已启用混合模式：系统绝对定位 + DLL 硬件点击。")
+            self.device_open_func = self._require_export("device_open")
+            self.device_open_func.restype = ctypes.c_bool
+
+            self.device_close_func = self._require_export("device_close")
+            self.device_close_func.restype = None
+
+            self.move_func = self._require_export("move")
+            self.move_func.argtypes = [ctypes.c_byte, ctypes.c_byte]
+            self.move_func.restype = ctypes.c_bool
+
+            self.move_with_button_func = self._require_export("move_with_button")
+            self.move_with_button_func.argtypes = [ctypes.c_byte, ctypes.c_byte, ctypes.c_int]
+            self.move_with_button_func.restype = ctypes.c_bool
+
+            self.left_down_func = self._require_export("lmbDown")
+            self.left_down_func.restype = ctypes.c_bool
+
+            self.right_down_func = self._require_export("rmbDown")
+            self.right_down_func.restype = ctypes.c_bool
+
+            self.middle_down_func = self._require_export("mmbDown")
+            self.middle_down_func.restype = ctypes.c_bool
+
+            self.mouse_up_func = self._require_export("mouseUp")
+            self.mouse_up_func.restype = ctypes.c_bool
+
+            self.wheel_up_func = self._require_export("wheelup")
+            self.wheel_up_func.restype = ctypes.c_bool
+
+            self.wheel_down_func = self._require_export("wheeldown")
+            self.wheel_down_func.restype = ctypes.c_bool
+
+            self.press_key_func = self._require_export("press_key")
+            self.press_key_func.argtypes = [ctypes.c_char_p]
+            self.press_key_func.restype = None
+
+            self.release_key_func = self._require_export("release_key")
+            self.release_key_func.argtypes = [ctypes.c_char_p]
+            self.release_key_func.restype = None
+
+            self.release_key_all_func = self._require_export("release_key_all")
+            self.release_key_all_func.restype = None
+
+            status = bool(self.device_open_func())
+            if not status:
+                log.error("罗技驱动 DLL 初始化设备失败(device_open=False)，请确认环境、驱动与 DLL 是否匹配。")
+                raise RuntimeError("罗技驱动 DLL 设备开启失败。")
+
+            self._driver_ready = True
+            if not self._cleanup_registered:
+                atexit.register(self._cleanup_driver_state)
+                self._cleanup_registered = True
+
+            log.info("成功加载罗技驱动 DLL，启用硬件级键鼠模拟保护。")
+            log.info("罗技输入已切换为新 DLL 后端：驱动级鼠标移动/拖拽 + 驱动级键盘按键。")
         except Exception as e:
-            msg = f"加载或初始化罗技 DLL 失败: {e}"
+            msg = f"加载或初始化罗技驱动 DLL 失败: {e}"
             log.error(msg)
             raise RuntimeError(msg) from e
+
+    def _cleanup_driver_state(self):
+        if not self._driver_ready:
+            return
+
+        try:
+            self.release_key_all_func()
+        except Exception:
+            pass
+
+        try:
+            self.mouse_up_func()
+        except Exception:
+            pass
+
+        try:
+            self.device_close_func()
+        except Exception:
+            pass
+        finally:
+            self._driver_ready = False
+
+    @staticmethod
+    def _normalize_key_name(key: str) -> str:
+        normalized = str(key).strip().lower()
+        return KEY_NAME_ALIASES.get(normalized, normalized)
+
+    @staticmethod
+    def _clamp_relative_delta(value: int, limit: int = 100) -> int:
+        return max(-limit, min(limit, int(value)))
 
     def get_mouse_position(self) -> tuple[int, int]:
         return win32api.GetCursorPos()
 
     def _client_to_screen_target(self, x: int, y: int) -> tuple[int, int]:
-        """将窗口客户区相对坐标转换为屏幕绝对坐标。"""
         rect = screen.handle.rect(True)
         return rect[0] + int(x), rect[1] + int(y)
 
-    def _set_cursor_pos_absolute(self, x: int, y: int):
-        """使用会发出鼠标移动事件的绝对坐标移动，确保 PowerToys 等覆盖层同步更新。"""
-        self._mouse_event_move_to(int(x), int(y))
-
     def _resolve_move_duration(self, distance: float, duration: float) -> float:
-        """为普通鼠标移动补一个可见轨迹，避免看起来像触控瞬移。"""
         if duration > 0:
             return duration
 
@@ -76,155 +188,146 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         return min(max_duration, max(0.03, distance / 8000))
 
     @staticmethod
-    def _ease_out_cubic(progress: float) -> float:
-        return 1 - pow(1 - progress, 3)
+    def _resolve_post_drag_pause(distance: float, drag_time: float) -> float:
+        base_pause = min(0.16, max(0.03, drag_time * 0.08))
+        if distance >= 800:
+            base_pause += 0.02
+        return HumanKinematics.sample_duration(base_pause, jitter=0.22, minimum=0.025, maximum=0.18)
 
-    def _mouse_move_to(self, x, y, duration: float = 0):
-        """绝对于屏幕的插值计算移动"""
+    def _press_mouse_button(self, button: int = BUTTON_LEFT):
+        self._ensure_driver_ready()
+        if button == BUTTON_LEFT:
+            result = self.left_down_func()
+        elif button == BUTTON_RIGHT:
+            result = self.right_down_func()
+        elif button == BUTTON_MIDDLE:
+            result = self.middle_down_func()
+        else:
+            raise ValueError(f"不支持的鼠标按键状态: {button}")
+
+        if not result:
+            raise RuntimeError(f"鼠标按下失败: button={button}")
+
+    def _move_relative_chunked(self, dx: int, dy: int, button_state: int = BUTTON_RELEASED):
+        self._ensure_driver_ready()
+        remaining_x = int(dx)
+        remaining_y = int(dy)
+
+        while remaining_x != 0 or remaining_y != 0:
+            step_x = self._clamp_relative_delta(remaining_x)
+            step_y = self._clamp_relative_delta(remaining_y)
+
+            if button_state != BUTTON_RELEASED:
+                result = self.move_with_button_func(step_x, step_y, button_state)
+            else:
+                result = self.move_func(step_x, step_y)
+
+            if not result:
+                raise RuntimeError(
+                    f"相对移动失败: dx={step_x}, dy={step_y}, button_state={button_state}",
+                )
+
+            remaining_x -= step_x
+            remaining_y -= step_y
+
+    def _mouse_move_to(self, x, y, duration: float = 0, button_state: int = BUTTON_RELEASED):
         x = int(x)
         y = int(y)
 
-        current_x, current_y = self.get_mouse_position()
-
-        dx = x - current_x
-        dy = y - current_y
-
-        if dx == 0 and dy == 0:
-            return
-
-        move_duration = self._resolve_move_duration(math.hypot(dx, dy), duration)
-        self._move_relative_smooth(dx, dy, duration=move_duration)
-
-    def _is_mouse_button_down(self) -> bool:
-        """检测是否有鼠标按键处于按下状态"""
-        return (win32api.GetAsyncKeyState(0x01) < 0) or \
-               (win32api.GetAsyncKeyState(0x02) < 0) or \
-               (win32api.GetAsyncKeyState(0x04) < 0)
-
-    def _mouse_event_move_to(self, x: int, y: int):
-        """使用 mouse_event 的绝对坐标移动鼠标，并发出系统可观测的移动事件。"""
-        virtual_left = ctypes.windll.user32.GetSystemMetrics(win32con.SM_XVIRTUALSCREEN)
-        virtual_top = ctypes.windll.user32.GetSystemMetrics(win32con.SM_YVIRTUALSCREEN)
-        virtual_width = max(1, ctypes.windll.user32.GetSystemMetrics(win32con.SM_CXVIRTUALSCREEN))
-        virtual_height = max(1, ctypes.windll.user32.GetSystemMetrics(win32con.SM_CYVIRTUALSCREEN))
-        norm_x = int(round((int(x) - virtual_left) * 65535 / max(virtual_width - 1, 1)))
-        norm_y = int(round((int(y) - virtual_top) * 65535 / max(virtual_height - 1, 1)))
-        ctypes.windll.user32.mouse_event(
-            win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE | win32con.MOUSEEVENTF_VIRTUALDESK,
-            norm_x, norm_y, 0, 0
-        )
-
-    def _move_relative_smooth(self, target_dx: int, target_dy: int, duration: float = 0):
-        """使用系统绝对坐标平滑移动，拖拽时用 mouse_event 保持按键状态。"""
-        # 标准物理刷新率约 125Hz - 1000Hz, 取 8ms 间隔 (大约 125Hz)
-        refresh_rate = 0.008
-
-        distance = math.hypot(target_dx, target_dy)
+        start_x, start_y = self.get_mouse_position()
+        distance = math.hypot(x - start_x, y - start_y)
         if distance == 0:
             return
 
-        start_x, start_y = self.get_mouse_position()
-        target_x = start_x + target_dx
-        target_y = start_y + target_dy
-
-        if duration <= 0:
-            self._set_cursor_pos_absolute(target_x, target_y)
-            return
-
-        button_down = self._is_mouse_button_down()
-        steps = max(2, int(duration / refresh_rate))
+        move_duration = self._resolve_move_duration(distance, duration)
         trajectory = HumanKinematics.generate_human_curve(
             start_x,
             start_y,
-            target_x,
-            target_y,
-            num_points=steps,
-            allow_overshoot=not button_down,
-            allow_micro_jitter=not button_down,
+            x,
+            y,
+            num_points=max(2, int(max(move_duration, 0.02) / 0.008)),
+            allow_overshoot=button_state == BUTTON_RELEASED,
+            allow_micro_jitter=button_state == BUTTON_RELEASED,
         )
-        step_interval = duration / max(len(trajectory), 1)
+        step_intervals = HumanKinematics.generate_step_intervals(
+            len(trajectory),
+            move_duration,
+            profile="drag" if button_state != BUTTON_RELEASED else "cursor",
+        )
 
-        for current_target_x, current_target_y in trajectory:
+        for index, (current_target_x, current_target_y) in enumerate(trajectory):
             step_start = time()
-
-            # 当前物理位置
             current_x, current_y = self.get_mouse_position()
-
-            # 本步真实的 dx, dy
             step_dx = int(current_target_x - current_x)
             step_dy = int(current_target_y - current_y)
 
             if step_dx != 0 or step_dy != 0:
-                self._set_cursor_pos_absolute(current_target_x, current_target_y)
+                self._move_relative_chunked(step_dx, step_dy, button_state=button_state)
 
             elapsed = time() - step_start
-            remaining = step_interval - elapsed
+            remaining = step_intervals[index] - elapsed
             if remaining > 0.001:
                 HumanKinematics.human_sleep(remaining, jitter=0.08, minimum=remaining)
 
-        # 终点位置误差校验 (确保一定会到达目的地)
         final_x, final_y = self.get_mouse_position()
-        final_dx = target_x - final_x
-        final_dy = target_y - final_y
+        final_dx = x - final_x
+        final_dy = y - final_y
         if final_dx != 0 or final_dy != 0:
-            self._set_cursor_pos_absolute(target_x, target_y)
+            self._move_relative_chunked(final_dx, final_dy, button_state=button_state)
 
-    def _set_mouse_pos(self, x: int, y: int):
-        self._mouse_move_to(x, y)
+    def _move_to_client(self, x: int, y: int, duration: float = 0, button_state: int = BUTTON_RELEASED):
+        target_screen_x, target_screen_y = self._client_to_screen_target(x, y)
+        self._mouse_move_to(target_screen_x, target_screen_y, duration=duration, button_state=button_state)
 
     def set_mouse_pos(self, x, y, duration: float = 0):
-        """基于游戏窗口左上角的内部相对坐标系移动"""
         x = int(x)
         y = int(y)
-        target_screen_x, target_screen_y = self._client_to_screen_target(x, y)
         current_x, current_y = self.get_mouse_position()
+        target_screen_x, target_screen_y = self._client_to_screen_target(x, y)
         move_duration = self._resolve_move_duration(
             math.hypot(target_screen_x - current_x, target_screen_y - current_y),
             duration,
         )
         log.debug(
-            f"硬件鼠标目标换算: 客户区({x},{y}) -> 屏幕({target_screen_x},{target_screen_y}), 当前鼠标({current_x},{current_y}), 规划移动{move_duration * 1000:.0f}ms",
+            f"新罗技驱动目标换算: 客户区({x},{y}) -> 屏幕({target_screen_x},{target_screen_y}), 当前鼠标({current_x},{current_y}), 规划移动{move_duration * 1000:.0f}ms",
             stacklevel=2,
         )
-        self._mouse_move_to(target_screen_x, target_screen_y, duration=move_duration)
+        self._move_to_client(x, y, duration=move_duration)
 
         final_x, final_y = self.get_mouse_position()
         err_x = target_screen_x - final_x
         err_y = target_screen_y - final_y
         log.debug(
-            f"硬件鼠标实际落点: 屏幕({final_x},{final_y}), 与目标差值({err_x},{err_y})",
+            f"新罗技驱动实际落点: 屏幕({final_x},{final_y}), 与目标差值({err_x},{err_y})",
             stacklevel=2,
         )
 
     def mouse_down(self, x=None, y=None):
-        """鼠标左键按下（支持传入或不传入坐标，如果传入则先移动到对应位置）"""
         if x is not None and y is not None:
             self.set_mouse_pos(x, y)
-        self.down_func(1)
+        self._press_mouse_button(BUTTON_LEFT)
         HumanKinematics.human_sleep(0.012, jitter=0.35, minimum=0.008, maximum=0.03)
 
     def mouse_up(self, x=None, y=None):
-        """鼠标左键抬起"""
         if x is not None and y is not None:
             self.set_mouse_pos(x, y)
-        self.up_func(1)
+        self._ensure_driver_ready()
+        if not self.mouse_up_func():
+            raise RuntimeError("鼠标抬起失败")
         HumanKinematics.human_sleep(0.012, jitter=0.35, minimum=0.008, maximum=0.03)
 
     def mouse_click(self, x, y, times=1, move_back=False) -> bool:
         if move_back:
             current_mouse_position = self.get_mouse_position()
 
-        msg = f"硬件级点击位置:({x},{y})"
-        log.debug(msg, stacklevel=2)
-        
-        for i in range(times):
+        log.debug(f"新罗技驱动点击位置:({x},{y})", stacklevel=2)
+
+        for index in range(times):
             self.set_mouse_pos(x, y)
             self.set_active()
-            before_down = self.get_mouse_position()
-            log.debug(f"硬件点击前鼠标位置: {before_down}", stacklevel=2)
             self.mouse_down()
             self.mouse_up()
-            if i < times - 1:
+            if index < times - 1:
                 HumanKinematics.human_sleep(0.05, jitter=0.45, minimum=0.025, maximum=0.12)
 
         if move_back and current_mouse_position:
@@ -236,16 +339,17 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
     def mouse_drag(self, x, y, drag_time=0.1, dx=0, dy=0, move_back=True) -> None:
         if move_back:
             current_mouse_position = self.get_mouse_position()
-            
+
+        drag_distance = math.hypot(dx, dy)
         self.set_mouse_pos(x, y)
         self.set_active()
         self.mouse_down()
-        
-        # 使用 duration 提供平滑拖拽
-        self.set_mouse_pos(x + dx, y + dy, duration=drag_time)
-        hold_time = max(drag_time * 0.3, 0.5)
-        HumanKinematics.human_sleep(hold_time, jitter=0.12, minimum=hold_time)
-             
+        self._move_to_client(x + dx, y + dy, duration=drag_time, button_state=BUTTON_LEFT)
+        HumanKinematics.human_sleep(
+            self._resolve_post_drag_pause(drag_distance, drag_time),
+            jitter=0.05,
+            minimum=0.02,
+        )
         self.mouse_up()
 
         if move_back and current_mouse_position:
@@ -256,15 +360,26 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
             current_mouse_position = self.get_mouse_position()
 
         scale = cfg.set_win_size / 1080
+        drag_distance = int(300 * scale * reverse)
         self.set_active()
         self.set_mouse_pos(x, y)
         self.mouse_down()
-        self.set_mouse_pos(x, y + int(300 * scale * reverse), duration=0.4)
+        self._move_to_client(
+            x,
+            y + drag_distance,
+            duration=HumanKinematics.sample_duration(0.28, jitter=0.18, minimum=0.2, maximum=0.36),
+            button_state=BUTTON_LEFT,
+        )
+        HumanKinematics.human_sleep(
+            self._resolve_post_drag_pause(abs(drag_distance), 0.28),
+            jitter=0.05,
+            minimum=0.02,
+        )
         self.mouse_up()
 
         if move_back and current_mouse_position:
             self.mouse_move(current_mouse_position)
-            
+
     def mouse_drag_link(self, position: list, drag_time=0.1, move_back=True) -> None:
         if move_back:
             current_mouse_position = self.get_mouse_position()
@@ -273,7 +388,12 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         self.set_active()
         self.mouse_down()
         for pos in position:
-            self.set_mouse_pos(pos[0], pos[1], duration=drag_time)
+            self._move_to_client(pos[0], pos[1], duration=drag_time, button_state=BUTTON_LEFT)
+        HumanKinematics.human_sleep(
+            self._resolve_post_drag_pause(len(position) * 80, drag_time),
+            jitter=0.05,
+            minimum=0.02,
+        )
         self.mouse_up()
 
         if move_back and current_mouse_position:
@@ -283,11 +403,10 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         if move_back:
             current_mouse_position = self.get_mouse_position()
 
-        msg = "硬件点击（1，1）空白位置"
-        log.debug(msg, stacklevel=2)
+        log.debug("新罗技驱动点击空白位置", stacklevel=2)
         x = coordinate[0] + random.randint(0, 10)
         y = coordinate[1] + random.randint(0, 10)
-        for i in range(times):
+        for _ in range(times):
             self.set_mouse_pos(x, y)
             self.set_active()
             self.mouse_down()
@@ -305,25 +424,29 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
             rect = screen.handle.rect(True)
             if current_mouse_position[0] > rect[2] or current_mouse_position[1] > rect[3]:
                 return
-            elif current_mouse_position[0] < rect[0] or current_mouse_position[1] < rect[1]:
+            if current_mouse_position[0] < rect[0] or current_mouse_position[1] < rect[1]:
                 return
         target_x = int(coordinate[0])
         target_y = int(coordinate[1])
         self.set_mouse_pos(target_x, target_y)
-        log.debug(f"硬件鼠标移动到空白避免遮挡: 客户区({target_x},{target_y})", stacklevel=2)
+        log.debug(f"新罗技驱动鼠标移动到空白避免遮挡: 客户区({target_x},{target_y})", stacklevel=2)
         self.wait_pause()
 
     def mouse_scroll(self, direction: int = -3) -> bool:
-        # 如需可通过罗技控制滚轮（如果存在），一般可不提供此支持（由于游戏中用不到或是可以用拖拽替代）
-        return False
+        if direction == 0:
+            return True
+
+        self._ensure_driver_ready()
+        wheel_func = self.wheel_down_func if direction < 0 else self.wheel_up_func
+        if not wheel_func():
+            raise RuntimeError(f"滚轮事件发送失败: direction={direction}")
+        return True
 
     def mouse_move(self, coordinate=(1, 1)) -> None:
-        """鼠标移动到指定绝对坐标"""
         self._mouse_move_to(coordinate[0], coordinate[1])
         self.wait_pause()
 
     def set_active(self):
-        """将游戏窗口设置为输入焦点以让 Unity 接受输入事件"""
         hwnd = screen.handle.hwnd
         if hwnd:
             if screen.handle.isMinimized:
@@ -335,28 +458,25 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
             log.error("未初始化hwnd")
 
     def key_down(self, key: str):
-        # 键盘仍旧使用原本WinAPI的方法，部分DLL支持keybd_event但这里先用Win32
-        hwnd = screen.handle.hwnd
-        lparam = 0x00000001
+        self._ensure_driver_ready()
+        normalized_key = self._normalize_key_name(key)
         try:
-            win32api.SendMessage(hwnd, win32con.WM_KEYDOWN, self._get_key_code(key), lparam)
+            self.press_key_func(normalized_key.encode("utf-8"))
         except Exception as e:
-            log.error(f"键盘按下异常: {e}")
+            log.error(f"新罗技驱动键盘按下异常: {normalized_key}, {e}")
+            raise
 
     def key_up(self, key: str):
-        hwnd = screen.handle.hwnd
-        lparam = 0xC0000001
+        self._ensure_driver_ready()
+        normalized_key = self._normalize_key_name(key)
         try:
-            win32api.SendMessage(hwnd, win32con.WM_KEYUP, self._get_key_code(key), lparam)
+            self.release_key_func(normalized_key.encode("utf-8"))
         except Exception as e:
-            log.error(f"键盘抬起异常: {e}")
+            log.error(f"新罗技驱动键盘抬起异常: {normalized_key}, {e}")
+            raise
 
     def key_press(self, key):
         self.set_active()
         self.key_down(key)
         HumanKinematics.human_sleep(0.018, jitter=0.35, minimum=0.012, maximum=0.045)
         self.key_up(key)
-
-    def _get_key_code(self, key: str) -> int:
-        from .input import key_list
-        return key_list[key.lower()]

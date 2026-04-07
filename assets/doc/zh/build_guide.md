@@ -1,30 +1,33 @@
 # 构建指南
 
-## 配置python环境
+## 推荐构建方式
 
-依赖python3.12版本
+项目当前推荐使用 `uv` 和仓库内置构建脚本：
 
-python库依赖见[requirements.txt](/requirements.txt)
-
-```bash
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-pip install pyinstaller
+```ps1
+uv sync --frozen
+uv run python .\scripts\build.py --version dev
 ```
 
-## 构建可执行文件
+构建完成后会生成：
 
-```bash
-pyinstaller main.spec
+- `dist\AALC\AALC.exe`
+- `dist\AALC\AALC Updater.exe`
+- `dist\AALC_dev.7z`
+
+如果要打正式版本，把 `dev` 换成你的版本号即可，例如：
+
+```ps1
+uv run python .\scripts\build.py --version 1.4.0
 ```
 
-## 添加其他附属文件
+## 手动 / 兼容方式
 
-```bash
-mkdir dist_release
-mv dist/* dist_release/
-cp -r 3rdparty dist_release/AALC/
-cp -r assets dist_release/AALC/
-cp LICENSE dist_release/AALC/
-cp README.md dist_release/AALC/
+如果只想手动执行 PyInstaller，可使用：
+
+```ps1
+pyinstaller .\main.spec
+pyinstaller .\updater.spec
 ```
+
+这种方式只会生成基础打包结果，不会自动整理附属文件、生成翻译文件、写入版本号或打 7z 包。

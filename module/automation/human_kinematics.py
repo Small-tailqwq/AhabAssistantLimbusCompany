@@ -44,6 +44,38 @@ class HumanKinematics:
         time.sleep(HumanKinematics.sample_duration(base, jitter, minimum=minimum, maximum=maximum))
 
     @staticmethod
+    def generate_step_intervals(
+        step_count: int,
+        total_duration: float,
+        *,
+        profile: str = "cursor",
+    ) -> list[float]:
+        if step_count <= 0:
+            return []
+
+        total_duration = max(float(total_duration), 0.0)
+        if total_duration <= 0:
+            return [0.0] * step_count
+
+        weights: list[float] = []
+        for index in range(step_count):
+            progress = (index + 0.5) / step_count
+            if profile == "drag":
+                speed_factor = 1.45 - 0.42 * progress + 0.1 * math.sin(progress * math.pi)
+            else:
+                speed_factor = 0.7 + 0.95 * math.sin(progress * math.pi)
+
+            speed_factor *= random.uniform(0.94, 1.06)
+            weights.append(1.0 / max(speed_factor, 0.18))
+
+        weight_sum = sum(weights)
+        if weight_sum <= 0:
+            return [total_duration / step_count] * step_count
+
+        unit = total_duration / weight_sum
+        return [weight * unit for weight in weights]
+
+    @staticmethod
     def get_gaussian_click_point(
         center_x: float,
         center_y: float,

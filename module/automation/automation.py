@@ -57,7 +57,7 @@ class Automation(metaclass=SingletonMeta):
             if getattr(cfg, "lab_mouse_logitech", False):
                 from .input_handlers.logitech import LogitechInput
 
-                log.debug("验证：使用罗技硬件鼠标模拟模块")
+                log.debug("使用罗技硬件鼠标模拟模块（延迟加载 DLL）")
                 self.input_handler = LogitechInput()
             elif input_type == "background":
                 from .input_handlers.input import BackgroundInput

@@ -246,7 +246,25 @@ git pull
 
 ## 构建指南
 
-- 参考 [构建指南](assets/doc/zh/build_guide.md)
+推荐直接执行：
+
+```ps1
+uv run python .\scripts\build.py --version dev
+```
+
+- 产物目录：`dist\AALC\`
+- 主程序：`dist\AALC\AALC.exe`
+- 更新器：`dist\AALC\AALC Updater.exe`
+- 压缩包：`dist\AALC_dev.7z`
+
+如果只想手动执行 PyInstaller，也可以用：
+
+```ps1
+pyinstaller .\main.spec
+pyinstaller .\updater.spec
+```
+
+- 更多细节可参考 [构建指南](assets/doc/zh/build_guide.md)
 
 ---
 

@@ -123,6 +123,35 @@ def get_node_weight(x, y):
     return -5
 
 
+def _drag_map_to_bus_anchor(
+    bus_position,
+    *,
+    target_x=None,
+    target_y=None,
+    tolerance_x=0,
+    tolerance_y=0,
+) -> bool:
+    dx = 0
+    dy = 0
+
+    if target_x is not None:
+        dx = target_x - bus_position[0]
+        if abs(dx) <= tolerance_x:
+            dx = 0
+    if target_y is not None:
+        dy = target_y - bus_position[1]
+        if abs(dy) <= tolerance_y:
+            dy = 0
+
+    if dx == 0 and dy == 0:
+        return False
+
+    drag_distance = (dx**2 + dy**2) ** 0.5
+    drag_time = min(1.35, max(0.45, drag_distance / max(cfg.set_win_size * 0.9, 1)))
+    auto.mouse_drag(bus_position[0], bus_position[1], drag_time=drag_time, dx=dx, dy=dy)
+    return True
+
+
 # 在默认缩放情况下，进行镜牢寻路
 def search_road_default_distance():
     start_time = time.time()
@@ -167,10 +196,12 @@ def search_road_default_distance():
 
                 back_init_menu()
                 return False
-            if 600 * scale < bus_position[1] < 700 * scale:
+            if not _drag_map_to_bus_anchor(
+                bus_position,
+                target_y=650 * scale,
+                tolerance_y=50 * scale,
+            ):
                 break
-            dy = 650 * scale - bus_position[1]
-            auto.mouse_drag(bus_position[0], bus_position[1], drag_time=1.5, dx=0, dy=dy)
             sleep(1)
             auto.mouse_to_blank()
 
@@ -256,12 +287,15 @@ def search_road_from_road_map(hard_mode=False):
 
                 back_init_menu()
                 return False, []
-            if 675 * scale < bus_position[1] < 700 * scale and 150 * scale > bus_position[0]:
+            if not _drag_map_to_bus_anchor(
+                bus_position,
+                target_x=80 * scale,
+                target_y=690 * scale,
+                tolerance_x=70 * scale,
+                tolerance_y=20 * scale,
+            ):
                 bus = bus_position
                 break
-            dx = 80 * scale - bus_position[0]
-            dy = 690 * scale - bus_position[1]
-            auto.mouse_drag(bus_position[0], bus_position[1], drag_time=1.5, dx=dx, dy=dy)
             sleep(0.5)
             auto.mouse_to_blank()
 
@@ -310,15 +344,15 @@ def search_road_from_road_map(hard_mode=False):
 
                     back_init_menu()
                     return False, []
-                if (
-                    set_y_position - 50 * scale < bus_position[1] < set_y_position + 50 * scale
-                    and 500 * scale < bus_position[0] < 600 * scale
+                if not _drag_map_to_bus_anchor(
+                    bus_position,
+                    target_x=550 * scale,
+                    target_y=set_y_position,
+                    tolerance_x=50 * scale,
+                    tolerance_y=50 * scale,
                 ):
                     bus = bus_position
                     break
-                dx = 550 * scale - bus_position[0]
-                dy = set_y_position - bus_position[1]
-                auto.mouse_drag(bus_position[0], bus_position[1], drag_time=1.5, dx=dx, dy=dy)
                 sleep(0.5)
                 auto.mouse_to_blank()
 

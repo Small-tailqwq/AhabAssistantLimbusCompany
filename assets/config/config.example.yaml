@@ -57,8 +57,8 @@ resonate_with_Ahab: False # 是否播放亚哈语录
 
 # 实验性功能
 experimental_auto_lang: True # 是否自动修改语言
-lab_mouse_logitech: False # 实验室功能：通过独立鼠标驱动进行硬件级鼠标坐标更新，需填入正确 DLL 路径才能生效
-logitech_dll_path: "" # logitech.driver.dll 的绝对路径，启用硬件鼠标模拟必填
+lab_mouse_logitech: False # 实验室功能：通过独立罗技驱动 DLL 进行硬件级键鼠输入模拟，需填入正确 DLL 路径才能生效
+logitech_dll_path: "" # 罗技驱动 DLL 的绝对路径，启用硬件键鼠模拟必填
 lab_screenshot_obs: False # 实验室功能：通过 OBS WebSocket 截图，规避 ScreenCaptureAnalytics 检测
 obs_host: "localhost" # OBS WebSocket 服务地址
 obs_port: 4455 # OBS WebSocket 服务端口
