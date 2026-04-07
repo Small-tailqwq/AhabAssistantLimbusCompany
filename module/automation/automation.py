@@ -3,6 +3,7 @@ import math
 import random
 import time
 from ast import List
+from numbers import Real
 
 import cv2
 import numpy as np
@@ -15,6 +16,7 @@ from utils.singletonmeta import SingletonMeta
 from ..config import cfg
 from ..logger import log
 from ..ocr import ocr
+from .human_kinematics import HumanKinematics
 from .input_handlers.input import AbstractInput
 from .screenshot import ScreenShot
 
@@ -52,7 +54,12 @@ class Automation(metaclass=SingletonMeta):
                 self.input_handler = SimulatorControl.connection_device
         else:
             input_type = cfg.win_input_type
-            if input_type == "background":
+            if getattr(cfg, "lab_mouse_logitech", False):
+                from .input_handlers.logitech import LogitechInput
+
+                log.debug("验证：使用罗技硬件鼠标模拟模块")
+                self.input_handler = LogitechInput()
+            elif input_type == "background":
                 from .input_handlers.input import BackgroundInput
 
                 log.debug("使用后台点击模块")
@@ -157,11 +164,40 @@ class Automation(metaclass=SingletonMeta):
         tuple: 经过计算后的点击位置坐标。
         """
         # TODO:后续适配无需窗口设置模式
-        x, y = coordinates
         screenshot = np.array(self.screenshot)
-        if offset:
-            x = max(0, min(screenshot.shape[1], x + random.randint(-10, 10)))
-            y = max(0, min(screenshot.shape[0], y + random.randint(-10, 10)))
+        screen_width = int(screenshot.shape[1])
+        screen_height = int(screenshot.shape[0])
+        width = 24
+        height = 24
+        use_logitech_humanization = bool(getattr(cfg, "lab_mouse_logitech", False))
+
+        if len(coordinates) >= 4 and all(isinstance(value, Real) for value in coordinates[:4]):
+            left, top, right, bottom = coordinates[:4]
+            x = (float(left) + float(right)) / 2
+            y = (float(top) + float(bottom)) / 2
+            width = max(abs(float(right) - float(left)), 6.0)
+            height = max(abs(float(bottom) - float(top)), 6.0)
+        else:
+            x, y = coordinates
+
+        if offset and use_logitech_humanization:
+            x, y = HumanKinematics.get_gaussian_click_point(
+                float(x),
+                float(y),
+                width,
+                height,
+                screen_width=screen_width,
+                screen_height=screen_height,
+            )
+        elif offset:
+            x = int(round(float(x))) + random.randint(-10, 10)
+            y = int(round(float(y))) + random.randint(-10, 10)
+        else:
+            x = int(round(float(x)))
+            y = int(round(float(y)))
+
+        x = max(0, min(screen_width - 1, x))
+        y = max(0, min(screen_height - 1, y))
         return x, y
 
     def mouse_action_with_pos(
@@ -197,7 +233,10 @@ class Automation(metaclass=SingletonMeta):
         if self.last_click_time == 0:
             self.last_click_time = time.time()
         if time.time() - self.last_click_time < interval:
-            time.sleep(interval)
+            if getattr(cfg, "lab_mouse_logitech", False) and action == "click":
+                HumanKinematics.human_sleep(interval, jitter=0.12, minimum=interval)
+            else:
+                time.sleep(interval)
             self.last_click_time = time.time()
 
         # 计算传入的位置
@@ -267,8 +306,8 @@ class Automation(metaclass=SingletonMeta):
                 try:
                     _, pid = win32process.GetWindowThreadProcessId(screen.handle.hwnd)
                     os.system(f"taskkill /F /PID {pid}")
-                except:
-                    pass
+                except Exception as e:
+                    log.error(f"截图超时后结束游戏进程失败:{e}")
                 from tasks.base.script_task_scheme import init_game
 
                 init_game()

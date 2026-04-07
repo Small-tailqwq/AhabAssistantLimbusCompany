@@ -5,6 +5,7 @@ from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
+    QLineEdit,
     QSizePolicy,
     QWidget,
 )
@@ -32,7 +33,7 @@ from app.base_combination import (
     PushSettingCardMirrorchyan,
     SwitchSettingCard,
 )
-from app.card.messagebox_custom import BaseInfoBar
+from app.card.messagebox_custom import BaseInfoBar, MessageBoxEdit
 from app.common.ui_config import get_setting_interface_qss
 from app.language_manager import SUPPORTED_LANG_NAME, LanguageManager
 from app.theme_pack_setting_interface import ThemePackSettingDialog
@@ -396,6 +397,85 @@ class SettingInterface(QWidget):
             config_name="experimental_auto_lang",
             parent=self.experimental_group,
         )
+        self.logitech_switch_card = SwitchSettingCard(
+            FIF.MOVE,
+            QT_TRANSLATE_NOOP("SwitchSettingCard", "启用罗技驱动模拟"),
+            QT_TRANSLATE_NOOP(
+                "SwitchSettingCard",
+                "使用独立 DLL 进行硬件级鼠标输入模拟，需要正确配置 logitech.driver.dll 路径",
+            ),
+            config_name="lab_mouse_logitech",
+            parent=self.experimental_group,
+        )
+        self.logitech_dll_path_card = BasePushSettingCard(
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "选择"),
+            FIF.FOLDER,
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "罗技 DLL 路径"),
+            cfg.get_value("logitech_dll_path", ""),
+            parent=self.experimental_group,
+        )
+        self.obs_switch_card = SwitchSettingCard(
+            FIF.CAMERA,
+            QT_TRANSLATE_NOOP("SwitchSettingCard", "启用 OBS 截图"),
+            QT_TRANSLATE_NOOP(
+                "SwitchSettingCard",
+                "通过 OBS WebSocket 获取截图，规避直接调用系统截图接口",
+            ),
+            config_name="lab_screenshot_obs",
+            parent=self.experimental_group,
+        )
+        self.obs_host_card = BasePushSettingCard(
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "修改"),
+            FIF.HOME,
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "OBS WebSocket 地址"),
+            cfg.get_value("obs_host", "localhost"),
+            parent=self.experimental_group,
+        )
+        self.obs_port_card = PushSettingCardChance(
+            QT_TRANSLATE_NOOP("PushSettingCardChance", "修改"),
+            FIF.GLOBE,
+            QT_TRANSLATE_NOOP("PushSettingCardChance", "OBS WebSocket 端口"),
+            config_name="obs_port",
+            max_value=65535,
+            content="",
+            parent=self.experimental_group,
+        )
+        self.obs_password_card = BasePushSettingCard(
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "修改"),
+            FIF.EDIT,
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "OBS WebSocket 密码"),
+            "",
+            parent=self.experimental_group,
+        )
+        self.obs_source_name_card = BasePushSettingCard(
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "修改"),
+            FIF.VIDEO,
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "OBS 截图源名称"),
+            cfg.get_value("obs_source_name", ""),
+            parent=self.experimental_group,
+        )
+        self.obs_image_format_card = ComboBoxSettingCard(
+            "obs_image_format",
+            FIF.PHOTO,
+            QT_TRANSLATE_NOOP("ComboBoxSettingCard", "OBS 截图编码格式"),
+            QT_TRANSLATE_NOOP("ComboBoxSettingCard", "推荐使用 jpg；png 更稳但通常更慢"),
+            texts={
+                "JPG": "jpg",
+                "PNG": "png",
+                "WEBP": "webp",
+            },
+            parent=self.experimental_group,
+        )
+        self.obs_image_quality_card = PushSettingCardChance(
+            QT_TRANSLATE_NOOP("PushSettingCardChance", "修改"),
+            FIF.SPEED_HIGH,
+            QT_TRANSLATE_NOOP("PushSettingCardChance", "OBS 截图压缩质量"),
+            config_name="obs_image_quality",
+            max_value=100,
+            content=QT_TRANSLATE_NOOP("PushSettingCardChance", "仅对有损格式生效，推荐 60~80"),
+            parent=self.experimental_group,
+        )
+        self.__refreshExperimentalCardContents()
 
     def _on_hard_mirror_chance_confirm(self, _: int) -> None:
         """手动调整困难模式次数后，同步刷新自动切换时间戳。"""
@@ -446,6 +526,15 @@ class SettingInterface(QWidget):
         self.about_group.addSettingCard(self.feedback_card)
 
         self.experimental_group.addSettingCard(self.auto_lang_card)
+        self.experimental_group.addSettingCard(self.logitech_switch_card)
+        self.experimental_group.addSettingCard(self.logitech_dll_path_card)
+        self.experimental_group.addSettingCard(self.obs_switch_card)
+        self.experimental_group.addSettingCard(self.obs_host_card)
+        self.experimental_group.addSettingCard(self.obs_port_card)
+        self.experimental_group.addSettingCard(self.obs_password_card)
+        self.experimental_group.addSettingCard(self.obs_source_name_card)
+        self.experimental_group.addSettingCard(self.obs_image_format_card)
+        self.experimental_group.addSettingCard(self.obs_image_quality_card)
 
         self.expand_layout.addWidget(self.game_setting_group)
         self.expand_layout.addWidget(self.theme_pack_group)
@@ -517,6 +606,10 @@ class SettingInterface(QWidget):
         self.zoom_card.valueChanged.connect(self.__onZoomCardValueChanged)
         self.auto_lang_card.switchButton.checkedChanged.connect(self.__onAutoLangCardChecked)
         self.win_input_type_card.valueChanged.connect(self.__onWinInputTypeChanged)
+        self.logitech_dll_path_card.clicked.connect(self.__onLogitechDllPathCardClicked)
+        self.obs_host_card.clicked.connect(self.__onObsHostCardClicked)
+        self.obs_password_card.clicked.connect(self.__onObsPasswordCardClicked)
+        self.obs_source_name_card.clicked.connect(self.__onObsSourceNameCardClicked)
         self.__onWinInputTypeChanged()
         self.autostart_card.switchButton.checkedChanged.connect(self.__onAutostartCardChanged)
         self.theme_card.valueChanged.connect(self.__onThemeCardChanged)
@@ -538,6 +631,43 @@ class SettingInterface(QWidget):
         import os
 
         os.startfile(os.path.abspath("./logs"))
+
+    def __refreshExperimentalCardContents(self):
+        self.logitech_dll_path_card.setContent(cfg.get_value("logitech_dll_path", ""))
+        self.obs_host_card.setContent(cfg.get_value("obs_host", "localhost"))
+        self.obs_password_card.setContent(
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "(已设置)") if cfg.get_value("obs_password", "") else QT_TRANSLATE_NOOP("BasePushSettingCard", "(未设置)")
+        )
+        self.obs_source_name_card.setContent(cfg.get_value("obs_source_name", ""))
+
+    def __onLogitechDllPathCardClicked(self):
+        dll_path, _ = QFileDialog.getOpenFileName(self, "选择 logitech.driver.dll", "", "DLL Files (*.dll)")
+        if not dll_path or cfg.get_value("logitech_dll_path") == dll_path:
+            return
+        cfg.set_value("logitech_dll_path", dll_path)
+        self.logitech_dll_path_card.setContent(dll_path)
+
+    def __openTextEditForConfig(self, title: str, config_name: str, card, password: bool = False):
+        current_value = str(cfg.get_value(config_name, "") or "")
+        message_box = MessageBoxEdit(self.tr(title), current_value, self.window())
+        if password:
+            message_box.lineEdit.setEchoMode(QLineEdit.Password)
+        if message_box.exec():
+            new_value = str(message_box.getText()).strip()
+            cfg.set_value(config_name, new_value)
+            if password:
+                card.setContent(self.tr("(已设置)") if new_value else self.tr("(未设置)"))
+            else:
+                card.setContent(new_value)
+
+    def __onObsHostCardClicked(self):
+        self.__openTextEditForConfig("OBS WebSocket 地址", "obs_host", self.obs_host_card)
+
+    def __onObsPasswordCardClicked(self):
+        self.__openTextEditForConfig("OBS WebSocket 密码", "obs_password", self.obs_password_card, password=True)
+
+    def __onObsSourceNameCardClicked(self):
+        self.__openTextEditForConfig("OBS 截图源名称", "obs_source_name", self.obs_source_name_card)
 
     def __onScreenshotBenchmarkCardClicked(self):
         from module.automation.screenshot import ScreenShot
@@ -592,7 +722,7 @@ class SettingInterface(QWidget):
         self.win_input_type_card.retranslateUi()
 
     def __onZoomCardValueChanged(self):
-        bar = BaseInfoBar.success(
+        BaseInfoBar.success(
             title=QT_TRANSLATE_NOOP("BaseInfoBar", "更改将在重新启动后生效"),
             content="",
             orient=Qt.Horizontal,
@@ -611,7 +741,7 @@ class SettingInterface(QWidget):
             helper.unregister_task(TASK_NAME)
 
     def __onAutoLangCardChecked(self, Checked):
-        bar = BaseInfoBar.success(
+        BaseInfoBar.success(
             title=QT_TRANSLATE_NOOP("BaseInfoBar", "更改将在重新启动后生效"),
             content="",
             orient=Qt.Horizontal,
@@ -677,6 +807,16 @@ class SettingInterface(QWidget):
         self.feedback_card.retranslateUi()
         self.experimental_group.retranslateUi()
         self.auto_lang_card.retranslateUi()
+        self.logitech_switch_card.retranslateUi()
+        self.logitech_dll_path_card.retranslateUi()
+        self.obs_switch_card.retranslateUi()
+        self.obs_host_card.retranslateUi()
+        self.obs_port_card.retranslateUi()
+        self.obs_password_card.retranslateUi()
+        self.obs_source_name_card.retranslateUi()
+        self.obs_image_format_card.retranslateUi()
+        self.obs_image_quality_card.retranslateUi()
+        self.__refreshExperimentalCardContents()
 
     def __onThemeCardChanged(self):
         theme_mode = cfg.get_value("theme_mode")

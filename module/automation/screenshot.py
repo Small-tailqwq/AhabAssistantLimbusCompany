@@ -23,6 +23,14 @@ class ScreenShot:
         Returns:
             PIL.Image: 截图图像
         """
+        # 实验室功能：OBS WebSocket 截图（规避 ScreenCaptureAnalytics 检测）
+        if getattr(cfg, "lab_screenshot_obs", False):
+            try:
+                return ScreenShot.obs_screenshot(gray)
+            except Exception as e:
+                log.debug(f"OBS截图报错 {type(e).__name__}: {e}")
+                return None
+
         if cfg.simulator:
             if cfg.simulator_type == 0:
                 try:
@@ -360,3 +368,25 @@ class ScreenShot:
         else:
             log.error("未连接到adb设备")
             raise ConnectionError("未连接到adb设备")
+
+    @staticmethod
+    def obs_screenshot(gray: bool = True) -> Image.Image | None:
+        """通过 OBS WebSocket 截图 (实验室功能)
+
+        不调用任何 GDI / PrintWindow / BitBlt API，
+        避免被 ScreenCaptureAnalytics 检测。
+
+        Args:
+            gray (bool): 是否转换为灰度图，默认为True
+
+        Returns:
+            Image.Image: 截图图像，失败返回 None
+        """
+        from module.automation.obs_capture import get_obs_capture
+
+        obs = get_obs_capture()
+        image = obs.take_screenshot(gray=gray)
+        if image is None:
+            log.debug("OBS 截图返回空值")
+            return None
+        return image

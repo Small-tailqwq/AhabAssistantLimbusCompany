@@ -57,6 +57,15 @@ resonate_with_Ahab: False # 是否播放亚哈语录
 
 # 实验性功能
 experimental_auto_lang: True # 是否自动修改语言
+lab_mouse_logitech: False # 实验室功能：通过独立鼠标驱动进行硬件级鼠标坐标更新，需填入正确 DLL 路径才能生效
+logitech_dll_path: "" # logitech.driver.dll 的绝对路径，启用硬件鼠标模拟必填
+lab_screenshot_obs: False # 实验室功能：通过 OBS WebSocket 截图，规避 ScreenCaptureAnalytics 检测
+obs_host: "localhost" # OBS WebSocket 服务地址
+obs_port: 4455 # OBS WebSocket 服务端口
+obs_password: "" # OBS WebSocket 密码（未设置密码则留空）
+obs_source_name: "" # OBS 中捕获游戏窗口的源名称（必填）
+obs_image_format: "jpg" # OBS 截图编码格式，推荐 jpg；png 更稳但通常更慢
+obs_image_quality: 80 # OBS 截图压缩质量，0 压缩更高，100 压缩更低；仅对有损格式生效
 
 
 # 模拟器设置
