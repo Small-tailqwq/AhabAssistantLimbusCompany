@@ -15,6 +15,7 @@ Features:
 - Press Ctrl+C to exit
 """
 
+import hashlib
 import os
 import subprocess
 import sys
@@ -125,7 +126,7 @@ class AALCReloader:
 
     def start_file_watcher(self):
         """Start watching for file changes"""
-        event_handler = FileChangeHandler(self)
+        watch_paths = []
         self.observer = Observer()
 
         # Watch main directories
@@ -133,9 +134,13 @@ class AALCReloader:
         for dirname in watch_dirs:
             dir_path = Path.cwd() / dirname
             if dir_path.exists():
-                self.observer.schedule(event_handler, str(dir_path), recursive=True)
+                watch_paths.append(dir_path)
 
         # Watch root directory (non-recursive)
+        watch_paths.append(Path.cwd())
+        event_handler = FileChangeHandler(self, watch_paths)
+        for dir_path in watch_paths[:-1]:
+            self.observer.schedule(event_handler, str(dir_path), recursive=True)
         self.observer.schedule(event_handler, str(Path.cwd()), recursive=False)
 
         self.observer.start()
@@ -244,8 +249,9 @@ os.environ['AALC_DEV_MODE'] = '1'
 class FileChangeHandler(FileSystemEventHandler):
     """Handle file system events"""
 
-    def __init__(self, reloader):
+    def __init__(self, reloader, watch_paths):
         self.reloader = reloader
+        self.file_signatures = {}
         self.ignored_patterns = {
             "__pycache__",
             ".pyc",
@@ -256,28 +262,68 @@ class FileChangeHandler(FileSystemEventHandler):
             ".egg-info",
             "__main_dev_temp__.py",
         }
+        self._build_initial_signatures(watch_paths)
 
     def should_ignore(self, path):
         """Check if file should be ignored"""
         path_str = str(path)
         return any(pattern in path_str for pattern in self.ignored_patterns)
 
+    @staticmethod
+    def calculate_file_signature(path: Path):
+        if not path.exists() or path.suffix != ".py":
+            return None
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        stat = path.stat()
+        return f"{stat.st_size}:{digest}"
+
+    def _build_initial_signatures(self, watch_paths):
+        for watch_path in watch_paths:
+            if watch_path.is_dir():
+                for py_file in watch_path.rglob("*.py"):
+                    if not self.should_ignore(py_file):
+                        self.file_signatures[str(py_file)] = self.calculate_file_signature(py_file)
+            elif watch_path.suffix == ".py" and not self.should_ignore(watch_path):
+                self.file_signatures[str(watch_path)] = self.calculate_file_signature(watch_path)
+
+    def _handle_python_change(self, src_path: str, change_type: str):
+        path = Path(src_path)
+        if self.should_ignore(path) or path.suffix != ".py":
+            return
+
+        current_signature = self.calculate_file_signature(path)
+        previous_signature = self.file_signatures.get(str(path))
+
+        if current_signature is None:
+            self.file_signatures.pop(str(path), None)
+            return
+
+        if current_signature == previous_signature:
+            return
+
+        self.file_signatures[str(path)] = current_signature
+        rel_path = Path(os.path.relpath(path, Path.cwd()))
+        log.info(f"File {change_type}: {rel_path}")
+        self.reloader.should_restart = True
+
     def on_modified(self, event):
         """Handle file modification"""
         if event.is_directory or self.should_ignore(event.src_path):
             return
 
-        if event.src_path.endswith(".py"):
-            rel_path = Path(event.src_path).relative_to(Path.cwd())
-            log.info(f"File changed: {rel_path}")
-            self.reloader.should_restart = True
+        self._handle_python_change(event.src_path, "changed")
 
     def on_created(self, event):
         """Handle file creation"""
-        if not event.is_directory and event.src_path.endswith(".py"):
-            rel_path = Path(event.src_path).relative_to(Path.cwd())
-            log.info(f"File created: {rel_path}")
-            self.reloader.should_restart = True
+        if event.is_directory:
+            return
+        self._handle_python_change(event.src_path, "created")
+
+    def on_moved(self, event):
+        """Handle file rename or safe-write replacement"""
+        if event.is_directory:
+            return
+        self._handle_python_change(event.dest_path, "changed")
 
 
 def main():

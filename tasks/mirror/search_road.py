@@ -10,6 +10,64 @@ from module.my_error.my_error import InputAttributeError
 from tasks.base.retry import retry
 
 
+def enter_mirror_road(direction=None, position=None):
+    if cfg.mirror_keyboard_navigation:
+        log.debug(f"通过键盘按键寻路: {direction}")
+        if direction == "U":
+            auto.key_press("up")
+        elif direction == "D":
+            auto.key_press("down")
+        elif direction == "M":
+            auto.key_press("right")
+        sleep(0.5)
+        auto.key_press("enter")
+        sleep(1.25)
+        if auto.click_element("mirror/road_in_mir/enter_assets.png", take_screenshot=True):
+            return True
+        return True
+
+    if position is not None:
+        auto.mouse_click(position[0], position[1])
+        sleep(1.25)
+        if auto.click_element("mirror/road_in_mir/enter_assets.png", take_screenshot=True):
+            return True
+    return False
+
+
+def confirm_current_mirror_node():
+    if cfg.mirror_keyboard_navigation:
+        auto.key_press("enter")
+        sleep(1.25)
+        if auto.click_element("mirror/road_in_mir/enter_assets.png", take_screenshot=True):
+            return True
+        return True
+
+    if auto.click_element("mirror/mybus_default_distance.png", take_screenshot=True):
+        sleep(1.25)
+        if auto.click_element("mirror/road_in_mir/enter_assets.png", take_screenshot=True):
+            return True
+    return False
+
+
+def find_visible_bus_position(retries=3, delay=0.3):
+    for _ in range(retries):
+        if bus_position := auto.find_element("mirror/mybus_default_distance.png", take_screenshot=True):
+            return bus_position
+        sleep(delay)
+
+    log.debug("镜牢路线图未识别到巴士，尝试通过方向键右->左恢复视角")
+    auto.key_press("right")
+    sleep(0.35)
+    auto.key_press("left")
+    sleep(0.45)
+
+    for _ in range(max(2, retries // 2)):
+        if bus_position := auto.find_element("mirror/mybus_default_distance.png", take_screenshot=True):
+            return bus_position
+        sleep(delay)
+    return None
+
+
 class MirrorMap:
     def __init__(self, floor=1, hard_mode=False):
         self.floor = floor
@@ -44,29 +102,14 @@ class MirrorMap:
 
     def enter_next_node(self, next_step):
         if cfg.mirror_keyboard_navigation:
-            log.debug(f"通过键盘按键寻路: {next_step}")
-            if next_step == "U":
-                auto.key_press("up")
-            elif next_step == "D":
-                auto.key_press("down")
-            elif next_step == "M":
-                auto.key_press("right")
-            sleep(0.5)
-            auto.key_press("enter")
-            sleep(1.25)
-            if auto.click_element("mirror/road_in_mir/enter_assets.png", take_screenshot=True):
+            if enter_mirror_road(direction=next_step):
                 return True
-            return True
 
         if next_position := self._get_next_position(next_step):
-            auto.mouse_click(next_position[0], next_position[1])
-            sleep(1.25)
-            if auto.click_element("mirror/road_in_mir/enter_assets.png", take_screenshot=True):
+            if enter_mirror_road(direction=next_step, position=next_position):
                 return True
-        if auto.click_element("mirror/mybus_default_distance.png", take_screenshot=True):
-            sleep(1.25)
-            if auto.click_element("mirror/road_in_mir/enter_assets.png", take_screenshot=True):
-                return True
+        if confirm_current_mirror_node():
+            return True
         return False
 
     def _get_next_position(self, direction):
@@ -133,6 +176,7 @@ def _drag_map_to_bus_anchor(
 ) -> bool:
     dx = 0
     dy = 0
+    scale = cfg.set_win_size / 1440
 
     if target_x is not None:
         dx = target_x - bus_position[0]
@@ -146,9 +190,39 @@ def _drag_map_to_bus_anchor(
     if dx == 0 and dy == 0:
         return False
 
-    drag_distance = (dx**2 + dy**2) ** 0.5
-    drag_time = min(1.35, max(0.45, drag_distance / max(cfg.set_win_size * 0.9, 1)))
-    auto.mouse_drag(bus_position[0], bus_position[1], drag_time=drag_time, dx=dx, dy=dy)
+    max_drag_step = int(220 * scale)
+    drag_dx = 0
+    drag_dy = 0
+
+    # 镜牢地图校正对拖拽轨迹非常敏感，长距离斜向拖动在罗技仿生下容易把镜头带偏。
+    # 这里改成短距离、单轴推进，外层循环会在每次拖动后重新识别巴士位置并继续校正。
+    if abs(dx) >= abs(dy) and dx != 0:
+        drag_dx = max(-max_drag_step, min(max_drag_step, int(dx)))
+    elif dy != 0:
+        drag_dy = max(-max_drag_step, min(max_drag_step, int(dy)))
+
+    if drag_dx == 0 and drag_dy == 0:
+        drag_dx = max(-max_drag_step, min(max_drag_step, int(dx)))
+        drag_dy = max(-max_drag_step, min(max_drag_step, int(dy)))
+
+    drag_distance = (drag_dx**2 + drag_dy**2) ** 0.5
+    drag_time = min(0.42, max(0.18, drag_distance / max(cfg.set_win_size * 2.6, 1)))
+    log.debug(
+        "镜牢路线图校正拖拽: 巴士%s -> 目标(%s,%s)，本轮步进(dx=%s, dy=%s)",
+        bus_position,
+        int(target_x) if target_x is not None else None,
+        int(target_y) if target_y is not None else None,
+        drag_dx,
+        drag_dy,
+    )
+    auto.mouse_drag(
+        bus_position[0],
+        bus_position[1],
+        drag_time=drag_time,
+        dx=drag_dx,
+        dy=drag_dy,
+        move_back=False,
+    )
     return True
 
 
@@ -161,6 +235,7 @@ def search_road_default_distance():
         [500 * scale, 450 * scale],
         [500 * scale, -400 * scale],
     ]
+    three_road_directions = ["M", "D", "U"]
 
     auto.mouse_to_blank()
     while auto.take_screenshot() is None:
@@ -169,20 +244,20 @@ def search_road_default_distance():
         return False
     # 判断中、下两个节点是否有权重3的节点，有的话直接选择进入
     node_weight = {}
+    node_direction = {}
     if bus_position := auto.find_element("mirror/mybus_default_distance.png", take_screenshot=True):
-        for road in three_roads[:2]:
+        for road, direction in zip(three_roads[:2], three_road_directions[:2], strict=False):
             node_x = bus_position[0] + road[0]
             node_y = bus_position[1] + road[1]
             weight = get_node_weight(node_x, node_y)
             node_weight[(node_x, node_y)] = weight
+            node_direction[(node_x, node_y)] = direction
         max_weight = max(node_weight.values())
         if max_weight == 3:
             road_list = sorted(node_weight, key=node_weight.get, reverse=True)
             road = road_list[0]
             if 0 < road[0] < cfg.set_win_size * 16 / 9 and 0 < road[1] < cfg.set_win_size:
-                auto.mouse_click(road[0], road[1])
-                sleep(0.75)
-                if auto.click_element("mirror/road_in_mir/enter_assets.png", take_screenshot=True):
+                if enter_mirror_road(direction=node_direction[road], position=road):
                     return True
     # 如果中、下两个节点没有权重3的节点，查看所有节点的权重，选择权重最大的节点进入
     if bus_position := auto.find_element("mirror/mybus_default_distance.png", take_screenshot=True):
@@ -217,19 +292,18 @@ def search_road_default_distance():
             node_list.append((node_x, node_y))
         old_weight = node_weight.values()
         all_node_weight = dict(zip(node_list, old_weight))
-        for road in three_roads[2:]:
+        for road, direction in zip(three_roads[2:], three_road_directions[2:], strict=False):
             node_x = bus_position[0] + road[0]
             node_y = bus_position[1] + road[1]
             weight = get_node_weight(node_x, node_y)
             all_node_weight[(node_x, node_y)] = weight
+            node_direction[(node_x, node_y)] = direction
         all_node_weight[bus_position[0], bus_position[1]] = -6
         # 根据all_node_weight，按照各个键的值，从大到小以生成只有键的新的列表
         road_list = sorted(all_node_weight, key=all_node_weight.get, reverse=True)
         for road in road_list:
             if 0 < road[0] < cfg.set_win_size * 16 / 9 and 0 < road[1] < cfg.set_win_size:
-                auto.mouse_click(road[0], road[1])
-                sleep(0.75)
-                if auto.click_element("mirror/road_in_mir/enter_assets.png", take_screenshot=True):
+                if enter_mirror_road(direction=node_direction.get(road, "M"), position=road):
                     return True
     return False
 
@@ -249,17 +323,15 @@ def search_road_farthest_distance():
         [250 * scale, 0],
         [250 * scale, 225 * scale],
     ]
+    three_road_directions = ["U", "M", "D"]
     if bus_position := auto.find_element("mirror/mybus_maximum_distance.png"):
-        for road in three_roads:
+        for road, direction in zip(three_roads, three_road_directions, strict=False):
             road[0] += bus_position[0]
             road[1] += bus_position[1]
             if 0 < road[0] < cfg.set_win_size * 16 / 9 and 0 < road[1] < cfg.set_win_size:
-                auto.mouse_click(road[0], road[1])
-                sleep(0.75)
-                if auto.click_element("mirror/road_in_mir/enter_assets.png", take_screenshot=True):
+                if enter_mirror_road(direction=direction, position=road):
                     return True
-        auto.mouse_click(bus_position[0], bus_position[1])
-        if auto.click_element("mirror/road_in_mir/enter_assets.png", take_screenshot=True):
+        if confirm_current_mirror_node():
             return True
     return False
 
@@ -270,10 +342,8 @@ def search_road_from_road_map(hard_mode=False):
     road = []
     bus = None
 
-    if auto.click_element("mirror/mybus_default_distance.png", take_screenshot=True):
-        sleep(0.75)
-        if auto.click_element("mirror/road_in_mir/enter_assets.png", take_screenshot=True):
-            return True, True
+    if confirm_current_mirror_node():
+        return True, True
 
     if bus_position := auto.find_element("mirror/mybus_default_distance.png", take_screenshot=True):
         from tasks.base.retry import check_times
@@ -307,7 +377,11 @@ def search_road_from_road_map(hard_mode=False):
                 bus = bus_position
                 break
 
-    bus_pos = auto.find_element("mirror/mybus_default_distance.png")
+    bus = bus or find_visible_bus_position()
+    bus_pos = find_visible_bus_position()
+    if bus is None or bus_pos is None:
+        log.warning("镜牢路线图寻路时未能稳定识别巴士位置，回退到距离兜底寻路")
+        return [], []
     all_nodes = identify_nodes(bus[0])
     y_area = divide_the_area_by_y(all_nodes)
     reset_position = False
@@ -359,6 +433,10 @@ def search_road_from_road_map(hard_mode=False):
                 bus_position = auto.find_element("mirror/mybus_default_distance.png", take_screenshot=True)
                 if bus_position is None:
                     break
+        bus = bus or find_visible_bus_position()
+        if bus is None:
+            log.warning("镜牢路线图重定位后未能重新识别巴士位置，回退到距离兜底寻路")
+            return [], []
         all_nodes = identify_nodes(bus[0])
 
     if len(road) != 0:

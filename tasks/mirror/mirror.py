@@ -1,3 +1,5 @@
+import random
+import re
 import time
 from time import sleep
 
@@ -90,6 +92,125 @@ class Mirror:
         self.pass_coins = None
 
         self.bequest_from_the_previous_game = False
+
+    def event_action_visible(self):
+        return any(
+            (
+                auto.find_element("event/choices_assets.png"),
+                auto.find_element("event/select_first_option_assets.png"),
+                auto.find_element("event/perform_the_check_feature_assets.png"),
+                auto.find_element("event/continue_assets.png"),
+                auto.find_element("event/proceed_assets.png"),
+                auto.find_element("event/commence_assets.png"),
+                auto.find_element("event/commence_battle_assets.png"),
+            )
+        )
+
+    def event_decision_visible(self):
+        return any(
+            (
+                auto.find_element("event/very_high.png"),
+                auto.find_element("event/high.png"),
+                auto.find_element("event/normal.png"),
+                auto.find_element("event/low.png"),
+                auto.find_element("event/very_low.png"),
+                auto.find_element("event/perform_the_check_feature_assets.png"),
+            )
+        )
+
+    def wake_event_selection(self, wake_times=2, reason="skip", stop_on_decision=True):
+        for wake_index in range(wake_times):
+            sleep(0.25)
+            log.debug(f"事件 {reason} 后发送空格唤醒 ({wake_index + 1}/{wake_times})")
+            auto.key_press("space")
+            sleep(0.6)
+            if auto.take_screenshot() is None:
+                continue
+            if (
+                self.event_action_visible()
+                or (stop_on_decision and self.event_decision_visible())
+                or auto.find_element("mirror/road_in_mir/ego_gift_get_confirm_assets.png")
+            ):
+                return True
+        return False
+
+    def nudge_event_after_skip(self):
+        log.debug("事件 skip 后未立即出现可交互项，尝试点击空白推进当前事件层")
+        auto.mouse_click_blank(move_back=False)
+        sleep(0.55)
+        if auto.take_screenshot() is None:
+            return False
+        return self.event_action_visible() or auto.find_element("mirror/road_in_mir/ego_gift_get_confirm_assets.png")
+
+    def skip_event_and_wake_selection(self, skip_asset_path="event/skip_assets.png"):
+        if auto.take_screenshot() is None:
+            return False
+
+        if auto.find_element(skip_asset_path) is None:
+            return False
+
+        clicked_skip = False
+        max_attempts = random.randint(2, 3)
+        for attempt in range(max_attempts):
+            if auto.click_element(skip_asset_path):
+                clicked_skip = True
+            skip_disappeared = False
+            for _ in range(6):
+                sleep(0.25 if attempt == 0 else 0.3)
+                if auto.take_screenshot() is None:
+                    continue
+                if auto.find_element(skip_asset_path) is None:
+                    skip_disappeared = True
+                    break
+            if skip_disappeared:
+                log.debug("检测到事件 skip 按钮已消失，立即发送空格推进后续事件层")
+            if self.wake_event_selection(wake_times=2 if skip_disappeared else 1, reason="skip"):
+                return True
+            if skip_disappeared and self.nudge_event_after_skip():
+                return True
+            if auto.find_element(skip_asset_path) is None:
+                break
+        return clicked_skip
+
+    def wake_event_after_progress(self, action_name):
+        sleep(0.45)
+        if auto.take_screenshot() is None:
+            return False
+        if self.wake_event_selection(wake_times=1, reason=action_name, stop_on_decision=False):
+            return True
+        if auto.take_screenshot() is None:
+            return False
+        if self.event_decision_visible():
+            log.debug(f"事件 {action_name} 后仍停留在判定/结果层，补空白推进后续事件")
+            auto.mouse_click_blank(move_back=False)
+            sleep(0.55)
+            if auto.take_screenshot() is None:
+                return False
+            return (
+                self.event_action_visible()
+                or self.event_decision_visible()
+                or auto.find_element("mirror/road_in_mir/ego_gift_get_confirm_assets.png")
+            )
+        if self.wake_event_selection(wake_times=1, reason=action_name):
+            return True
+        return self.event_decision_visible()
+
+    def recover_stalled_event_layer(self):
+        log.debug("事件界面暂未识别到有效按钮，尝试空格推进当前层")
+        if self.wake_event_selection(wake_times=1, reason="stalled"):
+            return True
+        if auto.take_screenshot() is None:
+            return False
+        log.debug("事件空格推进后仍无有效按钮，尝试点击空白继续唤醒")
+        auto.mouse_click_blank(move_back=False)
+        sleep(0.55)
+        if auto.take_screenshot() is None:
+            return False
+        return (
+            self.event_action_visible()
+            or self.event_decision_visible()
+            or auto.find_element("mirror/road_in_mir/ego_gift_get_confirm_assets.png")
+        )
 
     def road_to_mir(self):
         loop_count = 30
@@ -370,7 +491,7 @@ class Mirror:
                 continue
 
             # 遇到事件
-            if auto.click_element("/event/skip_assets.png", times=6):
+            if self.skip_event_and_wake_selection("event/skip_assets.png"):
                 self.event_handling()
                 continue
 
@@ -1041,6 +1162,35 @@ class Mirror:
                 auto.mouse_click(positions_list[0][0], positions_list[0][1])
                 event_chance -= 1
                 continue
+            choice_screen_visible = auto.find_element("event/choices_assets.png")
+            select_first_option_visible = choice_screen_visible and auto.find_element("event/select_first_option_assets.png")
+            decision_feature_visible = auto.find_element("event/perform_the_check_feature_assets.png")
+            continue_visible = auto.find_element("event/continue_assets.png")
+            proceed_visible = auto.find_element("event/proceed_assets.png")
+            commence_visible = auto.find_element("event/commence_assets.png")
+            commence_battle_visible = auto.find_element("event/commence_battle_assets.png")
+
+            # 某些随机事件在点击 continue 后会进入“应该让谁去呢”的罪人判定层，
+            # 此时 skip 会灰掉，advantage_check 又可能误匹配，因此要优先按判定界面处理。
+            if choice_screen_visible or decision_feature_visible:
+                if select_first_option_visible:
+                    auto.click_element("event/select_first_option_assets.png")
+                    continue
+                if not any((continue_visible, proceed_visible, commence_visible, commence_battle_visible)):
+                    if not self.event_decision_visible():
+                        log.debug("识别到罪人选择预加载界面，先发送空格并点击空白唤醒头像与成功率")
+                        self.wake_event_selection(wake_times=1, reason="decision_preload")
+                        if auto.take_screenshot() is not None and not self.event_decision_visible():
+                            auto.mouse_click_blank(move_back=False)
+                            sleep(0.55)
+                        continue
+                    log.debug("识别到事件罪人判定层，优先执行罪人判定逻辑")
+                    event_handling.decision_event_handling()
+                    continue
+                if decision_feature_visible:
+                    log.debug("识别到事件罪人判定层，优先执行罪人判定逻辑")
+                    event_handling.decision_event_handling()
+                    continue
             if auto.click_element("event/advantage_check.png"):
                 event_chance -= 1
                 continue
@@ -1049,25 +1199,30 @@ class Mirror:
                 continue
 
             # 如果需要罪人判定
-            if auto.find_element("event/choices_assets.png") and auto.find_element(
-                "event/select_first_option_assets.png"
-            ):
+            if choice_screen_visible and select_first_option_visible:
                 auto.click_element("event/select_first_option_assets.png")
-            if auto.find_element("event/perform_the_check_feature_assets.png"):
+            if decision_feature_visible:
                 event_handling.decision_event_handling()
-            if auto.click_element("event/continue_assets.png"):
+            if continue_visible and auto.click_element("event/continue_assets.png"):
+                self.wake_event_after_progress("continue")
                 continue
-            if auto.click_element("event/proceed_assets.png"):
+            if proceed_visible and auto.click_element("event/proceed_assets.png"):
+                self.wake_event_after_progress("proceed")
                 continue
-            if auto.click_element("event/commence_assets.png"):
+            if commence_visible and auto.click_element("event/commence_assets.png"):
+                self.wake_event_after_progress("commence")
                 continue
-            if auto.click_element("event/commence_battle_assets.png"):
+            if commence_battle_visible and auto.click_element("event/commence_battle_assets.png"):
+                self.wake_event_after_progress("commence_battle")
                 continue
 
             if auto.click_element("mirror/road_in_mir/ego_gift_get_confirm_assets.png"):
                 continue
 
-            if auto.click_element("event/skip_assets.png", times=6):
+            if self.skip_event_and_wake_selection("event/skip_assets.png"):
+                continue
+
+            if self.recover_stalled_event_layer():
                 continue
 
             loop_count -= 1
@@ -1346,46 +1501,64 @@ class Mirror:
         self.shop.in_shop(self.floor)
 
     def get_which_floor(self):
-        def handle_ocr(image):
+        def extract_floor_from_text(ocr_text):
+            normalized_text = ocr_text.replace(" ", "").replace("\n", "").lower()
+            if cfg.language_in_game == "zh_cn":
+                match = re.search(r"第([1-5])层", normalized_text)
+                if not match:
+                    match = re.search(r"([1-5])层", normalized_text)
+            else:
+                match = re.search(r"floor([1-5])", normalized_text)
+                if not match:
+                    match = re.search(r"([1-5])f", normalized_text)
+            if not match:
+                return None
+            floor = int(match.group(1))
+            return floor if 0 < floor <= 5 else None
+
+        def handle_ocr(image, stage_name):
+            ocr_result = ""
             try:
                 result = ocr.run(image)
-                ocr_result = [result.txts[i] for i in range(len(result.txts))]
-                ocr_result = "".join(ocr_result)
-                log.debug(f"对于楼层信息OCR得到：{ocr_result}")
-                if cfg.language_in_game == "zh_cn" and "第" in ocr_result:
-                    result = ocr_result.split("第")
-                    floor = result[-1][0]
-                    floor = int(floor)
-                    if 0 < floor <= 5:
-                        self.floor = floor
-                        self.get_floor_num = False
-                        return True
-                elif cfg.language_in_game == "en" and "oor" in ocr_result:
-                    result = ocr_result.split("oor")
-                    floor = result[-1][0]
-                    floor = int(floor)
-                    if 0 < floor <= 5:
-                        self.floor = floor
-                        self.get_floor_num = False
-                        return True
+                if getattr(result, "txts", None):
+                    ocr_result = "".join(result.txts)
+                floor = extract_floor_from_text(ocr_result)
+                if floor is not None:
+                    log.debug(f"对于楼层信息OCR[{stage_name}]得到：{ocr_result}")
+                    self.floor = floor
+                    self.get_floor_num = False
+                    return True, ocr_result
             except:
                 pass
-            return False
+            return False, ocr_result
 
         this_floor = self.floor
 
         auto.take_screenshot(gray=False)
         get_floor_bbox = ImageUtils.get_bbox(ImageUtils.load_image("mirror/road_in_mir/get_floor_bbox.png"))
-        sc = ImageUtils.crop(np.array(auto.screenshot), get_floor_bbox)
+        previous_crop = ImageUtils.crop(np.array(auto.screenshot), get_floor_bbox)
 
         for i in range(5):
             auto.take_screenshot(gray=False)
-            sc2 = ImageUtils.crop(np.array(auto.screenshot), get_floor_bbox)
-            diff = cv2.absdiff(sc, sc2)
+            current_crop = ImageUtils.crop(np.array(auto.screenshot), get_floor_bbox)
+            diff = cv2.absdiff(previous_crop, current_crop)
             diff_gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
-            _, img = cv2.threshold(diff_gray, 5, 255, cv2.THRESH_BINARY)
-            img = cv2.resize(img, None, fx=3.0, fy=3.0, interpolation=cv2.INTER_CUBIC)
-            if handle_ocr(img) and self.floor != this_floor:
+            _, binary_img = cv2.threshold(diff_gray, 5, 255, cv2.THRESH_BINARY)
+            current_scaled = cv2.resize(current_crop, None, fx=2.5, fy=2.5, interpolation=cv2.INTER_CUBIC)
+            binary_img = cv2.resize(binary_img, None, fx=3.0, fy=3.0, interpolation=cv2.INTER_CUBIC)
+
+            floor_found = False
+            for stage_name, candidate_image in (
+                ("current", current_crop),
+                ("current_scaled", current_scaled),
+                ("diff_gray", diff_gray),
+                ("binary", binary_img),
+            ):
+                floor_found, _ = handle_ocr(candidate_image, stage_name)
+                if floor_found:
+                    break
+            previous_crop = current_crop
+            if floor_found and self.floor != this_floor:
                 break
 
         log.debug(f"识别前楼层为{this_floor}，识别后为{self.floor}")

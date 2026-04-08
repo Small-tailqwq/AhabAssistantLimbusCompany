@@ -3,12 +3,11 @@ import ctypes
 import math
 import os
 import random
-from time import sleep, time
+from time import time
 
 import win32api
-import win32con
-import win32gui
 
+from app import mediator
 from module.config import cfg
 from module.logger import log
 from utils.singletonmeta import SingletonMeta
@@ -56,6 +55,7 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         self.release_key_all_func = None
         self._driver_ready = False
         self._cleanup_registered = False
+        self._focus_waiting_notified = False
 
         log.info("罗技输入适配器已创建，DLL 将在首次实际键鼠操作时加载。")
 
@@ -178,6 +178,18 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
     def _client_to_screen_target(self, x: int, y: int) -> tuple[int, int]:
         rect = screen.handle.rect(True)
         return rect[0] + int(x), rect[1] + int(y)
+
+    def _ensure_input_focus(self):
+        while not screen.ensure_direct_input_ready():
+            if not self._focus_waiting_notified:
+                message = "罗技模拟要求游戏窗口保持前台。请手动点回游戏窗口，脚本会在确认焦点后继续。"
+                log.warning(message)
+                mediator.warning.emit(message)
+                self._focus_waiting_notified = True
+            HumanKinematics.human_sleep(0.4, jitter=0.15, minimum=0.25, maximum=0.6)
+        if self._focus_waiting_notified:
+            log.info("已检测到游戏窗口重新获得焦点，继续执行罗技模拟输入。")
+            self._focus_waiting_notified = False
 
     def _resolve_move_duration(self, distance: float, duration: float) -> float:
         if duration > 0:
@@ -323,8 +335,8 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         log.debug(f"新罗技驱动点击位置:({x},{y})", stacklevel=2)
 
         for index in range(times):
+            self._ensure_input_focus()
             self.set_mouse_pos(x, y)
-            self.set_active()
             self.mouse_down()
             self.mouse_up()
             if index < times - 1:
@@ -341,8 +353,8 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
             current_mouse_position = self.get_mouse_position()
 
         drag_distance = math.hypot(dx, dy)
+        self._ensure_input_focus()
         self.set_mouse_pos(x, y)
-        self.set_active()
         self.mouse_down()
         self._move_to_client(x + dx, y + dy, duration=drag_time, button_state=BUTTON_LEFT)
         HumanKinematics.human_sleep(
@@ -361,7 +373,7 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
 
         scale = cfg.set_win_size / 1080
         drag_distance = int(300 * scale * reverse)
-        self.set_active()
+        self._ensure_input_focus()
         self.set_mouse_pos(x, y)
         self.mouse_down()
         self._move_to_client(
@@ -384,8 +396,8 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         if move_back:
             current_mouse_position = self.get_mouse_position()
 
+        self._ensure_input_focus()
         self.set_mouse_pos(position[0][0], position[0][1])
-        self.set_active()
         self.mouse_down()
         for pos in position:
             self._move_to_client(pos[0], pos[1], duration=drag_time, button_state=BUTTON_LEFT)
@@ -407,8 +419,8 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         x = coordinate[0] + random.randint(0, 10)
         y = coordinate[1] + random.randint(0, 10)
         for _ in range(times):
+            self._ensure_input_focus()
             self.set_mouse_pos(x, y)
-            self.set_active()
             self.mouse_down()
             self.mouse_up()
 
@@ -436,6 +448,7 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         if direction == 0:
             return True
 
+        self._ensure_input_focus()
         self._ensure_driver_ready()
         wheel_func = self.wheel_down_func if direction < 0 else self.wheel_up_func
         if not wheel_func():
@@ -447,15 +460,7 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         self.wait_pause()
 
     def set_active(self):
-        hwnd = screen.handle.hwnd
-        if hwnd:
-            if screen.handle.isMinimized:
-                screen.handle.set_window_transparent()
-                screen.handle.restore()
-                sleep(0.5)
-            win32gui.SendMessage(hwnd, win32con.WM_ACTIVATE, win32con.WA_ACTIVE, 0)
-        else:
-            log.error("未初始化hwnd")
+        self._ensure_input_focus()
 
     def key_down(self, key: str):
         self._ensure_driver_ready()
@@ -476,7 +481,7 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
             raise
 
     def key_press(self, key):
-        self.set_active()
+        self._ensure_input_focus()
         self.key_down(key)
         HumanKinematics.human_sleep(0.018, jitter=0.35, minimum=0.012, maximum=0.045)
         self.key_up(key)

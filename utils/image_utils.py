@@ -12,7 +12,7 @@ from utils import pic_path
 
 class ImageUtils:
     @staticmethod
-    def load_image(image_path, resize=True):
+    def load_image(image_path, resize=True, gray=True):
         """
         加载图片，并根据指定区域裁剪图片。
         :param image_path: 图片文件路径。
@@ -53,7 +53,12 @@ class ImageUtils:
                             interpolation=cv2.INTER_LINEAR,
                         )
                 # 返回处理后的图片数组
-                image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+                if gray:
+                    if channel == 1:
+                        return image
+                    return cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+                if channel == 1:
+                    return cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
                 return image
         except FileNotFoundError:
             log.error(f"未找到图片： {image_path} ")
@@ -147,6 +152,15 @@ class ImageUtils:
     @staticmethod
     def match_template(screenshot, template, bbox, model="clam"):
         try:
+            if len(screenshot.shape) == 3 and len(template.shape) == 2:
+                screenshot = cv2.cvtColor(screenshot, cv2.COLOR_RGB2GRAY)
+            elif len(screenshot.shape) == 2 and len(template.shape) == 3:
+                template = cv2.cvtColor(template, cv2.COLOR_RGB2GRAY)
+            elif len(screenshot.shape) == 3 and len(template.shape) == 3 and screenshot.shape[2] != template.shape[2]:
+                if screenshot.shape[2] > template.shape[2]:
+                    screenshot = screenshot[:, :, : template.shape[2]]
+                else:
+                    template = template[:, :, : screenshot.shape[2]]
             shape = screenshot.shape
             if len(shape) == 2:
                 height, width = shape
@@ -186,6 +200,15 @@ class ImageUtils:
 
     @staticmethod
     def match_template_with_multiple_targets(screenshot, template, threshold):
+        if len(screenshot.shape) == 3 and len(template.shape) == 2:
+            screenshot = cv2.cvtColor(screenshot, cv2.COLOR_RGB2GRAY)
+        elif len(screenshot.shape) == 2 and len(template.shape) == 3:
+            template = cv2.cvtColor(template, cv2.COLOR_RGB2GRAY)
+        elif len(screenshot.shape) == 3 and len(template.shape) == 3 and screenshot.shape[2] != template.shape[2]:
+            if screenshot.shape[2] > template.shape[2]:
+                screenshot = screenshot[:, :, : template.shape[2]]
+            else:
+                template = template[:, :, : screenshot.shape[2]]
         # 获取模板的宽度和高度
         w, h = ImageUtils.get_image_info(template)
         # 存储所有匹配位置的中心点

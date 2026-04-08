@@ -290,6 +290,14 @@ class Screen(metaclass=SingletonMeta):
             self.game.start_game()
             return False
 
+    def ensure_direct_input_ready(self) -> bool:
+        """检查真实鼠标/键盘输入是否可以安全落到游戏窗口。"""
+        if self.handle.hwnd == 0 and not self.init_handle():
+            return False
+        if self.handle.isMinimized:
+            return False
+        return self.handle.isActive
+
     def set_win(self) -> None:
         """设置窗口大小与位置"""
 

@@ -1,9 +1,37 @@
 from time import sleep
 
+import numpy as np
+
 from module.automation import auto
 from module.config import cfg
 from module.decorator.decorator import begin_and_finish_time_log
 from module.logger import log
+from utils.image_utils import ImageUtils
+
+
+def find_color_image_element(target, threshold=0.9):
+    template = ImageUtils.load_image(target, gray=False)
+    if template is None:
+        return None
+    bbox = ImageUtils.get_bbox(template)
+    template_crop = ImageUtils.crop(template, bbox)
+    if auto.take_screenshot(gray=False) is None:
+        return None
+    screenshot = np.array(auto.screenshot)
+    center, match_val = ImageUtils.match_template(screenshot, template_crop, bbox, "clam")
+    log.debug(f"{target} 彩色匹配：相似度{match_val:.2f}, 目标位置：{center}")
+    if isinstance(match_val, (int, float)) and match_val >= threshold:
+        return center
+    return None
+
+
+def handle_disabled_module_exchange(cancel, close_when_disabled=True):
+    log.debug("脑啡肽模块兑换按钮当前为灰态，本轮不执行兑换")
+    if cancel and close_when_disabled:
+        if auto.take_screenshot() is None:
+            return False
+        auto.click_element("enkephalin/enkephalin_cancel_assets.png")
+    return False
 
 
 def get_the_timing(return_time=False):
@@ -22,15 +50,15 @@ def get_the_timing(return_time=False):
                 for ocr in ocr_result:
                     s += str(ocr)
                 if ":" in s:
-                    l = s.split(":")
-                    minute = int(l[0][-2:])
-                    seconds = int(l[1][:2])
+                    parts = s.split(":")
+                    minute = int(parts[0][-2:])
+                    seconds = int(parts[1][:2])
                     if return_time:
                         return minute * 60 + seconds
                     if minute >= 5 and seconds >= 20:
                         log.debug(f"生成下一点体力的时间为{minute}分{seconds}秒，符合葛朗台模式操作")
                         return True
-            except:
+            except Exception:
                 return False
         return False
 
@@ -57,7 +85,7 @@ def get_current_enkephalin():
                 ocr_result = ocr_result.split("/")
                 current_enkephalin = int(ocr_result[0])
                 return current_enkephalin
-        except:
+        except Exception:
             continue
     try:
         sc = ImageUtils.crop(np.array(auto.screenshot), enkephalin_bbox)
@@ -67,13 +95,13 @@ def get_current_enkephalin():
         ocr_result = "".join(ocr_result)
         current_enkephalin = int(ocr_result[0])
         return current_enkephalin
-    except:
+    except Exception:
         pass
     return None
 
 
 @begin_and_finish_time_log(task_name="体力换饼", calculate_time=False)
-def make_enkephalin_module(cancel=True, skip=True):
+def make_enkephalin_module(cancel=True, skip=True, close_when_disabled=True):
     """体力换饼的模块
     Args:
         cancel (bool): 是否点击取消按钮 (即关闭换体界面)
@@ -130,17 +158,26 @@ def make_enkephalin_module(cancel=True, skip=True):
             if auto.click_element("home/enkephalin_box_assets.png", threshold=0.75):
                 sleep(0.5)
             continue
-        auto.click_element("enkephalin/all_in_assets.png")
-        auto.click_element("enkephalin/enkephalin_confirm_assets.png")
-        if cancel:
-            auto.click_element("enkephalin/enkephalin_cancel_assets.png")
-
-        break
+        if all_in_position := find_color_image_element("enkephalin/all_in_assets.png"):
+            auto.mouse_click(*all_in_position)
+            sleep(0.2)
+            if auto.take_screenshot() is None:
+                continue
+            auto.click_element("enkephalin/enkephalin_confirm_assets.png")
+            if cancel:
+                auto.click_element("enkephalin/enkephalin_cancel_assets.png")
+            return True
+        if find_color_image_element("enkephalin/all_in_disabled_assets.png"):
+            return handle_disabled_module_exchange(cancel, close_when_disabled=close_when_disabled)
+        if auto.take_screenshot() is None:
+            continue
+        log.debug("未识别到脑啡肽模块兑换按钮状态，等待界面稳定后重试")
+        sleep(0.5)
 
 
 @begin_and_finish_time_log(task_name="狂气换体", calculate_time=False)
 def lunacy_to_enkephalin(times=0):
-    make_enkephalin_module(cancel=False, skip=False)
+    make_enkephalin_module(cancel=False, skip=False, close_when_disabled=False)
     auto.click_element("enkephalin/use_lunacy_assets.png")
     sleep(0.5)
     Grandet = False
@@ -181,5 +218,9 @@ def lunacy_to_enkephalin(times=0):
             sleep(1)
             continue
         break
+    current_enkephalin = get_current_enkephalin()
     auto.click_element("enkephalin/enkephalin_cancel_assets.png")
-    make_enkephalin_module(skip=False)
+    if current_enkephalin is not None and current_enkephalin >= 20:
+        make_enkephalin_module(skip=False)
+    else:
+        log.debug(f"狂气换体结束后当前体力为{current_enkephalin}，不足20，跳过补做脑啡肽模块")

@@ -306,6 +306,12 @@ def script_task() -> None | int:
         if get_game_config_from_registry().get("_duiTheme", -1) != 0:
             log.warning("当前游戏UI为非亮色UI, 可能会导致识别错误, 建议设置为亮色(基础)UI")
 
+        if getattr(cfg, "lab_mouse_logitech", False):
+            if screen.ensure_direct_input_ready():
+                log.info("已确认游戏窗口当前处于前台，可安全开始罗技模拟输入。")
+            else:
+                log.warning("罗技模拟已启用：脚本不会自动抢焦点，若游戏未在前台，将等待你手动点回游戏窗口。")
+
     if cfg.language_in_game == "zh_cn" and pic_path[0] != "zh_cn":
         pic_path.insert(0, "zh_cn")
     elif cfg.language_in_game == "en":

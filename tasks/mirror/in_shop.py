@@ -973,16 +973,21 @@ class Shop:
                 log.error("治疗罪人失败")
                 break
 
-            if sinner_be_heal is True and auto.click_element("mirror/shop/heal_sinner/heal_sinner_return_assets.png"):
+            if sinner_be_heal is True:
                 if auto.find_element("mirror/shop/shop_coins_assets.png", take_screenshot=True):
                     break
-                elif auto.find_element("mirror/shop/heal_sinner/heal_sinner_return_assets.png"):
+                if auto.click_element("mirror/shop/heal_sinner/heal_sinner_return_assets.png", threshold=0.3):
+                    sleep(0.8)
                     continue
-                elif auto.find_element("mirror/shop/heal_sinner/heal_sinner_return_assets.png"):
+                if auto.click_element("mirror/shop/return_assets.png", threshold=0.35):
+                    sleep(0.8)
                     continue
+                log.debug("治疗已执行，当前仅尝试返回商店，不再继续点击其它恢复项")
+                continue
 
             if auto.click_element("mirror/shop/heal_sinner/heal_all_sinner_assets.png"):
                 sinner_be_heal = True
+                sleep(0.6)
                 continue
 
             if loop_count < 5:
