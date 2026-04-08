@@ -40,7 +40,8 @@ def confirm_current_mirror_node():
         sleep(1.25)
         if auto.click_element("mirror/road_in_mir/enter_assets.png", take_screenshot=True):
             return True
-        return True
+        log.debug("键盘确认当前镜牢节点失败：未出现 enter 按钮，继续正常寻路")
+        return False
 
     if auto.click_element("mirror/mybus_default_distance.png", take_screenshot=True):
         sleep(1.25)
@@ -68,6 +69,38 @@ def find_visible_bus_position(retries=3, delay=0.3):
     return None
 
 
+def _clamp_drag_delta(value, limit):
+    return max(-limit, min(limit, int(value)))
+
+
+def _scale_anchor_delta(delta, gain, minimum_step):
+    if delta == 0:
+        return 0
+    scaled = int(round(delta * gain))
+    if scaled == 0:
+        scaled = 1 if delta > 0 else -1
+    minimum_step = min(max(int(minimum_step), 1), abs(int(delta)))
+    if abs(delta) > minimum_step and abs(scaled) < minimum_step:
+        scaled = minimum_step if delta > 0 else -minimum_step
+    return scaled
+
+
+def _get_route_map_camera_anchor(position, scale, aggressive=False):
+    if aggressive:
+        anchor_map = {
+            Position.TOP: (140 * scale, 360 * scale),
+            Position.MID: (40 * scale, 690 * scale),
+            Position.BOTTOM: (140 * scale, 1020 * scale),
+        }
+    else:
+        anchor_map = {
+            Position.TOP: (180 * scale, 420 * scale),
+            Position.MID: (80 * scale, 690 * scale),
+            Position.BOTTOM: (180 * scale, 960 * scale),
+        }
+    return anchor_map.get(position, anchor_map[Position.MID])
+
+
 class MirrorMap:
     def __init__(self, floor=1, hard_mode=False):
         self.floor = floor
@@ -76,10 +109,19 @@ class MirrorMap:
         self.hard_mode = hard_mode
 
     def get_next_step(self):
+        if isinstance(self.floor_map, bool):
+            if self.floor_map is True:
+                self.floor_map = []
+                self.floor_nodes = []
+                return True
+            self.floor_map = []
+            self.floor_nodes = []
+
         re_identify = False
         if len(self.floor_map) > 0:
             next_step = self.floor_map.pop(0)
             if next_step is not None:
+                log.debug(f"复用镜牢路线缓存: 下一步={next_step}, 剩余缓存步数={len(self.floor_map)}")
                 return next_step
             else:
                 re_identify = True
@@ -89,10 +131,13 @@ class MirrorMap:
         if re_identify is True:
             self.floor_map, self.floor_nodes = search_road_from_road_map(hard_mode=self.hard_mode)
             if self.floor_map is True and self.floor_nodes is True:
+                self.floor_map = []
+                self.floor_nodes = []
                 return True
             if not isinstance(self.floor_map, list):
                 self.floor_map = list(self.floor_map)
             self.map[f"floor{self.floor}"] = [self.floor_map[:], self.floor_nodes[:]]
+            log.debug(f"镜牢路线缓存更新: 楼层={self.floor}, 缓存步数={len(self.floor_map)}, 节点路径={self.floor_nodes}")
 
         if len(self.floor_map) > 0:
             next_step = self.floor_map.pop(0)
@@ -190,40 +235,231 @@ def _drag_map_to_bus_anchor(
     if dx == 0 and dy == 0:
         return False
 
-    max_drag_step = int(220 * scale)
-    drag_dx = 0
-    drag_dy = 0
+    dx = _scale_anchor_delta(dx, 0.58, 36 * scale)
+    dy_gain = 0.42 if target_x is None else 0.48
+    dy = _scale_anchor_delta(dy, dy_gain, 30 * scale)
 
-    # 镜牢地图校正对拖拽轨迹非常敏感，长距离斜向拖动在罗技仿生下容易把镜头带偏。
-    # 这里改成短距离、单轴推进，外层循环会在每次拖动后重新识别巴士位置并继续校正。
-    if abs(dx) >= abs(dy) and dx != 0:
-        drag_dx = max(-max_drag_step, min(max_drag_step, int(dx)))
-    elif dy != 0:
-        drag_dy = max(-max_drag_step, min(max_drag_step, int(dy)))
+    max_primary_step = int(340 * scale)
+    max_secondary_step = int(220 * scale)
+    fine_step = int(150 * scale)
+    current_x = int(bus_position[0])
+    current_y = int(bus_position[1])
+    drag_path = [(current_x, current_y)]
 
-    if drag_dx == 0 and drag_dy == 0:
-        drag_dx = max(-max_drag_step, min(max_drag_step, int(dx)))
-        drag_dy = max(-max_drag_step, min(max_drag_step, int(dy)))
+    if abs(dx) >= abs(dy):
+        primary_axis = "x"
+        secondary_axis = "y"
+    else:
+        primary_axis = "y"
+        secondary_axis = "x"
 
-    drag_distance = (drag_dx**2 + drag_dy**2) ** 0.5
-    drag_time = min(0.42, max(0.18, drag_distance / max(cfg.set_win_size * 2.6, 1)))
+    def append_axis_step(axis, delta, limit):
+        nonlocal current_x, current_y
+        if delta == 0:
+            return 0
+        step = _clamp_drag_delta(delta, limit)
+        if axis == "x":
+            current_x += step
+        else:
+            current_y += step
+        drag_path.append((current_x, current_y))
+        return step
+
+    primary_delta = dx if primary_axis == "x" else dy
+    secondary_delta = dy if secondary_axis == "y" else dx
+    primary_limit = max_primary_step if abs(primary_delta) > fine_step else fine_step
+    secondary_limit = max_secondary_step if abs(secondary_delta) > fine_step else fine_step
+
+    append_axis_step(primary_axis, primary_delta, primary_limit)
+    append_axis_step(secondary_axis, secondary_delta, secondary_limit)
+
+    if len(drag_path) == 1:
+        append_axis_step("x", dx, fine_step)
+        append_axis_step("y", dy, fine_step)
+
+    total_drag_distance = 0.0
+    for start, end in zip(drag_path, drag_path[1:], strict=False):
+        total_drag_distance += ((end[0] - start[0]) ** 2 + (end[1] - start[1]) ** 2) ** 0.5
+    segment_count = max(len(drag_path) - 1, 1)
+    segment_drag_time = min(
+        0.22,
+        max(0.1, total_drag_distance / max(cfg.set_win_size * 4.8 * segment_count, 1)),
+    )
     log.debug(
-        "镜牢路线图校正拖拽: 巴士%s -> 目标(%s,%s)，本轮步进(dx=%s, dy=%s)",
+        "镜牢路线图校正拖拽: 巴士%s -> 目标(%s,%s)，本轮折线路径=%s",
         bus_position,
         int(target_x) if target_x is not None else None,
         int(target_y) if target_y is not None else None,
-        drag_dx,
-        drag_dy,
+        drag_path[1:],
     )
-    auto.mouse_drag(
-        bus_position[0],
-        bus_position[1],
-        drag_time=drag_time,
-        dx=drag_dx,
-        dy=drag_dy,
-        move_back=False,
-    )
+    if len(drag_path) <= 2:
+        final_x, final_y = drag_path[-1]
+        auto.mouse_drag(
+            bus_position[0],
+            bus_position[1],
+            drag_time=segment_drag_time,
+            dx=final_x - bus_position[0],
+            dy=final_y - bus_position[1],
+            move_back=False,
+        )
+    else:
+        auto.mouse_drag_link(drag_path, drag_time=segment_drag_time, move_back=False)
     return True
+
+
+def _align_bus_for_route_map(
+    start_time,
+    bus_position,
+    *,
+    target_x=None,
+    target_y=None,
+    tolerance_x=0,
+    tolerance_y=0,
+    max_attempts=5,
+    pause=0.5,
+):
+    from tasks.base.retry import check_times
+
+    current_bus = bus_position
+    remaining_attempts = max_attempts
+    while current_bus is not None:
+        if auto.get_restore_time() is not None:
+            start_time = max(start_time, auto.get_restore_time())
+        if check_times(start_time, logs=False):
+            from tasks.base.back_init_menu import back_init_menu
+
+            back_init_menu()
+            return None
+        if not _drag_map_to_bus_anchor(
+            current_bus,
+            target_x=target_x,
+            target_y=target_y,
+            tolerance_x=tolerance_x,
+            tolerance_y=tolerance_y,
+        ):
+            return current_bus
+        sleep(pause)
+        auto.mouse_to_blank()
+        next_bus = auto.find_element("mirror/mybus_default_distance.png", take_screenshot=True)
+        if next_bus is None:
+            return current_bus
+        current_bus = next_bus
+        remaining_attempts -= 1
+        if remaining_attempts <= 0:
+            return current_bus
+    return None
+
+
+def _evaluate_route_map_plan(start_time, bus, hard_mode=False):
+    scale = cfg.set_win_size / 1440
+    road = []
+    current_bus = bus
+    initial_bus_pos = Position.MID
+    all_nodes = identify_nodes(current_bus[0]) or []
+    if not isinstance(all_nodes, list):
+        log.warning(f"镜牢路线图节点识别结果异常: {type(all_nodes).__name__}")
+        return None
+    if len(all_nodes) == 0:
+        log.warning("镜牢路线图未识别到任何节点，回退到距离兜底寻路")
+        return None
+
+    y_area = divide_the_area_by_y(all_nodes)
+    reset_position = False
+    if len(y_area) == 2:
+        if current_bus[1] > y_area[0][0][1][1] + 50 * scale:
+            reset_position = Position.BOTTOM
+            initial_bus_pos = Position.BOTTOM
+        else:
+            reset_position = Position.TOP
+            initial_bus_pos = Position.TOP
+    elif len(y_area) == 1:
+        identified_road = identify_road(current_bus[0]) or []
+        if not isinstance(identified_road, list):
+            log.warning(f"镜牢路线图线段识别结果异常: {type(identified_road).__name__}")
+            return None
+        all_road = divide_the_area_by_x(identified_road) if identified_road else []
+        if len(all_road) == 0:
+            road = ["M"]
+        else:
+            road = ["D"] if all_road[0][0][0] == "DOWN" else ["U"]
+
+    if reset_position is not False:
+        target_x, target_y = _get_route_map_camera_anchor(reset_position, scale)
+        current_bus = _align_bus_for_route_map(
+            start_time,
+            current_bus,
+            target_x=target_x,
+            target_y=target_y,
+            tolerance_x=55 * scale,
+            tolerance_y=55 * scale,
+            max_attempts=4,
+            pause=0.4,
+        )
+        current_bus = current_bus or find_visible_bus_position()
+        if current_bus is None:
+            log.warning("镜牢路线图重定位后未能重新识别巴士位置，回退到距离兜底寻路")
+            return None
+        all_nodes = identify_nodes(current_bus[0]) or []
+        if not isinstance(all_nodes, list):
+            log.warning(f"镜牢路线图重定位后节点识别结果异常: {type(all_nodes).__name__}")
+            return None
+        if len(all_nodes) == 0:
+            log.warning("镜牢路线图重定位后未识别到任何节点，回退到距离兜底寻路")
+            return None
+
+    all_nodes_layer = divide_the_area_by_x(all_nodes)
+    if len(road) != 0:
+        return {
+            "directions": road,
+            "road_class_list": ["unknown"],
+            "initial_bus_pos": initial_bus_pos,
+            "bus": current_bus,
+            "visible_layers": len(all_nodes_layer),
+            "road_layers": 0,
+        }
+
+    identified_road = identify_road(current_bus[0]) or []
+    if not isinstance(identified_road, list):
+        log.warning(f"镜牢路线图线段识别结果异常: {type(identified_road).__name__}")
+        return None
+    all_road = divide_the_area_by_x(identified_road) if identified_road else []
+
+    route_graph = RouteGraph(all_nodes_layer, initial_bus_pos=initial_bus_pos, hard_mode=hard_mode)
+    route_graph.init_road(all_road, current_bus[0], current_bus[1])
+
+    min_weight, path = route_graph.find_min_weight_route()
+    if not path:
+        log.warning("未能检测到有效路径")
+        return None
+
+    directions, road_class_list = route_graph.get_path_directions(path)
+    log.debug(f"最小权重: {min_weight}")
+    log.debug(f"路径方向: {directions}")
+    log.debug(f"行走路径: {road_class_list}")
+    return {
+        "directions": directions,
+        "road_class_list": road_class_list,
+        "initial_bus_pos": initial_bus_pos,
+        "bus": current_bus,
+        "visible_layers": len(all_nodes_layer),
+        "road_layers": len(all_road),
+    }
+
+
+def _route_plan_score(plan):
+    if not plan:
+        return (-1, -1, -1)
+    return (
+        len(plan["directions"]),
+        plan["visible_layers"],
+        plan["road_layers"],
+    )
+
+
+def _should_retry_with_camera_scout(plan):
+    if not plan:
+        return False
+    return len(plan["directions"]) <= 1 or plan["visible_layers"] <= 2
 
 
 # 在默认缩放情况下，进行镜牢寻路
@@ -263,6 +499,7 @@ def search_road_default_distance():
     if bus_position := auto.find_element("mirror/mybus_default_distance.png", take_screenshot=True):
         from tasks.base.retry import check_times
 
+        change_times = 6
         while True:
             if auto.get_restore_time() is not None:
                 start_time = max(start_time, auto.get_restore_time())
@@ -277,11 +514,14 @@ def search_road_default_distance():
                 tolerance_y=50 * scale,
             ):
                 break
-            sleep(1)
+            sleep(0.55)
             auto.mouse_to_blank()
 
             bus_position = auto.find_element("mirror/mybus_default_distance.png", take_screenshot=True)
             if bus_position is None:
+                break
+            change_times -= 1
+            if change_times <= 0:
                 break
 
     node_list = []
@@ -339,127 +579,56 @@ def search_road_farthest_distance():
 def search_road_from_road_map(hard_mode=False):
     start_time = time.time()
     scale = cfg.set_win_size / 1440
-    road = []
-    bus = None
 
     if confirm_current_mirror_node():
         return True, True
 
     if bus_position := auto.find_element("mirror/mybus_default_distance.png", take_screenshot=True):
-        from tasks.base.retry import check_times
-
-        change_times = 5
-        while True:
-            if auto.get_restore_time() is not None:
-                start_time = max(start_time, auto.get_restore_time())
-            if check_times(start_time, logs=False):
-                from tasks.base.back_init_menu import back_init_menu
-
-                back_init_menu()
-                return False, []
-            if not _drag_map_to_bus_anchor(
-                bus_position,
-                target_x=80 * scale,
-                target_y=690 * scale,
-                tolerance_x=70 * scale,
-                tolerance_y=20 * scale,
-            ):
-                bus = bus_position
-                break
-            sleep(0.5)
-            auto.mouse_to_blank()
-
-            bus_position = auto.find_element("mirror/mybus_default_distance.png", take_screenshot=True)
-            if bus_position is None:
-                break
-            change_times -= 1
-            if change_times <= 0:
-                bus = bus_position
-                break
+        bus = _align_bus_for_route_map(
+            start_time,
+            bus_position,
+            target_x=80 * scale,
+            target_y=690 * scale,
+            tolerance_x=70 * scale,
+            tolerance_y=20 * scale,
+            max_attempts=5,
+            pause=0.5,
+        )
+    else:
+        bus = None
 
     bus = bus or find_visible_bus_position()
-    bus_pos = find_visible_bus_position()
-    if bus is None or bus_pos is None:
+    if bus is None:
         log.warning("镜牢路线图寻路时未能稳定识别巴士位置，回退到距离兜底寻路")
         return [], []
-    all_nodes = identify_nodes(bus[0])
-    y_area = divide_the_area_by_y(all_nodes)
-    reset_position = False
-    initial_bus_pos = Position.MID
-    if len(y_area) == 2:
-        if bus_pos[1] > y_area[0][0][1][1] + 50 * scale:
-            reset_position = "Bottom"
-            initial_bus_pos = Position.BOTTOM
-        else:
-            reset_position = "Top"
-            initial_bus_pos = Position.TOP
-    elif len(y_area) == 1:
-        all_road = divide_the_area_by_x(identify_road(bus[0]))
-        if len(all_road) == 0:
-            road = ["M"]
-        else:
-            if all_road[0][0][0] == "DOWN":
-                road = ["D"]
-            else:
-                road = ["U"]
-    if reset_position is not False:
-        if reset_position == "Bottom":
-            set_y_position = 1100 * scale
-        else:
-            set_y_position = 250 * scale
-        if bus_position := auto.find_element("mirror/mybus_default_distance.png", take_screenshot=True):
-            from tasks.base.retry import check_times
+    best_plan = _evaluate_route_map_plan(start_time, bus, hard_mode=hard_mode)
 
-            while True:
-                if auto.get_restore_time() is not None:
-                    start_time = max(start_time, auto.get_restore_time())
-                if check_times(start_time, logs=False):
-                    from tasks.base.back_init_menu import back_init_menu
+    if _should_retry_with_camera_scout(best_plan):
+        scout_position = best_plan["initial_bus_pos"] if best_plan else Position.MID
+        scout_bus = best_plan["bus"] if best_plan else bus
+        target_x, target_y = _get_route_map_camera_anchor(scout_position, scale, aggressive=True)
+        scout_bus = _align_bus_for_route_map(
+            start_time,
+            scout_bus,
+            target_x=target_x,
+            target_y=target_y,
+            tolerance_x=45 * scale,
+            tolerance_y=50 * scale,
+            max_attempts=3,
+            pause=0.35,
+        )
+        scout_bus = scout_bus or find_visible_bus_position()
+        scout_plan = _evaluate_route_map_plan(start_time, scout_bus, hard_mode=hard_mode) if scout_bus else None
+        if _route_plan_score(scout_plan) > _route_plan_score(best_plan):
+            log.debug(
+                "镜牢路线图启发式扩视角生效: 路径步数 %s -> %s",
+                len(best_plan["directions"]) if best_plan else 0,
+                len(scout_plan["directions"]) if scout_plan else 0,
+            )
+            best_plan = scout_plan
 
-                    back_init_menu()
-                    return False, []
-                if not _drag_map_to_bus_anchor(
-                    bus_position,
-                    target_x=550 * scale,
-                    target_y=set_y_position,
-                    tolerance_x=50 * scale,
-                    tolerance_y=50 * scale,
-                ):
-                    bus = bus_position
-                    break
-                sleep(0.5)
-                auto.mouse_to_blank()
-
-                bus_position = auto.find_element("mirror/mybus_default_distance.png", take_screenshot=True)
-                if bus_position is None:
-                    break
-        bus = bus or find_visible_bus_position()
-        if bus is None:
-            log.warning("镜牢路线图重定位后未能重新识别巴士位置，回退到距离兜底寻路")
-            return [], []
-        all_nodes = identify_nodes(bus[0])
-
-    if len(road) != 0:
-        return road, ["unknown"]
-
-    all_nodes_layer = divide_the_area_by_x(all_nodes)
-    all_road = divide_the_area_by_x(identify_road(bus[0]))
-
-    route_graph = RouteGraph(all_nodes_layer, initial_bus_pos=initial_bus_pos, hard_mode=hard_mode)
-    route_graph.init_road(all_road, bus[0], bus_pos[1])
-
-    min_weight, path = route_graph.find_min_weight_route()
-
-    if path:
-        # 生成方向列表
-        directions, road_class_list = route_graph.get_path_directions(path)
-        log.debug(f"最小权重: {min_weight}")
-        log.debug(f"路径方向: {directions}")
-        log.debug(f"行走路径: {road_class_list}")
-        return directions, road_class_list
-    else:
-        log.warning("未能检测到有效路径")
-
+    if best_plan:
+        return best_plan["directions"], best_plan["road_class_list"]
     return [], []
 
 
