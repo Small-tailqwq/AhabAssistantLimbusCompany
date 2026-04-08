@@ -21,6 +21,7 @@ mdurl==0.1.2
 mouseinfo==0.1.3
 mpmath==1.3.0
 numpy==2.3.3
+obsws-python==1.8.0
 omegaconf==2.3.0
 onnxruntime==1.20.1
 opencv-python-headless==4.11.0.86
@@ -63,6 +64,7 @@ typing-extensions==4.15.0
 tzdata==2025.2
 uc-micro-py==1.0.3
 urllib3==2.5.0
+websocket-client==1.9.0
 windows-toasts==1.3.1
 winrt-runtime==3.2.1
 winrt-windows-data-xml-dom==3.2.1
