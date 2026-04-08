@@ -95,26 +95,28 @@ class Mirror:
 
     def event_action_visible(self):
         return any(
-            (
-                auto.find_element("event/choices_assets.png"),
-                auto.find_element("event/select_first_option_assets.png"),
-                auto.find_element("event/perform_the_check_feature_assets.png"),
-                auto.find_element("event/continue_assets.png"),
-                auto.find_element("event/proceed_assets.png"),
-                auto.find_element("event/commence_assets.png"),
-                auto.find_element("event/commence_battle_assets.png"),
+            auto.find_element(asset)
+            for asset in (
+                "event/choices_assets.png",
+                "event/select_first_option_assets.png",
+                "event/perform_the_check_feature_assets.png",
+                "event/continue_assets.png",
+                "event/proceed_assets.png",
+                "event/commence_assets.png",
+                "event/commence_battle_assets.png",
             )
         )
 
     def event_decision_visible(self):
         return any(
-            (
-                auto.find_element("event/very_high.png"),
-                auto.find_element("event/high.png"),
-                auto.find_element("event/normal.png"),
-                auto.find_element("event/low.png"),
-                auto.find_element("event/very_low.png"),
-                auto.find_element("event/perform_the_check_feature_assets.png"),
+            auto.find_element(asset)
+            for asset in (
+                "event/very_high.png",
+                "event/high.png",
+                "event/normal.png",
+                "event/low.png",
+                "event/very_low.png",
+                "event/perform_the_check_feature_assets.png",
             )
         )
 

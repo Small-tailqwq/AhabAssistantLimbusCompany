@@ -490,7 +490,13 @@ class MainWindow(FramelessWindow):
         ).exec()
 
     def show_warning(self, warning: str):
-        MessageBoxWarning(self.tr("警告！"), warning, self).exec()
+        self._current_warning_box = MessageBoxWarning(self.tr("警告！"), warning, self)
+        self._current_warning_box.exec()
+        self._current_warning_box = None
+
+    def clear_warning(self):
+        if hasattr(self, '_current_warning_box') and self._current_warning_box:
+            self._current_warning_box.accept()
 
     def show_tasks_warning(self):
         MessageBoxWarning(
@@ -508,6 +514,7 @@ class MainWindow(FramelessWindow):
         mediator.update_progress.connect(self.set_progress_ring)
         mediator.download_complete.connect(self.download_and_install)
         mediator.warning.connect(self.show_warning)
+        mediator.warning_clear.connect(self.clear_warning)
 
     def set_ring(self):
         self.progress_ring.raise_()  # 保持最上层显示

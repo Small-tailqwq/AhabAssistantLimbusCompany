@@ -189,6 +189,7 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
             HumanKinematics.human_sleep(0.4, jitter=0.15, minimum=0.25, maximum=0.6)
         if self._focus_waiting_notified:
             log.info("已检测到游戏窗口重新获得焦点，继续执行罗技模拟输入。")
+            mediator.warning_clear.emit()
             self._focus_waiting_notified = False
 
     def _resolve_move_duration(self, distance: float, duration: float) -> float:
