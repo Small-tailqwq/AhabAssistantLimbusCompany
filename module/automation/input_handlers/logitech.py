@@ -3,9 +3,15 @@ import ctypes
 import math
 import os
 import random
-from time import time
+from time import sleep, time
 
 import win32api
+
+try:
+    ctypes.windll.winmm.timeBeginPeriod(1)
+    atexit.register(lambda: ctypes.windll.winmm.timeEndPeriod(1))
+except Exception:
+    pass
 
 from app import mediator
 from module.config import cfg
@@ -253,34 +259,54 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
             return
 
         move_duration = self._resolve_move_duration(distance, duration)
-        trajectory = HumanKinematics.generate_human_curve(
+        
+        # 调用底层绝对仿生引擎 (Minimum Jerk + Perlin Noise)
+        trajectory = HumanKinematics.generate_bionic_curve(
             start_x,
             start_y,
             x,
             y,
-            num_points=max(2, int(max(move_duration, 0.02) / 0.008)),
-            allow_overshoot=button_state == BUTTON_RELEASED,
-            allow_micro_jitter=button_state == BUTTON_RELEASED,
+            target_width=25.0 if button_state == BUTTON_RELEASED else 10.0,
+            duration=duration,
         )
-        step_intervals = HumanKinematics.generate_step_intervals(
-            len(trajectory),
-            move_duration,
-            profile="drag" if button_state != BUTTON_RELEASED else "cursor",
-        )
+        
+        # 因为轨迹自身就是基于 100 FPS (10ms) 分切的！
+        # 必须严格锁定为每帧 10ms，绝不可以由于外部 duration 极小而将帧间压缩到 1ms（这会击穿 sleep 精度阈值导致光速狂点发射）
+        # 引入硬件状态观测器 (State Observer) 解决闭环积分发散和 Windows 加速漂移
+        step_time = 0.01
+        os_x, os_y = self.get_mouse_position()
+        unack_dx, unack_dy = 0, 0
 
         for index, (current_target_x, current_target_y) in enumerate(trajectory):
             step_start = time()
+            
+            # 获取最新系统光标（若遭遇硬件延迟，坐标不会立即更新）
             current_x, current_y = self.get_mouse_position()
-            step_dx = int(current_target_x - current_x)
-            step_dy = int(current_target_y - current_y)
+            if current_x != os_x or current_y != os_y:
+                # 操作系统跟进了物理偏移，重置未确认缓冲堆栈
+                os_x, os_y = current_x, current_y
+                unack_dx, unack_dy = 0, 0
+                
+            # 推理游标必定到达的位置 (实际系统位置 + 已发送但还在底层路上堵着的相对差异)
+            predicted_x = current_x + unack_dx
+            predicted_y = current_y + unack_dy
+            
+            step_dx = int(current_target_x - predicted_x)
+            step_dy = int(current_target_y - predicted_y)
 
             if step_dx != 0 or step_dy != 0:
                 self._move_relative_chunked(step_dx, step_dy, button_state=button_state)
+                unack_dx += step_dx
+                unack_dy += step_dy
 
             elapsed = time() - step_start
-            remaining = step_intervals[index] - elapsed
+            remaining = step_time - elapsed
             if remaining > 0.001:
                 HumanKinematics.human_sleep(remaining, jitter=0.08, minimum=remaining)
+
+        # 核心改进：轨迹已经发送完毕，给 Windows 操作系统 40 毫秒的时间清空所有的 WM_MOUSEMOVE 消息缓冲。
+        # 不然有概率光标起飞
+        sleep(0.04)
 
         final_x, final_y = self.get_mouse_position()
         final_dx = x - final_x
@@ -297,15 +323,18 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         y = int(y)
         current_x, current_y = self.get_mouse_position()
         target_screen_x, target_screen_y = self._client_to_screen_target(x, y)
-        move_duration = self._resolve_move_duration(
-            math.hypot(target_screen_x - current_x, target_screen_y - current_y),
-            duration,
+        
+        # 直接透传 duration，让底层 Fitts Law (如果 duration=0) 能够自己判断，而不是在这里用固定的 resolve_move_duration() 将其强制覆盖为 0.075s 之类
+        # 仅为打印日志而临时计算展示用的 move_duration：
+        dummy_move_duration = duration if duration > 0 else self._resolve_move_duration(
+            math.hypot(target_screen_x - current_x, target_screen_y - current_y), duration
         )
         log.debug(
-            f"新罗技驱动目标换算: 客户区({x},{y}) -> 屏幕({target_screen_x},{target_screen_y}), 当前鼠标({current_x},{current_y}), 规划移动{move_duration * 1000:.0f}ms",
+            f"新罗技驱动目标换算: 客户区({x},{y}) -> 屏幕({target_screen_x},{target_screen_y}), 当前鼠标({current_x},{current_y}), 日志估算时长{dummy_move_duration * 1000:.0f}ms",
             stacklevel=2,
         )
-        self._move_to_client(x, y, duration=move_duration)
+        
+        self._move_to_client(x, y, duration=duration)
 
         final_x, final_y = self.get_mouse_position()
         err_x = target_screen_x - final_x
