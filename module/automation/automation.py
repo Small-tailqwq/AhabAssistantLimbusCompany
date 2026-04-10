@@ -388,11 +388,11 @@ class Automation(metaclass=SingletonMeta):
         try:
             use_1440_base = ImageUtils.should_use_low_res_match_optimization()
             template = ImageUtils.load_image(target, resize=not use_1440_base)
+            if template is None:
+                return []
             if "assets" in target:
                 bbox = ImageUtils.get_bbox(template)
                 template = ImageUtils.crop(template, bbox)
-            if template is None:
-                raise ValueError("读取图片失败")
             screenshot = np.array(self.screenshot)
             scale_to_1440 = 1.0
             if use_1440_base:
@@ -565,6 +565,8 @@ class Automation(metaclass=SingletonMeta):
                 template = self.img_cache[cache_key]["template"]
             else:
                 template = ImageUtils.load_image(target, resize=not use_1440_base)
+                if template is None:
+                    return None
                 if "assets" in target:
                     bbox = ImageUtils.get_bbox(template)
                     template = ImageUtils.crop(template, bbox)

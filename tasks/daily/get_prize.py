@@ -305,7 +305,10 @@ def get_mail_prize():
         if auto.click_element("mail/claim_all_assets.png"):
             auto.click_element("mail/close_assets.png")
             break
-        if auto.click_element("home/mail_assets.png") or auto.click_element("home/mail_cn_assets.png", model="normal"):
+        mail_clicked = auto.click_element("home/mail_assets.png")
+        if not mail_clicked and cfg.language_in_game == "zh_cn":
+            mail_clicked = auto.click_element("home/mail_cn_assets.png", model="normal")
+        if mail_clicked:
             continue
         auto.mouse_to_blank()
         loop_count -= 1
