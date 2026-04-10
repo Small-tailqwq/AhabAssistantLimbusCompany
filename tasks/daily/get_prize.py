@@ -181,13 +181,19 @@ def get_pass_task_progress_ratio(coordinate):
 def find_pass_reward_icon_positions(screenshot, threshold=0.8):
     if screenshot is None or screenshot.size == 0:
         return []
-    template = ImageUtils.load_image("pass/pass_coin.png")
+    use_1440_base = ImageUtils.should_use_low_res_match_optimization()
+    template = ImageUtils.load_image("pass/pass_coin.png", resize=not use_1440_base)
     if template is None:
         return []
     screenshot_gray = to_gray_image(screenshot)
     if screenshot_gray is None:
         return []
+    scale_to_1440 = 1.0
+    if use_1440_base:
+        screenshot_gray, scale_to_1440 = ImageUtils.normalize_screenshot_for_1440_matching(screenshot_gray)
     coordinates = ImageUtils.match_template_with_multiple_targets(screenshot_gray, template, threshold)
+    if use_1440_base and coordinates:
+        coordinates = ImageUtils.restore_coordinates_from_1440_matching(coordinates, scale_to_1440)
     return normalize_coordinates(coordinates)
 
 

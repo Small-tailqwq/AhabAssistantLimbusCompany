@@ -169,7 +169,9 @@ class Automation(metaclass=SingletonMeta):
         screen_height = int(screenshot.shape[0])
         width = 24
         height = 24
-        use_logitech_humanization = bool(getattr(cfg, "lab_mouse_logitech", False))
+        use_logitech_humanization = bool(
+            getattr(cfg, "lab_mouse_logitech", False) and getattr(cfg, "logitech_bionic_trajectory", True)
+        )
 
         if len(coordinates) >= 4 and all(isinstance(value, Real) for value in coordinates[:4]):
             left, top, right, bottom = coordinates[:4]
@@ -233,7 +235,11 @@ class Automation(metaclass=SingletonMeta):
         if self.last_click_time == 0:
             self.last_click_time = time.time()
         if time.time() - self.last_click_time < interval:
-            if getattr(cfg, "lab_mouse_logitech", False) and action == "click":
+            if (
+                getattr(cfg, "lab_mouse_logitech", False)
+                and getattr(cfg, "logitech_bionic_trajectory", True)
+                and action == "click"
+            ):
                 HumanKinematics.human_sleep(interval, jitter=0.12, minimum=interval)
             else:
                 time.sleep(interval)
@@ -380,14 +386,20 @@ class Automation(metaclass=SingletonMeta):
         在当前截图中查找多个目标图像的位置
         """
         try:
-            template = ImageUtils.load_image(target)
+            use_1440_base = ImageUtils.should_use_low_res_match_optimization()
+            template = ImageUtils.load_image(target, resize=not use_1440_base)
             if "assets" in target:
                 bbox = ImageUtils.get_bbox(template)
                 template = ImageUtils.crop(template, bbox)
             if template is None:
                 raise ValueError("读取图片失败")
             screenshot = np.array(self.screenshot)
+            scale_to_1440 = 1.0
+            if use_1440_base:
+                screenshot, scale_to_1440 = ImageUtils.normalize_screenshot_for_1440_matching(screenshot)
             matches = ImageUtils.match_template_with_multiple_targets(screenshot, template, threshold)
+            if use_1440_base and matches:
+                matches = ImageUtils.restore_coordinates_from_1440_matching(matches, scale_to_1440)
             if len(matches) == 0:
                 log.debug(f"未找到任何目标图像{target}", stacklevel=addtional_stack + 3)
                 return []
@@ -539,6 +551,8 @@ class Automation(metaclass=SingletonMeta):
         在当前截图中查找目标图像的位置
         """
         try:
+            use_1440_base = ImageUtils.should_use_low_res_match_optimization()
+            cache_key = (target, "1440" if use_1440_base else "native")
             if self.memory_protection:
                 memory = psutil.virtual_memory()
                 # memory.percent 直接返回当前已使用的百分比 (0.0 到 100.0)
@@ -546,22 +560,27 @@ class Automation(metaclass=SingletonMeta):
                 if current_percent > 90:
                     log.debug(f"当前系统内存总占用率: {current_percent}%，释放图片缓存")
                     self.clear_img_cache()
-            if cacheable and target in self.img_cache:
-                bbox = self.img_cache[target]["bbox"]
-                template = self.img_cache[target]["template"]
+            if cacheable and cache_key in self.img_cache:
+                bbox = self.img_cache[cache_key]["bbox"]
+                template = self.img_cache[cache_key]["template"]
             else:
-                template = ImageUtils.load_image(target)
+                template = ImageUtils.load_image(target, resize=not use_1440_base)
                 if "assets" in target:
                     bbox = ImageUtils.get_bbox(template)
                     template = ImageUtils.crop(template, bbox)
                 else:
                     bbox = None
                 if cacheable:
-                    self.img_cache[target] = {"bbox": bbox, "template": template}
+                    self.img_cache[cache_key] = {"bbox": bbox, "template": template}
             screenshot = np.array(self.screenshot)
             if my_crop:
                 screenshot = ImageUtils.crop(screenshot, my_crop)
+            scale_to_1440 = 1.0
+            if use_1440_base:
+                screenshot, scale_to_1440 = ImageUtils.normalize_screenshot_for_1440_matching(screenshot)
             center, matchVal = ImageUtils.match_template(screenshot, template, bbox, model)  # 匹配模板
+            if use_1440_base and center:
+                center = ImageUtils.restore_coordinates_from_1440_matching(center, scale_to_1440)
             log.debug(
                 f"目标图片：{target.replace('./assets/images/', '')}, 相似度：{matchVal:.2f}, 目标位置：{center}",
                 stacklevel=addtional_stack + 3,

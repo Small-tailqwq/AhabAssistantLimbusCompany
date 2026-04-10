@@ -12,6 +12,53 @@ from utils import pic_path
 
 class ImageUtils:
     @staticmethod
+    def should_use_low_res_match_optimization() -> bool:
+        return bool(getattr(cfg, "experimental_low_res_match", False) and getattr(cfg, "set_win_size", 1440) < 1080)
+
+    @staticmethod
+    def normalize_screenshot_for_1440_matching(screenshot):
+        """将当前截图归一到 1440 基准坐标系，便于与未缩放模板匹配。"""
+        if screenshot is None or screenshot.size == 0:
+            return screenshot, 1.0
+
+        current_height = int(screenshot.shape[0])
+        if current_height <= 0:
+            return screenshot, 1.0
+
+        scale_to_1440 = 1440 / current_height
+        if abs(scale_to_1440 - 1.0) <= 1e-6:
+            return screenshot, 1.0
+
+        interpolation = cv2.INTER_LINEAR if scale_to_1440 > 1 else cv2.INTER_AREA
+        normalized = cv2.resize(
+            screenshot,
+            None,
+            fx=scale_to_1440,
+            fy=scale_to_1440,
+            interpolation=interpolation,
+        )
+        return normalized, scale_to_1440
+
+    @staticmethod
+    def restore_coordinates_from_1440_matching(coordinates, scale_to_1440):
+        if scale_to_1440 == 0:
+            return coordinates
+        if isinstance(coordinates, tuple) and len(coordinates) >= 2:
+            return (
+                int(round(coordinates[0] / scale_to_1440)),
+                int(round(coordinates[1] / scale_to_1440)),
+            )
+        restored = []
+        for coordinate in coordinates:
+            restored.append(
+                (
+                    int(round(coordinate[0] / scale_to_1440)),
+                    int(round(coordinate[1] / scale_to_1440)),
+                )
+            )
+        return restored
+
+    @staticmethod
     def load_image(image_path, resize=True, gray=True):
         """
         加载图片，并根据指定区域裁剪图片。

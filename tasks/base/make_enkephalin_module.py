@@ -1,5 +1,4 @@
 from time import sleep
-
 import numpy as np
 
 from module.automation import auto
@@ -10,7 +9,8 @@ from utils.image_utils import ImageUtils
 
 
 def find_color_image_element(target, threshold=0.9):
-    template = ImageUtils.load_image(target, gray=False)
+    use_1440_base = ImageUtils.should_use_low_res_match_optimization()
+    template = ImageUtils.load_image(target, resize=not use_1440_base, gray=False)
     if template is None:
         return None
     bbox = ImageUtils.get_bbox(template)
@@ -18,8 +18,15 @@ def find_color_image_element(target, threshold=0.9):
     if auto.take_screenshot(gray=False) is None:
         return None
     screenshot = np.array(auto.screenshot)
+    scale_to_1440 = 1.0
+    if use_1440_base:
+        screenshot, scale_to_1440 = ImageUtils.normalize_screenshot_for_1440_matching(screenshot)
     center, match_val = ImageUtils.match_template(screenshot, template_crop, bbox, "clam")
-    log.debug(f"{target} 彩色匹配：相似度{match_val:.2f}, 目标位置：{center}")
+    if use_1440_base and center:
+        center = ImageUtils.restore_coordinates_from_1440_matching(center, scale_to_1440)
+        log.debug(f"{target} 1440基准彩色匹配：相似度{match_val:.2f}, 目标位置：{center}")
+    else:
+        log.debug(f"{target} 彩色匹配：相似度{match_val:.2f}, 目标位置：{center}")
     if isinstance(match_val, (int, float)) and match_val >= threshold:
         return center
     return None

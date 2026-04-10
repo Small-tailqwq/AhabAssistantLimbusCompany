@@ -397,6 +397,16 @@ class SettingInterface(QWidget):
             config_name="experimental_auto_lang",
             parent=self.experimental_group,
         )
+        self.low_res_match_card = SwitchSettingCard(
+            FIF.ZOOM,
+            QT_TRANSLATE_NOOP("SwitchSettingCard", "低分辨率优化"),
+            QT_TRANSLATE_NOOP(
+                "SwitchSettingCard",
+                "提升 720P 等低分辨率下部分图片匹配率，但会增加匹配时间；2K/1080P 通常无需开启",
+            ),
+            config_name="experimental_low_res_match",
+            parent=self.experimental_group,
+        )
         self.logitech_switch_card = SwitchSettingCard(
             FIF.MOVE,
             QT_TRANSLATE_NOOP("SwitchSettingCard", "启用罗技驱动模拟"),
@@ -412,6 +422,16 @@ class SettingInterface(QWidget):
             FIF.FOLDER,
             QT_TRANSLATE_NOOP("BasePushSettingCard", "罗技 DLL 路径"),
             cfg.get_value("logitech_dll_path", ""),
+            parent=self.experimental_group,
+        )
+        self.logitech_bionic_trajectory_card = SwitchSettingCard(
+            FIF.MOVE,
+            QT_TRANSLATE_NOOP("SwitchSettingCard", "启用仿生轨迹"),
+            QT_TRANSLATE_NOOP(
+                "SwitchSettingCard",
+                "启用后使用仿生鼠标轨迹与仿生点击偏移；关闭后回退为普通分段移动",
+            ),
+            config_name="logitech_bionic_trajectory",
             parent=self.experimental_group,
         )
         self.obs_switch_card = SwitchSettingCard(
@@ -526,8 +546,10 @@ class SettingInterface(QWidget):
         self.about_group.addSettingCard(self.feedback_card)
 
         self.experimental_group.addSettingCard(self.auto_lang_card)
+        self.experimental_group.addSettingCard(self.low_res_match_card)
         self.experimental_group.addSettingCard(self.logitech_switch_card)
         self.experimental_group.addSettingCard(self.logitech_dll_path_card)
+        self.experimental_group.addSettingCard(self.logitech_bionic_trajectory_card)
         self.experimental_group.addSettingCard(self.obs_switch_card)
         self.experimental_group.addSettingCard(self.obs_host_card)
         self.experimental_group.addSettingCard(self.obs_port_card)
@@ -606,11 +628,14 @@ class SettingInterface(QWidget):
         self.zoom_card.valueChanged.connect(self.__onZoomCardValueChanged)
         self.auto_lang_card.switchButton.checkedChanged.connect(self.__onAutoLangCardChecked)
         self.win_input_type_card.valueChanged.connect(self.__onWinInputTypeChanged)
+        self.logitech_switch_card.switchButton.checkedChanged.connect(self.__onExperimentalDependencyChanged)
+        self.obs_switch_card.switchButton.checkedChanged.connect(self.__onExperimentalDependencyChanged)
         self.logitech_dll_path_card.clicked.connect(self.__onLogitechDllPathCardClicked)
         self.obs_host_card.clicked.connect(self.__onObsHostCardClicked)
         self.obs_password_card.clicked.connect(self.__onObsPasswordCardClicked)
         self.obs_source_name_card.clicked.connect(self.__onObsSourceNameCardClicked)
         self.__onWinInputTypeChanged()
+        self.__refreshExperimentalCardVisibility()
         self.autostart_card.switchButton.checkedChanged.connect(self.__onAutostartCardChanged)
         self.theme_card.valueChanged.connect(self.__onThemeCardChanged)
 
@@ -639,6 +664,26 @@ class SettingInterface(QWidget):
             QT_TRANSLATE_NOOP("BasePushSettingCard", "(已设置)") if cfg.get_value("obs_password", "") else QT_TRANSLATE_NOOP("BasePushSettingCard", "(未设置)")
         )
         self.obs_source_name_card.setContent(cfg.get_value("obs_source_name", ""))
+
+    def __refreshExperimentalCardVisibility(self):
+        logitech_enabled = bool(cfg.get_value("lab_mouse_logitech", False))
+        obs_enabled = bool(cfg.get_value("lab_screenshot_obs", False))
+
+        self.logitech_dll_path_card.setVisible(logitech_enabled)
+        self.logitech_bionic_trajectory_card.setVisible(logitech_enabled)
+
+        self.obs_host_card.setVisible(obs_enabled)
+        self.obs_port_card.setVisible(obs_enabled)
+        self.obs_password_card.setVisible(obs_enabled)
+        self.obs_source_name_card.setVisible(obs_enabled)
+        self.obs_image_format_card.setVisible(obs_enabled)
+        self.obs_image_quality_card.setVisible(obs_enabled)
+
+        self.experimental_group.adjustSize()
+        self.scroll_widget.adjustSize()
+
+    def __onExperimentalDependencyChanged(self, _: bool):
+        self.__refreshExperimentalCardVisibility()
 
     def __onLogitechDllPathCardClicked(self):
         dll_path, _ = QFileDialog.getOpenFileName(self, "选择罗技驱动 DLL", "", "DLL Files (*.dll)")
@@ -807,8 +852,10 @@ class SettingInterface(QWidget):
         self.feedback_card.retranslateUi()
         self.experimental_group.retranslateUi()
         self.auto_lang_card.retranslateUi()
+        self.low_res_match_card.retranslateUi()
         self.logitech_switch_card.retranslateUi()
         self.logitech_dll_path_card.retranslateUi()
+        self.logitech_bionic_trajectory_card.retranslateUi()
         self.obs_switch_card.retranslateUi()
         self.obs_host_card.retranslateUi()
         self.obs_port_card.retranslateUi()
@@ -817,6 +864,7 @@ class SettingInterface(QWidget):
         self.obs_image_format_card.retranslateUi()
         self.obs_image_quality_card.retranslateUi()
         self.__refreshExperimentalCardContents()
+        self.__refreshExperimentalCardVisibility()
 
     def __onThemeCardChanged(self):
         theme_mode = cfg.get_value("theme_mode")

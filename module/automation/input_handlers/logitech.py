@@ -259,21 +259,33 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
             return
 
         move_duration = self._resolve_move_duration(distance, duration)
-        
-        # 调用底层绝对仿生引擎 (Minimum Jerk + Perlin Noise)
-        trajectory = HumanKinematics.generate_bionic_curve(
-            start_x,
-            start_y,
-            x,
-            y,
-            target_width=25.0 if button_state == BUTTON_RELEASED else 10.0,
-            duration=duration,
-        )
-        
-        # 因为轨迹自身就是基于 100 FPS (10ms) 分切的！
-        # 必须严格锁定为每帧 10ms，绝不可以由于外部 duration 极小而将帧间压缩到 1ms（这会击穿 sleep 精度阈值导致光速狂点发射）
+        use_bionic_trajectory = bool(getattr(cfg, "logitech_bionic_trajectory", True))
+
+        if use_bionic_trajectory:
+            # 调用底层绝对仿生引擎 (Minimum Jerk + Perlin Noise)
+            trajectory = HumanKinematics.generate_bionic_curve(
+                start_x,
+                start_y,
+                x,
+                y,
+                target_width=25.0 if button_state == BUTTON_RELEASED else 10.0,
+                duration=duration,
+            )
+            # 因为轨迹自身就是基于 100 FPS (10ms) 分切的！
+            # 必须严格锁定为每帧 10ms，绝不可以由于外部 duration 极小而将帧间压缩到 1ms（这会击穿 sleep 精度阈值导致光速狂点发射）
+            step_time = 0.01
+        else:
+            steps = max(1, int(move_duration / 0.01))
+            trajectory = [
+                (
+                    int(round(start_x + (x - start_x) * (index + 1) / steps)),
+                    int(round(start_y + (y - start_y) * (index + 1) / steps)),
+                )
+                for index in range(steps)
+            ]
+            step_time = move_duration / max(len(trajectory), 1) if move_duration > 0 else 0.0
+
         # 引入硬件状态观测器 (State Observer) 解决闭环积分发散和 Windows 加速漂移
-        step_time = 0.01
         os_x, os_y = self.get_mouse_position()
         unack_dx, unack_dy = 0, 0
 
