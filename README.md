@@ -1,10 +1,39 @@
+> **Fork 说明（AhabAssistantLimbusCompany fork 版）**
+>
+> 本仓库基于上游项目进行维护，相较源项目做部分改动，不保证功能体验与上游完全一致。
+>
+> 试验性功能存在不确定性与潜在风险；因此仅会将小改动和无明显风险的改动向上游提交 PR。
+>
+> 本仓库的改动基本由 AI coding 辅助完成，可能存在不稳定性与不确定性，请谨慎评估与使用。
+>
+> 本项目（fork 版）可能会新增部分第三方依赖；相关依赖与商标均归原版权所有者所有，与本项目无直接关联。
+
+## 改动清单：
+### 输入 
+- 添加罗技驱动 DLL 支持，用于将 AALC 输入转换为驱动层鼠标输入
+- 添加仿生移动轨迹，用于将鼠标轨迹变换伪装
+### 采集
+- 添加 OBS 源作为图像来源，规避常规截图检测
+- 优化原有楼层识别逻辑[PR 中]
+- 添加部分日常任务输入彩色图片进行匹配
+### 使用
+- 优化通行证的领取逻辑，只领取完成但未领取的日/周常
+- 优化换饼逻辑，只在可换饼次数大于等于2的情况下才会换饼  
+  - 针对换饼逻辑发现的问题，部分720P情况下小按钮的识别不良情况  
+  - 针对720P添加了实验性功能，先将截图放大拉平到2k，再进行模板匹配。此举能显著提高命中率  
+- 优化快捷键捕获问题，现在`WIN`+`ALT`+`P`不会再被当成`ALT`+`P`响应了
+
+---
+
 <div align="center">
 
-![image](./assets/logo/my_icon.png)
+<img src="./assets/logo/my_icon.png" alt="AhabAssistantLimbusCompany logo" width="128" height="128" />
 
 ### AhabAssistantLimbusCompany
 
-### FACE THE <font color= #ff0000>S</font><font color= #b40001>I</font><font color= #690001>N</font>,SAVE THE <font color=#ffd700>E</font><font color=#f8da39>.</font><font color=#f1dd72>G</font><font color=#eae0aa>.</font><font color= #e3e3e3>O</font>
+<div>
+    <img src="./assets/logo/tagline.png" alt="FACE THE SIN,SAVE THE E.G.O (PNG)" height="32" />
+</div>
 
 ---
 <br>
