@@ -215,7 +215,7 @@ class MumuControl(AbstractInput):
         MumuControl.connection_device.adb_disconnect()
         MumuControl.connection_device = None
 
-    def __init__(self, instance_number=0, display_id=0):
+    def __init__(self, instance_number=0, display_id=0, stop_checker=None):
         self.install_path = None
         self.nemu_folder = None
         self.mumu_version = None
@@ -237,6 +237,7 @@ class MumuControl(AbstractInput):
 
         self.is_pause = False
         self.restore_time = None
+        self.stop_checker = stop_checker
 
         self.start_game_times = 0
 
@@ -246,6 +247,7 @@ class MumuControl(AbstractInput):
     def adb_connect(self):
         # Try to connect
         for _ in range(3):
+            self.check_stop_requested()
             try:
                 port = self.get_mumu_adb_port()
                 msg = adb.connect(port)
@@ -259,6 +261,7 @@ class MumuControl(AbstractInput):
                     log.error(f"连接失败，端口号{port}不正确，可能是拼写错误或不规范")
             except:
                 continue
+        self.check_stop_requested()
         self.close_simulator()
         self.start()
         self.adb_connect()
@@ -280,6 +283,7 @@ class MumuControl(AbstractInput):
             pass
 
     def start_game(self):
+        self.check_stop_requested()
         if self.device is None:
             self.device = adb.device(self.get_mumu_adb_port())
         try:
@@ -310,8 +314,11 @@ class MumuControl(AbstractInput):
                     creationflags=no_window_flag,
                 )
                 log.debug(f"获取到的应用列表列表：{result.stdout}")
-            sleep(5)
+            for _ in range(5):
+                self.check_stop_requested()
+                sleep(1)
             if self.start_game_times > 0 and self.start_game_times % 5 == 0:
+                self.check_stop_requested()
                 self.close_simulator()
                 self.start()
             self.start_game_times += 1
@@ -406,6 +413,7 @@ class MumuControl(AbstractInput):
 
     def start(self):
         try:
+            self.check_stop_requested()
             log.debug(f"开始启动MUMU模拟器实例编号{self.multi_instance_number}")
             keptlive = self.get_app_keptlive()
             if keptlive:
@@ -427,9 +435,11 @@ class MumuControl(AbstractInput):
             run_as_user(command)
             # 等待模拟器启动完成
             for _ in range(cfg.start_emulator_timeout):
+                self.check_stop_requested()
                 time.sleep(1)
                 if self.get_launch_status() == "start_finished":
                     break
+            self.check_stop_requested()
             self.port = self.get_mumu_adb_port()
             self.load_dll()
             log.debug(f"MUMU模拟器编号{self.multi_instance_number}启动完成")

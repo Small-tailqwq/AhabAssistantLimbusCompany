@@ -1,4 +1,5 @@
 import sys
+from time import sleep
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QTextCursor
@@ -332,23 +333,27 @@ class FarmingInterfaceLeft(QWidget):
                     MumuControl,
                 )
 
-                while True:
+                for _ in range(5):
                     try:
                         MumuControl.clean_connect()
                         break
                     except Exception:
-                        continue
+                        sleep(0.1)
+                else:
+                    log.warning("停止脚本后清理 MuMu 连接失败")
             else:
                 from module.automation.input_handlers.simulator.simulator_control import (
                     SimulatorControl,
                 )
 
-                while True:
+                for _ in range(5):
                     try:
                         SimulatorControl.clean_connect()
                         break
                     except Exception:
-                        continue
+                        sleep(0.1)
+                else:
+                    log.warning("停止脚本后清理模拟器连接失败")
 
         self.link_start_button.set_text("Link Start!")
         self.link_start_button.button.setEnabled(True)

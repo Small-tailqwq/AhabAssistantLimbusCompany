@@ -71,9 +71,10 @@ class SimulatorControl(AbstractInput):
         SimulatorControl.connection_device.adb_disconnect()
         SimulatorControl.connection_device = None
 
-    def __init__(self) -> None:
+    def __init__(self, stop_checker=None) -> None:
         self.is_pause = False
         self.restore_time = None
+        self.stop_checker = stop_checker
         self.simulator_device = None
         # self.simulator_control = None
         self.simulator_max_x = None
@@ -86,6 +87,7 @@ class SimulatorControl(AbstractInput):
         self.get_simulator()
 
     def start_game(self):
+        self.check_stop_requested()
         if self.simulator_device is None:
             self.get_simulator()
         try:
@@ -97,12 +99,15 @@ class SimulatorControl(AbstractInput):
                 log.debug(f"获取到的应用列表列表：{self.simulator_device.list_packages()}")
             except Exception as e:
                 log.error(f"获取应用列表失败，失败原因为{str(e)}")
-            sleep(5)
+            for _ in range(5):
+                self.check_stop_requested()
+                sleep(1)
             self.start_game()
 
     def adb_connect(self):
         # Try to connect
         for _ in range(3):
+            self.check_stop_requested()
             self.simulator_port = f"127.0.0.1:{int(cfg.simulator_port)}"
             msg = adb.connect(self.simulator_port)
             # Connected to 127.0.0.1:59865
@@ -135,6 +140,7 @@ class SimulatorControl(AbstractInput):
 
         last_error: Exception | None = None
         for attempt in range(3):
+            self.check_stop_requested()
             try:
                 if self.simulator_port is None:
                     self.adb_connect()
@@ -175,6 +181,7 @@ class SimulatorControl(AbstractInput):
                     pass
                 self.simulator_device = None
                 self.simulator_port = None
+                self.check_stop_requested()
                 sleep(1)
             except Exception as e:
                 last_error = e

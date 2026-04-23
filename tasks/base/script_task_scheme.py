@@ -124,7 +124,9 @@ def to_get_reward():
 
 def init_game():
     log.debug("初始化游戏")
+    stop_checker = auto.ensure_not_stopped
     if cfg.simulator:
+        stop_checker()
         if cfg.simulator_type == 0:
             mumu_instance_number = 0
             if cfg.simulator_port == 0 and cfg.mumu_instance_number == -1:
@@ -141,17 +143,19 @@ def init_game():
                 MumuControl,
             )
 
-            MumuControl(instance_number=mumu_instance_number)
+            MumuControl(instance_number=mumu_instance_number, stop_checker=stop_checker)
         else:
             from module.automation.input_handlers.simulator.simulator_control import (
                 SimulatorControl,
             )
 
             # 启动时先清理旧连接
+            stop_checker()
             SimulatorControl.clean_connect()
-            SimulatorControl()
+            SimulatorControl(stop_checker=stop_checker)
     auto.init_input()
     if cfg.simulator:
+        stop_checker()
         if cfg.simulator_type == 0:
             from module.automation.input_handlers.simulator.mumu_control import (
                 MumuControl,
@@ -165,10 +169,13 @@ def init_game():
 
             SimulatorControl.connection_device.start_game()
     else:
+        stop_checker()
         game_process.start_game()
-        while not screen.init_handle():
-            sleep(10)
+        while not screen.init_handle(stop_checker=stop_checker):
+            stop_checker()
+            sleep(1)
         if cfg.set_windows:
+            stop_checker()
             screen.set_win()
 
 

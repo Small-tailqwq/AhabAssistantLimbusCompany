@@ -215,6 +215,9 @@ class OBSCapture:
         if not self._source_name:
             return False, self.build_capture_error_message("source_name_missing")
 
+        # 预检前强制清理失败冷却，避免用户修好 OBS 后立即重试仍被旧状态拦截。
+        self.disconnect()
+        self._last_connect_attempt = 0
         image, stats = self.take_screenshot(gray=False, return_stats=True)
         if image is None:
             return False, self.build_capture_error_message(stats.get("error", "unknown"))

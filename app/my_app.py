@@ -405,8 +405,9 @@ class MainWindow(FramelessWindow):
                 self.window(),
             )
             if message_box.exec():
+                script = self.farming_interface.interface_left.my_script
                 self.farming_interface.interface_left.stop_script()
-                if not self.farming_interface.interface_left.my_script.wait(5000):
+                if script is not None and not script.wait(5000):
                     MessageBoxWarning(
                         self.tr("停止超时"),
                         self.tr("脚本仍在收尾，请稍后再尝试退出程序。"),
