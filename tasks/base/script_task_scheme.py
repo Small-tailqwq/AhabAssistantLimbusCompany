@@ -8,7 +8,7 @@ from traceback import format_exception
 
 import win32process
 from playsound3 import playsound
-from PySide6.QtCore import QT_TRANSLATE_NOOP, QMutex, QThread
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QThread
 
 from app import mediator
 from app.windows_toast import TemplateToast, send_toast
@@ -18,6 +18,7 @@ from module.ALI import (
     get_game_config_from_registry,
 )
 from module.automation import auto
+from module.automation.obs_capture import disconnect_obs_capture, get_obs_capture
 from module.config import cfg
 from module.decorator.decorator import begin_and_finish_time_log
 from module.game_and_screen import game_process, screen
@@ -94,6 +95,8 @@ def onetime_mir_process(team_setting, team_num: int):
             return True
         else:
             return False
+    except userStopError:
+        raise
     except Exception as e:
         msg = f"镜牢行动出错: {e}"
         exc_traceback = "".join(format_exception(*exc_info()))
@@ -121,7 +124,6 @@ def to_get_reward():
 
 def init_game():
     log.debug("初始化游戏")
-    simulator = None
     if cfg.simulator:
         if cfg.simulator_type == 0:
             mumu_instance_number = 0
@@ -139,7 +141,7 @@ def init_game():
                 MumuControl,
             )
 
-            simulator = MumuControl(instance_number=mumu_instance_number)
+            MumuControl(instance_number=mumu_instance_number)
         else:
             from module.automation.input_handlers.simulator.simulator_control import (
                 SimulatorControl,
@@ -147,7 +149,7 @@ def init_game():
 
             # 启动时先清理旧连接
             SimulatorControl.clean_connect()
-            simulator = SimulatorControl()
+            SimulatorControl()
     auto.init_input()
     if cfg.simulator:
         if cfg.simulator_type == 0:
@@ -177,6 +179,7 @@ def Resonate_with_Ahab():
 
 def Daily_task_wrapper(get_reward=None):
     def wrapper():
+        auto.ensure_not_stopped()
         back_init_menu()
         make_enkephalin_module()
         exp_times = cfg.set_EXP_count
@@ -186,14 +189,17 @@ def Daily_task_wrapper(get_reward=None):
         if get_reward and get_reward == "thread":
             thread_times -= 1
         for i in range(exp_times):
+            auto.ensure_not_stopped()
             onetime_EXP_process()
         for i in range(thread_times):
+            auto.ensure_not_stopped()
             onetime_thread_process()
 
     return wrapper
 
 
 def Buy_enkephalin():
+    auto.ensure_not_stopped()
     back_init_menu()
     lunacy_to_enkephalin(times=cfg.set_lunacy_to_enkephalin)
 
@@ -209,6 +215,7 @@ def Mirror_task():
     mediator.mirror_signal.emit(0, mir_times)
     # 开始执行镜牢任务
     while mir_times > 0:
+        auto.ensure_not_stopped()
         # 检测配置的队伍能否顺利执行
         useful = False
         hard = bool(cfg.hard_mirror)
@@ -277,8 +284,10 @@ def Mirror_task():
 
 def script_task() -> None | int:
     start_time = time()
+
     # 获取（启动）游戏对游戏窗口进行设置
     init_game()
+    auto.ensure_not_stopped()
 
     # 自动更改语言, 如果不支持则直接退出
     try:
@@ -319,6 +328,16 @@ def script_task() -> None | int:
             pic_path.pop(0)
         pic_path.insert(0, "en")
 
+    if getattr(cfg, "lab_screenshot_obs", False):
+        obs = get_obs_capture()
+        ready, message = obs.validate_capture_ready()
+        if not ready:
+            log.error(message)
+            mediator.warning.emit(message)
+            raise cannotOperateGameError(message)
+
+    auto.ensure_not_stopped()
+
     if cfg.resonate_with_Ahab:
         Resonate_with_Ahab()
     # 如果是战斗中，先处理战斗
@@ -345,6 +364,7 @@ def script_task() -> None | int:
         task_list.append(Mirror_task)
 
     for task in task_list:
+        auto.ensure_not_stopped()
         task()
 
     if cfg.set_reduce_miscontact and not cfg.simulator:
@@ -416,11 +436,12 @@ class my_script_task(QThread):
         # 初始化，构造函数
         super().__init__()
         self.exc_traceback = ""
-        self.mutex = QMutex()
+        self.exception = None
+
+    def stop(self, reason: str = "用户主动终止程序"):
+        auto.request_stop(reason)
 
     def run(self):
-        self.mutex.lock()
-
         try:
             self._run()
         except (
@@ -437,29 +458,22 @@ class my_script_task(QThread):
             withOutAdminError,
         ) as e:
             self.exception = e
+            if isinstance(e, userStopError):
+                log.info(str(e))
         except Exception as e:
             self.exception = e
             log.error(f"出现错误: {e}")
+            self.exc_traceback = "".join(format_exception(*exc_info()))
         finally:
-            if self.exc_traceback != "":
-                self.exc_traceback = "".join(format_exception(*exc_info()))
+            if self.exc_traceback:
                 log.error(self.exc_traceback)
-            self.mutex.unlock()
+            auto.clear_stop_request()
+            disconnect_obs_capture()
 
-        mediator.finished_signal.emit()
-
-    """def stop(self):
-        self.running=False
-        self.finished_signal.emit()"""
+        mediator.script_finished.emit()
 
     def _run(self):
-        try:
-            ret = script_task()
-            if ret == 0:
-                mediator.kill_signal.emit()
-            auto.clear_img_cache()
-        except Exception as e:
-            log.error(f"出现错误: {e}")
-            self.exc_traceback = "".join(format_exception(*exc_info()))
-            log.error(self.exc_traceback)
-            self.mutex.unlock()
+        ret = script_task()
+        if ret == 0:
+            mediator.kill_signal.emit()
+        auto.clear_img_cache()

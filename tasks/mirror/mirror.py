@@ -15,6 +15,7 @@ from module.my_error.my_error import (
     backMainWinError,
     cannotOperateGameError,
     unableToFindTeamError,
+    userStopError,
 )
 from module.ocr import ocr
 from tasks import all_systems, start_gift
@@ -1027,6 +1028,8 @@ class Mirror:
         except InputAttributeError as e:
             log.error(f"寻路出错:{e}, 尝试重进镜牢")
             pass
+        except userStopError:
+            raise
         except Exception as e:
             log.error(f"寻路出错:{e}")
             return False
