@@ -18,6 +18,7 @@ class Mediator(QObject):
     warning = Signal(str)
     warning_clear = Signal()
     finished_signal = Signal()
+    script_finished = Signal()
     kill_signal = Signal()
     mirror_signal = Signal(int, int)  # 运行的当前次数和总次数
     mirror_bar_kill_signal = Signal()

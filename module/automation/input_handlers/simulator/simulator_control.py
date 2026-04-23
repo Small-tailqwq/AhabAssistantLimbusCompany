@@ -211,6 +211,7 @@ class SimulatorControl(AbstractInput):
         """
         pause_identity = False
         while self.is_pause:
+            self.check_stop_requested()
             if pause_identity is not False:
                 log.info("AALC 已暂停")
                 pause_identity = True

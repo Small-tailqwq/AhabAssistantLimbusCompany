@@ -1,6 +1,5 @@
 import gc
 import math
-import os
 import random
 import time
 from ast import List
@@ -16,6 +15,7 @@ from utils.singletonmeta import SingletonMeta
 
 from ..config import cfg
 from ..logger import log
+from ..my_error.my_error import userStopError
 from ..ocr import ocr
 from .human_kinematics import HumanKinematics
 from .input_handlers.input import AbstractInput
@@ -36,6 +36,21 @@ class Automation(metaclass=SingletonMeta):
         self.last_screenshot_time = 0
         self.last_click_time = 0
         self.model = "clam"
+        self._stop_requested = False
+        self._stop_reason = "用户主动终止程序"
+
+    def request_stop(self, reason: str = "用户主动终止程序") -> None:
+        self._stop_requested = True
+        self._stop_reason = reason
+        log.debug(f"收到停止请求: {reason}")
+
+    def clear_stop_request(self) -> None:
+        self._stop_requested = False
+        self._stop_reason = "用户主动终止程序"
+
+    def ensure_not_stopped(self) -> None:
+        if self._stop_requested:
+            raise userStopError(self._stop_reason)
 
     def init_input(self):
         """初始化输入处理器，将输入操作如点击、拖动等绑定至实例变量"""
@@ -80,6 +95,7 @@ class Automation(metaclass=SingletonMeta):
 
             self.input_handler = BackgroundInput()
         assert isinstance(self.input_handler, AbstractInput), "输入处理器必须是AbstractInput的实例"
+        self.input_handler.stop_checker = self.ensure_not_stopped
         self.mouse_click = self.input_handler.mouse_click
         self.mouse_click_blank = self.input_handler.mouse_click_blank
         self.mouse_drag = self.input_handler.mouse_drag
@@ -128,6 +144,7 @@ class Automation(metaclass=SingletonMeta):
         interval=0.5,
     ):
         """查找并点击屏幕上的元素"""
+        self.ensure_not_stopped()
         if model is None:
             model = self.model
         coordinates = self.find_element(
@@ -227,6 +244,7 @@ class Automation(metaclass=SingletonMeta):
         """
         if find_type == "image_with_multiple_targets" and len(coordinates) > 0:
             for c in coordinates:
+                self.ensure_not_stopped()
                 self.mouse_action_with_pos(c, offset, action, times, dx, dy, find_type="image", interval=1)
             return True
 
@@ -236,6 +254,7 @@ class Automation(metaclass=SingletonMeta):
         if self.last_click_time == 0:
             self.last_click_time = time.time()
         if time.time() - self.last_click_time < interval:
+            self.ensure_not_stopped()
             if (
                 getattr(cfg, "lab_mouse_logitech", False)
                 and getattr(cfg, "logitech_bionic_trajectory", True)
@@ -284,6 +303,7 @@ class Automation(metaclass=SingletonMeta):
         start_time = time.time()
         screenshot_interval_time = cfg.screenshot_interval if cfg.screenshot_interval else 0.85
         while True:
+            self.ensure_not_stopped()
             try:
                 wait_time = 0.0
                 if time.time() - self.last_screenshot_time < screenshot_interval_time:
@@ -305,12 +325,14 @@ class Automation(metaclass=SingletonMeta):
                     time.sleep(wait_time)
 
                 result = ScreenShot.take_screenshot(gray)
+                self.last_screenshot_time = time.time()
                 if result:
                     self.screenshot = result
-                    self.last_screenshot_time = time.time()
                     return result
                 else:
                     return None
+            except userStopError:
+                raise
             except Exception as e:
                 log.error(f"截图失败:{e}")
             time.sleep(1)
@@ -360,11 +382,14 @@ class Automation(metaclass=SingletonMeta):
             model = self.model
         # 如果不需要截图，则重试次数设置为1
         max_retries = 1 if not take_screenshot else max_retries
+        screenshot_retry_interval = min(max(cfg.screenshot_interval if cfg.screenshot_interval else 0.85, 0.1), 1.0)
         for i in range(max_retries):
+            self.ensure_not_stopped()
             if take_screenshot:
                 # 截图并根据裁剪参数获取截图结果
                 while self.take_screenshot() is None:
-                    continue
+                    self.ensure_not_stopped()
+                    time.sleep(screenshot_retry_interval)
             # 根据查找类型执行不同的查找策略
             if find_type in ["image", "text"]:
                 center = None

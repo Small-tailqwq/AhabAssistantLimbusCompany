@@ -112,6 +112,7 @@ class FarmingInterfaceLeft(QWidget):
 
         self.my_script = None
         self.then_info_bar = None
+        self._stop_in_progress = False
 
         self.__init_widget()
         self.__init_card()
@@ -315,41 +316,48 @@ class FarmingInterfaceLeft(QWidget):
             # 启动前检查设置，防呆
             if self.check_setting() is False:
                 return
+            self._stop_in_progress = False
             self.link_start_button.set_text("S t o p !")
             self._disable_setting(self.parent())
             self.create_and_start_script()
         else:
-            if cfg.set_reduce_miscontact and cfg.simulator is False:
-                screen.reset_win()
-            else:
-                if cfg.simulator_type == 0:
-                    from module.automation.input_handlers.simulator.mumu_control import (
-                        MumuControl,
-                    )
-
-                    while True:
-                        try:
-                            MumuControl.clean_connect()
-                            break
-                        except:
-                            continue
-                else:
-                    from module.automation.input_handlers.simulator.simulator_control import (
-                        SimulatorControl,
-                    )
-
-                    while True:
-                        try:
-                            SimulatorControl.clean_connect()
-                            break
-                        except:
-                            continue
-            self.link_start_button.set_text("Link Start!")
-            self._enable_setting(self.parent())
-            mediator.refresh_teams_order.emit()
             self.stop_script()
-            auto.clear_img_cache()
-            mediator.mirror_bar_kill_signal.emit()
+
+    def _cleanup_after_script_stop(self):
+        if cfg.set_reduce_miscontact and cfg.simulator is False:
+            screen.reset_win()
+        elif cfg.simulator:
+            if cfg.simulator_type == 0:
+                from module.automation.input_handlers.simulator.mumu_control import (
+                    MumuControl,
+                )
+
+                while True:
+                    try:
+                        MumuControl.clean_connect()
+                        break
+                    except Exception:
+                        continue
+            else:
+                from module.automation.input_handlers.simulator.simulator_control import (
+                    SimulatorControl,
+                )
+
+                while True:
+                    try:
+                        SimulatorControl.clean_connect()
+                        break
+                    except Exception:
+                        continue
+
+        self.link_start_button.set_text("Link Start!")
+        self.link_start_button.button.setEnabled(True)
+        self._enable_setting(self.parent())
+        mediator.refresh_teams_order.emit()
+        auto.clear_img_cache()
+        mediator.mirror_bar_kill_signal.emit()
+        self._stop_in_progress = False
+        self.my_script = None
 
     def _disable_setting(self, parent):
         for child in parent.children():
@@ -418,18 +426,30 @@ class FarmingInterfaceLeft(QWidget):
             msg = "开始进行所有任务"
             log.info(msg)
             ui_log_dispatcher.clear()
+            auto.clear_stop_request()
             # 启动脚本线程
             self.my_script = my_script_task()
-            # 设置脚本线程为守护(当程序被关闭，一起停止)
-            self.my_script.daemon = True
             self.my_script.start()
         except Exception as e:
             log.error(f"启动脚本失败: {e}")
+            self.link_start_button.set_text("Link Start!")
+            self.link_start_button.button.setEnabled(True)
+            self._enable_setting(self.parent())
+            self._stop_in_progress = False
+            self.my_script = None
 
     def stop_script(self):
-        if self.my_script and self.my_script.isRunning():
-            log.debug("正在终止脚本线程...")
-            self.my_script.terminate()  # 终止线程
+        if self.my_script is not None:
+            if self._stop_in_progress:
+                return
+            self._stop_in_progress = True
+            log.debug("正在请求脚本线程安全停止...")
+            self.link_start_button.set_text("停止中...")
+            self.link_start_button.button.setEnabled(False)
+            self.my_script.stop()
+
+    def handle_script_finished(self):
+        self._cleanup_after_script_stop()
 
     def my_stop_shortcut(self):
         current_text = self.link_start_button.get_text()
@@ -441,6 +461,7 @@ class FarmingInterfaceLeft(QWidget):
         mediator.link_start.connect(self.my_stop_shortcut)
         mediator.kill_signal.connect(self.stop_AALC)
         mediator.finished_signal.connect(self.start_and_stop_tasks)
+        mediator.script_finished.connect(self.handle_script_finished)
 
     def retranslateUi(self):
         self.set_windows.retranslateUi()

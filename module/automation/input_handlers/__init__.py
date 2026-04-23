@@ -13,6 +13,11 @@ class AbstractInput:
         self.is_pause: bool = False
         self.restore_time: float | None = None
 
+    def check_stop_requested(self) -> None:
+        stop_checker = getattr(self, "stop_checker", None)
+        if callable(stop_checker):
+            stop_checker()
+
     def set_pause(self) -> None:
         """
         设置暂停状态
@@ -30,6 +35,7 @@ class AbstractInput:
         """
         pause_identity = False
         while self.is_pause:
+            self.check_stop_requested()
             if pause_identity is not False:
                 log.info("AALC 已暂停")
                 pause_identity = True

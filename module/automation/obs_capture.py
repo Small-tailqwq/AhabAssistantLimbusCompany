@@ -126,6 +126,21 @@ class OBSCapture:
             log.error(f"连接 OBS WebSocket 失败: {e}")
             return False
 
+    def build_capture_error_message(self, error: str) -> str:
+        """将内部错误转换为面向用户的提示。"""
+        self._refresh_settings()
+
+        if error == "source_name_missing":
+            return "OBS 截图源名称未配置，请在设置中填写 OBS 中捕获的源名称。"
+
+        if error == "connect_failed":
+            return (
+                f"无法连接到 OBS WebSocket ({self._host}:{self._port})，"
+                "请检查 OBS 是否已启动，以及地址、端口、密码是否填写正确。"
+            )
+
+        return f"OBS 截图不可用: {error}"
+
     def take_screenshot(self, gray: bool = True, return_stats: bool = False) -> Image.Image | tuple[Image.Image | None, dict]:
         """请求 OBS 截取一帧画面并返回 PIL Image
 
@@ -192,6 +207,19 @@ class OBSCapture:
             if return_stats:
                 return None, {"error": str(e)}
             return None
+
+    def validate_capture_ready(self) -> tuple[bool, str]:
+        """启动任务前预检 OBS 截图链路是否可用。"""
+        self._refresh_settings()
+
+        if not self._source_name:
+            return False, self.build_capture_error_message("source_name_missing")
+
+        image, stats = self.take_screenshot(gray=False, return_stats=True)
+        if image is None:
+            return False, self.build_capture_error_message(stats.get("error", "unknown"))
+
+        return True, ""
 
     def _get_source_screenshot(self, width: int, height: int):
         method = self._client.get_source_screenshot
@@ -294,3 +322,9 @@ def get_obs_capture() -> OBSCapture:
     if _obs_capture_instance is None:
         _obs_capture_instance = OBSCapture()
     return _obs_capture_instance
+
+
+def disconnect_obs_capture() -> None:
+    """断开已创建的 OBS 截图单例连接。"""
+    if _obs_capture_instance is not None:
+        _obs_capture_instance.disconnect()
