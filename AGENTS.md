@@ -40,6 +40,8 @@ uv run python .\scripts\build.py --version dev
 - Image lookup is language-aware through `utils.pic_path`; preserve relative asset keys.
 - `main.py` resets the working directory to the executable location, so relative paths must stay portable.
 - Prefer existing `mediator` signals over introducing direct cross-widget coupling.
+- For hierarchical debug settings, turning off the parent debug-mode switch must also reset every child debug toggle to `False`.
+- Commit messages should use Chinese whenever possible (提交说明尽可能使用中文).
 
 ## Script Lifecycle
 
