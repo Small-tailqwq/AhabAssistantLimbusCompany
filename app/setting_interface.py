@@ -38,7 +38,7 @@ from app.common.ui_config import get_setting_interface_qss
 from app.language_manager import SUPPORTED_LANG_NAME, LanguageManager
 from app.theme_pack_setting_interface import ThemePackSettingDialog
 from app.widget.setting_nav import SettingNav
-from module.config import cfg
+from module.config import cfg, theme_list
 from utils.schedule_helper import ScheduleHelper
 
 
@@ -513,6 +513,16 @@ class SettingInterface(QWidget):
             content=QT_TRANSLATE_NOOP("PushSettingCardChance", "仅对有损格式生效，推荐 60~80"),
             parent=self.experimental_group,
         )
+        self.keep_screen_awake_card = SwitchSettingCard(
+            FIF.VIEW,
+            QT_TRANSLATE_NOOP("SwitchSettingCard", "运行时保持屏幕唤醒"),
+            QT_TRANSLATE_NOOP(
+                "SwitchSettingCard",
+                "任务运行中阻止系统休眠与锁屏；任务结束、停止或异常退出后会自动恢复系统默认策略",
+            ),
+            config_name="experimental_keep_screen_awake",
+            parent=self.experimental_group,
+        )
         self.__refreshExperimentalCardContents()
 
     def _on_hard_mirror_chance_confirm(self, _: int) -> None:
@@ -577,6 +587,7 @@ class SettingInterface(QWidget):
         self.experimental_group.addSettingCard(self.obs_source_name_card)
         self.experimental_group.addSettingCard(self.obs_image_format_card)
         self.experimental_group.addSettingCard(self.obs_image_quality_card)
+        self.experimental_group.addSettingCard(self.keep_screen_awake_card)
 
         self.expand_layout.addWidget(self.game_setting_group)
         self.expand_layout.addWidget(self.theme_pack_group)
@@ -842,7 +853,11 @@ class SettingInterface(QWidget):
 
     def __onThemePackCardClicked(self):
         """打开主题包权重配置对话框"""
-        dialog = ThemePackSettingDialog(self)
+        dialog = ThemePackSettingDialog(
+            self,
+            config_data=theme_list.config,
+            save_path=theme_list.theme_pack_list_path,
+        )
         dialog.exec()
 
     def retranslateUi(self):
@@ -902,6 +917,7 @@ class SettingInterface(QWidget):
         self.obs_image_quality_card.retranslateUi()
         self.__refreshExperimentalCardContents()
         self.__refreshExperimentalCardVisibility()
+        self.keep_screen_awake_card.retranslateUi()
 
     def __onThemeCardChanged(self):
         theme_mode = cfg.get_value("theme_mode")

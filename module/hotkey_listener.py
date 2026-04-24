@@ -4,7 +4,6 @@ from collections.abc import Callable
 
 from pynput import keyboard
 
-
 _MODIFIER_KEYS = {
     keyboard.Key.alt,
     keyboard.Key.alt_gr,

@@ -5,9 +5,11 @@ from module import (
     EXAMPLE_PATH,
     THEME_PACK_LIST_EXAMPLE_PATH,
     THEME_PACK_LIST_PATH,
+    THEME_PACK_WEIGHT_PATH,
     VERSION_PATH,
 )
 from module.config.config import Config, Theme_pack_list
+from module.config.config_typing import ConfigModel, TeamSetting
 
 cfg = Config(VERSION_PATH, EXAMPLE_PATH, CONFIG_PATH)
 
@@ -20,4 +22,4 @@ cfg.env = os.environ.copy()
 # 用户代理是HTTP请求中的一部分，服务器可以使用它来识别客户端的类型和特性
 cfg.useragent = {"User-Agent": f"AhabLimbusCompany/{cfg.version}"}
 
-theme_list = Theme_pack_list(THEME_PACK_LIST_EXAMPLE_PATH, THEME_PACK_LIST_PATH)
+theme_list = Theme_pack_list(THEME_PACK_LIST_EXAMPLE_PATH, THEME_PACK_LIST_PATH, THEME_PACK_WEIGHT_PATH)

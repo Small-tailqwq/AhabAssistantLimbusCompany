@@ -11,6 +11,7 @@ import psutil
 from PIL.Image import Image
 
 from utils.image_utils import ImageUtils
+from utils.path_manager import path_manager
 from utils.singletonmeta import SingletonMeta
 
 from ..config import cfg
@@ -428,7 +429,7 @@ class Automation(metaclass=SingletonMeta):
                 time.sleep(1)  # 在重试前等待一定时间
         return None
 
-    def find_image_with_multiple_targets(self, target, threshold, addtional_stack, log_result=True) -> List:
+    def find_image_with_multiple_targets(self, target: str, threshold, addtional_stack, log_result=True) -> List:
         """
         在当前截图中查找多个目标图像的位置
         """
@@ -437,9 +438,11 @@ class Automation(metaclass=SingletonMeta):
             template = ImageUtils.load_image(target, resize=not use_1440_base)
             if template is None:
                 return []
-            if "assets" in target:
+            if target.endswith("assets.png"):
                 bbox = ImageUtils.get_bbox(template)
                 template = ImageUtils.crop(template, bbox)
+            else:
+                bbox = None
             screenshot = np.array(self.screenshot)
             scale_to_1440 = 1.0
             if use_1440_base:
@@ -593,7 +596,7 @@ class Automation(metaclass=SingletonMeta):
 
     def find_image_element(
         self,
-        target,
+        target: str,
         threshold,
         cacheable=True,
         model="clam",
@@ -614,20 +617,28 @@ class Automation(metaclass=SingletonMeta):
                 if current_percent > 90:
                     log.debug(f"当前系统内存总占用率: {current_percent}%，释放图片缓存")
                     self.clear_img_cache()
+            loaded_path = None
             if cacheable and cache_key in self.img_cache:
                 bbox = self.img_cache[cache_key]["bbox"]
                 template = self.img_cache[cache_key]["template"]
+                loaded_path = self.img_cache[cache_key].get("loaded_path")
             else:
-                template = ImageUtils.load_image(target, resize=not use_1440_base)
+                template, loaded_path = ImageUtils.load_image(
+                    target,
+                    resize=not use_1440_base,
+                    return_path=True,
+                )
                 if template is None:
+                    if log_result:
+                        log.debug(f"无法加载图片: {target}", stacklevel=addtional_stack + 3)
                     return None
-                if "assets" in target:
+                if target.endswith("assets.png"):
                     bbox = ImageUtils.get_bbox(template)
                     template = ImageUtils.crop(template, bbox)
                 else:
                     bbox = None
                 if cacheable:
-                    self.img_cache[cache_key] = {"bbox": bbox, "template": template}
+                    self.img_cache[cache_key] = {"bbox": bbox, "template": template, "loaded_path": loaded_path}
             screenshot = np.array(self.screenshot)
             if my_crop:
                 screenshot = ImageUtils.crop(screenshot, my_crop)
@@ -639,11 +650,51 @@ class Automation(metaclass=SingletonMeta):
                 center = ImageUtils.restore_coordinates_from_1440_matching(center, scale_to_1440)
             if log_result:
                 log.debug(
-                    f"目标图片：{target.replace('./assets/images/', '')}, 相似度：{matchVal:.2f}, 目标位置：{center}",
+                    f"目标图片：{target.replace('./assets/images/', '')}, 路径: {loaded_path}, 相似度：{matchVal:.2f}, 目标位置：{center}",
                     stacklevel=addtional_stack + 3,
                 )
             if isinstance(matchVal, (int, float)) and not math.isinf(matchVal) and matchVal >= threshold:
                 return center
+            if loaded_path and not path_manager.is_dark_eliminated and path_manager.is_path_dark(loaded_path):
+                default_exists, default_path = ImageUtils.check_default_path_exists(target)
+                if default_exists:
+                    default_template = ImageUtils.load_from_specific_path(
+                        target,
+                        default_path,
+                        resize=not use_1440_base,
+                    )
+                    if default_template is not None:
+                        if target.endswith("assets.png"):
+                            default_bbox = ImageUtils.get_bbox(default_template)
+                            default_template = ImageUtils.crop(default_template, default_bbox)
+                        else:
+                            default_bbox = None
+
+                        default_center, default_matchVal = ImageUtils.match_template(
+                            screenshot,
+                            default_template,
+                            default_bbox,
+                            model,
+                        )
+                        if use_1440_base and default_center:
+                            default_center = ImageUtils.restore_coordinates_from_1440_matching(
+                                default_center,
+                                scale_to_1440,
+                            )
+                        if log_result:
+                            log.debug(
+                                f"尝试默认路径图片：{target}, 路径: {default_path}, 相似度：{default_matchVal:.2f}",
+                                stacklevel=addtional_stack + 3,
+                            )
+                        if (
+                            isinstance(default_matchVal, (int, float))
+                            and not math.isinf(default_matchVal)
+                            and default_matchVal >= threshold
+                        ):
+                            if path_manager.eliminate_dark_paths():
+                                log.info(f"检测到dark路径失败但default路径成功，淘汰所有dark路径，图片: {target}")
+                                self.clear_img_cache()
+                            return default_center
         except Exception as e:
             log.error(f"寻找图片失败:{e}")
         return None

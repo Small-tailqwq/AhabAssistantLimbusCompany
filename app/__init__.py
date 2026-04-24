@@ -120,7 +120,6 @@ skill_replacement_mode = {"1→3": 0, "2→3": 1, "1→2": 2}
 
 blank_team_setting = {}
 
-team_setting_template = cfg._load_default_config().get("team1_setting", {})
 
 all_sinners_name = [
     "YiSang",
@@ -207,6 +206,7 @@ all_checkbox_config_name = [
     "second_system",
     "skill_replacement",
     "ignore_shop",
+    "use_custom_theme_pack_weight",
 ]
 
 win_input_type_options = {

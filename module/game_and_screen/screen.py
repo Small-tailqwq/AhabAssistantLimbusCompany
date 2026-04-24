@@ -482,10 +482,14 @@ class Screen(metaclass=SingletonMeta):
         except Exception as e:
             log.error(f"检查屏幕分辨率失败: {e}")
 
-    def reset_win(self) -> bool:
-        """重置窗口"""
+    def reset_win(self, activate: bool = True) -> bool:
+        """重置窗口。
+
+        任务结束链路会传 activate=False，只恢复窗口样式，不重新抢占前台焦点。
+        """
         try:
             hwnd = self.handle.hwnd
+            log.debug(f"开始重置游戏窗口，activate={activate}")
             # 获取窗口的当前样式
             style = win32gui.GetWindowLong(hwnd, win32con.GWL_STYLE)
             # 获取窗口的当前扩展样式
@@ -503,6 +507,9 @@ class Screen(metaclass=SingletonMeta):
             self.handle.set_window_transparent(False)
 
             # 更新窗口，使样式改变生效
+            frame_flags = win32con.SWP_FRAMECHANGED | win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_NOZORDER
+            if not activate:
+                frame_flags |= win32con.SWP_NOACTIVATE
             win32gui.SetWindowPos(
                 hwnd,
                 None,
@@ -510,11 +517,16 @@ class Screen(metaclass=SingletonMeta):
                 0,
                 0,
                 0,
-                win32con.SWP_FRAMECHANGED | win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_NOZORDER,
+                frame_flags,
             )
 
             # 恢复窗口状态
-            win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+            # 结束清理只需要恢复外观，不应该把前台再交回游戏窗口。
+            show_cmd = win32con.SW_RESTORE if activate else win32con.SW_SHOWNOACTIVATE
+            win32gui.ShowWindow(hwnd, show_cmd)
+            position_flags = win32con.SWP_NOMOVE | win32con.SWP_NOSIZE
+            if not activate:
+                position_flags |= win32con.SWP_NOACTIVATE
             win32gui.SetWindowPos(
                 hwnd,
                 win32con.HWND_NOTOPMOST,
@@ -522,7 +534,7 @@ class Screen(metaclass=SingletonMeta):
                 0,
                 0,
                 0,
-                win32con.SWP_NOMOVE | win32con.SWP_NOSIZE,
+                position_flags,
             )
 
             # 获取窗口客户区的大小
@@ -533,6 +545,9 @@ class Screen(metaclass=SingletonMeta):
             window_width = self.handle.width()
             window_height = self.handle.height()
 
+            size_flags = win32con.SWP_NOMOVE
+            if not activate:
+                size_flags |= win32con.SWP_NOACTIVATE
             win32gui.SetWindowPos(
                 hwnd,
                 win32con.HWND_NOTOPMOST,
@@ -540,10 +555,11 @@ class Screen(metaclass=SingletonMeta):
                 0,
                 window_width * 2 - client_width,
                 window_height * 2 - client_height,
-                win32con.SWP_NOMOVE,
+                size_flags,
             )
         except Exception as e:
             log.error(f"重置窗口失败: {e}")
             return False
         else:
+            log.debug("重置游戏窗口完成")
             return True
