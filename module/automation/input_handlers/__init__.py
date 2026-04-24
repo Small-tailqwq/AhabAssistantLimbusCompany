@@ -72,7 +72,7 @@ class AbstractInput:
         """
         raise InterruptedError(f"未实现的输入方法 {self.__class__.__name__}.mouse_click_blank")
 
-    def mouse_drag(self, x, y, drag_time=0.1, dx=0, dy=0, move_back=True) -> None:
+    def mouse_drag(self, x, y, drag_time=0.1, dx=0, dy=0, move_back=True, drag_profile=None) -> None:
         """鼠标从指定位置拖动到另一个位置
         Args:
             x (int): 起始x坐标
@@ -95,7 +95,7 @@ class AbstractInput:
         """
         raise InterruptedError(f"未实现的输入方法 {self.__class__.__name__}.mouse_drag_down")
 
-    def mouse_drag_link(self, position: list, drag_time=0.1, move_back=False) -> None:
+    def mouse_drag_link(self, position: list, drag_time=0.1, move_back=False, drag_profile=None) -> None:
         """鼠标从指定位置拖动到指定位置
         Args:
             x (int): 起始x坐标

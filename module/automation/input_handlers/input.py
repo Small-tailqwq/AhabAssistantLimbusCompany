@@ -136,7 +136,7 @@ class Input(WinAbstractInput, metaclass=SingletonMeta):
         if move_back and current_mouse_position:
             self.mouse_move(current_mouse_position)
 
-    def mouse_drag(self, x, y, drag_time=0.1, dx=0, dy=0, move_back=True) -> None:
+    def mouse_drag(self, x, y, drag_time=0.1, dx=0, dy=0, move_back=True, drag_profile=None) -> None:
         if move_back:
             current_mouse_position = self.get_mouse_position()
         x, y = self.pos_offset(x, y)
@@ -200,7 +200,7 @@ class Input(WinAbstractInput, metaclass=SingletonMeta):
         pyautogui.moveTo(coordinate[0], coordinate[1])
         self.wait_pause()
 
-    def mouse_drag_link(self, position: list, drag_time=0.1, move_back=False) -> None:
+    def mouse_drag_link(self, position: list, drag_time=0.1, move_back=False, drag_profile=None) -> None:
         if move_back:
             current_mouse_position = self.get_mouse_position()
 
@@ -306,7 +306,7 @@ class BackgroundInput(WinAbstractInput, metaclass=SingletonMeta):
         if move_back and current_mouse_position:
             self.mouse_move(current_mouse_position)
 
-    def mouse_drag(self, x, y, drag_time=0.1, dx=0, dy=0, move_back=True) -> None:
+    def mouse_drag(self, x, y, drag_time=0.1, dx=0, dy=0, move_back=True, drag_profile=None) -> None:
         """鼠标从指定位置拖动到另一个位置
         Args:
             x (int): 起始x坐标
@@ -372,7 +372,7 @@ class BackgroundInput(WinAbstractInput, metaclass=SingletonMeta):
         self.wait_pause()
         return True
 
-    def mouse_drag_link(self, position: list, drag_time=0.1, move_back=True) -> None:
+    def mouse_drag_link(self, position: list, drag_time=0.1, move_back=True, drag_profile=None) -> None:
         """鼠标从指定位置拖动到指定位置
         Args:
             x (int): 起始x坐标
@@ -552,7 +552,7 @@ class WindowMoveInput(WinAbstractInput, metaclass=SingletonMeta):
     def mouse_scroll(self, direction: int = 120) -> bool:
         return False
 
-    def mouse_drag(self, x, y, drag_time=0.1, dx=0, dy=0, move_back=True) -> None:
+    def mouse_drag(self, x, y, drag_time=0.1, dx=0, dy=0, move_back=True, drag_profile=None) -> None:
         pos = self._set_window_pos(x, y)
         self.set_active()
         self.mouse_down(x, y)
@@ -575,7 +575,7 @@ class WindowMoveInput(WinAbstractInput, metaclass=SingletonMeta):
 
         screen.handle.set_window_pos(*pos)
 
-    def mouse_drag_link(self, position: list, drag_time=0.1, move_back=False) -> None:
+    def mouse_drag_link(self, position: list, drag_time=0.1, move_back=False, drag_profile=None) -> None:
         raw_pos = self._set_window_pos(position[0][0], position[0][1])
         self.set_active()
         self.mouse_down(position[0][0], position[0][1])

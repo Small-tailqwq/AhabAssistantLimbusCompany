@@ -902,7 +902,7 @@ class MumuControl(AbstractInput):
         y2 = y + int(300 * scale * reverse)
         self.swipe(x1=x, y1=y, x2=x2, y2=y2, duration=0.4)
 
-    def mouse_drag(self, x, y, drag_time=0.1, dx=0, dy=0, move_back=True) -> None:
+    def mouse_drag(self, x, y, drag_time=0.1, dx=0, dy=0, move_back=True, drag_profile=None) -> None:
         """鼠标从指定位置拖动到另一个位置
         Args:
             x (int): 起始x坐标
@@ -948,7 +948,7 @@ class MumuControl(AbstractInput):
         """占位"""
         return 0, 0
 
-    def mouse_drag_link(self, position: list, drag_time=0.25, min_distance=10, move_back=False) -> None:
+    def mouse_drag_link(self, position: list, drag_time=0.25, min_distance=10, move_back=False, drag_profile=None) -> None:
         """鼠标从指定位置拖动到指定位置
         Args:
             x (int): 起始x坐标

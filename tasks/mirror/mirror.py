@@ -1504,6 +1504,8 @@ class Mirror:
     @begin_and_finish_time_log(task_name="镜牢商店")
     def in_shop(self):
         self.shop.in_shop(self.floor)
+        if auto.take_screenshot() is not None and auto.find_element("mirror/road_in_mir/legend_assets.png"):
+            self.mirror_map.cache_post_shop_boss_route()
 
     def get_which_floor(self):
         def extract_floor_from_text(ocr_text):

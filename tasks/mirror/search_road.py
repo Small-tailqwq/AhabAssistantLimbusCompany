@@ -1,4 +1,6 @@
+import heapq
 import time
+from enum import Enum
 from time import sleep
 
 import cv2
@@ -69,6 +71,18 @@ def find_visible_bus_position(retries=3, delay=0.3):
     return None
 
 
+def _find_bus_position_in_screenshot(screenshot_image):
+    if screenshot_image is None:
+        return None
+
+    previous_screenshot = auto.screenshot
+    try:
+        auto.screenshot = screenshot_image
+        return auto.find_element("mirror/mybus_default_distance.png")
+    finally:
+        auto.screenshot = previous_screenshot
+
+
 def _clamp_drag_delta(value, limit):
     return max(-limit, min(limit, int(value)))
 
@@ -88,23 +102,352 @@ def _scale_anchor_delta(delta, gain, minimum_step):
 def _get_route_map_camera_anchor(position, scale, aggressive=False):
     if aggressive:
         anchor_map = {
-            Position.TOP: (140 * scale, 360 * scale),
-            Position.MID: (40 * scale, 690 * scale),
-            Position.BOTTOM: (140 * scale, 1020 * scale),
+            Position.TOP: (110 * scale, 300 * scale),
+            Position.MID: (60 * scale, 720 * scale),
+            Position.BOTTOM: (110 * scale, 1140 * scale),
         }
     else:
         anchor_map = {
-            Position.TOP: (180 * scale, 420 * scale),
-            Position.MID: (80 * scale, 690 * scale),
-            Position.BOTTOM: (180 * scale, 960 * scale),
+            Position.TOP: (155 * scale, 360 * scale),
+            Position.MID: (80 * scale, 720 * scale),
+            Position.BOTTOM: (155 * scale, 1080 * scale),
         }
     return anchor_map.get(position, anchor_map[Position.MID])
+
+
+def _detect_bus_lane(bus_position, scale):
+    # bus 模板中心明显高于实际车道中心，不能直接复用相机锚点做车道分界。
+    top_mid_boundary = 430 * scale
+    mid_bottom_boundary = 830 * scale
+
+    if bus_position[1] <= top_mid_boundary:
+        return Position.TOP
+    if bus_position[1] >= mid_bottom_boundary:
+        return Position.BOTTOM
+    return Position.MID
+
+
+def _get_row_centers(y_area):
+    return [sum(node[1][1] for node in group) / len(group) for group in y_area]
+
+
+def _get_nearest_row_index(y_value, row_centers):
+    if not row_centers:
+        return 0
+    return min(range(len(row_centers)), key=lambda idx: abs(y_value - row_centers[idx]))
+
+
+def _get_layer_row_indices(layer_data, row_centers):
+    if not row_centers:
+        return []
+    return sorted(
+        {
+            _get_nearest_row_index(node_entry[1][1], row_centers)
+            for node_entry in layer_data
+        }
+    )
+
+
+def _get_visible_lane_positions(current_bus, row_centers, default_position):
+    if not row_centers:
+        return [default_position]
+
+    if len(row_centers) == 1:
+        return [default_position]
+
+    if len(row_centers) >= 3:
+        return [Position.TOP, Position.MID, Position.BOTTOM][: len(row_centers)]
+
+    scale = cfg.set_win_size / 1440
+    adjusted_bus_y = current_bus[1] + 40 * scale
+    nearest_row = min(range(len(row_centers)), key=lambda idx: abs(adjusted_bus_y - row_centers[idx]))
+
+    if default_position == Position.TOP:
+        return [Position.TOP, Position.MID]
+    if default_position == Position.BOTTOM:
+        return [Position.MID, Position.BOTTOM]
+
+    upper_center, lower_center = row_centers
+    if nearest_row == 0:
+        if upper_center >= 580 * scale:
+            return [Position.TOP, Position.MID]
+        return [Position.MID, Position.BOTTOM]
+
+    if lower_center <= 670 * scale:
+        return [Position.TOP, Position.MID]
+    return [Position.MID, Position.BOTTOM]
+
+
+def _infer_two_row_lane_view(current_bus, row_centers, scale, default_position):
+    visible_positions = _get_visible_lane_positions(current_bus, row_centers, default_position)
+    adjusted_bus_y = current_bus[1] + 40 * scale
+    nearest_row = min(range(len(row_centers)), key=lambda idx: abs(adjusted_bus_y - row_centers[idx]))
+
+    if default_position == Position.TOP:
+        return Position.TOP, visible_positions
+    if default_position == Position.BOTTOM:
+        return Position.BOTTOM, visible_positions
+
+    return visible_positions[nearest_row], visible_positions
+
+
+def _infer_bus_lane_from_nodes(current_bus, y_area, all_nodes_layer, scale, default_position):
+    if len(y_area) == 2:
+        row_centers = _get_row_centers(y_area)
+        inferred_lane, _ = _infer_two_row_lane_view(current_bus, row_centers, scale, default_position)
+        return inferred_lane
+
+    if len(y_area) >= 3:
+        lane_positions = [Position.TOP, Position.MID, Position.BOTTOM]
+        group_centers = _get_row_centers(y_area[:3])
+        nearest_index = min(range(len(group_centers)), key=lambda idx: abs(current_bus[1] - group_centers[idx]))
+        return lane_positions[nearest_index]
+
+    return default_position
+
+
+def _infer_visible_lane_positions(current_bus, y_area, scale, default_position):
+    if len(y_area) == 2:
+        row_centers = _get_row_centers(y_area)
+        _, visible_positions = _infer_two_row_lane_view(current_bus, row_centers, scale, default_position)
+        return visible_positions
+    return _get_visible_lane_positions(current_bus, _get_row_centers(y_area), default_position)
+
+
+def _should_use_full_view_anchor(position, y_area):
+    return len(y_area) <= 2 and position in (Position.TOP, Position.BOTTOM)
+
+
+def _infer_sparse_route_from_visible_nodes(current_bus, y_area, all_nodes_layer, all_road=None):
+    if len(y_area) != 2 or len(all_nodes_layer) < 2:
+        return None
+
+    row_centers = _get_row_centers(y_area)
+    start_row = min(range(len(row_centers)), key=lambda idx: abs(current_bus[1] - row_centers[idx]))
+    path_state = {}
+    road_layers = all_road or []
+
+    for layer_index, layer_data in enumerate(all_nodes_layer):
+        current_state = {}
+        allowed_deltas = {0}
+        if layer_index < len(road_layers) and road_layers[layer_index]:
+            for road_type, _ in road_layers[layer_index]:
+                if road_type == "DOWN":
+                    allowed_deltas.add(1)
+                elif road_type == "UP":
+                    allowed_deltas.add(-1)
+        else:
+            allowed_deltas.update({-1, 1})
+
+        for node_class, node_pos in layer_data:
+            row_index = min(range(len(row_centers)), key=lambda idx: abs(node_pos[1] - row_centers[idx]))
+            node_weight = all_node_weight.get(node_class, DEFAULT_WEIGHT)
+
+            if layer_index == 0:
+                delta = row_index - start_row
+                if delta not in allowed_deltas:
+                    continue
+                direction = "M" if delta == 0 else ("D" if delta > 0 else "U")
+                current_state[row_index] = (node_weight, [direction], [node_class])
+                continue
+
+            for previous_row, (total_weight, directions, class_list) in path_state.items():
+                delta = row_index - previous_row
+                if delta not in allowed_deltas:
+                    continue
+
+                direction = "M"
+                if delta > 0:
+                    direction = "D"
+                elif delta < 0:
+                    direction = "U"
+
+                next_weight = total_weight + node_weight
+                next_directions = directions + [direction]
+                next_class_list = class_list + [node_class]
+                best_state = current_state.get(row_index)
+                if best_state is None or next_weight < best_state[0]:
+                    current_state[row_index] = (next_weight, next_directions, next_class_list)
+
+        if not current_state:
+            return None
+        path_state = current_state
+
+    best_path = min(path_state.values(), key=lambda item: item[0], default=None)
+    if best_path is None:
+        return None
+    _, directions, class_list = best_path
+    return directions, class_list
+
+
+def _append_post_shop_shortcut(directions, road_class_list):
+    directions = list(directions)
+    road_class_list = list(road_class_list)
+
+    if not directions or not road_class_list:
+        return directions, road_class_list
+    if road_class_list[-1] != "shop" or "boss_battle" in road_class_list:
+        return directions, road_class_list
+
+    log.debug("镜牢路线图识别到商店锚点，补充商店后直达 boss 的缓存路线")
+    directions.append("M")
+    road_class_list.append("boss_battle")
+    return directions, road_class_list
+
+
+def _get_layer_x_center(layer_data):
+    return sum(node_entry[1][0] for node_entry in layer_data) / len(layer_data)
+
+
+def _group_roads_by_node_layers(identified_road, bus_x, all_nodes_layer):
+    if not all_nodes_layer:
+        return []
+
+    grouped_roads = [[] for _ in range(len(all_nodes_layer))]
+    if not identified_road:
+        log.debug(f"按节点列对齐后的线段分组：{grouped_roads}")
+        return grouped_roads
+
+    scale = cfg.set_win_size / 1440
+    column_centers = [bus_x, *[_get_layer_x_center(layer_data) for layer_data in all_nodes_layer]]
+    for road in sorted(identified_road, key=lambda item: item[1][0]):
+        road_x = road[1][0]
+        if road_x < bus_x + 50 * scale:
+            continue
+
+        gap_index = min(
+            range(len(grouped_roads)),
+            key=lambda idx: abs(road_x - (column_centers[idx] + column_centers[idx + 1]) / 2),
+        )
+        left_x = column_centers[gap_index]
+        right_x = column_centers[gap_index + 1]
+        gap_width = max(right_x - left_x, 1)
+        margin = max(70 * scale, gap_width * 0.28)
+        if left_x - margin <= road_x <= right_x + margin:
+            grouped_roads[gap_index].append(road)
+
+    for group in grouped_roads:
+        group.sort(key=lambda item: item[1][1])
+
+    log.debug(f"按节点列对齐后的线段分组：{grouped_roads}")
+    return grouped_roads
+
+
+def _count_non_empty_layers(layer_groups):
+    return sum(1 for layer in layer_groups if layer)
+
+
+def _collect_visible_route_snapshot(current_bus, scale, screenshot_image=None):
+    all_nodes = identify_nodes(current_bus[0], screenshot_image=screenshot_image) or []
+    if not isinstance(all_nodes, list):
+        log.warning(f"镜牢路线图节点识别结果异常: {type(all_nodes).__name__}")
+        return None
+    if len(all_nodes) == 0:
+        log.warning("镜牢路线图未识别到任何节点，回退到距离兜底寻路")
+        return None
+
+    y_area = divide_the_area_by_y(all_nodes)
+    all_nodes_layer = divide_the_area_by_x(all_nodes)
+    initial_bus_pos = _infer_bus_lane_from_nodes(
+        current_bus,
+        y_area,
+        all_nodes_layer,
+        scale,
+        _detect_bus_lane(current_bus, scale),
+    )
+    return {
+        "all_nodes": all_nodes,
+        "y_area": y_area,
+        "all_nodes_layer": all_nodes_layer,
+        "initial_bus_pos": initial_bus_pos,
+    }
+
+
+def _build_route_plan_from_snapshot(current_bus, snapshot, hard_mode=False, screenshot_image=None):
+    y_area = snapshot["y_area"]
+    all_nodes = snapshot["all_nodes"]
+    all_nodes_layer = snapshot["all_nodes_layer"]
+    initial_bus_pos = snapshot["initial_bus_pos"]
+
+    if len(y_area) == 1:
+        identified_road = identify_road(current_bus[0], screenshot_image=screenshot_image) or []
+        if not isinstance(identified_road, list):
+            log.warning(f"镜牢路线图线段识别结果异常: {type(identified_road).__name__}")
+            return None
+        all_road = _group_roads_by_node_layers(identified_road, current_bus[0], all_nodes_layer)
+        directions = ["M"]
+        if any(all_road):
+            first_road = next((road for road in all_road[0] if road[0] in ["DOWN", "UP"]), None)
+            if first_road is not None:
+                directions = ["D"] if first_road[0] == "DOWN" else ["U"]
+
+        road_class_list = ["shop"] if any(node[0] == "shop" for node in all_nodes) else ["unknown"]
+        directions, road_class_list = _append_post_shop_shortcut(directions, road_class_list)
+        return {
+            "directions": directions,
+            "road_class_list": road_class_list,
+            "initial_bus_pos": initial_bus_pos,
+            "bus": current_bus,
+            "visible_rows": len(y_area),
+            "visible_layers": len(all_nodes_layer),
+            "road_layers": _count_non_empty_layers(all_road),
+        }
+
+    identified_road = identify_road(current_bus[0], screenshot_image=screenshot_image) or []
+    if not isinstance(identified_road, list):
+        log.warning(f"镜牢路线图线段识别结果异常: {type(identified_road).__name__}")
+        return None
+    all_road = _group_roads_by_node_layers(identified_road, current_bus[0], all_nodes_layer)
+
+    route_graph = RouteGraph(
+        all_nodes_layer,
+        initial_bus_pos=initial_bus_pos,
+        hard_mode=hard_mode,
+        bus_position=current_bus,
+    )
+    route_graph.init_road(all_road, current_bus[0], current_bus[1])
+
+    min_weight, path = route_graph.find_min_weight_route()
+    if not path:
+        sparse_plan = _infer_sparse_route_from_visible_nodes(current_bus, y_area, all_nodes_layer, all_road)
+        if sparse_plan:
+            directions, road_class_list = sparse_plan
+            directions, road_class_list = _append_post_shop_shortcut(directions, road_class_list)
+            log.debug(f"镜牢路线图稀疏推算方向: {directions}")
+            log.debug(f"镜牢路线图稀疏推算节点: {road_class_list}")
+            return {
+                "directions": directions,
+                "road_class_list": road_class_list,
+                "initial_bus_pos": initial_bus_pos,
+                "bus": current_bus,
+                "visible_rows": len(y_area),
+                "visible_layers": len(all_nodes_layer),
+                "road_layers": _count_non_empty_layers(all_road),
+            }
+        log.warning("未能检测到有效路径")
+        return None
+
+    directions, road_class_list = route_graph.get_path_directions(path)
+    directions, road_class_list = _append_post_shop_shortcut(directions, road_class_list)
+    log.debug(f"最小权重: {min_weight}")
+    log.debug(f"路径方向: {directions}")
+    log.debug(f"行走路径: {road_class_list}")
+    return {
+        "directions": directions,
+        "road_class_list": road_class_list,
+        "initial_bus_pos": initial_bus_pos,
+        "bus": current_bus,
+        "visible_rows": len(y_area),
+        "visible_layers": len(all_nodes_layer),
+        "road_layers": _count_non_empty_layers(all_road),
+    }
 
 
 class MirrorMap:
     def __init__(self, floor=1, hard_mode=False):
         self.floor = floor
         self.floor_map = []
+        self.floor_nodes = []
         self.map = {}
         self.hard_mode = hard_mode
 
@@ -182,9 +525,20 @@ class MirrorMap:
     def next_floor(self):
         self.floor += 1
         self.floor_map = []
+        self.floor_nodes = []
 
     def refresh_floor(self, floor):
         self.floor = floor
+        self.floor_map = []
+        self.floor_nodes = []
+
+    def cache_post_shop_boss_route(self):
+        if f"floor{self.floor}" in self.map:
+            log.debug("镜牢路线缓存已存在，覆盖写入")
+        self.floor_map = ["M"]
+        self.floor_nodes = ["shop", "boss_battle"]
+        self.map[f"floor{self.floor}"] = [self.floor_map[:], self.floor_nodes[:]]
+        log.debug("商店结束后写入直达 boss 的镜牢路线缓存")
 
 
 def get_node_weight(x, y):
@@ -301,9 +655,15 @@ def _drag_map_to_bus_anchor(
             dx=final_x - bus_position[0],
             dy=final_y - bus_position[1],
             move_back=False,
+            drag_profile="route_map_align",
         )
     else:
-        auto.mouse_drag_link(drag_path, drag_time=segment_drag_time, move_back=False)
+        auto.mouse_drag_link(
+            drag_path,
+            drag_time=segment_drag_time,
+            move_back=False,
+            drag_profile="route_map_align",
+        )
     return True
 
 
@@ -342,7 +702,10 @@ def _align_bus_for_route_map(
         auto.mouse_to_blank()
         next_bus = auto.find_element("mirror/mybus_default_distance.png", take_screenshot=True)
         if next_bus is None:
-            return current_bus
+            next_bus = find_visible_bus_position(retries=2, delay=0.25)
+            if next_bus is None:
+                log.debug("镜牢路线图拖拽后丢失巴士位置，终止本轮对齐")
+                return None
         current_bus = next_bus
         remaining_attempts -= 1
         if remaining_attempts <= 0:
@@ -352,39 +715,19 @@ def _align_bus_for_route_map(
 
 def _evaluate_route_map_plan(start_time, bus, hard_mode=False):
     scale = cfg.set_win_size / 1440
-    road = []
     current_bus = bus
-    initial_bus_pos = Position.MID
-    all_nodes = identify_nodes(current_bus[0]) or []
-    if not isinstance(all_nodes, list):
-        log.warning(f"镜牢路线图节点识别结果异常: {type(all_nodes).__name__}")
+    snapshot = _collect_visible_route_snapshot(current_bus, scale)
+    if snapshot is None:
         return None
-    if len(all_nodes) == 0:
-        log.warning("镜牢路线图未识别到任何节点，回退到距离兜底寻路")
-        return None
+    y_area = snapshot["y_area"]
+    initial_bus_pos = snapshot["initial_bus_pos"]
 
-    y_area = divide_the_area_by_y(all_nodes)
-    reset_position = False
-    if len(y_area) == 2:
-        if current_bus[1] > y_area[0][0][1][1] + 50 * scale:
-            reset_position = Position.BOTTOM
-            initial_bus_pos = Position.BOTTOM
-        else:
-            reset_position = Position.TOP
-            initial_bus_pos = Position.TOP
-    elif len(y_area) == 1:
-        identified_road = identify_road(current_bus[0]) or []
-        if not isinstance(identified_road, list):
-            log.warning(f"镜牢路线图线段识别结果异常: {type(identified_road).__name__}")
-            return None
-        all_road = divide_the_area_by_x(identified_road) if identified_road else []
-        if len(all_road) == 0:
-            road = ["M"]
-        else:
-            road = ["D"] if all_road[0][0][0] == "DOWN" else ["U"]
-
-    if reset_position is not False:
-        target_x, target_y = _get_route_map_camera_anchor(reset_position, scale)
+    target_x, target_y = _get_route_map_camera_anchor(
+        initial_bus_pos,
+        scale,
+        aggressive=_should_use_full_view_anchor(initial_bus_pos, y_area),
+    )
+    if abs(current_bus[0] - target_x) > 55 * scale or abs(current_bus[1] - target_y) > 55 * scale:
         current_bus = _align_bus_for_route_map(
             start_time,
             current_bus,
@@ -399,58 +742,21 @@ def _evaluate_route_map_plan(start_time, bus, hard_mode=False):
         if current_bus is None:
             log.warning("镜牢路线图重定位后未能重新识别巴士位置，回退到距离兜底寻路")
             return None
-        all_nodes = identify_nodes(current_bus[0]) or []
-        if not isinstance(all_nodes, list):
-            log.warning(f"镜牢路线图重定位后节点识别结果异常: {type(all_nodes).__name__}")
+        snapshot = _collect_visible_route_snapshot(current_bus, scale)
+        if snapshot is None:
+            log.warning("镜牢路线图重定位后未识别到有效节点，回退到距离兜底寻路")
             return None
-        if len(all_nodes) == 0:
-            log.warning("镜牢路线图重定位后未识别到任何节点，回退到距离兜底寻路")
-            return None
+        y_area = snapshot["y_area"]
 
-    all_nodes_layer = divide_the_area_by_x(all_nodes)
-    if len(road) != 0:
-        return {
-            "directions": road,
-            "road_class_list": ["unknown"],
-            "initial_bus_pos": initial_bus_pos,
-            "bus": current_bus,
-            "visible_layers": len(all_nodes_layer),
-            "road_layers": 0,
-        }
-
-    identified_road = identify_road(current_bus[0]) or []
-    if not isinstance(identified_road, list):
-        log.warning(f"镜牢路线图线段识别结果异常: {type(identified_road).__name__}")
-        return None
-    all_road = divide_the_area_by_x(identified_road) if identified_road else []
-
-    route_graph = RouteGraph(all_nodes_layer, initial_bus_pos=initial_bus_pos, hard_mode=hard_mode)
-    route_graph.init_road(all_road, current_bus[0], current_bus[1])
-
-    min_weight, path = route_graph.find_min_weight_route()
-    if not path:
-        log.warning("未能检测到有效路径")
-        return None
-
-    directions, road_class_list = route_graph.get_path_directions(path)
-    log.debug(f"最小权重: {min_weight}")
-    log.debug(f"路径方向: {directions}")
-    log.debug(f"行走路径: {road_class_list}")
-    return {
-        "directions": directions,
-        "road_class_list": road_class_list,
-        "initial_bus_pos": initial_bus_pos,
-        "bus": current_bus,
-        "visible_layers": len(all_nodes_layer),
-        "road_layers": len(all_road),
-    }
+    return _build_route_plan_from_snapshot(current_bus, snapshot, hard_mode=hard_mode)
 
 
 def _route_plan_score(plan):
     if not plan:
-        return (-1, -1, -1)
+        return (-1, -1, -1, -1)
     return (
         len(plan["directions"]),
+        plan.get("visible_rows", 0),
         plan["visible_layers"],
         plan["road_layers"],
     )
@@ -458,8 +764,8 @@ def _route_plan_score(plan):
 
 def _should_retry_with_camera_scout(plan):
     if not plan:
-        return False
-    return len(plan["directions"]) <= 1 or plan["visible_layers"] <= 2
+        return True
+    return len(plan["directions"]) <= 1 or plan.get("visible_rows", 0) <= 2 or plan["visible_layers"] <= 2
 
 
 # 在默认缩放情况下，进行镜牢寻路
@@ -584,13 +890,31 @@ def search_road_from_road_map(hard_mode=False):
         return True, True
 
     if bus_position := auto.find_element("mirror/mybus_default_distance.png", take_screenshot=True):
+        initial_bus_pos = _detect_bus_lane(bus_position, scale)
+        all_nodes = identify_nodes(bus_position[0]) or []
+        y_area = []
+        if isinstance(all_nodes, list) and len(all_nodes) > 0:
+            y_area = divide_the_area_by_y(all_nodes)
+            all_nodes_layer = divide_the_area_by_x(all_nodes)
+            initial_bus_pos = _infer_bus_lane_from_nodes(
+                bus_position,
+                y_area,
+                all_nodes_layer,
+                scale,
+                initial_bus_pos,
+            )
+        target_x, target_y = _get_route_map_camera_anchor(
+            initial_bus_pos,
+            scale,
+            aggressive=_should_use_full_view_anchor(initial_bus_pos, y_area),
+        )
         bus = _align_bus_for_route_map(
             start_time,
             bus_position,
-            target_x=80 * scale,
-            target_y=690 * scale,
+            target_x=target_x,
+            target_y=target_y,
             tolerance_x=70 * scale,
-            tolerance_y=20 * scale,
+            tolerance_y=45 * scale,
             max_attempts=5,
             pause=0.5,
         )
@@ -632,11 +956,37 @@ def search_road_from_road_map(hard_mode=False):
     return [], []
 
 
+def analyze_route_map_screenshot(screenshot_image, hard_mode=False):
+    """分析镜牢路线图截图并返回路线规划。
+
+    screenshot_image 需为 RGB 格式的 numpy 数组（非 BGR），通常来自 auto.take_screenshot(gray=False)。
+    """
+    scale = cfg.set_win_size / 1440
+    bus = _find_bus_position_in_screenshot(screenshot_image)
+    if bus is None:
+        return {"bus": None, "snapshot": None, "plan": None}
+
+    snapshot = _collect_visible_route_snapshot(bus, scale, screenshot_image=screenshot_image)
+    if snapshot is None:
+        return {"bus": bus, "snapshot": None, "plan": None}
+
+    identified_road = identify_road(bus[0], screenshot_image=screenshot_image) or []
+    grouped_road = _group_roads_by_node_layers(identified_road, bus[0], snapshot["all_nodes_layer"])
+    plan = _build_route_plan_from_snapshot(bus, snapshot, hard_mode=hard_mode, screenshot_image=screenshot_image)
+    return {
+        "bus": bus,
+        "snapshot": snapshot,
+        "identified_road": identified_road,
+        "grouped_road": grouped_road,
+        "plan": plan,
+    }
+
+
 # battle 是常规遭遇战，boss_battle 是boss战，event 是事件，hard_battle 是集中遭遇战（非拉链），hard_battle_2 是精锐遭遇战（有拉链）
 # shop 是商店，small_boss_battle 是异想体遭遇战
 
 
-def identify_nodes(bus_x):
+def identify_nodes(bus_x, screenshot_image=None):
     import numpy as np
     import onnxruntime as ort
 
@@ -657,8 +1007,11 @@ def identify_nodes(bus_x):
     session = ort.InferenceSession("./assets/model/best.onnx")
 
     # 读取原始图像（BGR 格式，由 OpenCV 读取）
-    auto.take_screenshot(gray=False)
-    original_image: np.ndarray = np.array(auto.screenshot)
+    if screenshot_image is None:
+        auto.take_screenshot(gray=False)
+        original_image: np.ndarray = np.array(auto.screenshot)
+    else:
+        original_image = np.array(screenshot_image)
     [height, width, _] = original_image.shape  # 获取原始图像的高、宽、通道数
 
     # 创建正方形空白图像（边长为原始图像的最大边），用于保持图像比例并避免变形
@@ -764,7 +1117,7 @@ def identify_nodes(bus_x):
     return node_list
 
 
-def identify_road(bus_x, min_length=160, merge_distance=230):
+def identify_road(bus_x, min_length=160, merge_distance=230, screenshot_image=None):
     """
     增强版LSD对角线检测，完整输出模块，显示方向标记和中心点
 
@@ -787,8 +1140,13 @@ def identify_road(bus_x, min_length=160, merge_distance=230):
         if detected and detected[0] is not None:
             return detected[0]
 
-    auto.take_screenshot()
-    screenshot = np.array(auto.screenshot)
+    if screenshot_image is None:
+        auto.take_screenshot()
+        screenshot = np.array(auto.screenshot)
+    else:
+        screenshot = np.array(screenshot_image)
+    if len(screenshot.shape) == 3:
+        screenshot = cv2.cvtColor(screenshot, cv2.COLOR_RGB2GRAY)
     raw_lines = get_detected_lines(screenshot)  # 调用检测函数获取原始线段数据
     if raw_lines is None or len(raw_lines) == 0:  # 检测结果为空
         log.warning("⚠️ 未检测到任何线段")  # 提示无结果
@@ -824,7 +1182,7 @@ def identify_road(bus_x, min_length=160, merge_distance=230):
                     "dy": dy,  # y坐标差（原始值）
                 }
             )
-        except:
+        except Exception:
             continue  # 跳过格式错误的线段（异常处理）
 
     # 筛选长度大于min_length的线段
@@ -991,9 +1349,6 @@ def divide_the_area_by_x(data):
     return groups
 
 
-import heapq
-from enum import Enum
-
 all_node_weight = {
     "battle": 30,
     "boss_battle": 1,
@@ -1034,6 +1389,7 @@ class RouteGraph:
         self,
         all_nodes: list,
         initial_bus_pos=Position.MID,
+        bus_position=None,
         mid_line=560,
         hard_mode=False,
     ):
@@ -1047,6 +1403,19 @@ class RouteGraph:
         self._set_node(1, initial_bus_pos, "bus", 1)
         self.mid_line = mid_line * cfg.set_win_size / 1080
         self.hard_mode = hard_mode
+        self.bus_position = bus_position
+        self.row_centers = []
+        self.visible_positions = [Position.TOP, Position.MID, Position.BOTTOM]
+        self.position_to_row_index = {
+            Position.TOP: 0,
+            Position.MID: 1,
+            Position.BOTTOM: 2,
+        }
+        self.row_index_to_position = {
+            0: Position.TOP,
+            1: Position.MID,
+            2: Position.BOTTOM,
+        }
 
         self._init_node(all_nodes, self.mid_line)
 
@@ -1063,15 +1432,52 @@ class RouteGraph:
         this_layer[position].node_class = class_name
         this_layer[position].weight = weight
 
+    def _resolve_position_by_row_index(self, row_index):
+        return self.row_index_to_position.get(row_index)
+
+    def _resolve_row_index_by_position(self, position):
+        return self.position_to_row_index.get(position)
+
+    def _resolve_road_transition(self, road_type, road_center_y):
+        if len(self.visible_positions) == 2:
+            if road_type == "UP":
+                return self.visible_positions[1], self.visible_positions[0]
+            if road_type == "DOWN":
+                return self.visible_positions[0], self.visible_positions[1]
+            return None, None
+
+        road_row = _get_nearest_row_index(road_center_y, self.row_centers)
+        if road_type == "UP":
+            return self._resolve_position_by_row_index(road_row + 1), self._resolve_position_by_row_index(road_row)
+        if road_type == "DOWN":
+            return self._resolve_position_by_row_index(road_row), self._resolve_position_by_row_index(road_row + 1)
+        return None, None
+
     def _init_node(self, all_nodes, mid_line):
+        all_y_entries = [node_entry for layer_data in all_nodes for node_entry in layer_data]
+        y_area = divide_the_area_by_y(all_y_entries) if all_y_entries else []
+        self.row_centers = _get_row_centers(y_area)
+        current_bus = self.bus_position or (0, mid_line)
+        self.visible_positions = _infer_visible_lane_positions(
+            current_bus,
+            y_area,
+            cfg.set_win_size / 1440,
+            self.initial_bus_pos,
+        )
+        self.position_to_row_index = {
+            position: idx for idx, position in enumerate(self.visible_positions)
+        }
+        self.row_index_to_position = {
+            idx: position for idx, position in enumerate(self.visible_positions)
+        }
+
         for layer_data in all_nodes:
             self._add_new_layer()
             for node_entry in layer_data:
-                vertical_pos = Position.MID
-                if node_entry[1][1] < mid_line - MID_LINE_THRESHOLD * cfg.set_win_size / 1440:
-                    vertical_pos = Position.TOP
-                elif node_entry[1][1] > mid_line + MID_LINE_THRESHOLD * cfg.set_win_size / 1440:
-                    vertical_pos = Position.BOTTOM
+                row_index = _get_nearest_row_index(node_entry[1][1], self.row_centers)
+                vertical_pos = self._resolve_position_by_row_index(row_index)
+                if vertical_pos is None:
+                    continue
                 self._set_node(
                     self.layer_nums,
                     vertical_pos,
@@ -1123,29 +1529,23 @@ class RouteGraph:
                 all_road = all_road[:2]
         road_layer = 1
         for layer_road in all_road:
-            if layer_road[0][1][0] < bus_x:
+            if not layer_road:
+                road_layer += 1
                 continue
             for road in layer_road:
-                if road[0] == "UP":
-                    vertical_pos = Position.MID if bus_y > road[1][1] else Position.BOTTOM
-                    if (
-                        self.layers[f"layer{road_layer}"][vertical_pos].weight != DEFAULT_WEIGHT
-                        and self.layers[f"layer{road_layer + 1}"][Position(vertical_pos.value + 1)].weight
-                        != DEFAULT_WEIGHT
-                    ):
-                        self.layers[f"layer{road_layer}"][vertical_pos].add_next_node(
-                            self.layers[f"layer{road_layer + 1}"][Position(vertical_pos.value + 1)]
-                        )
-                elif road[0] == "DOWN":
-                    vertical_pos = Position.TOP if bus_y > road[1][1] else Position.MID
-                    if (
-                        self.layers[f"layer{road_layer}"][vertical_pos].weight != DEFAULT_WEIGHT
-                        and self.layers[f"layer{road_layer + 1}"][Position(vertical_pos.value - 1)].weight
-                        != DEFAULT_WEIGHT
-                    ):
-                        self.layers[f"layer{road_layer}"][vertical_pos].add_next_node(
-                            self.layers[f"layer{road_layer + 1}"][Position(vertical_pos.value - 1)]
-                        )
+                if road[1][0] < bus_x:
+                    continue
+                from_position, to_position = self._resolve_road_transition(road[0], road[1][1])
+                if from_position is None or to_position is None:
+                    continue
+
+                current_layer = self.layers[f"layer{road_layer}"]
+                next_layer = self.layers[f"layer{road_layer + 1}"]
+                if (
+                    current_layer[from_position].weight != DEFAULT_WEIGHT
+                    and next_layer[to_position].weight != DEFAULT_WEIGHT
+                ):
+                    current_layer[from_position].add_next_node(next_layer[to_position])
             road_layer += 1
 
     def get_node_layer_info(self, node: Node) -> tuple:

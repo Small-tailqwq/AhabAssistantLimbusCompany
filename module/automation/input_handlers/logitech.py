@@ -249,7 +249,31 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
             remaining_x -= step_x
             remaining_y -= step_y
 
-    def _mouse_move_to(self, x, y, duration: float = 0, button_state: int = BUTTON_RELEASED):
+    @staticmethod
+    def _resolve_drag_profile(profile_name, duration: float, button_state: int) -> dict:
+        profile = {
+            "duration": duration,
+            "use_bionic_trajectory": bool(getattr(cfg, "logitech_bionic_trajectory", True)),
+            "step_time": None,
+            "post_drag_pause_scale": 1.0,
+            "final_settle_sleep": 0.04,
+        }
+        if profile_name == "route_map_align":
+            if button_state != BUTTON_LEFT:
+                log.debug(f"drag_profile route_map_align 预期左键拖拽，当前 button_state={button_state}，跳过特殊配置")
+            else:
+                profile.update(
+                    {
+                        "duration": max(duration, 0.22),
+                        "use_bionic_trajectory": False,
+                        "step_time": 0.012,
+                        "post_drag_pause_scale": 1.35,
+                        "final_settle_sleep": 0.06,
+                    }
+                )
+        return profile
+
+    def _mouse_move_to(self, x, y, duration: float = 0, button_state: int = BUTTON_RELEASED, drag_profile=None):
         x = int(x)
         y = int(y)
 
@@ -258,8 +282,9 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         if distance == 0:
             return
 
-        move_duration = self._resolve_move_duration(distance, duration)
-        use_bionic_trajectory = bool(getattr(cfg, "logitech_bionic_trajectory", True))
+        profile = self._resolve_drag_profile(drag_profile, duration, button_state)
+        move_duration = self._resolve_move_duration(distance, profile["duration"])
+        use_bionic_trajectory = profile["use_bionic_trajectory"]
 
         if use_bionic_trajectory:
             # 调用底层绝对仿生引擎 (Minimum Jerk + Perlin Noise)
@@ -275,7 +300,8 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
             # 必须严格锁定为每帧 10ms，绝不可以由于外部 duration 极小而将帧间压缩到 1ms（这会击穿 sleep 精度阈值导致光速狂点发射）
             step_time = 0.01
         else:
-            steps = max(1, int(move_duration / 0.01))
+            linear_step_time = profile["step_time"] or 0.01
+            steps = max(1, int(move_duration / linear_step_time))
             trajectory = [
                 (
                     int(round(start_x + (x - start_x) * (index + 1) / steps)),
@@ -283,7 +309,7 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
                 )
                 for index in range(steps)
             ]
-            step_time = move_duration / max(len(trajectory), 1) if move_duration > 0 else 0.0
+            step_time = move_duration / max(len(trajectory), 1) if move_duration > 0 else linear_step_time
 
         # 引入硬件状态观测器 (State Observer) 解决闭环积分发散和 Windows 加速漂移
         os_x, os_y = self.get_mouse_position()
@@ -318,7 +344,7 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
 
         # 核心改进：轨迹已经发送完毕，给 Windows 操作系统 40 毫秒的时间清空所有的 WM_MOUSEMOVE 消息缓冲。
         # 不然有概率光标起飞
-        sleep(0.04)
+        sleep(profile["final_settle_sleep"])
 
         final_x, final_y = self.get_mouse_position()
         final_dx = x - final_x
@@ -326,11 +352,17 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         if final_dx != 0 or final_dy != 0:
             self._move_relative_chunked(final_dx, final_dy, button_state=button_state)
 
-    def _move_to_client(self, x: int, y: int, duration: float = 0, button_state: int = BUTTON_RELEASED):
+    def _move_to_client(self, x: int, y: int, duration: float = 0, button_state: int = BUTTON_RELEASED, drag_profile=None):
         target_screen_x, target_screen_y = self._client_to_screen_target(x, y)
-        self._mouse_move_to(target_screen_x, target_screen_y, duration=duration, button_state=button_state)
+        self._mouse_move_to(
+            target_screen_x,
+            target_screen_y,
+            duration=duration,
+            button_state=button_state,
+            drag_profile=drag_profile,
+        )
 
-    def set_mouse_pos(self, x, y, duration: float = 0):
+    def set_mouse_pos(self, x, y, duration: float = 0, drag_profile=None):
         x = int(x)
         y = int(y)
         current_x, current_y = self.get_mouse_position()
@@ -346,7 +378,7 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
             stacklevel=2,
         )
         
-        self._move_to_client(x, y, duration=duration)
+        self._move_to_client(x, y, duration=duration, drag_profile=drag_profile)
 
         final_x, final_y = self.get_mouse_position()
         err_x = target_screen_x - final_x
@@ -390,17 +422,24 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         self.wait_pause()
         return True
 
-    def mouse_drag(self, x, y, drag_time=0.1, dx=0, dy=0, move_back=True) -> None:
+    def mouse_drag(self, x, y, drag_time=0.1, dx=0, dy=0, move_back=True, drag_profile=None) -> None:
         if move_back:
             current_mouse_position = self.get_mouse_position()
 
         drag_distance = math.hypot(dx, dy)
+        profile = self._resolve_drag_profile(drag_profile, drag_time, BUTTON_LEFT)
         self._ensure_input_focus()
         self.set_mouse_pos(x, y)
         self.mouse_down()
-        self._move_to_client(x + dx, y + dy, duration=drag_time, button_state=BUTTON_LEFT)
+        self._move_to_client(
+            x + dx,
+            y + dy,
+            duration=profile["duration"],
+            button_state=BUTTON_LEFT,
+            drag_profile=drag_profile,
+        )
         HumanKinematics.human_sleep(
-            self._resolve_post_drag_pause(drag_distance, drag_time),
+            self._resolve_post_drag_pause(drag_distance, profile["duration"]) * profile["post_drag_pause_scale"],
             jitter=0.05,
             minimum=0.02,
         )
@@ -434,17 +473,24 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         if move_back and current_mouse_position:
             self.mouse_move(current_mouse_position)
 
-    def mouse_drag_link(self, position: list, drag_time=0.1, move_back=True) -> None:
+    def mouse_drag_link(self, position: list, drag_time=0.1, move_back=True, drag_profile=None) -> None:
         if move_back:
             current_mouse_position = self.get_mouse_position()
 
+        profile = self._resolve_drag_profile(drag_profile, drag_time, BUTTON_LEFT)
         self._ensure_input_focus()
         self.set_mouse_pos(position[0][0], position[0][1])
         self.mouse_down()
         for pos in position:
-            self._move_to_client(pos[0], pos[1], duration=drag_time, button_state=BUTTON_LEFT)
+            self._move_to_client(
+                pos[0],
+                pos[1],
+                duration=profile["duration"],
+                button_state=BUTTON_LEFT,
+                drag_profile=drag_profile,
+            )
         HumanKinematics.human_sleep(
-            self._resolve_post_drag_pause(len(position) * 80, drag_time),
+            self._resolve_post_drag_pause(len(position) * 80, profile["duration"]) * profile["post_drag_pause_scale"],
             jitter=0.05,
             minimum=0.02,
         )

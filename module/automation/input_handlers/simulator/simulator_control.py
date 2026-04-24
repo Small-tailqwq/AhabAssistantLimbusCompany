@@ -317,7 +317,7 @@ class SimulatorControl(AbstractInput):
     def clear_mnt(self):
         self.simulator_control.stop()
 
-    def mouse_drag(self, x, y, drag_time=0.2, dx=0, dy=0) -> None:
+    def mouse_drag(self, x, y, drag_time=0.2, dx=0, dy=0, move_back=True, drag_profile=None) -> None:
         """鼠标从指定位置拖动到另一个位置
         Args:
             x (int): 起始x坐标
@@ -368,7 +368,7 @@ class SimulatorControl(AbstractInput):
             return False
         return True
 
-    def mouse_drag_link(self, position: list, drag_time=0.15, move_back=False) -> None:
+    def mouse_drag_link(self, position: list, drag_time=0.15, move_back=False, drag_profile=None) -> None:
         """
         拖动鼠标经过多个中间点（折线），最后松开
         """
