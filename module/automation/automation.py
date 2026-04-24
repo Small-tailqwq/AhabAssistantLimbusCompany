@@ -142,6 +142,7 @@ class Automation(metaclass=SingletonMeta):
         click=True,
         drag_time=None,
         interval=0.5,
+        log_result=True,
     ):
         """查找并点击屏幕上的元素"""
         self.ensure_not_stopped()
@@ -156,6 +157,7 @@ class Automation(metaclass=SingletonMeta):
             model=model,
             my_crop=my_crop,
             addtional_stack=1,
+            log_result=log_result,
         )
         if coordinates:
             if click:
@@ -363,6 +365,7 @@ class Automation(metaclass=SingletonMeta):
         model=None,
         my_crop=None,
         addtional_stack=0,
+        log_result=True,
     ):
         """
         查找元素，并根据指定的查找类型执行不同的查找策略。
@@ -401,17 +404,23 @@ class Automation(metaclass=SingletonMeta):
                         model=model,
                         my_crop=my_crop,
                         addtional_stack=addtional_stack,
+                        log_result=log_result,
                     )
                 elif find_type == "text":
                     # 使用文本查找方法查找元素
-                    center = self.find_text_element(target, my_crop, addtional_stack=addtional_stack)
+                    center = self.find_text_element(target, my_crop, addtional_stack=addtional_stack, log_result=log_result)
                 if center:
                     return center
             elif find_type in ["feature"]:
-                return self.find_feature_element(target, my_crop, addtional_stack=addtional_stack)
+                return self.find_feature_element(target, my_crop, addtional_stack=addtional_stack, log_result=log_result)
             elif find_type in ["image_with_multiple_targets"]:
                 # 使用多目标图像查找方法查找元素
-                return self.find_image_with_multiple_targets(target, threshold, addtional_stack=addtional_stack)
+                return self.find_image_with_multiple_targets(
+                    target,
+                    threshold,
+                    addtional_stack=addtional_stack,
+                    log_result=log_result,
+                )
             else:
                 raise ValueError("错误的类型")
 
@@ -419,7 +428,7 @@ class Automation(metaclass=SingletonMeta):
                 time.sleep(1)  # 在重试前等待一定时间
         return None
 
-    def find_image_with_multiple_targets(self, target, threshold, addtional_stack) -> List:
+    def find_image_with_multiple_targets(self, target, threshold, addtional_stack, log_result=True) -> List:
         """
         在当前截图中查找多个目标图像的位置
         """
@@ -439,33 +448,37 @@ class Automation(metaclass=SingletonMeta):
             if use_1440_base and matches:
                 matches = ImageUtils.restore_coordinates_from_1440_matching(matches, scale_to_1440)
             if len(matches) == 0:
-                log.debug(f"未找到任何目标图像{target}", stacklevel=addtional_stack + 3)
+                if log_result:
+                    log.debug(f"未找到任何目标图像{target}", stacklevel=addtional_stack + 3)
                 return []
             else:
-                log.debug(
-                    f"找到{len(matches)}个目标：{matches}",
-                    stacklevel=addtional_stack + 3,
-                )
+                if log_result:
+                    log.debug(
+                        f"找到{len(matches)}个目标：{matches}",
+                        stacklevel=addtional_stack + 3,
+                    )
                 return matches
         except Exception as e:
             log.error(f"寻找图片出错:{e}")
             return []
 
-    def find_str_in_text(self, target, ocr_dict):
+    def find_str_in_text(self, target, ocr_dict, log_result=True):
         """
         返回目标文本的坐标
         """
         for text in ocr_dict.keys():
             if target.lower() in text.lower():
-                log.debug(f"识别到目标：{text},坐标为：{ocr_dict[text]}")
+                if log_result:
+                    log.debug(f"识别到目标：{text},坐标为：{ocr_dict[text]}")
                 return ocr_dict[text]
             # 去除空格后再匹配，解决OCR识别结果带空格的问题（如 "HongLu" vs "Hong Lu"）
             if target.replace(" ", "").lower() in text.replace(" ", "").lower():
-                log.debug(f"识别到目标（去空格匹配）：{text},坐标为：{ocr_dict[text]}")
+                if log_result:
+                    log.debug(f"识别到目标（去空格匹配）：{text},坐标为：{ocr_dict[text]}")
                 return ocr_dict[text]
         return False
 
-    def find_text_element(self, target, my_crop=None, all_text=False, only_text=False, addtional_stack=0):
+    def find_text_element(self, target, my_crop=None, all_text=False, only_text=False, addtional_stack=0, log_result=True):
         """
         寻找文本元素所在的坐标位置
         """
@@ -487,26 +500,27 @@ class Automation(metaclass=SingletonMeta):
                 ocr_position_list.append([x, y])
 
             ocr_dict = {text: position for text, position in zip(ocr_text_list, ocr_position_list)}
-            log.debug(f"识别到文本及其坐标：{ocr_dict}", stacklevel=addtional_stack + 3)
+            if log_result:
+                log.debug(f"识别到文本及其坐标：{ocr_dict}", stacklevel=addtional_stack + 3)
         else:
             ocr_dict = {}
         if ocr_dict == {}:
             return False
         if isinstance(target, str):
-            return self.find_str_in_text(target, ocr_dict)
+            return self.find_str_in_text(target, ocr_dict, log_result=log_result)
         elif isinstance(target, list):
             if all_text:
                 for key in target:
-                    if self.find_str_in_text(str(key), ocr_dict) is False:
+                    if self.find_str_in_text(str(key), ocr_dict, log_result=log_result) is False:
                         return False
                 return True
             for key in target:
-                if self.find_str_in_text(str(key), ocr_dict):
-                    return self.find_str_in_text(str(key), ocr_dict)
+                if self.find_str_in_text(str(key), ocr_dict, log_result=log_result):
+                    return self.find_str_in_text(str(key), ocr_dict, log_result=log_result)
             return False
         elif isinstance(target, dict):
             for key, value in target.items():
-                if self.find_str_in_text(str(key), ocr_dict):
+                if self.find_str_in_text(str(key), ocr_dict, log_result=log_result):
                     return value, str(key)
             return None
 
@@ -527,7 +541,7 @@ class Automation(metaclass=SingletonMeta):
 
         return ocr_text_list
 
-    def find_feature_element(self, target, pic_crop=None, min_matches=8, addtional_stack=0):
+    def find_feature_element(self, target, pic_crop=None, min_matches=8, addtional_stack=0, log_result=True):
         """
         寻找特征元素所在的坐标位置
         """
@@ -557,10 +571,11 @@ class Automation(metaclass=SingletonMeta):
                     pic_crop = [int(i * cfg.set_win_size / 1440) for i in pic_crop]
                 screenshot = ImageUtils.crop(screenshot, pic_crop)
             result, num_matches = ImageUtils.feature_matching(template, screenshot, min_matches)
-            log.debug(
-                f"匹配目标特征图片：{target.replace('./assets/images/', '')}结果{result}, 找到 {num_matches} 个匹配点",
-                stacklevel=addtional_stack + 3,
-            )
+            if log_result:
+                log.debug(
+                    f"匹配目标特征图片：{target.replace('./assets/images/', '')}结果{result}, 找到 {num_matches} 个匹配点",
+                    stacklevel=addtional_stack + 3,
+                )
             return result
         except Exception as e:
             error_message = str(e)
@@ -584,6 +599,7 @@ class Automation(metaclass=SingletonMeta):
         model="clam",
         my_crop=None,
         addtional_stack=0,
+        log_result=True,
     ):
         """
         在当前截图中查找目标图像的位置
@@ -621,10 +637,11 @@ class Automation(metaclass=SingletonMeta):
             center, matchVal = ImageUtils.match_template(screenshot, template, bbox, model)  # 匹配模板
             if use_1440_base and center:
                 center = ImageUtils.restore_coordinates_from_1440_matching(center, scale_to_1440)
-            log.debug(
-                f"目标图片：{target.replace('./assets/images/', '')}, 相似度：{matchVal:.2f}, 目标位置：{center}",
-                stacklevel=addtional_stack + 3,
-            )
+            if log_result:
+                log.debug(
+                    f"目标图片：{target.replace('./assets/images/', '')}, 相似度：{matchVal:.2f}, 目标位置：{center}",
+                    stacklevel=addtional_stack + 3,
+                )
             if isinstance(matchVal, (int, float)) and not math.isinf(matchVal) and matchVal >= threshold:
                 return center
         except Exception as e:
