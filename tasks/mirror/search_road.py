@@ -1,15 +1,26 @@
 import heapq
+import json
 import time
 from enum import Enum
+from pathlib import Path
 from time import sleep
 
 import cv2
+import numpy as np
 
 from module.automation import auto
 from module.config import cfg
 from module.logger import log
 from module.my_error.my_error import InputAttributeError
 from tasks.base.retry import retry
+
+
+def _is_mirror_route_debug_enabled():
+    return bool(cfg.get_value("debug_mode", False) and cfg.get_value("debug_mirror_route", False))
+
+
+def _route_debug_log_result():
+    return _is_mirror_route_debug_enabled()
 
 
 def enter_mirror_road(direction=None, position=None):
@@ -24,14 +35,22 @@ def enter_mirror_road(direction=None, position=None):
         sleep(0.5)
         auto.key_press("enter")
         sleep(1.25)
-        if auto.click_element("mirror/road_in_mir/enter_assets.png", take_screenshot=True):
+        if auto.click_element(
+            "mirror/road_in_mir/enter_assets.png",
+            take_screenshot=True,
+            log_result=_route_debug_log_result(),
+        ):
             return True
         return True
 
     if position is not None:
         auto.mouse_click(position[0], position[1])
         sleep(1.25)
-        if auto.click_element("mirror/road_in_mir/enter_assets.png", take_screenshot=True):
+        if auto.click_element(
+            "mirror/road_in_mir/enter_assets.png",
+            take_screenshot=True,
+            log_result=_route_debug_log_result(),
+        ):
             return True
     return False
 
@@ -40,21 +59,33 @@ def confirm_current_mirror_node():
     if cfg.mirror_keyboard_navigation:
         auto.key_press("enter")
         sleep(1.25)
-        if auto.click_element("mirror/road_in_mir/enter_assets.png", take_screenshot=True):
+        if auto.click_element(
+            "mirror/road_in_mir/enter_assets.png",
+            take_screenshot=True,
+            log_result=_route_debug_log_result(),
+        ):
             return True
         log.debug("键盘确认当前镜牢节点失败：未出现 enter 按钮，继续正常寻路")
         return False
 
-    if auto.click_element("mirror/mybus_default_distance.png", take_screenshot=True):
+    if auto.click_element("mirror/mybus_default_distance.png", take_screenshot=True, log_result=_route_debug_log_result()):
         sleep(1.25)
-        if auto.click_element("mirror/road_in_mir/enter_assets.png", take_screenshot=True):
+        if auto.click_element(
+            "mirror/road_in_mir/enter_assets.png",
+            take_screenshot=True,
+            log_result=_route_debug_log_result(),
+        ):
             return True
     return False
 
 
 def find_visible_bus_position(retries=3, delay=0.3):
     for _ in range(retries):
-        if bus_position := auto.find_element("mirror/mybus_default_distance.png", take_screenshot=True):
+        if bus_position := auto.find_element(
+            "mirror/mybus_default_distance.png",
+            take_screenshot=True,
+            log_result=_route_debug_log_result(),
+        ):
             return bus_position
         sleep(delay)
 
@@ -65,7 +96,11 @@ def find_visible_bus_position(retries=3, delay=0.3):
     sleep(0.45)
 
     for _ in range(max(2, retries // 2)):
-        if bus_position := auto.find_element("mirror/mybus_default_distance.png", take_screenshot=True):
+        if bus_position := auto.find_element(
+            "mirror/mybus_default_distance.png",
+            take_screenshot=True,
+            log_result=_route_debug_log_result(),
+        ):
             return bus_position
         sleep(delay)
     return None
@@ -78,9 +113,120 @@ def _find_bus_position_in_screenshot(screenshot_image):
     previous_screenshot = auto.screenshot
     try:
         auto.screenshot = screenshot_image
-        return auto.find_element("mirror/mybus_default_distance.png")
+        return auto.find_element("mirror/mybus_default_distance.png", log_result=False)
     finally:
         auto.screenshot = previous_screenshot
+
+
+def _serialize_route_debug_value(value):
+    if isinstance(value, Enum):
+        return value.name
+    if isinstance(value, dict):
+        return {key: _serialize_route_debug_value(item) for key, item in value.items()}
+    if isinstance(value, tuple):
+        return [_serialize_route_debug_value(item) for item in value]
+    if isinstance(value, list):
+        return [_serialize_route_debug_value(item) for item in value]
+    return value
+
+
+def _get_route_map_debug_frame():
+    if auto.screenshot is not None:
+        current_frame = np.array(auto.screenshot)
+        if len(current_frame.shape) == 3:
+            return current_frame.copy()
+
+    if auto.take_screenshot(gray=False) is None or auto.screenshot is None:
+        return None
+    return np.array(auto.screenshot).copy()
+
+
+_ROUTE_MAP_DEBUG_KEEP_COUNT = 40
+
+
+def _dump_route_map_debug_frame(label, plan=None, fallback_bus=None):
+    if not _is_mirror_route_debug_enabled():
+        return
+
+    screenshot_image = _get_route_map_debug_frame()
+    if screenshot_image is None:
+        log.debug("镜牢路线图调试截图保存失败: 当前无可用截图, 标签=%s", label)
+        return
+
+    effective_plan = plan
+    effective_bus = fallback_bus
+    initial_bus_pos = None
+    visible_rows = plan.get("visible_rows") if plan else None
+    visible_layers = plan.get("visible_layers") if plan else None
+    road_layers = plan.get("road_layers") if plan else None
+    road_min_length = plan.get("road_min_length") if plan else None
+    identified_road = None
+    grouped_road = None
+
+    if plan is None:
+        analysis = analyze_route_map_screenshot(screenshot_image)
+        snapshot = analysis.get("snapshot") if analysis else None
+        effective_plan = analysis.get("plan") if analysis else None
+        effective_bus = analysis.get("bus") if analysis else fallback_bus
+        identified_road = analysis.get("identified_road") if analysis else None
+        grouped_road = analysis.get("grouped_road") if analysis else None
+        road_min_length = analysis.get("road_min_length") if analysis else None
+        if snapshot is not None:
+            initial_bus_pos = snapshot.get("initial_bus_pos")
+            visible_rows = len(snapshot["y_area"])
+            visible_layers = len(snapshot["all_nodes_layer"])
+        if grouped_road is not None:
+            road_layers = _count_non_empty_layers(grouped_road)
+
+    if effective_plan is not None:
+        initial_bus_pos = effective_plan.get("initial_bus_pos", initial_bus_pos)
+
+    dump_dir = Path("logs") / "route_map_debug"
+    dump_dir.mkdir(parents=True, exist_ok=True)
+
+    existing_files = sorted(dump_dir.iterdir(), key=lambda p: p.stat().st_mtime)
+    max_files = _ROUTE_MAP_DEBUG_KEEP_COUNT * 2
+    if len(existing_files) > max_files:
+        for old_file in existing_files[: len(existing_files) - max_files]:
+            try:
+                old_file.unlink()
+            except OSError:
+                pass
+
+    now = time.time()
+    timestamp = time.strftime("%Y%m%d_%H%M%S", time.localtime(now))
+    milliseconds = int((now % 1) * 1000)
+    stem = f"{timestamp}_{milliseconds:03d}_{label}"
+    image_path = dump_dir / f"{stem}.png"
+    meta_path = dump_dir / f"{stem}.json"
+
+    image_to_save = screenshot_image
+    if len(image_to_save.shape) == 3:
+        image_to_save = cv2.cvtColor(image_to_save, cv2.COLOR_RGB2BGR)
+    cv2.imwrite(str(image_path), image_to_save)
+
+    payload = {
+        "label": label,
+        "saved_at": f"{timestamp}_{milliseconds:03d}",
+        "image_path": str(image_path),
+        "runtime_plan_found": plan is not None,
+        "analysis_plan_found": effective_plan is not None,
+        "bus": _serialize_route_debug_value(effective_bus),
+        "initial_bus_pos": _serialize_route_debug_value(initial_bus_pos),
+        "directions": _serialize_route_debug_value(effective_plan.get("directions") if effective_plan else None),
+        "road_class_list": _serialize_route_debug_value(
+            effective_plan.get("road_class_list") if effective_plan else None
+        ),
+        "visible_rows": visible_rows,
+        "visible_layers": visible_layers,
+        "road_layers": road_layers,
+        "road_min_length": road_min_length,
+        "identified_road": _serialize_route_debug_value(identified_road),
+        "grouped_road": _serialize_route_debug_value(grouped_road),
+        "score": list(_route_plan_score(effective_plan)),
+    }
+    meta_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    log.debug("镜牢路线图调试截图已保存: %s", image_path)
 
 
 def _clamp_drag_delta(value, limit):
@@ -305,7 +451,8 @@ def _group_roads_by_node_layers(identified_road, bus_x, all_nodes_layer):
 
     grouped_roads = [[] for _ in range(len(all_nodes_layer))]
     if not identified_road:
-        log.debug(f"按节点列对齐后的线段分组：{grouped_roads}")
+        if _is_mirror_route_debug_enabled():
+            log.debug(f"按节点列对齐后的线段分组：{grouped_roads}")
         return grouped_roads
 
     scale = cfg.set_win_size / 1440
@@ -329,7 +476,8 @@ def _group_roads_by_node_layers(identified_road, bus_x, all_nodes_layer):
     for group in grouped_roads:
         group.sort(key=lambda item: item[1][1])
 
-    log.debug(f"按节点列对齐后的线段分组：{grouped_roads}")
+    if _is_mirror_route_debug_enabled():
+        log.debug(f"按节点列对齐后的线段分组：{grouped_roads}")
     return grouped_roads
 
 
@@ -363,18 +511,32 @@ def _collect_visible_route_snapshot(current_bus, scale, screenshot_image=None):
     }
 
 
-def _build_route_plan_from_snapshot(current_bus, snapshot, hard_mode=False, screenshot_image=None):
+def _identify_grouped_roads_for_snapshot(current_bus, all_nodes_layer, screenshot_image=None, min_length=160):
+    identified_road = identify_road(current_bus[0], min_length=min_length, screenshot_image=screenshot_image) or []
+    if not isinstance(identified_road, list):
+        log.warning(f"镜牢路线图线段识别结果异常: {type(identified_road).__name__}")
+        return None
+
+    return {
+        "identified_road": identified_road,
+        "grouped_road": _group_roads_by_node_layers(identified_road, current_bus[0], all_nodes_layer),
+        "road_min_length": min_length,
+    }
+
+
+def _should_retry_sparse_road_detection(y_area, all_nodes_layer, all_road):
+    if len(y_area) < 3 or len(all_nodes_layer) < 3:
+        return False
+    return _count_non_empty_layers(all_road) < len(all_nodes_layer)
+
+
+def _build_route_plan_from_grouped_roads(current_bus, snapshot, all_road, hard_mode=False):
     y_area = snapshot["y_area"]
     all_nodes = snapshot["all_nodes"]
     all_nodes_layer = snapshot["all_nodes_layer"]
     initial_bus_pos = snapshot["initial_bus_pos"]
 
     if len(y_area) == 1:
-        identified_road = identify_road(current_bus[0], screenshot_image=screenshot_image) or []
-        if not isinstance(identified_road, list):
-            log.warning(f"镜牢路线图线段识别结果异常: {type(identified_road).__name__}")
-            return None
-        all_road = _group_roads_by_node_layers(identified_road, current_bus[0], all_nodes_layer)
         directions = ["M"]
         if any(all_road):
             first_road = next((road for road in all_road[0] if road[0] in ["DOWN", "UP"]), None)
@@ -393,12 +555,6 @@ def _build_route_plan_from_snapshot(current_bus, snapshot, hard_mode=False, scre
             "road_layers": _count_non_empty_layers(all_road),
         }
 
-    identified_road = identify_road(current_bus[0], screenshot_image=screenshot_image) or []
-    if not isinstance(identified_road, list):
-        log.warning(f"镜牢路线图线段识别结果异常: {type(identified_road).__name__}")
-        return None
-    all_road = _group_roads_by_node_layers(identified_road, current_bus[0], all_nodes_layer)
-
     route_graph = RouteGraph(
         all_nodes_layer,
         initial_bus_pos=initial_bus_pos,
@@ -413,8 +569,9 @@ def _build_route_plan_from_snapshot(current_bus, snapshot, hard_mode=False, scre
         if sparse_plan:
             directions, road_class_list = sparse_plan
             directions, road_class_list = _append_post_shop_shortcut(directions, road_class_list)
-            log.debug(f"镜牢路线图稀疏推算方向: {directions}")
-            log.debug(f"镜牢路线图稀疏推算节点: {road_class_list}")
+            if _is_mirror_route_debug_enabled():
+                log.debug(f"镜牢路线图稀疏推算方向: {directions}")
+                log.debug(f"镜牢路线图稀疏推算节点: {road_class_list}")
             return {
                 "directions": directions,
                 "road_class_list": road_class_list,
@@ -424,14 +581,14 @@ def _build_route_plan_from_snapshot(current_bus, snapshot, hard_mode=False, scre
                 "visible_layers": len(all_nodes_layer),
                 "road_layers": _count_non_empty_layers(all_road),
             }
-        log.warning("未能检测到有效路径")
         return None
 
     directions, road_class_list = route_graph.get_path_directions(path)
     directions, road_class_list = _append_post_shop_shortcut(directions, road_class_list)
-    log.debug(f"最小权重: {min_weight}")
-    log.debug(f"路径方向: {directions}")
-    log.debug(f"行走路径: {road_class_list}")
+    if _is_mirror_route_debug_enabled():
+        log.debug(f"最小权重: {min_weight}")
+        log.debug(f"路径方向: {directions}")
+        log.debug(f"行走路径: {road_class_list}")
     return {
         "directions": directions,
         "road_class_list": road_class_list,
@@ -441,6 +598,93 @@ def _build_route_plan_from_snapshot(current_bus, snapshot, hard_mode=False, scre
         "visible_layers": len(all_nodes_layer),
         "road_layers": _count_non_empty_layers(all_road),
     }
+
+
+def _is_better_road_candidate(candidate, best_candidate):
+    if best_candidate is None:
+        return True
+    return (candidate["road_layers"], candidate["road_min_length"]) > (
+        best_candidate["road_layers"],
+        best_candidate["road_min_length"],
+    )
+
+
+def _resolve_route_plan_candidate(current_bus, snapshot, hard_mode=False, screenshot_image=None):
+    y_area = snapshot["y_area"]
+    all_nodes_layer = snapshot["all_nodes_layer"]
+
+    primary_candidate = _identify_grouped_roads_for_snapshot(
+        current_bus,
+        all_nodes_layer,
+        screenshot_image=screenshot_image,
+    )
+    if primary_candidate is None:
+        return None
+
+    primary_candidate["road_layers"] = _count_non_empty_layers(primary_candidate["grouped_road"])
+    primary_candidate["plan"] = _build_route_plan_from_grouped_roads(
+        current_bus,
+        snapshot,
+        primary_candidate["grouped_road"],
+        hard_mode=hard_mode,
+    )
+    if primary_candidate["plan"] is not None:
+        primary_candidate["plan"]["road_min_length"] = primary_candidate["road_min_length"]
+        return primary_candidate
+
+    best_candidate = primary_candidate
+    if not _should_retry_sparse_road_detection(y_area, all_nodes_layer, primary_candidate["grouped_road"]):
+        return best_candidate
+
+    if _is_mirror_route_debug_enabled():
+        log.debug(
+            "镜牢路线图线段补检: 默认阈值路层=%s/%s，开始降低最短线段阈值",
+            primary_candidate["road_layers"],
+            len(all_nodes_layer),
+        )
+    for min_length in (140, 120, 100, 80):
+        candidate = _identify_grouped_roads_for_snapshot(
+            current_bus,
+            all_nodes_layer,
+            screenshot_image=screenshot_image,
+            min_length=min_length,
+        )
+        if candidate is None:
+            return best_candidate
+
+        candidate["road_layers"] = _count_non_empty_layers(candidate["grouped_road"])
+        candidate["plan"] = _build_route_plan_from_grouped_roads(
+            current_bus,
+            snapshot,
+            candidate["grouped_road"],
+            hard_mode=hard_mode,
+        )
+        if _is_mirror_route_debug_enabled():
+            log.debug("镜牢路线图线段补检: min_length=%s, 路层=%s", min_length, candidate["road_layers"])
+        if candidate["plan"] is not None:
+            candidate["plan"]["road_min_length"] = candidate["road_min_length"]
+            if _is_mirror_route_debug_enabled():
+                log.debug("镜牢路线图低阈值线段补检生效: min_length=%s", min_length)
+            return candidate
+
+        if _is_better_road_candidate(candidate, best_candidate):
+            best_candidate = candidate
+
+    return best_candidate
+
+
+def _build_route_plan_from_snapshot(current_bus, snapshot, hard_mode=False, screenshot_image=None):
+    candidate = _resolve_route_plan_candidate(
+        current_bus,
+        snapshot,
+        hard_mode=hard_mode,
+        screenshot_image=screenshot_image,
+    )
+    if candidate is None:
+        return None
+    if candidate["plan"] is None:
+        log.warning("未能检测到有效路径")
+    return candidate["plan"]
 
 
 class MirrorMap:
@@ -514,7 +758,11 @@ class MirrorMap:
         elif direction == "U":
             position = 2
         for _ in range(3):
-            if bus_position := auto.find_element("mirror/mybus_default_distance.png", take_screenshot=True):
+            if bus_position := auto.find_element(
+                "mirror/mybus_default_distance.png",
+                take_screenshot=True,
+                log_result=_route_debug_log_result(),
+            ):
                 return [
                     bus_position[0] + three_roads[position][0],
                     bus_position[1] + three_roads[position][1],
@@ -639,13 +887,14 @@ def _drag_map_to_bus_anchor(
         0.22,
         max(0.1, total_drag_distance / max(cfg.set_win_size * 4.8 * segment_count, 1)),
     )
-    log.debug(
-        "镜牢路线图校正拖拽: 巴士%s -> 目标(%s,%s)，本轮折线路径=%s",
-        bus_position,
-        int(target_x) if target_x is not None else None,
-        int(target_y) if target_y is not None else None,
-        drag_path[1:],
-    )
+    if _is_mirror_route_debug_enabled():
+        log.debug(
+            "镜牢路线图校正拖拽: 巴士%s -> 目标(%s,%s)，本轮折线路径=%s",
+            bus_position,
+            int(target_x) if target_x is not None else None,
+            int(target_y) if target_y is not None else None,
+            drag_path[1:],
+        )
     if len(drag_path) <= 2:
         final_x, final_y = drag_path[-1]
         auto.mouse_drag(
@@ -700,11 +949,16 @@ def _align_bus_for_route_map(
             return current_bus
         sleep(pause)
         auto.mouse_to_blank()
-        next_bus = auto.find_element("mirror/mybus_default_distance.png", take_screenshot=True)
+        next_bus = auto.find_element(
+            "mirror/mybus_default_distance.png",
+            take_screenshot=True,
+            log_result=_route_debug_log_result(),
+        )
         if next_bus is None:
             next_bus = find_visible_bus_position(retries=2, delay=0.25)
             if next_bus is None:
-                log.debug("镜牢路线图拖拽后丢失巴士位置，终止本轮对齐")
+                if _is_mirror_route_debug_enabled():
+                    log.debug("镜牢路线图拖拽后丢失巴士位置，终止本轮对齐")
                 return None
         current_bus = next_bus
         remaining_attempts -= 1
@@ -787,7 +1041,11 @@ def search_road_default_distance():
     # 判断中、下两个节点是否有权重3的节点，有的话直接选择进入
     node_weight = {}
     node_direction = {}
-    if bus_position := auto.find_element("mirror/mybus_default_distance.png", take_screenshot=True):
+    if bus_position := auto.find_element(
+        "mirror/mybus_default_distance.png",
+        take_screenshot=True,
+        log_result=_route_debug_log_result(),
+    ):
         for road, direction in zip(three_roads[:2], three_road_directions[:2], strict=False):
             node_x = bus_position[0] + road[0]
             node_y = bus_position[1] + road[1]
@@ -802,7 +1060,11 @@ def search_road_default_distance():
                 if enter_mirror_road(direction=node_direction[road], position=road):
                     return True
     # 如果中、下两个节点没有权重3的节点，查看所有节点的权重，选择权重最大的节点进入
-    if bus_position := auto.find_element("mirror/mybus_default_distance.png", take_screenshot=True):
+    if bus_position := auto.find_element(
+        "mirror/mybus_default_distance.png",
+        take_screenshot=True,
+        log_result=_route_debug_log_result(),
+    ):
         from tasks.base.retry import check_times
 
         change_times = 6
@@ -823,7 +1085,11 @@ def search_road_default_distance():
             sleep(0.55)
             auto.mouse_to_blank()
 
-            bus_position = auto.find_element("mirror/mybus_default_distance.png", take_screenshot=True)
+            bus_position = auto.find_element(
+                "mirror/mybus_default_distance.png",
+                take_screenshot=True,
+                log_result=_route_debug_log_result(),
+            )
             if bus_position is None:
                 break
             change_times -= 1
@@ -831,7 +1097,11 @@ def search_road_default_distance():
                 break
 
     node_list = []
-    if bus_position := auto.find_element("mirror/mybus_default_distance.png", take_screenshot=True):
+    if bus_position := auto.find_element(
+        "mirror/mybus_default_distance.png",
+        take_screenshot=True,
+        log_result=_route_debug_log_result(),
+    ):
         for road in three_roads[:2]:
             node_x = bus_position[0] + road[0]
             node_y = bus_position[1] + road[1]
@@ -870,7 +1140,7 @@ def search_road_farthest_distance():
         [250 * scale, 225 * scale],
     ]
     three_road_directions = ["U", "M", "D"]
-    if bus_position := auto.find_element("mirror/mybus_maximum_distance.png"):
+    if bus_position := auto.find_element("mirror/mybus_maximum_distance.png", log_result=_route_debug_log_result()):
         for road, direction in zip(three_roads, three_road_directions, strict=False):
             road[0] += bus_position[0]
             road[1] += bus_position[1]
@@ -889,7 +1159,11 @@ def search_road_from_road_map(hard_mode=False):
     if confirm_current_mirror_node():
         return True, True
 
-    if bus_position := auto.find_element("mirror/mybus_default_distance.png", take_screenshot=True):
+    if bus_position := auto.find_element(
+        "mirror/mybus_default_distance.png",
+        take_screenshot=True,
+        log_result=_route_debug_log_result(),
+    ):
         initial_bus_pos = _detect_bus_lane(bus_position, scale)
         all_nodes = identify_nodes(bus_position[0]) or []
         y_area = []
@@ -926,6 +1200,7 @@ def search_road_from_road_map(hard_mode=False):
         log.warning("镜牢路线图寻路时未能稳定识别巴士位置，回退到距离兜底寻路")
         return [], []
     best_plan = _evaluate_route_map_plan(start_time, bus, hard_mode=hard_mode)
+    _dump_route_map_debug_frame("best_plan", plan=best_plan, fallback_bus=bus)
 
     if _should_retry_with_camera_scout(best_plan):
         scout_position = best_plan["initial_bus_pos"] if best_plan else Position.MID
@@ -943,12 +1218,14 @@ def search_road_from_road_map(hard_mode=False):
         )
         scout_bus = scout_bus or find_visible_bus_position()
         scout_plan = _evaluate_route_map_plan(start_time, scout_bus, hard_mode=hard_mode) if scout_bus else None
+        _dump_route_map_debug_frame("scout_plan", plan=scout_plan, fallback_bus=scout_bus)
         if _route_plan_score(scout_plan) > _route_plan_score(best_plan):
-            log.debug(
-                "镜牢路线图启发式扩视角生效: 路径步数 %s -> %s",
-                len(best_plan["directions"]) if best_plan else 0,
-                len(scout_plan["directions"]) if scout_plan else 0,
-            )
+            if _is_mirror_route_debug_enabled():
+                log.debug(
+                    "镜牢路线图启发式扩视角生效: 路径步数 %s -> %s",
+                    len(best_plan["directions"]) if best_plan else 0,
+                    len(scout_plan["directions"]) if scout_plan else 0,
+                )
             best_plan = scout_plan
 
     if best_plan:
@@ -970,15 +1247,19 @@ def analyze_route_map_screenshot(screenshot_image, hard_mode=False):
     if snapshot is None:
         return {"bus": bus, "snapshot": None, "plan": None}
 
-    identified_road = identify_road(bus[0], screenshot_image=screenshot_image) or []
-    grouped_road = _group_roads_by_node_layers(identified_road, bus[0], snapshot["all_nodes_layer"])
-    plan = _build_route_plan_from_snapshot(bus, snapshot, hard_mode=hard_mode, screenshot_image=screenshot_image)
+    candidate = _resolve_route_plan_candidate(
+        bus,
+        snapshot,
+        hard_mode=hard_mode,
+        screenshot_image=screenshot_image,
+    )
     return {
         "bus": bus,
         "snapshot": snapshot,
-        "identified_road": identified_road,
-        "grouped_road": grouped_road,
-        "plan": plan,
+        "identified_road": candidate["identified_road"] if candidate else [],
+        "grouped_road": candidate["grouped_road"] if candidate else [],
+        "plan": candidate["plan"] if candidate else None,
+        "road_min_length": candidate["road_min_length"] if candidate else None,
     }
 
 
@@ -1344,7 +1625,8 @@ def divide_the_area_by_x(data):
     for group in groups:
         group.sort(key=lambda item: item[1][1])
 
-    log.debug(f"识别到的节点/线段分组后：{groups}")
+    if _is_mirror_route_debug_enabled():
+        log.debug(f"识别到的节点/线段分组后：{groups}")
 
     return groups
 
@@ -1438,19 +1720,33 @@ class RouteGraph:
     def _resolve_row_index_by_position(self, position):
         return self.position_to_row_index.get(position)
 
+    def _resolve_road_gap_index(self, road_center_y):
+        if len(self.visible_positions) < 2:
+            return None
+
+        gap_centers = [
+            (self.row_centers[idx] + self.row_centers[idx + 1]) / 2
+            for idx in range(min(len(self.row_centers), len(self.visible_positions)) - 1)
+        ]
+        if not gap_centers:
+            return 0 if len(self.visible_positions) == 2 else None
+
+        return min(range(len(gap_centers)), key=lambda idx: abs(road_center_y - gap_centers[idx]))
+
     def _resolve_road_transition(self, road_type, road_center_y):
-        if len(self.visible_positions) == 2:
-            if road_type == "UP":
-                return self.visible_positions[1], self.visible_positions[0]
-            if road_type == "DOWN":
-                return self.visible_positions[0], self.visible_positions[1]
+        gap_index = self._resolve_road_gap_index(road_center_y)
+        if gap_index is None:
             return None, None
 
-        road_row = _get_nearest_row_index(road_center_y, self.row_centers)
+        upper_position = self._resolve_position_by_row_index(gap_index)
+        lower_position = self._resolve_position_by_row_index(gap_index + 1)
+        if upper_position is None or lower_position is None:
+            return None, None
+
         if road_type == "UP":
-            return self._resolve_position_by_row_index(road_row + 1), self._resolve_position_by_row_index(road_row)
+            return lower_position, upper_position
         if road_type == "DOWN":
-            return self._resolve_position_by_row_index(road_row), self._resolve_position_by_row_index(road_row + 1)
+            return upper_position, lower_position
         return None, None
 
     def _init_node(self, all_nodes, mid_line):
