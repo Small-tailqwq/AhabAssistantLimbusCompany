@@ -341,8 +341,26 @@ class SettingInterface(QWidget):
             parent=self.update_group,
         )
 
-        self.logs_group = BaseSettingCardGroup(
-            QT_TRANSLATE_NOOP("BaseSettingCardGroup", "日志设置"), self.scroll_widget
+        self.logs_group = BaseSettingCardGroup(QT_TRANSLATE_NOOP("BaseSettingCardGroup", "调试"), self.scroll_widget)
+        self.debug_mode_card = SwitchSettingCard(
+            FIF.DEVELOPER_TOOLS,
+            QT_TRANSLATE_NOOP("SwitchSettingCard", "调试模式"),
+            QT_TRANSLATE_NOOP(
+                "SwitchSettingCard",
+                "开启后显示调试子选项；关闭后会自动重置所有子调试开关",
+            ),
+            "debug_mode",
+            parent=self.logs_group,
+        )
+        self.debug_mirror_route_card = SwitchSettingCard(
+            FIF.GLOBE,
+            QT_TRANSLATE_NOOP("SwitchSettingCard", "镜牢寻路调试"),
+            QT_TRANSLATE_NOOP(
+                "SwitchSettingCard",
+                "记录镜牢寻路额外日志，并在 logs/route_map_debug 下保存调试截图和元数据",
+            ),
+            "debug_mirror_route",
+            parent=self.logs_group,
         )
         self.open_logs_card = BasePrimaryPushSettingCard(
             QT_TRANSLATE_NOOP("BasePrimaryPushSettingCard", "日志"),
@@ -539,6 +557,8 @@ class SettingInterface(QWidget):
         self.update_group.addSettingCard(self.update_source_card)
         self.update_group.addSettingCard(self.mirrorchyan_cdk_card)
 
+        self.logs_group.addSettingCard(self.debug_mode_card)
+        self.logs_group.addSettingCard(self.debug_mirror_route_card)
         self.logs_group.addSettingCard(self.open_logs_card)
 
         self.about_group.addSettingCard(self.github_card)
@@ -588,7 +608,7 @@ class SettingInterface(QWidget):
             ("autodaily", QT_TRANSLATE_NOOP("Nav", "定时执行"), self.autodaily_group),
             ("personal", QT_TRANSLATE_NOOP("Nav", "个性化"), self.personal_group),
             ("update", QT_TRANSLATE_NOOP("Nav", "更新设置"), self.update_group),
-            ("logs", QT_TRANSLATE_NOOP("Nav", "日志设置"), self.logs_group),
+            ("logs", QT_TRANSLATE_NOOP("Nav", "调试"), self.logs_group),
             ("about", QT_TRANSLATE_NOOP("Nav", "关于"), self.about_group),
             (
                 "experimental",
@@ -628,6 +648,7 @@ class SettingInterface(QWidget):
         self.zoom_card.valueChanged.connect(self.__onZoomCardValueChanged)
         self.auto_lang_card.switchButton.checkedChanged.connect(self.__onAutoLangCardChecked)
         self.win_input_type_card.valueChanged.connect(self.__onWinInputTypeChanged)
+        self.debug_mode_card.switchButton.checkedChanged.connect(self.__onDebugModeChanged)
         self.logitech_switch_card.switchButton.checkedChanged.connect(self.__onExperimentalDependencyChanged)
         self.obs_switch_card.switchButton.checkedChanged.connect(self.__onExperimentalDependencyChanged)
         self.logitech_dll_path_card.clicked.connect(self.__onLogitechDllPathCardClicked)
@@ -635,6 +656,7 @@ class SettingInterface(QWidget):
         self.obs_password_card.clicked.connect(self.__onObsPasswordCardClicked)
         self.obs_source_name_card.clicked.connect(self.__onObsSourceNameCardClicked)
         self.__onWinInputTypeChanged()
+        self.__refreshDebugCardVisibility()
         self.__refreshExperimentalCardVisibility()
         self.autostart_card.switchButton.checkedChanged.connect(self.__onAutostartCardChanged)
         self.theme_card.valueChanged.connect(self.__onThemeCardChanged)
@@ -656,6 +678,21 @@ class SettingInterface(QWidget):
         import os
 
         os.startfile(os.path.abspath("./logs"))
+
+    def __refreshDebugCardVisibility(self):
+        debug_enabled = bool(cfg.get_value("debug_mode", False))
+        self.debug_mirror_route_card.setVisible(debug_enabled)
+
+        self.logs_group.adjustSize()
+        self.scroll_widget.adjustSize()
+
+    def __onDebugModeChanged(self, is_checked: bool):
+        if not is_checked:
+            for key in ["debug_mirror_route"]:
+                if cfg.get_value(key, False):
+                    cfg.set_value(key, False)
+            self.debug_mirror_route_card.setValue(False)
+        self.__refreshDebugCardVisibility()
 
     def __refreshExperimentalCardContents(self):
         self.logitech_dll_path_card.setContent(cfg.get_value("logitech_dll_path", ""))

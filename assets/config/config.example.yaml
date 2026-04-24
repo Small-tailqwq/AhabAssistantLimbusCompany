@@ -69,6 +69,10 @@ obs_source_name: "" # OBS 中捕获游戏窗口的源名称（必填）
 obs_image_format: "jpg" # OBS 截图编码格式，推荐 jpg；png 更稳但通常更慢
 obs_image_quality: 80 # OBS 截图压缩质量，0 压缩更高，100 压缩更低；仅对有损格式生效
 
+# 调试功能
+debug_mode: False # 调试模式总开关；关闭时应同步关闭所有子调试开关
+debug_mirror_route: False # 镜牢寻路调试：输出额外日志并保存路线图调试截图
+
 
 # 模拟器设置
 simulator: False # 是否使用模拟器
