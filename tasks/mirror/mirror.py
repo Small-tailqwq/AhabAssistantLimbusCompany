@@ -362,7 +362,7 @@ class Mirror:
                             msg = f"启动后第{self.floor}层卡包，该楼层时间不完整"
                         to_log_with_time(msg, floor_time)
                     self.floor_times[floor_num] = time.time()
-                except:
+                except Exception:
                     log.info("楼层异常，可能是OCR识别错误，本轮镜牢层间的时间记录无效")
                 self.get_floor_num = True
                 main_loop_count += 50
@@ -668,7 +668,7 @@ class Mirror:
                                 ocr_result = ocr_result.split("x")
                                 self.pass_coins = int(ocr_result[-1])
                                 break
-                        except:
+                        except Exception:
                             continue
                     if self.pass_coins is None:
                         for _ in range(5):
@@ -690,7 +690,7 @@ class Mirror:
                                         ocr_result = ocr_result.split("x")
                                         self.pass_coins = int(ocr_result[-1])
                                         break
-                            except:
+                            except Exception:
                                 continue
                     if self.pass_coins:
                         msg = f"本次镜牢领取{self.pass_coins}个通行证经验"
@@ -787,7 +787,7 @@ class Mirror:
             last_floor_time = time.time() - self.floor_times[self.floor - 1]
             msg = f"启动后第{self.floor}层卡包"
             to_log_with_time(msg, last_floor_time)
-        except:
+        except Exception:
             log.info("楼层异常，可能是OCR识别错误，本轮镜牢层间的时间记录无效")
 
         # 输出战斗总时间
@@ -964,7 +964,7 @@ class Mirror:
             if auto.find_element("mirror/theme_pack/feature_theme_pack_assets.png"):
                 break
 
-            if (team_system == "slash" or team_system == "pierce" or team_system == "blunt") and scroll == False:
+            if (team_system == "slash" or team_system == "pierce" or team_system == "blunt") and not scroll:
                 while slash_button := auto.find_element("mirror/road_to_mir/slash_gift_1.png"):
                     auto.mouse_drag(slash_button[0], slash_button[1], drag_time=0.2, dx=0, dy=-400)
                     sleep(0.5)
@@ -975,7 +975,7 @@ class Mirror:
                         scroll = True
                         break
 
-            if auto.click_element(f"mirror/road_to_mir/{team_system}_gift_assets.png") and select_system == False:
+            if auto.click_element(f"mirror/road_to_mir/{team_system}_gift_assets.png") and not select_system:
                 select_system = True
                 continue
 
@@ -1619,7 +1619,7 @@ class Mirror:
                     self.floor = floor
                     self.get_floor_num = False
                     return True, ocr_result
-            except:
+            except Exception:
                 pass
             return False, ocr_result
 

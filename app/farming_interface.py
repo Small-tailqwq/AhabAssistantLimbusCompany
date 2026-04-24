@@ -4,7 +4,7 @@ from typing import Callable
 
 from PySide6.QtCore import QT_TRANSLATE_NOOP, Qt
 from PySide6.QtGui import QTextCursor
-from PySide6.QtWidgets import QApplication, QDialog, QTextEdit
+from PySide6.QtWidgets import QApplication, QDialog, QFrame, QHBoxLayout, QTextEdit, QVBoxLayout, QWidget
 from qfluentwidgets import (
     BodyLabel,
     CheckBox,
@@ -13,13 +13,15 @@ from qfluentwidgets import (
     PopUpAniStackedWidget,
     PrimaryPushButton,
     PushButton,
+    SpinBox,
     TextEdit,
     TransparentToolButton,
     setCustomStyleSheet,
 )
 
-from app.base_combination import *
-from app.base_tools import *
+from app import mediator, page_name_and_index, task_check_box, toggle_button_group
+from app.base_combination import CheckBoxWithButton
+from app.base_tools import BaseLabel, BaseSettingLayout, NormalTextButton, ToSettingButton
 from app.common.ui_config import get_log_text_edit_qss
 from app.language_manager import LanguageManager
 from app.page_card import (
@@ -51,7 +53,7 @@ from module.system_actions import (
     set_after_completion_config,
 )
 from tasks.base.script_task_scheme import my_script_task
-from utils.utils import check_hard_mirror_time
+from utils.utils import check_hard_mirror_time, get_timezone
 
 
 class AfterCompletionActionEditor(FlyoutViewBase):
