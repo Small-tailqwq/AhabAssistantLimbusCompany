@@ -4,7 +4,6 @@ from datetime import datetime
 from sys import exc_info
 from time import sleep, time
 from traceback import format_exception
-
 from playsound3 import playsound
 from PySide6.QtCore import QT_TRANSLATE_NOOP, QThread
 
@@ -54,12 +53,12 @@ from utils.utils import calculate_the_teams, get_day_of_week
 
 @begin_and_finish_time_log(task_name="一次经验本")
 # 一次经验本的过程
-def onetime_EXP_process():
+def onetime_EXP_process(combat_count: int = 1):
     if cfg.targeted_teaming_EXP:
         team = cfg.get_value(f"EXP_day_{calculate_the_teams()}")
     else:
         team = cfg.daily_teams
-    EXP_luxcavation()
+    EXP_luxcavation(combat_count)
     select_battle_team(team)
     if battle.to_battle() is False:
         return False
@@ -70,12 +69,12 @@ def onetime_EXP_process():
 
 @begin_and_finish_time_log(task_name="一次纽本")
 # 一次纽本的过程
-def onetime_thread_process():
+def onetime_thread_process(combat_count: int = 1):
     if cfg.targeted_teaming_thread:
         team = cfg.get_value(f"thread_day_{get_day_of_week()}")
     else:
         team = cfg.daily_teams
-    thread_luxcavation()
+    thread_luxcavation(combat_count)
     select_battle_team(team)
     if battle.to_battle() is False:
         return False
@@ -195,12 +194,46 @@ def Daily_task_wrapper(get_reward=None):
         thread_times = cfg.set_thread_count
         if get_reward and get_reward == "thread":
             thread_times -= 1
-        for i in range(exp_times):
-            auto.ensure_not_stopped()
-            onetime_EXP_process()
-        for i in range(thread_times):
-            auto.ensure_not_stopped()
-            onetime_thread_process()
+        if cfg.config.use_continuous_combat:
+            max_times = cfg.use_continuous_combat_select
+            once_combat_count = 0
+            last_combat_count = 0
+            if exp_times > max_times:
+                once_combat_count = max_times
+                total_count = exp_times // max_times
+                last_combat_count = exp_times % max_times
+            else:
+                last_combat_count = exp_times
+                total_count = 0
+            for _ in range(total_count):
+                auto.ensure_not_stopped()
+                onetime_EXP_process(once_combat_count)
+            if last_combat_count > 0:
+                auto.ensure_not_stopped()
+                onetime_EXP_process(last_combat_count)
+
+            once_combat_count = 0
+            last_combat_count = 0
+            if thread_times > max_times:
+                once_combat_count = max_times
+                total_count = thread_times // max_times
+                last_combat_count = thread_times % max_times
+            else:
+                last_combat_count = thread_times
+                total_count = 0
+            for _ in range(total_count):
+                auto.ensure_not_stopped()
+                onetime_thread_process(once_combat_count)
+            if last_combat_count > 0:
+                auto.ensure_not_stopped()
+                onetime_thread_process(last_combat_count)
+        else:
+            for i in range(exp_times):
+                auto.ensure_not_stopped()
+                onetime_EXP_process()
+            for i in range(thread_times):
+                auto.ensure_not_stopped()
+                onetime_thread_process()
 
     return wrapper
 
