@@ -1677,6 +1677,21 @@ Right-click to set as permanent</translation>
         <source>纽本周日（暴怒）</source>
         <translation>Thread Sun. (Wrath)</translation>
     </message>
+    <message>
+        <location filename="../app/team_setting_card.py" line="736"/>
+        <source>定向刷新上限</source>
+        <translation>Keyword Refresh Limit</translation>
+    </message>
+    <message>
+        <location filename="../app/team_setting_card.py" line="741"/>
+        <source>普通刷新上限</source>
+        <translation>Normal Refresh Limit</translation>
+    </message>
+    <message>
+        <location filename="../app/team_setting_card.py" line="746"/>
+        <source>保留升级资金</source>
+        <translation>Reserve for Upgrades</translation>
+    </message>
 </context>
 <context>
     <name>LabelWithSpinBox</name>
