@@ -1113,11 +1113,13 @@ class AutoDailyView(FlyoutViewBase):
         cfg.set_value(self.config_name + "_task_exit", self.exit_setting)
         # 关闭弹出窗
         parent_card = self.__search_parent_class("DailySettingCard")
-        if parent_card is not None and hasattr(parent_card, "_popup"):
+        popup = getattr(parent_card, "_popup", None)
+        if popup is not None:
             try:
-                parent_card._popup.close()
-            except Exception:
-                pass
+                popup.close()
+                parent_card._popup = None
+            except Exception as e:
+                log.warning(f"关闭定时任务设置弹窗失败: {e}")
 
     def __search_parent_class(self, class_name="DailySettingCard"):
         current = self.parentWidget()
