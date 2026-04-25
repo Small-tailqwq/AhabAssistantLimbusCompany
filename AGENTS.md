@@ -108,6 +108,27 @@ uv run python .\scripts\build.py --version dev
 - Do not commit local screenshots, build outputs, `__pycache__`, temporary configs, or personal backup files unless the task explicitly requires them.
 - Treat files such as `config.yaml`, screenshots under `test/`, and local debug scripts as environment-specific unless the user asks otherwise.
 
+## Local Issue Tracking
+
+`issues/` 目录用于存放本地 bug 记录，供 LLM 交互使用，不纳入版本控制。
+
+每个 issue 的典型文件：
+
+- `issues/<id>.md` — issue 描述、复现步骤、日志关键片段
+- `issues/<id>.log` — 完整日志
+- `issues/config_<id>.yaml` — 当时的配置文件
+- `issues/meta_<id>.txt` — 运行环境元信息
+- `issues/screenshot_<id>.png` — 问题截图（可选）
+
+模板：`issues/TEMPLATE.md`
+
+LLM 交互流程：
+
+1. 用户指出问题，在 `issues/` 下创建对应的 `.md` 及关联文件
+2. Agent 读取 issue 描述和日志，结合项目代码分析根因
+3. Agent 给出修复方案并实施
+4. 修复完成后清理临时生成的分析文件，保留 issue 记录
+
 ## References
 
 - `README.md`
