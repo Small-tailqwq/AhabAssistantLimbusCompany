@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from time import time
 
 from pynput import keyboard
 
@@ -11,6 +12,11 @@ _MODIFIER_KEYS = {
     keyboard.Key.ctrl,
     keyboard.Key.shift,
 }
+
+# 修饰键和弦超时（秒）。当修饰键被按下后超过此时间仍没有对应的非修饰键
+# 被按下，认为该修饰键可能因 Alt+Tab 等系统操作导致 key-up 丢失而残留。
+# 正常热键操作（如 Ctrl+Q）在 1 秒内完成，此阈值覆盖所有合理手速。
+_HOTKEY_CHORD_TIMEOUT = 5.0
 
 
 class _ExactHotKey:
@@ -44,6 +50,7 @@ class _ExactHotKey:
 class ExactGlobalHotKeys(keyboard.Listener):
     def __init__(self, hotkeys: dict[str, Callable[[], None]], *args, **kwargs):
         self._pressed_keys: set[keyboard.Key | keyboard.KeyCode] = set()
+        self._modifier_timestamps: dict[keyboard.Key | keyboard.KeyCode, float] = {}
         self._hotkeys = [
             _ExactHotKey(keyboard.HotKey.parse(hotkey), callback)
             for hotkey, callback in hotkeys.items()
@@ -62,6 +69,22 @@ class ExactGlobalHotKeys(keyboard.Listener):
 
         canonical_key = self.canonical(key)
         self._pressed_keys.add(canonical_key)
+        now = time()
+
+        # 非修饰键按下时，检查是否有修饰键已"按住"过久（key-up 可能已被系统吞掉）
+        if canonical_key not in _MODIFIER_KEYS:
+            stale = [
+                k for k in list(self._pressed_keys)
+                if k in _MODIFIER_KEYS
+                and now - self._modifier_timestamps.get(k, now) > _HOTKEY_CHORD_TIMEOUT
+            ]
+            for k in stale:
+                self._pressed_keys.discard(k)
+                for hotkey in self._hotkeys:
+                    hotkey.release(k)
+        else:
+            self._modifier_timestamps[canonical_key] = now
+
         pressed_modifiers = {key for key in self._pressed_keys if key in _MODIFIER_KEYS}
         for hotkey in self._hotkeys:
             hotkey.press(canonical_key, pressed_modifiers)
@@ -74,3 +97,4 @@ class ExactGlobalHotKeys(keyboard.Listener):
         for hotkey in self._hotkeys:
             hotkey.release(canonical_key)
         self._pressed_keys.discard(canonical_key)
+        self._modifier_timestamps.pop(canonical_key, None)
