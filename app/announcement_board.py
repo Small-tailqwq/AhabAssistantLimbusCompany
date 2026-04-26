@@ -45,18 +45,38 @@ class AnnouncementThread(QThread):
         """
         super().__init__()
 
+    @property
+    def _announcement_urls(self) -> list[str]:
+        """按优先级返回公告 URL 列表，CDN 优先，GitHub raw 兜底"""
+        return [
+            "https://cdn.jsdelivr.net/gh/Small-tailqwq/AhabAssistantLimbusCompany@main/announcements.json",
+            "https://raw.githubusercontent.com/Small-tailqwq/AhabAssistantLimbusCompany/main/announcements.json",
+        ]
+
     def run(self) -> None:
         """
         公告线程的主逻辑。
         检查是否有新公告，如果有，则发送公告可用信号；否则发送成功信号。
         """
+        response = None
+        last_error = None
+        for url in self._announcement_urls:
+            try:
+                resp = requests.get(url, timeout=10)
+                if resp.status_code == 200:
+                    response = resp
+                    break
+                last_error = f"{url} -> {resp.status_code}"
+            except Exception as e:
+                last_error = f"{url} -> {e}"
+                continue
+
+        if response is None:
+            log.error(f"获取公告失败, 所有源均不可用: {last_error}")
+            self.AnnouncementSignal.emit(AnnouncementStatus.FAILURE)
+            return
+
         try:
-            url = "https://raw.githubusercontent.com/Small-tailqwq/AhabAssistantLimbusCompany/main/announcements.json"
-
-            response = requests.get(url)
-            response.raise_for_status()  # 如果状态码非200则抛出异常
-
-            # 解析 JSON 数据
             announcements = response.json()
             time_str = announcements["Time"]
             time_struct = time.strptime(time_str, "%Y-%m-%d %H:%M:%S")
@@ -69,7 +89,7 @@ class AnnouncementThread(QThread):
             self.announcement = announcements["Announcement"]
             self.AnnouncementSignal.emit(AnnouncementStatus.ANNO_AVAILABLE)
         except Exception as e:
-            log.error(f"获取公告失败:{e}")
+            log.error(f"解析公告数据失败:{e}")
             self.AnnouncementSignal.emit(AnnouncementStatus.FAILURE)
 
 
