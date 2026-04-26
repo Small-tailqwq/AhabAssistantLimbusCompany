@@ -363,6 +363,9 @@ class ConfigModel(BaseModel):
     update_prerelease_enable: bool = False
     """启用预发布版更新"""
 
+    update_channel: str = "stable"
+    """更新通道: stable (稳定版, 检查上游 KIYI671 仓库) / canary (金丝雀版, 检查 Small-tailqwq 仓库)"""
+
     update_source: str = "GitHub"
     """更新源"""
 

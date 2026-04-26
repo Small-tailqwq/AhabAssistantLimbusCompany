@@ -44,6 +44,7 @@ def check_ts_file(ts_path: str) -> list[str]:
 
 
 def main():
+    sys.stdout.reconfigure(encoding='utf-8')
     parser = argparse.ArgumentParser(description="检查 .ts 文件中未翻译的条目")
     parser.add_argument("--update", action="store_true", help="先运行 lupdate 提取新字符串再检查")
     args = parser.parse_args()

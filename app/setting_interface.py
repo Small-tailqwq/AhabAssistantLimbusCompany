@@ -384,7 +384,7 @@ class SettingInterface(QWidget):
             QT_TRANSLATE_NOOP("BasePrimaryPushSettingCard", "项目主页"),
             FIF.GITHUB,
             QT_TRANSLATE_NOOP("BasePrimaryPushSettingCard", "项目主页"),
-            "https://github.com/KIYI671/AhabAssistantLimbusCompany",
+            self._get_repo_url(),
         )
         self.discord_group_card = BasePrimaryPushSettingCard(
             QT_TRANSLATE_NOOP("BasePrimaryPushSettingCard", "加入群聊"),
@@ -683,10 +683,18 @@ class SettingInterface(QWidget):
         self.autostart_card.switchButton.checkedChanged.connect(self.__onAutostartCardChanged)
         self.theme_card.valueChanged.connect(self.__onThemeCardChanged)
 
-        self.github_card.clicked.connect(self.__openUrl("https://github.com/KIYI671/AhabAssistantLimbusCompany"))
+        self.github_card.clicked.connect(self.__openUrl(self._get_repo_url()))
         self.discord_group_card.clicked.connect(self.__openUrl("https://discord.gg/vUAw98cEVe"))
         self.feedback_card.clicked.connect(
-            self.__openUrl("https://github.com/KIYI671/AhabAssistantLimbusCompany/issues")
+            self.__openUrl(f"{self._get_repo_url()}/issues")
+        )
+
+    def _get_repo_url(self) -> str:
+        _is_canary = cfg.update_channel == "canary" or "-canary" in cfg.version
+        return (
+            "https://github.com/Small-tailqwq/AhabAssistantLimbusCompany"
+            if _is_canary
+            else "https://github.com/KIYI671/AhabAssistantLimbusCompany"
         )
 
     def __onGamePathCardClicked(self):

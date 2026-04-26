@@ -53,9 +53,13 @@ class MessageBoxHtml(MessageBox):
         self.jumpButton.setAttribute(Qt.WA_LayoutUsesWidgetRect)
         self.jumpButton.setFocus()
         # self.jumpButton = QPushButton('跳转', parent)
-        self.jumpButton.clicked.connect(
-            lambda: self.open_url("https://github.com/KIYI671/AhabAssistantLimbusCompany/releases")
+        _is_canary = cfg.update_channel == "canary" or "-canary" in cfg.version
+        _releases_url = (
+            "https://github.com/Small-tailqwq/AhabAssistantLimbusCompany/releases"
+            if _is_canary
+            else "https://github.com/KIYI671/AhabAssistantLimbusCompany/releases"
         )
+        self.jumpButton.clicked.connect(lambda: self.open_url(_releases_url))
 
         # 调整按钮组的大小策略（关键！）
         button_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
