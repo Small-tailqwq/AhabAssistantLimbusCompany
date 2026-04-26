@@ -1,135 +1,101 @@
-# AhabAssistantLimbusCompany - Agent Guidance
+# AhabAssistantLimbusCompany — Agent 指引
 
-## Quick Start
-
-```ps1
-uv sync --frozen
-uv run python .\main.py
-uv run python .\main_dev.py
-uv run python .\main_dev.py --no-reload
-uv run ruff check .
-uv run python -m py_compile path\to\touched_file.py
-uv run python .\scripts\build.py --version dev
-```
-
-## Reality Check
-
-- Windows-only desktop automation project, Python 3.12, `uv` managed.
-- GUI behavior depends on real game state, window handles, simulator state, and sometimes OBS.
-- There is no maintained automated test suite. Files like `test_bionic*.py` are ad-hoc local scripts, not reliable regression coverage.
-- Runtime verification often requires a foreground game window, simulator, or OBS session.
-- `ruff` is configured, but legacy modules still contain pre-existing warnings such as wildcard imports and bare `except`. Do not do unrelated lint cleanup during feature work.
-
-## Architecture
-
-- Entry points: `main.py` (prod) and `main_dev.py` (dev).
-- UI: `app/`.
-- Task orchestration: `tasks/base/script_task_scheme.py`.
-- Shared services and singletons live under `module/`.
-- Key singletons: `cfg`, `auto`, `ocr`, `screen`, `game_process`.
-- OBS screenshot backend: `module/automation/obs_capture.py`.
-- Mirror Dungeon logic: `tasks/mirror/`.
-- Translations: `i18n/*.ts` and compiled `.qm` files.
-
-## Core Conventions
-
-- Use `cfg.set_value()` for persistent config writes.
-- Use `cfg.unsaved_set_value()` for temporary UI-side config updates.
-- Never re-instantiate `cfg`, `auto`, `ocr`, `screen`, or `game_process`.
-- Use `ImageUtils.load_image()` with relative keys such as `mirror/road_in_mir/enter_assets.png`.
-- Image lookup is language-aware through `utils.pic_path`; preserve relative asset keys.
-- `main.py` resets the working directory to the executable location, so relative paths must stay portable.
-- Prefer existing `mediator` signals over introducing direct cross-widget coupling.
-- For hierarchical debug settings, turning off the parent debug-mode switch must also reset every child debug toggle to `False`.
-- Commit messages should use Chinese whenever possible (提交说明尽可能使用中文).
-
-## Script Lifecycle
-
-- Main script thread class: `my_script_task` in `tasks/base/script_task_scheme.py`.
-- Start/stop UI is owned by `app/farming_interface.py`.
-- Graceful stop is cooperative, not forceful:
-  - `my_script_task.stop()` calls `auto.request_stop()`.
-  - Long-running code must call `auto.ensure_not_stopped()` or input-handler `check_stop_requested()`.
-  - Stop propagates as `userStopError`.
-  - `my_script_task.run()` clears stop state, disconnects OBS, then emits `mediator.script_finished`.
-  - `FarmingInterfaceLeft.handle_script_finished()` restores the UI and cleans simulator connections.
-- Do not reintroduce `QThread.terminate()` for normal stopping.
-
-## Startup And Stop Safety
-
-- Startup can block on game launch, window handle discovery, emulator connection, or simulator boot.
-- If you touch `init_game()`, `screen.init_handle()`, `MumuControl`, or `SimulatorControl`, preserve stop checks inside blocking waits.
-- `app/my_app.py::closeEvent()` waits up to 5 seconds for graceful shutdown. Avoid creating unbounded waits in the stop path.
-- Post-stop cleanup retries are intentionally bounded to avoid freezing the UI thread.
-
-## OBS Capture Notes
-
-- OBS capture is enabled through `cfg.lab_screenshot_obs`.
-- `script_task()` performs a preflight check with `get_obs_capture().validate_capture_ready()` before running tasks.
-- That preflight intentionally clears failed connection cooldown so users can retry immediately after fixing OBS.
-- Always tear down OBS from thread cleanup via `disconnect_obs_capture()`.
-
-## Mirror Dungeon Notes
-
-- `MirrorMap` caches route data per floor.
-- Prefer cache reuse or targeted retries before adding more broad `take_screenshot=True` polling.
-- Keyboard route flow can often reuse cached directions; mouse-based movement may need bus-position recalculation.
-- Input mode branches matter: foreground, background, Logitech, OBS, and simulator flows do not behave identically.
-
-## Verification
-
-- Fast syntax check for touched files:
+## 快速命令
 
 ```ps1
-uv run python -m py_compile path\to\file.py path\to\other.py
+uv sync --frozen                                         # 安装依赖
+uv run python .\main.py                                  # 生产运行
+uv run python .\main_dev.py                              # 开发运行（热重载）
+uv run python .\main_dev.py --no-reload                  # 开发运行（无热重载）
+uv run ruff check .                                      # Lint
+uv run python -m py_compile path\to\file.py              # 语法检查
+uv run python .\scripts\build.py --version dev           # 构建
+uv run python .\scripts\translation_files_build.py       # 刷新 ts 源
+uv run python .\scripts\translation_files_compile.py     # 编译 ts → qm
 ```
 
-- Lint:
+## 项目现实
 
-```ps1
-uv run ruff check .
-```
+- Windows-only 桌面自动化，Python 3.12+，`uv` 管理
+- 无自动化测试套件；`test/` 下是手动脚本，依赖真实游戏/OBS/模拟器
+- `ruff` 已配置；遗留模块已有预存警告（通配符导入、裸 `except`），功能开发中不做无关清理
 
-- Build:
+## 架构要点
 
-```ps1
-uv run python .\scripts\build.py --version dev
-```
+| 层 | 目录 | 关键文件 |
+|---|---|---|
+| 入口 | 根目录 | `main.py`（生产）, `main_dev.py`（开发）, `updater.py` |
+| UI | `app/` | `my_app.py`（主窗口）, `mediator.py`（信号总线）, `farming_interface.py` |
+| 任务编排 | `tasks/base/` | `script_task_scheme.py`（`my_script_task` 线程类） |
+| 镜牢 | `tasks/mirror/` | `mirror.py`, `search_road.py`, `in_shop.py` |
+| 共享服务 | `module/` | 单例：`cfg` / `auto` / `ocr` / `screen` / `game_process` |
+| OBS 截图 | `module/automation/` | `obs_capture.py` |
+| 图片资源 | `assets/images/` | `default/{en,zh_cn,share}/`, `dark/` |
 
-- Manual runtime validation is usually required. For stop-flow changes, verify at least:
-  - start then stop from the UI button
-  - `Ctrl+Q` stop during normal task execution
-  - stop during startup or emulator waiting
-  - OBS enabled startup preflight
-  - UI returns to `Link Start!` after thread completion
+## 核心约定
 
-## Local Artifacts
+- **配置**：持久化用 `cfg.set_value()`，临时 UI 更新用 `cfg.unsaved_set_value()`。绝不重新实例化 `cfg`。
+- **单例**：绝不重新实例化 `cfg`、`auto`、`ocr`、`screen`、`game_process`。
+- **图片**：`ImageUtils.load_image(相对key)`，如 `mirror/road_in_mir/enter_assets.png`。路径经 `utils.pic_path` 语言感知处理。
+- **通信**：跨组件/线程走 `mediator` 信号，不直接持有其他页面实例。
+- **语言切换**：UI 组件向 `LanguageManager()` 注册并实现 `retranslateUi`；动态销毁需注销。
+- **调试开关**：关闭父级 `debug_mode` 时，所有子调试开关必须重置为 `False`。
+- **提交信息**：使用中文。
 
-- Do not commit local screenshots, build outputs, `__pycache__`, temporary configs, or personal backup files unless the task explicitly requires them.
-- Treat files such as `config.yaml`, screenshots under `test/`, and local debug scripts as environment-specific unless the user asks otherwise.
+## 生命周期
 
-## Local Issue Tracking
+- 主脚本线程：`tasks/base/script_task_scheme.py` 中的 `my_script_task`
+- 启动/停止 UI：`app/farming_interface.py`
+- **停止是协作式的，不是强制的**：
+  - `my_script_task.stop()` → `auto.request_stop()`
+  - 长任务必须检查 `auto.ensure_not_stopped()` 或调用输入处理器的 `check_stop_requested()`
+  - 停止传播为 `userStopError`
+  - `run()` 结束时清除停止状态、断开 OBS、发出 `mediator.script_finished`
+  - `FarmingInterfaceLeft.handle_script_finished()` 恢复 UI、清理模拟器连接
+- 绝不用 `QThread.terminate()` 做正常停止
 
-`issues/` 目录用于存放本地 bug 记录，供 LLM 交互使用，不纳入版本控制。
+## 启动与停止安全
 
-每个 issue 的典型文件：
+- 启动可能阻塞：游戏启动、窗口句柄发现、模拟器启动
+- 修改 `init_game()`、`screen.init_handle()`、`MumuControl`、`SimulatorControl` 时，要在阻塞等待中加入停止检查
+- `app/my_app.py::closeEvent()` 最多等 5 秒优雅退出；停止路径中避免无限等待
+- 停止后清理的重试有界，防止冻结 UI 线程
 
-- `issues/<id>.md` — issue 描述、复现步骤、日志关键片段
-- `issues/<id>.log` — 完整日志
-- `issues/config_<id>.yaml` — 当时的配置文件
-- `issues/meta_<id>.txt` — 运行环境元信息
-- `issues/screenshot_<id>.png` — 问题截图（可选）
+## OBS 截图
 
-模板：`issues/TEMPLATE.md`
+- 通过 `cfg.lab_screenshot_obs` 启用
+- `script_task()` 启动前用 `get_obs_capture().validate_capture_ready()` 预检
+- 预检会清除连接冷却，方便用户修好 OBS 后立即重试
+- 关闭时始终调用 `disconnect_obs_capture()`
 
-LLM 交互流程：
+## 镜牢
 
-1. 用户指出问题，在 `issues/` 下创建对应的 `.md` 及关联文件
-2. Agent 读取 issue 描述和日志，结合项目代码分析根因
-3. Agent 给出修复方案并实施
-4. 修复完成后清理临时生成的分析文件，保留 issue 记录
+- `MirrorMap` 缓存每层路线数据。优先复用缓存或定向重试，避免盲目加 `take_screenshot=True` 轮询
+- 键盘导航可复用缓存方向；鼠标导航需要根据巴士当前位置重新计算点击目标
+- 输入模式分叉：前台、后台、Logitech、OBS、模拟器——各模式行为不统一
 
-## References
+## 验证
+
+修改停止流程后至少手动验证：
+- 从 UI 按钮启停
+- `Ctrl+Q` 在任务执行中停止
+- 在启动或模拟器等待中停止
+- OBS 启用的启动预检
+- 线程结束后 UI 恢复
+
+## 本地 Issue 追踪
+
+`issues/` 目录存放 bug 记录，不纳入版本控制。模板：`issues/TEMPLATE.md`。
+
+典型文件：
+- `<id>.md` — 描述、复现步骤、日志片段
+- `<id>.log` — 完整日志
+- `config_<id>.yaml` — 当时配置
+- `screenshot_<id>.png` — 可选截图
+
+流程：读取 issue → 分析根因 → 修复 → 清理临时文件，保留 issue 记录。
+
+## 参考
 
 - `README.md`
 - `assets/doc/zh/develop_guide.md`
