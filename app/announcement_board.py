@@ -51,7 +51,7 @@ class AnnouncementThread(QThread):
         检查是否有新公告，如果有，则发送公告可用信号；否则发送成功信号。
         """
         try:
-            url = "https://gitee.com/KIYI/aalcresource/raw/main/AALC/announcements.json"
+            url = "https://raw.githubusercontent.com/Small-tailqwq/AhabAssistantLimbusCompany/main/announcements.json"
 
             response = requests.get(url)
             response.raise_for_status()  # 如果状态码非200则抛出异常

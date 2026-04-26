@@ -1,0 +1,4 @@
+{
+  "Time": "2026-04-26 20:00:00",
+  "Announcement": "<h1>欢迎使用 AhabAssistantLimbusCompany（Fork 版）</h1><p>本仓库基于 <a href='https://github.com/KIYI671/AhabAssistantLimbusCompany'>KIYI671/AhabAssistantLimbusCompany</a> 维护。</p><hr><h3>⚠️ 重要说明</h3><ul><li>此为第三方维护的 <b>Fork 版本</b>，非官方原版</li><li>改动主要由 AI 辅助完成，功能可靠性<b>不做任何保证</b></li><li>本版本为 <b>实验性质</b>，可能存在不稳定因素或预期外行为</li><li>使用风险请自行评估，作者不对因使用本软件产生的任何后果负责</li></ul><hr><h3>🐛 遇到 Bug？</h3><p>请在本 Fork 仓库提交 Issue：<br><a href='https://github.com/Small-tailqwq/AhabAssistantLimbusCompany/issues/new'>https://github.com/Small-tailqwq/AhabAssistantLimbusCompany/issues</a></p><p><b>不要</b> 到原版仓库（KIYI671）提交关于此 Fork 版本的 Bug 报告，以免干扰上游项目。</p><hr><p><i>提示：勾选「不再提示」后，此弹窗将不再显示。</i></p>"
+}
