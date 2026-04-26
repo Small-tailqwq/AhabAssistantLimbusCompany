@@ -16,9 +16,12 @@ metadata:
 2. **更新 CHANGELOG** — 在 `CHANGELOG.md` 的 `[Unreleased] — Canary` 节下记录本次变更
 3. **提交并推送** — `git add && git commit && git push origin main`
 4. **创建 Tag** — `git tag -a "vX.Y.Z-canary.N" -m "..." && git push origin vX.Y.Z-canary.N`
-5. **更新 Release 属性** — CI 自动构建并上传 .7z 后，需确认：
-   - Release 已标记为 `prerelease: true`
-   - Release name 和 body 包含清晰的变更说明
+5. **等待 CI 构建** — 约 3-4 分钟，`Release` workflow 完成自动上传 `AALC_*.7z`
+6. **更新 Release 属性** — CI 自动创建的 Release 只有 tag name 作为标题且缺少说明。需要用 GitHub API PATCH 补充：
+   - `name`: 设为 `"vX.Y.Z-canary.N — 金丝雀预览版"`
+   - `body`: 写入变更说明 Markdown
+   - `prerelease`: 设为 `true`
+   - 通过 `requests.patch(url, headers=BearerToken, json=payload)` 完成
 
 ## 何时使用我
 
