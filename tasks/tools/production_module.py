@@ -110,7 +110,7 @@ class ProductionModule(QWidget):
         """配置窗口的基本属性和界面元素。"""
         self.setWindowTitle("自动换饼")
         self.setGeometry(100, 100, 600, 400)
-        self.setWindowIcon(QIcon("./assets/logo/my_icon_256X256.ico"))
+        self.setWindowIcon(QIcon("./assets/logo/canary.ico"))
 
         # 创建布局
         layout = QVBoxLayout()

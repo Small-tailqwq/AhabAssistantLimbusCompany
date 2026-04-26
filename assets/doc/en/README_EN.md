@@ -1,12 +1,12 @@
 <div align="center">
 
-![image](/assets/logo/my_icon.png)
+![image](/assets/logo/canary.png)
 
 <br>
 
-# AhabAssistantLimbusCompany
+# 🟡 CanaryAssistantLimbusCompany
 
-## FACE THE <font color= #ff0000>S</font><font color= #b40001>I</font><font color= #690001>N</font>,SAVE THE <font color=#ffd700>E</font><font color=#f8da39>.</font><font color=#f1dd72>G</font><font color=#eae0aa>.</font><font color= #e3e3e3>O</font>
+## FACE THE SILENCE, HEED THE WARNING
 
 ---
 <br>
@@ -16,12 +16,12 @@
     </a>
 </div>
 <div>
-    <img alt="version" src="https://img.shields.io/github/v/release/KIYI671/AhabAssistantLimbusCompany?color=%239c080b&style=flat-square">
-    <img alt="download" src="https://img.shields.io/github/downloads/KIYI671/AhabAssistantLimbusCompany/total?style=flat-square&color=4096d8">
+    <img alt="version" src="https://img.shields.io/github/v/release/Small-tailqwq/AhabAssistantLimbusCompany?include_prerelease&color=%23FFD700&style=flat-square&label=version">
+    <img alt="download" src="https://img.shields.io/github/downloads/Small-tailqwq/AhabAssistantLimbusCompany/total?style=flat-square&color=%23FFA500&label=downloads">
 </div>
 <div>
-    <img alt="language" src="https://img.shields.io/badge/Language-Python-blue">
-    <img alt="platform" src="https://img.shields.io/badge/platform-Windows-blue?style=flat-square&color=4096d8">
+    <img alt="language" src="https://img.shields.io/badge/Language-Python-%23FFD700?style=flat-square">
+    <img alt="platform" src="https://img.shields.io/badge/platform-Windows-%23FFA500?style=flat-square">
 </div>
 
 [简体中文](/README.md) | **English**

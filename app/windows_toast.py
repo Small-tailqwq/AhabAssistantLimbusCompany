@@ -60,7 +60,7 @@ APPID = "AALC_Notification"
 """注册表内的应用ID"""
 APPNAME = "AALC"
 """显示的通知名称"""
-ICONPATH = r"assets\logo\my_icon.png"
+ICONPATH = r"assets\logo\canary.png"
 """图标路径"""
 
 

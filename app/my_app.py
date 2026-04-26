@@ -96,7 +96,7 @@ class MainWindow(FramelessWindow):
         apply_font_config()
 
         self.setTitleBar(StandardTitleBar(self))
-        self.setWindowIcon(QIcon("./assets/logo/my_icon_256X256.ico"))
+        self.setWindowIcon(QIcon("./assets/logo/canary.ico"))
         self.setWindowTitle(f"Ahab Assistant Limbus Company - {cfg.version}")
         self.setObjectName("MainWindow")
         setThemeColor("#9c080b")
@@ -233,7 +233,7 @@ class MainWindow(FramelessWindow):
     def init_system_tray(self):
         self.tray_menu = None
         self.tray_icon = QSystemTrayIcon(self)
-        self.tray_icon.setIcon(QIcon("./assets/logo/my_icon_256X256.ico"))
+        self.tray_icon.setIcon(QIcon("./assets/logo/canary.ico"))
         self.tray_icon.activated.connect(self.on_tray_icon_activated)
         self.tray_icon.show()
 

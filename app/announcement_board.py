@@ -175,7 +175,7 @@ class AnnouncementBoard(FramelessDialog):
         self.resize(800, 580)
         self.setMinimumSize(700, 500)
         self.setFont(QFont("Microsoft YaHei", 13))
-        self.setWindowIcon(QIcon("./assets/logo/my_icon_256X256.ico"))
+        self.setWindowIcon(QIcon("./assets/logo/canary.ico"))
         self.setWindowTitle(self.tr("公告"))
 
         # ========== 左侧侧边栏 ==========

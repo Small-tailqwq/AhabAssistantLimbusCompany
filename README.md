@@ -1,4 +1,4 @@
-> **Fork 说明（AhabAssistantLimbusCompany fork 版）**
+> **Fork 说明（金丝雀小助手 / CanaryAssistant 版）**
 >
 > 本仓库基于上游项目进行维护，相较源项目做部分改动，不保证功能体验与上游完全一致。
 >
@@ -14,12 +14,12 @@
 
 <div align="center">
 
-<img src="./assets/logo/my_icon.png" alt="AhabAssistantLimbusCompany logo" width="128" height="128" />
+<img src="./assets/logo/canary.png" alt="金丝雀小助手 logo" width="128" height="128" />
 
-### AhabAssistantLimbusCompany
+### 🟡 金丝雀小助手 (CanaryAssistantLimbusCompany)
 
 <div>
-    <img src="./assets/logo/tagline.png" alt="FACE THE SIN,SAVE THE E.G.O (PNG)" height="32" />
+    <img src="./assets/logo/tagline.svg" alt="FACE THE SILENCE, HEED THE WARNING" height="32" />
 </div>
 
 ---
@@ -30,12 +30,12 @@
     </a>
 </div>
 <div>
-    <img alt="version" src="https://img.shields.io/github/v/release/KIYI671/AhabAssistantLimbusCompany?color=%239c080b&style=flat-square">
-    <img alt="download" src="https://img.shields.io/github/downloads/KIYI671/AhabAssistantLimbusCompany/total?style=flat-square&color=4096d8">
+    <img alt="version" src="https://img.shields.io/github/v/release/Small-tailqwq/AhabAssistantLimbusCompany?include_prerelease&color=%23FFD700&style=flat-square&label=version">
+    <img alt="download" src="https://img.shields.io/github/downloads/Small-tailqwq/AhabAssistantLimbusCompany/total?style=flat-square&color=%23FFA500&label=downloads">
 </div>
 <div>
-    <img alt="language" src="https://img.shields.io/badge/Language-Python-blue">
-    <img alt="platform" src="https://img.shields.io/badge/platform-Windows-blue?style=flat-square&color=4096d8">
+    <img alt="language" src="https://img.shields.io/badge/Language-Python-%23FFD700?style=flat-square">
+    <img alt="platform" src="https://img.shields.io/badge/platform-Windows-%23FFA500?style=flat-square">
 </div>
 
 **简体中文** | [English](assets/doc/en/README_EN.md)
