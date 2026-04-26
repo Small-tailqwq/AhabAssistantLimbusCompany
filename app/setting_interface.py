@@ -362,6 +362,16 @@ class SettingInterface(QWidget):
             "debug_mirror_route",
             parent=self.logs_group,
         )
+        self.debug_thread_dungeon_card = SwitchSettingCard(
+            FIF.GLOBE,
+            QT_TRANSLATE_NOOP("SwitchSettingCard", "纽本调试"),
+            QT_TRANSLATE_NOOP(
+                "SwitchSettingCard",
+                "记录纽本匹配过程的截图到 logs/thread_dungeon_debug 目录",
+            ),
+            "debug_thread_dungeon",
+            parent=self.logs_group,
+        )
         self.open_logs_card = BasePrimaryPushSettingCard(
             QT_TRANSLATE_NOOP("BasePrimaryPushSettingCard", "日志"),
             FIF.FOLDER_ADD,
@@ -569,6 +579,7 @@ class SettingInterface(QWidget):
 
         self.logs_group.addSettingCard(self.debug_mode_card)
         self.logs_group.addSettingCard(self.debug_mirror_route_card)
+        self.logs_group.addSettingCard(self.debug_thread_dungeon_card)
         self.logs_group.addSettingCard(self.open_logs_card)
 
         self.about_group.addSettingCard(self.github_card)
@@ -693,16 +704,18 @@ class SettingInterface(QWidget):
     def __refreshDebugCardVisibility(self):
         debug_enabled = bool(cfg.get_value("debug_mode", False))
         self.debug_mirror_route_card.setVisible(debug_enabled)
+        self.debug_thread_dungeon_card.setVisible(debug_enabled)
 
         self.logs_group.adjustSize()
         self.scroll_widget.adjustSize()
 
     def __onDebugModeChanged(self, is_checked: bool):
         if not is_checked:
-            for key in ["debug_mirror_route"]:
+            for key in ["debug_mirror_route", "debug_thread_dungeon"]:
                 if cfg.get_value(key, False):
                     cfg.set_value(key, False)
             self.debug_mirror_route_card.setValue(False)
+            self.debug_thread_dungeon_card.setValue(False)
         self.__refreshDebugCardVisibility()
 
     def __refreshExperimentalCardContents(self):

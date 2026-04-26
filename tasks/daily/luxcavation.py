@@ -1,8 +1,38 @@
+import time
+from pathlib import Path
 from time import sleep
+
+import cv2
+import numpy as np
 
 from module.automation import auto
 from module.config import cfg
 from module.logger import log
+
+
+def _is_thread_debug_enabled():
+    return bool(cfg.get_value("debug_mode", False) and cfg.get_value("debug_thread_dungeon", False))
+
+
+def _dump_thread_debug_frame(label: str):
+    if not _is_thread_debug_enabled():
+        return
+    screenshot = auto.screenshot
+    if screenshot is None:
+        log.debug(f"纽本调试截图失败: {label}")
+        return
+    image = np.array(screenshot)
+    if len(image.shape) == 3:
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    dump_dir = Path("logs") / "thread_dungeon_debug"
+    dump_dir.mkdir(parents=True, exist_ok=True)
+    now = time.time()
+    ts = time.strftime("%Y%m%d_%H%M%S", time.localtime(now))
+    ms = int((now % 1) * 1000)
+    stem = f"{ts}_{ms:03d}_{label}"
+    image_path = dump_dir / f"{stem}.png"
+    cv2.imwrite(str(image_path), image)
+    log.info(f"纽本调试截图已保存: {image_path}")
 
 
 def EXP_luxcavation(combat_count: int = 1):
@@ -88,8 +118,12 @@ def thread_luxcavation(combat_count: int = 1):
             auto.click_element("home/back_assets.png")
             continue
         if auto.click_element("luxcavation/thread_enter_assets.png", threshold=0.78):
+            sleep(0.5)
+            _dump_thread_debug_frame("enter_thread")
             if pos := auto.find_element("luxcavation/thread_consume.png", threshold=0.85, take_screenshot=True):
+                _dump_thread_debug_frame("thread_consume_found")
                 if scroll_bar := auto.find_element("luxcavation/thread_scroll_bar.png"):
+                    _dump_thread_debug_frame("scroll_bar_found")
                     auto.mouse_drag_down(scroll_bar[0], scroll_bar[1], reverse=2)
                 else:
                     log.debug("未找到滚动条，通过滑动下滑")
@@ -100,10 +134,12 @@ def thread_luxcavation(combat_count: int = 1):
                     find_type="image_with_multiple_targets",
                     take_screenshot=True,
                 )
+                _dump_thread_debug_frame("level_detection")
                 scale = cfg.set_win_size / 1440
                 if level:
                     level = [(x, y) for x, y in level if x >= 700 * scale]
                 if level:
+                    _dump_thread_debug_frame("before_level_click")
                     level = sorted(level, key=lambda y: y[1], reverse=True)
                     if combat_count > 1 and auto.click_element(
                         "luxcavation/thread_continuous_combat_show_box_assets.png"
@@ -122,6 +158,7 @@ def thread_luxcavation(combat_count: int = 1):
                             break
                 else:
                     # 处理下方所有关卡未解锁的情况
+                    _dump_thread_debug_frame("unaccessed_levels")
                     level = None
                     slide_times = 0
                     x = int(1300 * scale)
@@ -162,8 +199,11 @@ def thread_luxcavation(combat_count: int = 1):
                         if auto.find_element("battle/teams_assets.png", take_screenshot=True):
                             break
 
+            else:
+                _dump_thread_debug_frame("thread_consume_not_found")
             continue
         if auto.click_element("luxcavation/thread_assets.png"):
+            sleep(0.5)
             continue
         if auto.click_element("home/luxcavation_assets.png"):
             continue
