@@ -1,0 +1,31 @@
+name: i18n 完整性检查
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "app/**/*.py"
+      - "tasks/**/*.py"
+      - "i18n/**"
+  push:
+    branches:
+      - main
+    paths:
+      - "app/**/*.py"
+      - "tasks/**/*.py"
+      - "i18n/**"
+
+jobs:
+  check-i18n:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@main
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "**/uv.lock"
+      - name: Install dependencies
+        run: uv sync --frozen
+      - name: 检查 i18n 翻译完整性
+        run: uv run python scripts/check_i18n.py --update
