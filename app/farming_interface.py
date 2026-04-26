@@ -711,6 +711,7 @@ class FarmingInterfaceLeft(QWidget):
             log.info(msg)
             ui_log_dispatcher.clear()
             auto.clear_stop_request()
+            auto.input_handler.is_pause = False
             # 启动脚本线程
             self.my_script = my_script_task()
             self.my_script.start()
