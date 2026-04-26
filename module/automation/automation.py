@@ -315,14 +315,12 @@ class Automation(metaclass=SingletonMeta):
                         0,
                     )
 
-                # 罗技仿生轨迹会拉长点击耗时，可能导致截图节流恰好失效，从而在界面切换动画未完成时立即截图。
-                # 这里额外约束“距离上次点击”的最小等待时间，避免点击后过早识别。
-                if getattr(cfg, "lab_mouse_logitech", False) and getattr(cfg, "logitech_bionic_trajectory", True):
-                    if self.last_click_time and time.time() - self.last_click_time < screenshot_interval_time:
-                        wait_time = max(
-                            wait_time,
-                            screenshot_interval_time - (time.time() - self.last_click_time),
-                        )
+                # 约束“距离上次点击”的最小等待时间，避免点击后过早截图导致捕获到过渡动画
+                if self.last_click_time and time.time() - self.last_click_time < screenshot_interval_time:
+                    wait_time = max(
+                        wait_time,
+                        screenshot_interval_time - (time.time() - self.last_click_time),
+                    )
 
                 if wait_time > 0:
                     time.sleep(wait_time)
