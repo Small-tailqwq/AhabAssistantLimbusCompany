@@ -527,6 +527,23 @@ class FarmingInterfaceLeft(QWidget):
             pass
         sys.exit(0)
 
+    def refresh_config_display(self):
+        config_names = [
+            "set_windows",
+            "daily_task",
+            "get_reward",
+            "buy_enkephalin",
+            "mirror",
+            "resonate_with_Ahab",
+        ]
+        for name in config_names:
+            cwb = getattr(self, name, None)
+            if cwb is None:
+                continue
+            val = cfg.get_value(name)
+            if val is not None:
+                cwb.box.check_box.setChecked(bool(val))
+
     def check_setting(self):
         # 检测是否有未保存的镜牢队伍设置
         if self.parent().parent().findChild(TeamSettingCard):

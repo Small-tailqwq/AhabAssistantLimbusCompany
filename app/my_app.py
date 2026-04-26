@@ -533,6 +533,30 @@ class MainWindow(FramelessWindow):
         mediator.warning_clear.connect(self.clear_warning)
         # 由任务线程发起请求、由主窗口执行前台切换，避免执行层直接耦合 UI。
         mediator.request_focus.connect(self._force_foreground)
+        mediator.config_reloaded.connect(self._on_config_reloaded)
+
+    def _on_config_reloaded(self):
+        self.progress_ring.show()
+        self.progress_ring.raise_()
+        QApplication.processEvents()
+
+        self.pivot.setCurrentItem("farming_interface")
+        QApplication.processEvents()
+
+        self.farming_interface.interface_left.refresh_config_display()
+
+        old = self.setting_interface
+        idx = self.stackedWidget.indexOf(old)
+        LanguageManager().unregister_component(old)
+        self.stackedWidget.removeWidget(old)
+        old.setParent(None)
+        old.deleteLater()
+        self.setting_interface = SettingInterface(self)
+        self.setting_interface.setObjectName("setting_interface")
+        self.stackedWidget.insertWidget(idx, self.setting_interface)
+
+        self.progress_ring.hide()
+        log.info("GUI 已根据新配置重建，已返回一键长草界面")
 
     def _force_foreground(self) -> None:
         """强制将 AALC 主窗口拉至前台，绕过 Windows 焦点保护。

@@ -8,12 +8,13 @@ from PySide6.QtWidgets import QApplication, QWidget
 from module.logger import log
 from tasks.base.script_task_scheme import init_game
 from tasks.tools.infinite_battle import InfiniteBattles
+from tasks.tools.issue_replay import IssueReplay
 from tasks.tools.production_module import ProductionModule
 from tasks.tools.screenshot_module import ScreenshotGet
 
 
 class ToolManager:
-    def __init__(self, tool: Literal["battle", "production", "screenshot"]):
+    def __init__(self, tool: Literal["battle", "production", "screenshot", "issue_replay"]):
         self.tool = tool
         self.initialized = False
         self.w: QObject = None
@@ -42,6 +43,8 @@ class ToolManager:
                     self.w = ProductionModule()
                 elif self.tool == "screenshot":
                     self.w = ScreenshotGet()
+                elif self.tool == "issue_replay":
+                    self.w = IssueReplay()
                 if self.w is None:
                     log.error(f"工具 {self.tool} 未能成功启动")
                     self.initialized = None  # 失败返回
@@ -63,7 +66,7 @@ class ToolManager:
         QTimer.singleShot(0, app, create_and_show)
 
 
-def start(tool: Literal["battle", "production", "screenshot"]):
+def start(tool: Literal["battle", "production", "screenshot", "issue_replay"]):
     """
     启动工具管理器的方法。
     :param tool: 启动工具，可以是"battle"。

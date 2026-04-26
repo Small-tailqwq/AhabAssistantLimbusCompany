@@ -26,6 +26,7 @@ class Mediator(QObject):
     mirror_bar_kill_signal = Signal()
     hotkey_listener_stop_signal = Signal()
     hotkey_listener_start_signal = Signal()
+    config_reloaded = Signal()  # 配置热切换后通知主窗口重建设置页面
 
     # 单例实例（类变量）
     _instance = None

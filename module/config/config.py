@@ -34,6 +34,10 @@ class Config(metaclass=SingletonMeta):
         self._writer_thread = threading.Thread(target=self._writer_loop, name="ConfigWriter", daemon=True)
         self._writer_thread.start()
 
+        # 日志复现模式：暂停自动写盘
+        self._save_suspended = False
+        self._replay_source = None
+
         # 加载版本信息
         self.version = self._load_version(version_path)
         # 加载默认配置
@@ -48,6 +52,21 @@ class Config(metaclass=SingletonMeta):
         log.debug(f"配置文件已加载，版本号：{self.version}, 配置版本: {self.get_value('config_version', '未知')}")
         # 进程退出前确保落盘
         atexit.register(self.flush)
+
+    def set_save_suspended(self, suspended: bool, source: Optional[str] = None) -> None:
+        with self._lock:
+            self._save_suspended = suspended
+            if suspended:
+                self._replay_source = source
+            else:
+                self._replay_source = None
+
+    def is_save_suspended(self) -> bool:
+        return self._save_suspended
+
+    @property
+    def replay_source(self) -> Optional[str]:
+        return self._replay_source
 
     def _old_version_cfg_upgrade(self, saved_version: int, loaded_config: dict) -> None:
         """旧版本配置升级处理
@@ -249,6 +268,8 @@ class Config(metaclass=SingletonMeta):
     def _schedule_save(self) -> None:
         """在时间窗口内合并多次修改，只触发一次写盘。"""
         with self._lock:
+            if self._save_suspended:
+                return
             self._pending_save = True
             # 取消已有的定时器，重新计时
             if self._save_timer is not None:
@@ -274,7 +295,7 @@ class Config(metaclass=SingletonMeta):
     def _flush_save(self) -> None:
         """定时器回调：触发一次后台写盘信号。"""
         with self._lock:
-            if not self._pending_save:
+            if self._save_suspended or not self._pending_save:
                 return
             self._pending_save = False
             self._save_timer = None
