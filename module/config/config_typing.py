@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class TeamSetting(BaseModel):
@@ -198,6 +198,8 @@ class TeamSetting(BaseModel):
 
 class ConfigModel(BaseModel):
     """配置模型"""
+
+    model_config = ConfigDict(extra="allow")
 
     config_version: int = 1775826004
     """配置文件版本号（时间戳）"""
@@ -510,6 +512,18 @@ class ConfigModel(BaseModel):
 
     mirror_keyboard_navigation: bool = False
     """使用键盘进行镜牢寻路"""
+
+    debug_mode: bool = False
+    """调试模式总开关；关闭时应同步关闭所有子调试开关"""
+
+    debug_mirror_route: bool = False
+    """镜牢寻路调试：输出额外日志并保存路线图调试截图"""
+
+    debug_thread_dungeon: bool = False
+    """纽本调试：保存纽本流程截图到 logs/thread_dungeon_debug"""
+
+    experimental_keep_screen_awake: bool = False
+    """运行期间阻止系统与显示器休眠，任务结束自动恢复"""
 
     teams: dict[str, TeamSetting] = {"1": TeamSetting()}
     """队伍设置"""
