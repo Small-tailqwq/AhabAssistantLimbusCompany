@@ -13,6 +13,19 @@ def back_init_menu():
     loop_count = 30
     auto.model = "clam"
     while True:
+        loop_count -= 1
+        if loop_count < 20:
+            auto.model = "normal"
+        if loop_count < 10:
+            auto.model = "aggressive"
+        if loop_count < 0:
+            from tasks.base.retry import kill_game, restart_game
+
+            log.error("无法返回主界面，尝试重启游戏")
+            kill_game()
+            restart_game()
+            back_init_menu()
+
         if cfg.simulator:
             if cfg.simulator_type == 0:
                 from module.automation.input_handlers.simulator.mumu_control import (
@@ -78,7 +91,7 @@ def back_init_menu():
 
         if auto.click_element("mirror/road_in_mir/towindow&forfeit_confirm_assets.png"):
             continue
-        if auto.click_element("mirror/road_in_mir/to_window_assets.png"):
+        if auto.click_element("mirror/road_in_mir/to_window_assets.png", threshold=0.7):
             continue
         if auto.find_element("mirror/road_in_mir/legend_assets.png"):
             auto.click_element("mirror/road_in_mir/setting_assets.png")
@@ -129,16 +142,3 @@ def back_init_menu():
 
         auto.mouse_click_blank()
         auto.key_press("esc")
-
-        loop_count -= 1
-        if loop_count < 20:
-            auto.model = "normal"
-        if loop_count < 10:
-            auto.model = "aggressive"
-        if loop_count < 0:
-            from tasks.base.retry import kill_game, restart_game
-
-            log.error("无法返回主界面，尝试重启游戏")
-            kill_game()
-            restart_game()
-            back_init_menu()

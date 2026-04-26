@@ -47,7 +47,7 @@ class AnnouncementThread(QThread):
 
     @property
     def _announcement_urls(self) -> list[str]:
-        """按优先级返回公告 URL 列表，GitHub raw 优先（免缓存），jsDelivr CDN 兜底"""
+        """按优先级返回公告 URL 列表，GitHub raw 优先（无缓存），jsDelivr CDN 兜底"""
         return [
             "https://raw.githubusercontent.com/Small-tailqwq/AhabAssistantLimbusCompany/main/announcements.json",
             "https://cdn.jsdelivr.net/gh/Small-tailqwq/AhabAssistantLimbusCompany@main/announcements.json",

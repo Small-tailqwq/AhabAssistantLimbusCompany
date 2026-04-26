@@ -1122,7 +1122,7 @@ class Mirror:
                 break
             if auto.click_element("mirror/road_in_mir/towindow&forfeit_confirm_assets.png"):
                 break
-            if auto.click_element("mirror/road_in_mir/to_window_assets.png"):
+            if auto.click_element("mirror/road_in_mir/to_window_assets.png", threshold=0.7):
                 continue
             if auto.click_element("mirror/road_in_mir/setting_assets.png"):
                 sleep(1)
