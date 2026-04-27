@@ -20,7 +20,7 @@ metadata:
 6. **更新 Release 属性** — CI 自动创建的 Release 只有 tag name 作为标题且缺少说明。需要用 GitHub API PATCH 补充：
    - `name`: 设为 `"vX.Y.Z-canary.N — 金丝雀预览版"`
    - `body`: 写入变更说明 Markdown
-   - `prerelease`: 设为 `true`
+   - `prerelease`: **不设置**（保留为 `false`，避免部分更新渠道无法读取版本）
    - 通过 `requests.patch(url, headers=BearerToken, json=payload)` 完成
 
 ## 何时使用我

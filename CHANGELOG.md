@@ -2,6 +2,26 @@
 
 ## [Unreleased] — Canary
 
+(AALC 1.5.0-canary.3 新增内容见下方注释)
+
+## [1.5.0-canary.3] — 2026-04-27
+
+### 镜牢稳定性
+- fix(mirror): re_start 添加 check_times 超时兜底，战斗失败后放弃/重开时卡死 90 秒后杀进程重启
+- fix(mirror): back_init_menu loop_count 移到 while 顶部，修复无限循环不递减导致无法触发兜底
+
+### 调试
+- feat(debug): 新增重试调试 (debug_retry)，还原镜牢退出/重启流程中的识别情况与日志断点
+- fix(debug): debug_retry 适配调试模型宪法——添加双重门控、UI 开关、父开关关闭时自动复位
+- style: 新增调试模型宪法文档及 AALC 日志压缩分析工具
+
+### 稳定性
+- fix: 连续作战最大次数为 0 时除零崩溃，默认值改为 1
+
+### 品牌
+- feat: 金丝雀品牌更新——README、图标、程序图标路径
+
+
 ### 队伍设置
 - feat(team_setting): 刷新选项添加 tooltips 提示，移入商店配置区
 - fix(team_setting): 移除 tooltip 中的消耗信息，并入 i18n 翻译系统
