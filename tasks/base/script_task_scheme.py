@@ -4,6 +4,7 @@ from datetime import datetime
 from sys import exc_info
 from time import sleep, time
 from traceback import format_exception
+
 from playsound3 import playsound
 from PySide6.QtCore import QT_TRANSLATE_NOOP, QThread
 
