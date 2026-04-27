@@ -363,7 +363,7 @@ def script_task() -> None | int:
 
     path_manager.initialize_paths(cfg.language_in_game)
     auto.clear_img_cache()
-    log.info(f"初始化图片路径: {path_manager.pic_path}")
+    log.debug(f"初始化图片路径: {path_manager.pic_path}")
 
     if getattr(cfg, "lab_screenshot_obs", False):
         obs = get_obs_capture()
