@@ -32,6 +32,36 @@ uv run python .\scripts\translation_files_compile.py     # 编译 ts → qm
 | OBS 截图 | `module/automation/` | `obs_capture.py` |
 | 图片资源 | `assets/images/` | `default/{en,zh_cn,share}/`, `dark/` |
 
+## 文件删除严格管控（最高优先级）
+
+**绝不替用户删除任何本地文件。** 这是不可逾越的红线。
+
+### 禁止的操作
+
+- `git clean -fd` / `git clean`
+- `rm` / `rmdir` / `rd` / `erase` / `del`
+- `Remove-Item` / `ri`
+- 任何通过 `cmd /c`、`pwsh -c`、`python -c` 包装的删除
+- 写入文件时覆盖用户已存在的本地文件（如 write 工具覆盖）
+- 代码中调用 `os.remove()`、`shutil.rmtree()` 等
+
+以上操作已被全局 `opencode.json` 的 permission 规则通过 `deny` 阻断。
+
+### 例外流程
+
+当确实需要清理文件时（如清理已知的无用构建产物），必须：
+1. 使用 **`question` 工具**向用户说明：需要删除什么、为什么、具体路径
+2. 等待用户明确同意后再执行
+3. 执行后报告结果
+
+**这样用户同意后可以不中断会话直接回复，避免 permission ask 导致的会话中断。**
+
+### 原则
+
+- 需要删除 → 告知用户，让用户决定
+- 写入文件发现目标已存在 → 先问用户是否覆盖
+- 不慎执行了可能删除文件的操作 → 立即报告用户
+
 ## 核心约定
 
 - **配置**：持久化用 `cfg.set_value()`，临时 UI 更新用 `cfg.unsaved_set_value()`。绝不重新实例化 `cfg`。
