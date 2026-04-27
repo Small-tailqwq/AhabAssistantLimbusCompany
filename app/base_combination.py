@@ -168,7 +168,7 @@ class CheckBoxWithComboBox(QFrame):
         check_box_icon: Union[str, QIcon, FluentIconBase, None],
         combo_box_name,
         combo_box_width=None,
-        tips = None,
+        tips=None,
         parent=None,
     ):
         super().__init__(parent)
@@ -176,7 +176,7 @@ class CheckBoxWithComboBox(QFrame):
         self.additional_combo_box = None
         self.hBoxLayout = QHBoxLayout(self)
         self.box_text = check_box_title
-        self.box = BaseCheckBox(check_box_name, check_box_icon, check_box_title, parent=self, center=False,tips=tips)
+        self.box = BaseCheckBox(check_box_name, check_box_icon, check_box_title, parent=self, center=False, tips=tips)
         self.box.setFixedWidth(150)
         self.combo_box = BaseComboBox(combo_box_name, combo_box_width)
         self.combo_box.setFixedWidth(300)
@@ -206,7 +206,7 @@ class CheckBoxWithComboBox(QFrame):
 
 
 class LabelWithComboBox(QFrame):
-    def __init__(self, label_text, config_name, items, vbox=True, parent=None):
+    def __init__(self, label_text, config_name, items, vbox=True, parent=None,tips: str | None = None,):
         super().__init__(parent)
         self.setObjectName(config_name)
 
@@ -229,6 +229,10 @@ class LabelWithComboBox(QFrame):
         self.setMaximumHeight(80)
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
 
+        if tips:
+            self.setToolTip(tips)
+            self.installEventFilter(ToolTipFilter(self))
+
     def add_items(self, items):
         self.combo_box.add_items(items)
 
@@ -246,9 +250,11 @@ class LabelWithSpinBox(QFrame):
         double=False,
         min_value=0.1,
         min_step=0.01,
+        tips: str | None = None,
     ):
         super().__init__(parent)
         self.vbox_layout = QVBoxLayout(self)
+        self.tips = tips
         self.text = label_text
         self.label = BaseLabel(label_text)
         self.box = BaseSpinBox(box_name, double=double, min_value=min_value, min_step=min_step)
@@ -258,8 +264,14 @@ class LabelWithSpinBox(QFrame):
         self.setMaximumHeight(100)
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
 
+        if tips:
+            self.setToolTip(tips)
+            self.installEventFilter(ToolTipFilter(self))
+
     def retranslateUi(self):
         self.label.label.setText(self.tr(self.text))
+        if self.tips:
+            self.setToolTip(self.tr(self.tips))
 
 
 class MirrorSpinBox(QFrame):
@@ -1113,13 +1125,14 @@ class AutoDailyView(FlyoutViewBase):
         cfg.set_value(self.config_name + "_task_exit", self.exit_setting)
         # 关闭弹出窗
         parent_card = self.__search_parent_class("DailySettingCard")
-        popup = getattr(parent_card, "_popup", None)
-        if popup is not None:
-            try:
-                popup.close()
-                parent_card._popup = None
-            except Exception as e:
-                log.warning(f"关闭定时任务设置弹窗失败: {e}")
+        if parent_card is not None and hasattr(parent_card, "_popup"):
+            popup = getattr(parent_card, "_popup", None)
+            if popup is not None:
+                try:
+                    popup.close()
+                    parent_card._popup = None
+                except Exception as e:
+                    log.warning(f"关闭弹出层设置时发生异常: {e}")
 
     def __search_parent_class(self, class_name="DailySettingCard"):
         current = self.parentWidget()

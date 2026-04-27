@@ -5,6 +5,7 @@
 .agent
 .idea
 .claude
+.env
 
 # 构建文件
 build

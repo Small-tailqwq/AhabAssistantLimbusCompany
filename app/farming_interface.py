@@ -774,21 +774,9 @@ class FarmingInterfaceLeft(QWidget):
         # 连接所有可能信号
         mediator.link_start.connect(self.my_stop_shortcut)
         mediator.kill_signal.connect(self.stop_AALC)
-        # finished_signal 由命令行/定时任务通过 QTimer 延迟触发，仅启动不停止
-        mediator.finished_signal.connect(self._on_command_start_requested)
+        # finished_signal 目前用于命令行/定时任务通过 QTimer 延迟触发开始/停止按钮逻辑
+        mediator.finished_signal.connect(self.start_and_stop_tasks)
         mediator.script_finished.connect(self.handle_script_finished)
-
-    def _on_command_start_requested(self):
-        """由 finished_signal 触发，仅在脚本未运行时启动"""
-        if self.my_script is not None and self.my_script.isRunning():
-            log.debug("命令行请求启动但脚本正在运行，忽略")
-            return
-        current_text = self.link_start_button.get_text()
-        if current_text == "Link Start!" and self.check_setting() is not False:
-            self._stop_in_progress = False
-            self.link_start_button.set_text("S t o p !")
-            self._disable_setting(self.parent())
-            self.create_and_start_script()
 
     def retranslateUi(self):
         self.set_windows.retranslateUi()

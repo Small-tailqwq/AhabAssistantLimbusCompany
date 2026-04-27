@@ -494,6 +494,9 @@ class my_script_task(QThread):
             disconnect_obs_capture()
 
         mediator.script_finished.emit()
+    """def stop(self):
+        self.running=False
+        self.finished_signal.emit()"""
 
     def _run(self):
         keep_awake_enabled = bool(cfg.get_value("experimental_keep_screen_awake", False))
