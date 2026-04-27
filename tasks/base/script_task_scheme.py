@@ -184,8 +184,9 @@ def Resonate_with_Ahab():
 
 
 def _batch_combat(process_fn, times, max_times):
-    """按 max_times 分批执行战斗，返回剩余次数（可能为 0）"""
-    if times <= 0:
+    """按 max_times 分批执行战斗，无返回值"""
+    if times <= 0 or max_times < 1:
+        return
         return
     if times > max_times:
         once = max_times
