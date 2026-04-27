@@ -223,7 +223,7 @@ def Daily_task_wrapper(get_reward=None):
         thread_times = cfg.set_thread_count
         if get_reward and get_reward == "thread":
             thread_times -= 1
-        if cfg.use_continuous_combat and cfg.use_continuous_combat_select > 0:
+        if cfg.config.use_continuous_combat and cfg.use_continuous_combat_select > 0:
             max_times = cfg.use_continuous_combat_select
             _batch_combat(onetime_EXP_process, exp_times, max_times)
             _batch_combat(onetime_thread_process, thread_times, max_times)
