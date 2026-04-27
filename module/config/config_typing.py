@@ -525,6 +525,9 @@ class ConfigModel(BaseModel):
     debug_thread_dungeon: bool = False
     """纽本调试：保存纽本流程截图到 logs/thread_dungeon_debug"""
 
+    debug_retry: bool = False
+    """重试调试：在尝试退出、重启镜牢时输出识别情况的日志断点"""
+
     experimental_keep_screen_awake: bool = False
     """运行期间阻止系统与显示器休眠，任务结束自动恢复"""
 

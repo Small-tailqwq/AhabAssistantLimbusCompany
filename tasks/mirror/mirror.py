@@ -46,6 +46,10 @@ def to_log_with_time(msg, elapsed_time):
 
 
 class Mirror:
+    @staticmethod
+    def _is_retry_debug_enabled():
+        return bool(cfg.get_value("debug_mode", False) and cfg.get_value("debug_retry", False))
+
     def __init__(self, team_setting: TeamSetting, team_num: int):
         self.logger = log
         self.team_order = team_num
@@ -1112,42 +1116,71 @@ class Mirror:
             if auto.get_restore_time() is not None:
                 start_time = max(start_time, auto.get_restore_time())
             if check_times(start_time):
+                if self._is_retry_debug_enabled():
+                    log.info("[重试调试] 寻路兜底循环超时，调用 back_init_menu()")
                 back_init_menu()
                 return False
             auto.mouse_to_blank()
             if auto.click_element("mirror/road_in_mir/enter_assets.png"):
+                if self._is_retry_debug_enabled():
+                    log.info("[重试调试] 匹配→进入节点，return True")
                 return True
             if auto.click_element("home/drive_assets.png") or auto.find_element("home/window_assets.png"):
+                if self._is_retry_debug_enabled():
+                    log.info("[重试调试] 匹配→主界面/驾驶盘，break")
                 sleep(0.5)
                 break
             if auto.click_element("mirror/road_in_mir/towindow&forfeit_confirm_assets.png"):
+                if self._is_retry_debug_enabled():
+                    log.info("[重试调试] 匹配→退回窗口(确认)，break")
                 break
             if auto.click_element("mirror/road_in_mir/to_window_assets.png", threshold=0.7):
+                if self._is_retry_debug_enabled():
+                    log.info("[重试调试] 匹配→退回窗口，continue")
                 continue
             if auto.click_element("mirror/road_in_mir/setting_assets.png"):
+                if self._is_retry_debug_enabled():
+                    log.info("[重试调试] 匹配→齿轮，continue")
                 sleep(1)
                 continue
             if retry() is False:
                 return False
 
     def re_start(self):
+        start_time = time.time()
+        loop = 0
         while True:
+            from tasks.base.retry import check_times
+
+            loop += 1
             # 自动截图
             if auto.take_screenshot() is None:
                 continue
+            if check_times(start_time):
+                if self._is_retry_debug_enabled():
+                    log.info("[重试调试] re_start 超时，调用 back_init_menu()")
+                back_init_menu()
+                return False
             if auto.click_element("mirror/road_in_mir/towindow&forfeit_confirm_assets.png"):
+                if self._is_retry_debug_enabled():
+                    log.info("[重试调试] 匹配→退回窗口(确认)，break 退出")
                 break
             if auto.click_element("mirror/road_in_mir/forfeit_assets.png"):
+                if self._is_retry_debug_enabled():
+                    log.info("[重试调试] 匹配→放弃，continue")
                 continue
             if auto.click_element("mirror/road_in_mir/setting_assets.png"):
+                if self._is_retry_debug_enabled() and loop % 30 == 1:
+                    log.info(f"[重试调试] re_start 第{loop}次循环, 匹配→齿轮(0.85), continue")
                 continue
             if auto.click_element("battle/give_up_assets.png"):
+                if self._is_retry_debug_enabled():
+                    log.info("[重试调试] 匹配→战斗中放弃，continue")
                 continue
             auto.key_press("esc")
             time.sleep(1)
             if retry() is False:
                 return False
-        # TODO耗时
         msg = f"满 身 疮 痍 ！ 重 开 ！此次战败耗时{time.time() - self.start_time}"
         log.info(msg)
         self.first_battle = True

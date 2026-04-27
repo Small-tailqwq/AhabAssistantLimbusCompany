@@ -8,6 +8,10 @@ from tasks.base.retry import retry
 from tasks.mirror.reward_card import get_reward_card
 
 
+def _is_retry_debug_enabled():
+    return bool(cfg.get_value("debug_mode", False) and cfg.get_value("debug_retry", False))
+
+
 @begin_and_finish_time_log(task_name="返回主界面")
 def back_init_menu():
     loop_count = 30
@@ -25,6 +29,9 @@ def back_init_menu():
             kill_game()
             restart_game()
             back_init_menu()
+
+        if _is_retry_debug_enabled():
+            log.info(f"[重试调试] 返回主界面 第{30 - loop_count}次循环, 模型={auto.model}")
 
         if cfg.simulator:
             if cfg.simulator_type == 0:
@@ -90,10 +97,16 @@ def back_init_menu():
             continue
 
         if auto.click_element("mirror/road_in_mir/towindow&forfeit_confirm_assets.png"):
+            if _is_retry_debug_enabled():
+                log.info("[重试调试] 匹配→退回窗口(确认)，continue")
             continue
         if auto.click_element("mirror/road_in_mir/to_window_assets.png", threshold=0.7):
+            if _is_retry_debug_enabled():
+                log.info("[重试调试] 匹配→退回窗口，continue")
             continue
         if auto.find_element("mirror/road_in_mir/legend_assets.png"):
+            if _is_retry_debug_enabled():
+                log.info("[重试调试] 匹配→legend图例，点击齿轮")
             auto.click_element("mirror/road_in_mir/setting_assets.png")
             continue
 

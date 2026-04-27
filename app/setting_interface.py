@@ -372,6 +372,16 @@ class SettingInterface(QWidget):
             "debug_thread_dungeon",
             parent=self.logs_group,
         )
+        self.debug_retry_card = SwitchSettingCard(
+            FIF.GLOBE,
+            QT_TRANSLATE_NOOP("SwitchSettingCard", "重试调试"),
+            QT_TRANSLATE_NOOP(
+                "SwitchSettingCard",
+                "在尝试退出、重启镜牢时输出识别情况的日志断点",
+            ),
+            "debug_retry",
+            parent=self.logs_group,
+        )
         self.open_logs_card = BasePrimaryPushSettingCard(
             QT_TRANSLATE_NOOP("BasePrimaryPushSettingCard", "日志"),
             FIF.FOLDER_ADD,
@@ -580,6 +590,7 @@ class SettingInterface(QWidget):
         self.logs_group.addSettingCard(self.debug_mode_card)
         self.logs_group.addSettingCard(self.debug_mirror_route_card)
         self.logs_group.addSettingCard(self.debug_thread_dungeon_card)
+        self.logs_group.addSettingCard(self.debug_retry_card)
         self.logs_group.addSettingCard(self.open_logs_card)
 
         self.about_group.addSettingCard(self.github_card)
@@ -713,17 +724,19 @@ class SettingInterface(QWidget):
         debug_enabled = bool(cfg.get_value("debug_mode", False))
         self.debug_mirror_route_card.setVisible(debug_enabled)
         self.debug_thread_dungeon_card.setVisible(debug_enabled)
+        self.debug_retry_card.setVisible(debug_enabled)
 
         self.logs_group.adjustSize()
         self.scroll_widget.adjustSize()
 
     def __onDebugModeChanged(self, is_checked: bool):
         if not is_checked:
-            for key in ["debug_mirror_route", "debug_thread_dungeon"]:
+            for key in ["debug_mirror_route", "debug_thread_dungeon", "debug_retry"]:
                 if cfg.get_value(key, False):
                     cfg.set_value(key, False)
             self.debug_mirror_route_card.setValue(False)
             self.debug_thread_dungeon_card.setValue(False)
+            self.debug_retry_card.setValue(False)
         self.__refreshDebugCardVisibility()
 
     def __refreshExperimentalCardContents(self):
