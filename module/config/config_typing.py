@@ -199,7 +199,7 @@ class TeamSetting(BaseModel):
 class ConfigModel(BaseModel):
     """配置模型"""
 
-    model_config = ConfigDict(extra="allow")
+    model_config = {"extra": "allow"}
 
     config_version: int = 1775826004
     """配置文件版本号（时间戳）"""
