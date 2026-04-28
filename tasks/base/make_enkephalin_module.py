@@ -8,7 +8,7 @@ from module.logger import log
 from utils.image_utils import ImageUtils
 
 
-def find_color_image_element(target, threshold=0.9):
+def find_color_image_element(target, threshold=0.85):
     use_1440_base = ImageUtils.should_use_low_res_match_optimization()
     template = ImageUtils.load_image(target, resize=not use_1440_base, gray=False)
     if template is None:
