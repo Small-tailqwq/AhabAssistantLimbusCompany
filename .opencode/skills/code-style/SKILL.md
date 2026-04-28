@@ -1,6 +1,14 @@
-# Skill: code-style
+---
+name: code-style
+description: 通过自动化工具分析代码风格，评估 LLM 可读性，并提供修复建议以提升代码质量和 LLM 理解效率
+license: AGPL-3.0
+compatibility: opencode
+metadata:
+  audience: maintainers
+  workflow: github
+---
 
-## 职责
+## 我的职责
 
 分析代码库的代码风格，评估 LLM 可读性，按 ROI 排序输出修复建议，并执行安全修复。
 
