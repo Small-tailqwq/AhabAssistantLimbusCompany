@@ -1,0 +1,235 @@
+{
+  "$schema": "https://opencode.ai/theme.json",
+  "defs": {
+    "abyss": "#080e14",
+    "deep": "#0d1620",
+    "midnight": "#111d2b",
+    "ocean": "#162636",
+    "current": "#1b3045",
+    "spray": "#2a4560",
+    "foam": "#3d5e7a",
+    "mist": "#5a7894",
+    "hull": "#7d96ae",
+    "sail": "#a3b8cc",
+    "crest": "#c8d6e5",
+    "whitecap": "#e0e8f0",
+    "harpoon": "#c0392b",
+    "whale": "#e74c3c",
+    "blood": "#8b1a1a",
+    "compass": "#3498db",
+    "starboard": "#5dade2",
+    "lantern": "#f4d03f",
+    "amber": "#e6a817",
+    "kelp": "#27ae60",
+    "seafoam": "#2ecc71",
+    "coral": "#e67e22",
+    "barnacle": "#7d5a9a",
+    "pearl": "#bb8fce",
+    "diffGreenDark": "#0d3320",
+    "diffRedDark": "#331010",
+    "diffGreenLight": "#d5f5e3",
+    "diffRedLight": "#f5d5d5"
+  },
+  "theme": {
+    "primary": {
+      "dark": "compass",
+      "light": "compass"
+    },
+    "secondary": {
+      "dark": "foam",
+      "light": "foam"
+    },
+    "accent": {
+      "dark": "harpoon",
+      "light": "harpoon"
+    },
+    "error": {
+      "dark": "whale",
+      "light": "harpoon"
+    },
+    "warning": {
+      "dark": "amber",
+      "light": "coral"
+    },
+    "success": {
+      "dark": "seafoam",
+      "light": "kelp"
+    },
+    "info": {
+      "dark": "starboard",
+      "light": "compass"
+    },
+    "text": {
+      "dark": "crest",
+      "light": "abyss"
+    },
+    "textMuted": {
+      "dark": "mist",
+      "light": "hull"
+    },
+    "background": {
+      "dark": "abyss",
+      "light": "whitecap"
+    },
+    "backgroundPanel": {
+      "dark": "deep",
+      "light": "sail"
+    },
+    "backgroundElement": {
+      "dark": "midnight",
+      "light": "crest"
+    },
+    "border": {
+      "dark": "ocean",
+      "light": "mist"
+    },
+    "borderActive": {
+      "dark": "current",
+      "light": "foam"
+    },
+    "borderSubtle": {
+      "dark": "ocean",
+      "light": "hull"
+    },
+    "diffAdded": {
+      "dark": "seafoam",
+      "light": "kelp"
+    },
+    "diffRemoved": {
+      "dark": "whale",
+      "light": "harpoon"
+    },
+    "diffContext": {
+      "dark": "mist",
+      "light": "mist"
+    },
+    "diffHunkHeader": {
+      "dark": "spray",
+      "light": "spray"
+    },
+    "diffHighlightAdded": {
+      "dark": "seafoam",
+      "light": "kelp"
+    },
+    "diffHighlightRemoved": {
+      "dark": "whale",
+      "light": "harpoon"
+    },
+    "diffAddedBg": {
+      "dark": "diffGreenDark",
+      "light": "diffGreenLight"
+    },
+    "diffRemovedBg": {
+      "dark": "diffRedDark",
+      "light": "diffRedLight"
+    },
+    "diffContextBg": {
+      "dark": "midnight",
+      "light": "sail"
+    },
+    "diffLineNumber": {
+      "dark": "spray",
+      "light": "hull"
+    },
+    "diffAddedLineNumberBg": {
+      "dark": "diffGreenDark",
+      "light": "diffGreenLight"
+    },
+    "diffRemovedLineNumberBg": {
+      "dark": "diffRedDark",
+      "light": "diffRedLight"
+    },
+    "markdownText": {
+      "dark": "crest",
+      "light": "abyss"
+    },
+    "markdownHeading": {
+      "dark": "compass",
+      "light": "compass"
+    },
+    "markdownLink": {
+      "dark": "starboard",
+      "light": "compass"
+    },
+    "markdownLinkText": {
+      "dark": "starboard",
+      "light": "foam"
+    },
+    "markdownCode": {
+      "dark": "seafoam",
+      "light": "kelp"
+    },
+    "markdownBlockQuote": {
+      "dark": "mist",
+      "light": "mist"
+    },
+    "markdownEmph": {
+      "dark": "coral",
+      "light": "coral"
+    },
+    "markdownStrong": {
+      "dark": "lantern",
+      "light": "amber"
+    },
+    "markdownHorizontalRule": {
+      "dark": "ocean",
+      "light": "hull"
+    },
+    "markdownListItem": {
+      "dark": "compass",
+      "light": "compass"
+    },
+    "markdownListEnumeration": {
+      "dark": "foam",
+      "light": "foam"
+    },
+    "markdownImage": {
+      "dark": "compass",
+      "light": "compass"
+    },
+    "markdownImageText": {
+      "dark": "foam",
+      "light": "foam"
+    },
+    "markdownCodeBlock": {
+      "dark": "crest",
+      "light": "abyss"
+    },
+    "syntaxComment": {
+      "dark": "mist",
+      "light": "mist"
+    },
+    "syntaxKeyword": {
+      "dark": "foam",
+      "light": "foam"
+    },
+    "syntaxFunction": {
+      "dark": "compass",
+      "light": "compass"
+    },
+    "syntaxVariable": {
+      "dark": "crest",
+      "light": "abyss"
+    },
+    "syntaxString": {
+      "dark": "seafoam",
+      "light": "kelp"
+    },
+    "syntaxNumber": {
+      "dark": "pearl",
+      "light": "barnacle"
+    },
+    "syntaxType": {
+      "dark": "starboard",
+      "light": "compass"
+    },
+    "syntaxOperator": {
+      "dark": "foam",
+      "light": "foam"
+    },
+    "syntaxPunctuation": {
+      "dark": "sail",
+      "light": "mist"
+    }
+  }
+}

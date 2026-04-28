@@ -1,0 +1,238 @@
+{
+  "$schema": "https://opencode.ai/theme.json",
+  "defs": {
+    "cage": "#0d0d0d",
+    "perch": "#1a1a1a",
+    "nest": "#262626",
+    "feather": "#ffd700",
+    "gold": "#f0c000",
+    "wing": "#e6a800",
+    "beak": "#ff8c00",
+    "eye": "#1a1a2e",
+    "song": "#ffe066",
+    "dawn": "#fff3b0",
+    "seed": "#cc8800",
+    "millet": "#b37400",
+    "leaf": "#4caf50",
+    "spring": "#81c784",
+    "sky": "#42a5f5",
+    "cloud": "#90caf9",
+    "rose": "#e57373",
+    "blush": "#ef9a9a",
+    "twig": "#5d4037",
+    "bark": "#8d6e63",
+    "plum": "#7e57c2",
+    "lavender": "#b39ddb",
+    "cageBorder": "#4a4020",
+    "cageBorderActive": "#8a7030",
+    "cageBorderSubtle": "#3a3018",
+    "diffGreenDark": "#0a2a0a",
+    "diffRedDark": "#2a0a0a",
+    "diffGreenLight": "#c8e6c9",
+    "diffRedLight": "#ffcdd2",
+    "quiet": "#706d5e",
+    "textWarm": "#e0dcc8"
+  },
+  "theme": {
+    "primary": {
+      "dark": "gold",
+      "light": "seed"
+    },
+    "secondary": {
+      "dark": "wing",
+      "light": "millet"
+    },
+    "accent": {
+      "dark": "beak",
+      "light": "beak"
+    },
+    "error": {
+      "dark": "rose",
+      "light": "rose"
+    },
+    "warning": {
+      "dark": "beak",
+      "light": "seed"
+    },
+    "success": {
+      "dark": "spring",
+      "light": "leaf"
+    },
+    "info": {
+      "dark": "sky",
+      "light": "sky"
+    },
+    "text": {
+      "dark": "textWarm",
+      "light": "cage"
+    },
+    "textMuted": {
+      "dark": "quiet",
+      "light": "bark"
+    },
+    "background": {
+      "dark": "cage",
+      "light": "dawn"
+    },
+    "backgroundPanel": {
+      "dark": "perch",
+      "light": "song"
+    },
+    "backgroundElement": {
+      "dark": "nest",
+      "light": "feather"
+    },
+    "border": {
+      "dark": "cageBorder",
+      "light": "wing"
+    },
+    "borderActive": {
+      "dark": "cageBorderActive",
+      "light": "seed"
+    },
+    "borderSubtle": {
+      "dark": "cageBorderSubtle",
+      "light": "feather"
+    },
+    "diffAdded": {
+      "dark": "spring",
+      "light": "leaf"
+    },
+    "diffRemoved": {
+      "dark": "rose",
+      "light": "rose"
+    },
+    "diffContext": {
+      "dark": "quiet",
+      "light": "bark"
+    },
+    "diffHunkHeader": {
+      "dark": "cageBorderActive",
+      "light": "wing"
+    },
+    "diffHighlightAdded": {
+      "dark": "spring",
+      "light": "leaf"
+    },
+    "diffHighlightRemoved": {
+      "dark": "rose",
+      "light": "rose"
+    },
+    "diffAddedBg": {
+      "dark": "diffGreenDark",
+      "light": "diffGreenLight"
+    },
+    "diffRemovedBg": {
+      "dark": "diffRedDark",
+      "light": "diffRedLight"
+    },
+    "diffContextBg": {
+      "dark": "nest",
+      "light": "song"
+    },
+    "diffLineNumber": {
+      "dark": "cageBorderActive",
+      "light": "wing"
+    },
+    "diffAddedLineNumberBg": {
+      "dark": "diffGreenDark",
+      "light": "diffGreenLight"
+    },
+    "diffRemovedLineNumberBg": {
+      "dark": "diffRedDark",
+      "light": "diffRedLight"
+    },
+    "markdownText": {
+      "dark": "textWarm",
+      "light": "cage"
+    },
+    "markdownHeading": {
+      "dark": "gold",
+      "light": "seed"
+    },
+    "markdownLink": {
+      "dark": "sky",
+      "light": "sky"
+    },
+    "markdownLinkText": {
+      "dark": "feather",
+      "light": "wing"
+    },
+    "markdownCode": {
+      "dark": "spring",
+      "light": "leaf"
+    },
+    "markdownBlockQuote": {
+      "dark": "quiet",
+      "light": "bark"
+    },
+    "markdownEmph": {
+      "dark": "rose",
+      "light": "rose"
+    },
+    "markdownStrong": {
+      "dark": "song",
+      "light": "seed"
+    },
+    "markdownHorizontalRule": {
+      "dark": "cageBorder",
+      "light": "wing"
+    },
+    "markdownListItem": {
+      "dark": "gold",
+      "light": "seed"
+    },
+    "markdownListEnumeration": {
+      "dark": "feather",
+      "light": "wing"
+    },
+    "markdownImage": {
+      "dark": "gold",
+      "light": "seed"
+    },
+    "markdownImageText": {
+      "dark": "feather",
+      "light": "wing"
+    },
+    "markdownCodeBlock": {
+      "dark": "textWarm",
+      "light": "cage"
+    },
+    "syntaxComment": {
+      "dark": "quiet",
+      "light": "bark"
+    },
+    "syntaxKeyword": {
+      "dark": "wing",
+      "light": "millet"
+    },
+    "syntaxFunction": {
+      "dark": "feather",
+      "light": "seed"
+    },
+    "syntaxVariable": {
+      "dark": "textWarm",
+      "light": "cage"
+    },
+    "syntaxString": {
+      "dark": "spring",
+      "light": "leaf"
+    },
+    "syntaxNumber": {
+      "dark": "lavender",
+      "light": "plum"
+    },
+    "syntaxType": {
+      "dark": "cloud",
+      "light": "sky"
+    },
+    "syntaxOperator": {
+      "dark": "wing",
+      "light": "millet"
+    },
+    "syntaxPunctuation": {
+      "dark": "bark",
+      "light": "bark"
+    }
+  }
+}
