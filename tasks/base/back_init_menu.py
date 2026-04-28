@@ -100,7 +100,7 @@ def back_init_menu():
             if _is_retry_debug_enabled():
                 log.info("[重试调试] 匹配→退回窗口(确认)，continue")
             continue
-        if auto.click_element("mirror/road_in_mir/to_window_assets.png", threshold=0.7):
+        if auto.click_element("mirror/road_in_mir/to_window_assets.png", threshold=0.75):
             if _is_retry_debug_enabled():
                 log.info("[重试调试] 匹配→退回窗口，continue")
             continue

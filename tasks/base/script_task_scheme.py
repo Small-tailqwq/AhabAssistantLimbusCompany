@@ -4,6 +4,7 @@ from datetime import datetime
 from sys import exc_info
 from time import sleep, time
 from traceback import format_exception
+
 from playsound3 import playsound
 from PySide6.QtCore import QT_TRANSLATE_NOOP, QThread
 
@@ -62,7 +63,7 @@ def onetime_EXP_process(combat_count: int = 1):
     select_battle_team(team)
     if battle.to_battle() is False:
         return False
-    battle.fight()
+    battle.fight(combat_count=combat_count)
     back_init_menu()
     make_enkephalin_module()
 
@@ -362,7 +363,7 @@ def script_task() -> None | int:
 
     path_manager.initialize_paths(cfg.language_in_game)
     auto.clear_img_cache()
-    log.info(f"初始化图片路径: {path_manager.pic_path}")
+    log.debug(f"初始化图片路径: {path_manager.pic_path}")
 
     if getattr(cfg, "lab_screenshot_obs", False):
         obs = get_obs_capture()

@@ -155,6 +155,7 @@ class Battle:
         defense_on_turn1=False,
         choice_event_handling=True,
         deal_with_spills_in_battle=True,
+        combat_count=1,
     ):
         chance = self.INIT_CHANCE
         waiting = self._update_wait_time()
@@ -181,7 +182,7 @@ class Battle:
                 continue
             if auto.get_restore_time() is not None:
                 start_time = max(start_time, auto.get_restore_time())
-            if infinite_battle is False and check_times(start_time, timeout=900, logs=False):
+            if infinite_battle is False and check_times(start_time, timeout=900 * combat_count, logs=False):
                 from tasks.base.back_init_menu import back_init_menu
 
                 back_init_menu()
@@ -403,10 +404,7 @@ class Battle:
                     else:
                         event_chance = -1
 
-            if (
-                choice_event_handling
-                and auto.find_element("event/perform_the_check_feature_assets.png")
-            ):
+            if choice_event_handling and auto.find_element("event/perform_the_check_feature_assets.png"):
                 event_handling.decision_event_handling()
             if choice_event_handling:
                 if auto.click_element("event/continue_assets.png"):

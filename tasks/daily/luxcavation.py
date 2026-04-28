@@ -55,26 +55,30 @@ def EXP_luxcavation(combat_count: int = 1):
                 scale = cfg.set_win_size / 1440
                 log.debug(f"经验本检测到 {len(level)} 个关卡入口: {level}")
                 for lv_idx, lv in enumerate(level):
-                    success = False
+                    if combat_count > 1:
+                        auto.mouse_click(lv[0] + 300 * scale, lv[1] - 450 * scale)
+                        sleep(0.1)
+                        if slide_bar := auto.find_element("luxcavation/continuous_combat.png", take_screenshot=True):
+                            auto.mouse_drag(slide_bar[0], slide_bar[1], dx=30 * scale * (combat_count - 1))
+
+                    select_team = False
                     for retry in range(3):
-                        if combat_count > 1 and retry == 0:
-                            auto.mouse_click(lv[0] + 300 * scale, lv[1] - 450 * scale)
-                            sleep(0.1)
-                            if slide_bar := auto.find_element("luxcavation/continuous_combat.png", take_screenshot=True):
-                                auto.mouse_drag(slide_bar[0], slide_bar[1], dx=30 * scale * (combat_count - 1))
                         log.debug(f"经验本尝试第 {lv_idx + 1} 关 (x={lv[0]}, y={lv[1]}), 第 {retry + 1}/3 次")
                         auto.mouse_click(lv[0], lv[1])
                         sleep(1)
                         auto.mouse_to_blank()
-                        if auto.find_element("battle/teams_assets.png", take_screenshot=True) or auto.find_element(
-                            "home/first_prompt_assets.png",
-                            model="clam",
-                            take_screenshot=True,
-                        ):
-                            log.debug(f"经验本第 {lv_idx + 1} 关点击成功，已进入编队界面")
-                            success = True
+                        for _ in range(3):
+                            if auto.find_element("battle/teams_assets.png", take_screenshot=True) or auto.find_element(
+                                "home/first_prompt_assets.png",
+                                model="clam",
+                                take_screenshot=True,
+                            ):
+                                log.debug(f"经验本第 {lv_idx + 1} 关点击成功，已进入编队界面")
+                                select_team = True
+                                break
+                        if select_team:
                             break
-                    if success:
+                    if select_team:
                         break
                     log.debug(f"经验本第 {lv_idx + 1} 关 3 次尝试均未进入编队，降级尝试下一关")
         if auto.click_element("home/luxcavation_assets.png"):
@@ -157,17 +161,26 @@ def thread_luxcavation(combat_count: int = 1):
                             auto.mouse_drag(slide_bar[0], slide_bar[1], dx=32 * scale * (combat_count - 1))
                             log.debug(f"纽本连续战斗滑块已拖至 {combat_count} 次")
                     for lv_idx, lv in enumerate(level):
-                        success = False
+                        select_team = False
                         for retry in range(3):
                             log.debug(f"纽本尝试第 {lv_idx + 1} 关 (x={lv[0]}, y={lv[1]}), 第 {retry + 1}/3 次")
                             auto.mouse_click(lv[0], lv[1])
                             sleep(1)
                             auto.mouse_to_blank()
-                            if auto.find_element("battle/teams_assets.png", take_screenshot=True):
-                                log.debug(f"纽本第 {lv_idx + 1} 关点击成功，已进入编队界面")
-                                success = True
+                            for _ in range(3):
+                                if auto.find_element(
+                                    "battle/teams_assets.png", take_screenshot=True
+                                ) or auto.find_element(
+                                    "home/first_prompt_assets.png",
+                                    model="clam",
+                                    take_screenshot=True,
+                                ):
+                                    log.debug(f"纽本第 {lv_idx + 1} 关点击成功，已进入编队界面")
+                                    select_team = True
+                                    break
+                            if select_team:
                                 break
-                        if success:
+                        if select_team:
                             break
                         log.debug(f"纽本第 {lv_idx + 1} 关 3 次尝试均未进入编队，降级尝试下一关")
                 else:
