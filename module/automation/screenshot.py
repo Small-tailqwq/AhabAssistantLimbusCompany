@@ -246,7 +246,7 @@ class ScreenShot:
             try:
                 _, pid = win32process.GetWindowThreadProcessId(screen.handle.hwnd)
                 os.system(f"taskkill /F /PID {pid}")
-            except:
+            except Exception:
                 pass
             from tasks.base.script_task_scheme import init_game
 

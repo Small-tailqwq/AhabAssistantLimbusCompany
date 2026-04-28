@@ -336,9 +336,9 @@ def deal_with_spills():
                             ocr_result = "".join(ocr_result)
                         if int(ocr_result) > max:
                             auto.mouse_click(selected[0], selected[1])
-                    except:
+                    except Exception:
                         continue
-    except:
+    except Exception:
         pass
 
 

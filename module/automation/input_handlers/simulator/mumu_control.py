@@ -259,7 +259,7 @@ class MumuControl(AbstractInput):
                 # bad port number '598265' in '127.0.0.1:598265'
                 elif "bad port" in msg:
                     log.error(f"连接失败，端口号{port}不正确，可能是拼写错误或不规范")
-            except:
+            except Exception:
                 continue
         self.check_stop_requested()
         self.close_simulator()
@@ -279,7 +279,7 @@ class MumuControl(AbstractInput):
                 # bad port number '598265' in '127.0.0.1:598265'
                 elif "bad port" in msg:
                     log.error(f"断开连接失败，端口号{port}不正确，可能是拼写错误或不规范")
-        except:
+        except Exception:
             pass
 
     def start_game(self):
@@ -346,14 +346,14 @@ class MumuControl(AbstractInput):
                         )
                         if key:
                             break
-                    except:
+                    except Exception:
                         continue
                 if not key:
                     return None
                 self.install_path = os.path.dirname(winreg.QueryValueEx(key, "DisplayIcon")[0]).strip('"')
                 mumu_version, _ = winreg.QueryValueEx(key, "DisplayVersion")
                 winreg.CloseKey(key)
-            except:
+            except Exception:
                 log.error(
                     "读取注册表失败，无法获取MuMu安装路径，也可能是未安装MuMu模拟器，或使用了某种特供版本",
                     exc_info=True,
@@ -405,9 +405,9 @@ class MumuControl(AbstractInput):
                 adb_info = json.loads(proc.stdout)
                 try:
                     return f"{adb_info['adb_host']}:{adb_info['adb_port']}"
-                except:
+                except Exception:
                     return f"127.0.0.1:{int(self.multi_instance_number) * 32 + 16384}"
-        except:
+        except Exception:
             self.start()
             self.get_mumu_adb_port(self.multi_instance_number)
 
@@ -444,7 +444,7 @@ class MumuControl(AbstractInput):
             self.load_dll()
             log.debug(f"MUMU模拟器编号{self.multi_instance_number}启动完成")
             self.connect()
-        except:
+        except Exception:
             self.mumu_control_api_backend()
             self.start()
 
@@ -469,7 +469,7 @@ class MumuControl(AbstractInput):
             ]
             subprocess.run(command)
             log.debug(f"MUMU模拟器编号{self.multi_instance_number}关闭完成")
-        except:
+        except Exception:
             self.mumu_control_api_backend()
             self.stop()
 
@@ -484,7 +484,7 @@ class MumuControl(AbstractInput):
                 return os.path.join(os.path.dirname(self.install_path), "nx_device", "12.0", "shell")
             else:
                 return self.install_path
-        except:
+        except Exception:
             self.mumu_control_api_backend()
             self.get_device_path()
 
@@ -506,7 +506,7 @@ class MumuControl(AbstractInput):
                 )
             else:
                 return os.path.join(self.install_path, "sdk", "external_renderer_ipc.dll")
-        except:
+        except Exception:
             self.mumu_control_api_backend()
             self.get_nemu_client_path()
 
@@ -560,7 +560,7 @@ class MumuControl(AbstractInput):
                 capture_output=True,
                 creationflags=no_window_flag,
             )
-        except:
+        except Exception:
             self.mumu_control_api_backend()
             self.disable_app_keptlive()
 
@@ -575,7 +575,7 @@ class MumuControl(AbstractInput):
                 capture_output=True,
                 creationflags=no_window_flag,
             )
-        except:
+        except Exception:
             self.mumu_control_api_backend()
             self.enable_app_keptlive()
 
@@ -593,7 +593,7 @@ class MumuControl(AbstractInput):
         info = json.loads(proc.stdout)
         try:
             return info["player_state"]
-        except:
+        except Exception:
             return "not_launched"
 
     def load_dll(self):

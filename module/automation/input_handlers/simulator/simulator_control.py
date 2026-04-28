@@ -131,7 +131,7 @@ class SimulatorControl(AbstractInput):
                 # bad port number '598265' in '127.0.0.1:598265'
                 elif "bad port" in msg:
                     log.error(f"断开连接失败，端口号{self.simulator_port}不正确，可能是拼写错误或不规范")
-        except:
+        except Exception:
             pass
 
     def get_simulator(self):

@@ -260,7 +260,7 @@ class UpdateThread(QThread):
                 }
                 if self.code in cdk_error_messages:
                     self.error_msg = cdk_error_messages[self.code]
-            except:
+            except Exception:
                 self.error_msg = "Mirror酱API请求失败"
             self.updateSignal.emit(UpdateStatus.FAILURE)
             return None
@@ -355,7 +355,7 @@ def is_valid_url(url):
         result = urlparse(url)
         # 检查URL是否包含必要的组成部分
         return all([result.scheme, result.netloc])
-    except:
+    except Exception:
         # 如果解析过程中出现异常，说明URL无效
         return False
 

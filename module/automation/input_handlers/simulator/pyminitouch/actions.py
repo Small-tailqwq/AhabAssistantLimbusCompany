@@ -142,7 +142,7 @@ class MNTDevice(object):
 
             adbutils.adb.kill_server()
             self.start()
-        except:
+        except Exception:
             self.start()
         # real connection
         self.connection = MNTConnection(self.server.port)

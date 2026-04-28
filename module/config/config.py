@@ -247,11 +247,14 @@ class Config(metaclass=SingletonMeta):
     def get_value(self, key: str, default: Any = None, *, config_obj: Optional[BaseModel] = None) -> Any:
         """获取配置项的值, 如果是可变对象，则返回其指针"""
         if config_obj is not None:
-            value = getattr(config_obj, key, default)
+            try:
+                value = getattr(config_obj, key, default)
+            except Exception:
+                value = default
         else:
             try:
                 value = getattr(self.config, key, default)
-            except:
+            except Exception:
                 value = default
         return value
 

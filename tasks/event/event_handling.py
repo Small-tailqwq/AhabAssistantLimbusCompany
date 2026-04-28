@@ -47,16 +47,16 @@ class EventHandling:
             ocr_result = extract_levels(ocr_data)
             try:
                 order = ocr_result.index("very high")
-            except:
+            except ValueError:
                 try:
                     order = ocr_result.index("high")
-                except:
+                except ValueError:
                     try:
                         order = ocr_result.index("normal")
-                    except:
+                    except ValueError:
                         try:
                             order = ocr_result.index("low")
-                        except:
+                        except ValueError:
                             order = ocr_result.index("very low")
             scale = cfg.set_win_size / 1440
             first_sinner = [150 * scale, 1300 * scale]
