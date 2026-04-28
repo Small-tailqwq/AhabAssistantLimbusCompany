@@ -4,6 +4,7 @@ from typing import Callable
 
 import pyperclip
 from PySide6.QtCore import (
+    QAbstractAnimation,
     QEasingCurve,
     QObject,
     QPropertyAnimation,
@@ -708,7 +709,17 @@ class SinnerSelect(QFrame):
         banner_x = int((self.width() - banner_width) / 2)  # Center the banner
         banner_y = int(self.height() * 0.50)
         self.banner_label.setGeometry(banner_x, banner_y, banner_width, banner_height)
+        self.raw_geom = None
+        self._end_geom = None
         super().resizeEvent(event)
+
+    def moveEvent(self, event):
+        if self.ani.state() == QAbstractAnimation.State.Running:
+            super().moveEvent(event)
+            return
+        self.raw_geom = None
+        self._end_geom = None
+        super().moveEvent(event)
 
     def enterEvent(self, event):
         """
@@ -732,7 +743,8 @@ class SinnerSelect(QFrame):
         super().leaveEvent(event)
         self.ani.stop()
         self.ani.setStartValue(self.geometry())
-        self.ani.setEndValue(self.raw_geom)
+        target = self.raw_geom if self.raw_geom is not None else self.geometry()
+        self.ani.setEndValue(target)
         self.ani.start()
 
 
@@ -1042,14 +1054,17 @@ class AutoDailyView(FlyoutViewBase):
             "autodaily_hibernate",
             "autodaily_shutdown",
             "autodaily_lock",
+            "autodaily_exit_emulator",
         ]
         self.box_exit_game = BaseCheckBox("autodaily_exit_game", None, QT_TRANSLATE_NOOP("BaseCheckBox", "退出游戏"))
+        self.box_exit_emulator = BaseCheckBox("autodaily_exit_emulator", None, QT_TRANSLATE_NOOP("BaseCheckBox", "退出模拟器"))
         self.box_exit_aalc = BaseCheckBox("autodaily_exit_aalc", None, QT_TRANSLATE_NOOP("BaseCheckBox", "退出AALC"))
         self.box_sleep = BaseCheckBox("autodaily_sleep", None, QT_TRANSLATE_NOOP("BaseCheckBox", "睡眠"))
         self.box_hibernate = BaseCheckBox("autodaily_hibernate", None, QT_TRANSLATE_NOOP("BaseCheckBox", "休眠"))
         self.box_shutdown = BaseCheckBox("autodaily_shutdown", None, QT_TRANSLATE_NOOP("BaseCheckBox", "关机"))
         self.box_lock = BaseCheckBox("autodaily_lock", None, QT_TRANSLATE_NOOP("BaseCheckBox", "锁屏"))
         self.line_2.addWidget(self.box_exit_game)
+        self.line_2.addWidget(self.box_exit_emulator)
         self.line_2.addWidget(self.box_exit_aalc)
         self.line_2.addWidget(self.box_sleep)
         self.line_2.addWidget(self.box_hibernate)
@@ -1087,8 +1102,11 @@ class AutoDailyView(FlyoutViewBase):
             self.config_name = self.__search_parent_class().config_name
         self.setting = cfg.get_value(self.config_name + "_task")
         self.exit_setting = cfg.get_value(self.config_name + "_task_exit")
-        if len(self.exit_setting) < 6:
-            self.exit_setting = list(self.exit_setting) + [False] * (6 - len(self.exit_setting))
+        exit_old_len = len(self.exit_setting)
+        if exit_old_len < 7:
+            self.exit_setting = list(self.exit_setting) + [False] * (7 - exit_old_len)
+            if exit_old_len > 0 and self.exit_setting[0]:
+                self.exit_setting[6] = True
 
         task = [
             self.box_daily,
@@ -1105,6 +1123,7 @@ class AutoDailyView(FlyoutViewBase):
             self.box_hibernate,
             self.box_shutdown,
             self.box_lock,
+            self.box_exit_emulator,
         ]
         for i in range(len(exit_task)):
             exit_task[i].set_checked(self.exit_setting[i])
@@ -1127,8 +1146,8 @@ class AutoDailyView(FlyoutViewBase):
             self.exit_setting[index] = not self.exit_setting[index]
 
     def __save(self):
-        if len(self.exit_setting) < 6:
-            self.exit_setting = list(self.exit_setting) + [False] * (6 - len(self.exit_setting))
+        if len(self.exit_setting) < 7:
+            self.exit_setting = list(self.exit_setting) + [False] * (7 - len(self.exit_setting))
         cfg.set_value(self.config_name + "_task", self.setting)
         cfg.set_value(self.config_name + "_task_exit", self.exit_setting)
         # 关闭弹出窗
@@ -1160,6 +1179,7 @@ class AutoDailyView(FlyoutViewBase):
         self.box_buy_enkephalin.retranslateUi()
         self.box_mirror.retranslateUi()
         self.box_exit_game.retranslateUi()
+        self.box_exit_emulator.retranslateUi()
         self.box_exit_aalc.retranslateUi()
         self.box_sleep.retranslateUi()
         self.box_hibernate.retranslateUi()
