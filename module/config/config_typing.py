@@ -199,6 +199,7 @@ class TeamSetting(BaseModel):
 class ConfigModel(BaseModel):
     """配置模型"""
 
+    # 解决金丝雀新增的字段导致的兼容性问题，允许出现未定义的字段
     model_config = {"extra": "allow"}
 
     config_version: int = 1775826004
