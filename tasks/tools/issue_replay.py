@@ -1,6 +1,7 @@
 import os
 
 from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QBrush, QColor, QIcon
 from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
@@ -12,6 +13,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QMessageBox,
     QPushButton,
+    QSplitter,
     QTableWidget,
     QTableWidgetItem,
     QTextEdit,
@@ -23,10 +25,86 @@ from app import mediator
 from module.config import cfg
 from module.issue_manager import (
     IssueManager,
+    _format_time,
     find_config_snapshots,
     find_metadata,
 )
 from module.logger import log
+
+
+class _MarkdownEditSidecar(QWidget):
+    """Markdown 编辑侧窗：左源码右预览，类似 Typora 的编辑体验。"""
+
+    def __init__(self, issue_id: str, initial_text: str, on_save, parent):
+        super().__init__(parent, Qt.WindowType.Window)
+        self._issue_id = issue_id
+        self._on_save = on_save
+        self._parent_window = parent
+        self.setWindowTitle(f"编辑批注 — issue{issue_id}")
+        self.setWindowIcon(QIcon("./assets/logo/canary.ico"))
+        self.resize(760, 520)
+
+        splitter = QSplitter(Qt.Orientation.Horizontal, self)
+
+        left_widget = QWidget()
+        left_layout = QVBoxLayout(left_widget)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.addWidget(QLabel("Markdown 源码"))
+        self._edit = QTextEdit()
+        self._edit.setPlainText(initial_text)
+        self._edit.textChanged.connect(self._on_text_changed)
+        left_layout.addWidget(self._edit)
+        splitter.addWidget(left_widget)
+
+        right_widget = QWidget()
+        right_layout = QVBoxLayout(right_widget)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.addWidget(QLabel("预览"))
+        self._preview = QTextEdit()
+        self._preview.setReadOnly(True)
+        right_layout.addWidget(self._preview)
+        splitter.addWidget(right_widget)
+
+        splitter.setSizes([380, 380])
+
+        bottom_row = QHBoxLayout()
+        bottom_row.addStretch()
+        btn_save = QPushButton("保存 (Ctrl+S)")
+        btn_save.clicked.connect(self._do_save)
+        bottom_row.addWidget(btn_save)
+
+        main_layout = QVBoxLayout(self)
+        main_layout.addWidget(splitter)
+        main_layout.addLayout(bottom_row)
+
+        self._on_text_changed()
+        self._position_next_to_parent()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._position_next_to_parent()
+
+    def _position_next_to_parent(self):
+        if self._parent_window and self._parent_window.isVisible():
+            p_geo = self._parent_window.geometry()
+            self.move(p_geo.right() + 8, p_geo.top())
+            if self.height() > p_geo.height():
+                self.resize(self.width(), p_geo.height())
+
+    def _on_text_changed(self):
+        text = self._edit.toPlainText()
+        try:
+            from markdown_it import MarkdownIt
+
+            md = MarkdownIt()
+            html = md.render(text)
+        except ImportError:
+            html = f"<pre>{text}</pre>"
+        self._preview.setHtml(html)
+
+    def _do_save(self):
+        self._on_save(self._issue_id, self._edit.toPlainText())
+        self.close()
 
 
 class IssueReplay(QWidget):
@@ -35,7 +113,8 @@ class IssueReplay(QWidget):
         self.setAcceptDrops(False)
         self.setAttribute(Qt.WA_DeleteOnClose, True)
         self.setWindowTitle("日志复现工具")
-        self.setGeometry(100, 100, 780, 600)
+        self.setWindowIcon(QIcon("./assets/logo/canary.ico"))
+        self.resize(900, 640)
 
         self._manager = IssueManager()
         self._preview_snapshots: list[dict] = []
@@ -185,28 +264,45 @@ class IssueReplay(QWidget):
         group = QGroupBox("问题列表")
         layout = QVBoxLayout(group)
 
-        self.issue_table = QTableWidget(0, 5)
+        self.issue_table = QTableWidget(0, 6)
         self.issue_table.setHorizontalHeaderLabels(
-            ["ID", "名称", "版本", "导入时间", "修改时间"]
+            ["#", "ID", "名称", "版本", "导入时间", "修改时间"]
         )
         self.issue_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.issue_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.issue_table.setAlternatingRowColors(True)
         self.issue_table.horizontalHeader().setStretchLastSection(True)
         self.issue_table.horizontalHeader().setSectionResizeMode(
             QHeaderView.ResizeMode.Interactive
         )
-        self.issue_table.setMinimumHeight(150)
+        self.issue_table.verticalHeader().setVisible(False)
+        self.issue_table.setColumnWidth(0, 36)
+        self.issue_table.setColumnWidth(1, 40)
+        self.issue_table.setColumnWidth(2, 180)
+        self.issue_table.setColumnWidth(3, 64)
+        self.issue_table.setColumnWidth(4, 128)
+        self.issue_table.setMinimumHeight(180)
         self.issue_table.itemSelectionChanged.connect(self._on_issue_selected)
         self.issue_table.itemDoubleClicked.connect(self._on_issue_double_clicked)
         self.issue_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.issue_table.customContextMenuRequested.connect(self._on_issue_context_menu)
         layout.addWidget(self.issue_table)
 
+        self.issue_notes_label = QLabel("开发者批注:")
+        self.issue_notes_label.hide()
+        layout.addWidget(self.issue_notes_label)
+
         self.issue_notes_edit = QTextEdit()
         self.issue_notes_edit.setReadOnly(True)
-        self.issue_notes_edit.setMaximumHeight(80)
+        self.issue_notes_edit.setMinimumHeight(60)
+        self.issue_notes_edit.setMaximumHeight(160)
         self.issue_notes_edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        self.issue_notes_edit.setStyleSheet("")
+        self.issue_notes_edit.setStyleSheet(
+            "QTextEdit { background-color: palette(base); border: 1px solid palette(mid);"
+            " border-radius: 4px; padding: 6px; }"
+        )
+        self.issue_notes_edit.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.issue_notes_edit.customContextMenuRequested.connect(self._on_notes_context_menu)
         self.issue_notes_edit.hide()
         layout.addWidget(self.issue_notes_edit)
 
@@ -266,20 +362,29 @@ class IssueReplay(QWidget):
         row = self.issue_table.currentRow()
         if row < 0:
             return None
-        item = self.issue_table.item(row, 0)
+        item = self.issue_table.item(row, 1)
         return item.text() if item else None
 
     def _refresh_issue_list(self):
         self.issue_table.setRowCount(0)
         issues = self._manager.list_issues()
-        for rec in issues:
+        for i, rec in enumerate(issues):
             row = self.issue_table.rowCount()
             self.issue_table.insertRow(row)
-            self.issue_table.setItem(row, 0, QTableWidgetItem(rec.id))
-            self.issue_table.setItem(row, 1, QTableWidgetItem(rec.name))
-            self.issue_table.setItem(row, 2, QTableWidgetItem(rec.aalc_version))
-            self.issue_table.setItem(row, 3, QTableWidgetItem(rec.created_at))
-            self.issue_table.setItem(row, 4, QTableWidgetItem(rec.modified_at))
+
+            num_item = QTableWidgetItem(str(i + 1))
+            num_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            num_item.setForeground(QBrush(QColor("#888888")))
+            self.issue_table.setItem(row, 0, num_item)
+
+            id_item = QTableWidgetItem(rec.id)
+            id_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.issue_table.setItem(row, 1, id_item)
+
+            self.issue_table.setItem(row, 2, QTableWidgetItem(rec.name))
+            self.issue_table.setItem(row, 3, QTableWidgetItem(rec.aalc_version))
+            self.issue_table.setItem(row, 4, QTableWidgetItem(_format_time(rec.created_at)))
+            self.issue_table.setItem(row, 5, QTableWidgetItem(_format_time(rec.modified_at)))
 
         self._on_issue_selected()
 
@@ -295,11 +400,23 @@ class IssueReplay(QWidget):
         if has_sel:
             notes = self._manager.get_notes(issue_id)
             if notes:
-                self.issue_notes_edit.setPlainText(notes)
+                try:
+                    from markdown_it import MarkdownIt
+                except ImportError:
+                    MarkdownIt = None
+                if MarkdownIt is not None:
+                    md = MarkdownIt()
+                    html = md.render(notes)
+                    self.issue_notes_edit.setHtml(html)
+                else:
+                    self.issue_notes_edit.setPlainText(notes)
+                self.issue_notes_label.show()
                 self.issue_notes_edit.show()
             else:
+                self.issue_notes_label.hide()
                 self.issue_notes_edit.hide()
         else:
+            self.issue_notes_label.hide()
             self.issue_notes_edit.hide()
 
     def _on_issue_double_clicked(self, _):
@@ -482,40 +599,28 @@ class IssueReplay(QWidget):
         self._manager.delete_issue(issue_id)
         self._refresh_issue_list()
 
+    def _on_notes_context_menu(self, pos):
+        issue_id = self._current_issue_id()
+        if not issue_id:
+            return
+        menu = QMenu(self)
+        action_edit = menu.addAction("编辑批注")
+        action_edit.triggered.connect(self._on_edit_notes)
+        menu.exec(self.issue_notes_edit.viewport().mapToGlobal(pos))
+
     def _on_edit_notes(self):
         issue_id = self._current_issue_id()
         if not issue_id:
             return
-
         current_notes = self._manager.get_notes(issue_id) or ""
 
-        dialog = QWidget(self, Qt.WindowType.Dialog)
-        dialog.setWindowTitle("编辑批注")
-        dialog.setFixedSize(480, 300)
-        layout = QVBoxLayout(dialog)
-
-        edit = QTextEdit()
-        edit.setPlainText(current_notes)
-        layout.addWidget(QLabel("开发者批注:"))
-        layout.addWidget(edit)
-
-        btn_layout = QHBoxLayout()
-        btn_ok = QPushButton("确定")
-        btn_cancel = QPushButton("取消")
-        btn_layout.addStretch()
-        btn_layout.addWidget(btn_ok)
-        btn_layout.addWidget(btn_cancel)
-        layout.addLayout(btn_layout)
-
-        btn_cancel.clicked.connect(dialog.close)
-
-        def save_notes():
-            self._manager.set_notes(issue_id, edit.toPlainText())
+        def save_notes(iid, text):
+            self._manager.set_notes(iid, text)
             self._refresh_issue_list()
-            dialog.close()
+            self._on_issue_selected()
 
-        btn_ok.clicked.connect(save_notes)
-        dialog.show()
+        sidecar = _MarkdownEditSidecar(issue_id, current_notes, save_notes, self)
+        sidecar.show()
 
     def _on_append_log(self):
         issue_id = self._current_issue_id()

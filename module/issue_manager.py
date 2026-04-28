@@ -30,6 +30,28 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def _format_time(iso_str: str) -> str:
+    """将 ISO 8601 UTC 时间转换为本地可读格式。"""
+    if not iso_str:
+        return ""
+    try:
+        dt_utc = datetime.strptime(iso_str, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        dt_local = dt_utc.astimezone()
+        return dt_local.strftime("%Y-%m-%d %H:%M")
+    except ValueError:
+        return iso_str
+
+
+def _make_default_name(issue_id: str, version: str = "", iso_time: str = "") -> str:
+    """生成有辨识度的默认名称，包含版本和时间。"""
+    time_part = _format_time(iso_time) if iso_time else ""
+    if version and time_part:
+        return f"[v{version}] {time_part}"
+    if time_part:
+        return f"issue{issue_id} · {time_part}"
+    return f"issue{issue_id}"
+
+
 def find_config_snapshots(text: str) -> list[dict]:
     snapshots = []
     lines = text.split("\n")
@@ -333,9 +355,10 @@ class IssueManager:
         (issue_dir / "meta_info.txt").write_text(meta_text, encoding="utf-8")
 
         created_at = _now_iso()
+        default_name = _make_default_name(issue_id, meta.get("version", ""), created_at)
         metadata = {
             "id": issue_id,
-            "name": f"issue{issue_id}",
+            "name": default_name,
             "created_at": created_at,
             "modified_at": created_at,
             "aalc_version": meta.get("version", ""),
@@ -348,7 +371,7 @@ class IssueManager:
 
         rec = IssueRecord(
             id=issue_id,
-            name=f"issue{issue_id}",
+            name=default_name,
             created_at=created_at,
             modified_at=created_at,
             aalc_version=meta.get("version", ""),
@@ -401,6 +424,85 @@ class IssueManager:
             return notes_path.read_text(encoding="utf-8")
         rec = self._issues.get(issue_id)
         return rec.notes if rec else ""
+
+    def append_log(self, issue_id: str, log_text: str, log_filename: str = "") -> str:
+        issue_dir = self.get_issue_dir(issue_id)
+        if not issue_dir.exists():
+            raise ValueError(f"issue{issue_id} 目录不存在")
+
+        existing_logs = sorted(
+            p for p in issue_dir.iterdir()
+            if p.is_file() and p.suffix in (".log", ".txt")
+            and p.stem.startswith(("original", "supplement"))
+        )
+        next_index = len(existing_logs)
+        if next_index == 0:
+            log_path = issue_dir / "original.log"
+        else:
+            log_path = issue_dir / f"supplement_{next_index}.log"
+
+        log_path.write_text(log_text, encoding="utf-8")
+
+        rec = self._issues.get(issue_id)
+        if rec:
+            rec.modified_at = _now_iso()
+            self._save_index()
+            self._sync_issue_metadata(issue_id)
+
+        return str(log_path)
+
+    def reimport_issue(
+        self,
+        issue_id: str,
+        log_text: str,
+        log_filename: str = "",
+        config_index: int = 0,
+    ) -> tuple[bool, list[dict], dict, list[str]]:
+        issue_dir = self.get_issue_dir(issue_id)
+        if not issue_dir.exists():
+            return False, [], {}, [f"issue{issue_id} 目录不存在"]
+
+        rec = self._issues.get(issue_id)
+        if not rec:
+            return False, [], {}, [f"issue{issue_id} 不在索引中"]
+
+        (issue_dir / "original.log").write_text(log_text, encoding="utf-8")
+
+        meta = find_metadata(log_text)
+        snapshots = find_config_snapshots(log_text)
+
+        if not snapshots:
+            return False, [], meta, ["未能在日志中找到任何配置快照"]
+
+        if config_index >= len(snapshots):
+            config_index = 0
+        config = snapshots[config_index]
+
+        warnings = validate_config(config)
+
+        yaml_text = dict_to_yaml(config)
+        (issue_dir / "extracted_config.yaml").write_text(yaml_text, encoding="utf-8")
+
+        meta_text = "\n".join(
+            [
+                f"来源日志: {log_filename}",
+                f"AALC 版本: {meta.get('version', '未知')}",
+                f"配置文件版本: {meta.get('config_version', '未知')}",
+                f"游戏分辨率: {meta.get('resolution', '未知')}",
+                f"截图间隔: {meta.get('screenshot_interval', '未知')}",
+                f"鼠标间隔: {meta.get('mouse_interval', '未知')}",
+            ]
+        )
+        (issue_dir / "meta_info.txt").write_text(meta_text, encoding="utf-8")
+
+        rec.aalc_version = meta.get("version", rec.aalc_version)
+        rec.log_filename = log_filename
+        rec.config_count = len(snapshots)
+        rec.modified_at = _now_iso()
+        self._save_index()
+        self._sync_issue_metadata(issue_id)
+
+        return True, snapshots, meta, warnings
 
     def _sync_issue_metadata(self, issue_id: str) -> None:
         rec = self._issues.get(issue_id)
