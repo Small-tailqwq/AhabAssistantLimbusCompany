@@ -2,7 +2,38 @@
 
 ## [Unreleased] — Canary
 
-(AALC 1.5.0-canary.3 新增内容见下方注释)
+## [1.5.0-canary.4] — 2026-04-28
+
+### issue 管理 & 调试工具
+- feat(issue_manager): 新增 `append_log()`、`reimport_issue()` 方法，支持运行时追加日志和重新导入
+- feat(issue_replay): 新增 Markdown 编辑侧窗，支持 Typora 式源码/预览分栏编辑
+- feat(issue_replay): 批注区域支持 Markdown 渲染显示，右键菜单唤出编辑
+- feat(issue_replay): 表格增加行号列、交替行色、优化列宽
+- fix(issue_replay): 修复无法接受资源管理器文件拖放
+
+### 模拟器 & 汉化支持
+- feat: 新增实验性开关「模拟器已安装零协汉化」，允许在模拟器上使用汉化
+- fix: 改进模拟器汉化开关返回值语义（SKIPPED）与提示样式
+- fix: 修复 Mumu 模拟器退出时序冲突导致连接断开 (fix #617)
+
+### 自动化
+- fix: 降低彩色图片匹配阈值至 0.85 以提高识别率
+- fix: 全仓 29 处裸 except 统一改为 Exception 或 ValueError
+- feat: 定时任务结束操作新增「退出模拟器」独立选项
+- perf(battle): 支持按战斗次数动态调整超时时间
+- fix: 连续作战最大次数非法值静默修正
+- fix: 重构 Daily_task_wrapper 消除重复分支
+- fix: 移除 _batch_combat 多余的重复 return
+
+### 配置
+- fix(config): 修复 ConfigDict 导入缺失导致 NameError
+- fix(config): 商店刷新次数默认值从 2 改为 1
+- chore(config): PostMessage 输入默认值改为 False
+- feat: 可自定义鼠标按下延迟及是否使用异步方法
+
+### 其他
+- docs: 添加文件删除严格管控策略与灾难恢复指引
+- i18n: 同步并更新英文翻译文件
 
 ## [1.5.0-canary.3] — 2026-04-27
 
