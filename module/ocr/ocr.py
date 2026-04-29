@@ -27,8 +27,12 @@ class OCR(metaclass=SingletonMeta):
             config_path=r"assets\config\default_rapidocr.yaml",
         )
 
-    def run(self, image: Image.Image | np.ndarray | str) -> RapidOCROutput:
-        """执行OCR识别，支持Image对象、文件路径和np.ndarray对象"""
+    def run(self, image: Image.Image | np.ndarray | str, pre_infer_callback=None) -> RapidOCROutput:
+        """执行OCR识别，支持Image对象、文件路径和np.ndarray对象
+
+        Args:
+            pre_infer_callback: 推理前的回调函数（用于停止检查等），可选
+        """
         try:
             if isinstance(image, str):
                 with Image.open(image) as image_file:
@@ -47,19 +51,25 @@ class OCR(metaclass=SingletonMeta):
                 if channel_count == 1:
                     img_cv_gray = image_array[:, :, 0]
                 elif channel_count == 3:
-                    img_cv = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
-                    img_cv_gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
+                    img_cv_gray = cv2.cvtColor(image_array, cv2.COLOR_RGB2GRAY)
                 elif channel_count == 4:
-                    img_cv = cv2.cvtColor(image_array, cv2.COLOR_RGBA2BGR)
-                    img_cv_gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
+                    img_cv_gray = cv2.cvtColor(image_array, cv2.COLOR_RGBA2GRAY)
                 else:
                     raise ValueError(f"不支持的图像通道数: {channel_count}")
             else:
                 raise ValueError(f"不支持的图像维度: {image_array.ndim}")
 
-            # 自适应均衡化(均值化后更亮)
-            clahe = createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-            processed_image = clahe.apply(img_cv_gray)
+            # 二值图跳过 CLAHE（已经是高对比度，CLAHE 无增益）
+            unique_vals = np.unique(img_cv_gray)
+            if len(unique_vals) <= 2:
+                processed_image = img_cv_gray
+            else:
+                clahe = createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+                processed_image = clahe.apply(img_cv_gray)
+
+            if pre_infer_callback is not None:
+                pre_infer_callback()
+
             results = self.engine(processed_image)
             self.log_results(results)
             return results
