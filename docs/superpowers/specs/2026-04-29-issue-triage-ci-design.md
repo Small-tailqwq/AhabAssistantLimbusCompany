@@ -69,7 +69,8 @@ jobs:
       - uses: anomalyco/opencode/github@latest
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # 让 gh CLI 可用
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # opencode 用
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}      # gh CLI 用
         with:
           model: deepseek/deepseek-v4-flash
           use_github_token: true
