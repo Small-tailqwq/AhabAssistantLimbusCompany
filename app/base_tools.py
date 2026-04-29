@@ -448,6 +448,14 @@ class BaseComboBox(BaseLayout):
     def set_options(self, index):
         self.combo_box.setCurrentIndex(index)
 
+    def set_value(self, value):
+        """按值设置 combo box 选中项（自动查找匹配的索引）"""
+        if self.items:
+            for i, (_, item_value) in enumerate(self.items.items()):
+                if item_value == value:
+                    self.combo_box.setCurrentIndex(i)
+                    return
+
     def send_switch_signal(self, target: dict):
         mediator.team_setting.emit(target)
 

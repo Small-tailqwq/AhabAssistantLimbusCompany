@@ -412,12 +412,9 @@ class TeamSettingCard(QFrame):
 
         for combobox in all_combobox_config_name:
             if self.findChild(BaseComboBox, combobox):
-                if combobox == "team_number":
-                    self.findChild(BaseComboBox, combobox).set_options(getattr(self.team_setting, combobox) - 1)
-                else:
-                    self.findChild(BaseComboBox, combobox).set_options(getattr(self.team_setting, combobox))
-                    if combobox == "team_system":
-                        self.foolproof(getattr(self.team_setting, combobox))
+                self.findChild(BaseComboBox, combobox).set_value(getattr(self.team_setting, combobox))
+                if combobox == "team_system":
+                    self.foolproof(getattr(self.team_setting, combobox))
 
     def foolproof(self, team_system):
         for checkbox in all_checkbox_config_name:
