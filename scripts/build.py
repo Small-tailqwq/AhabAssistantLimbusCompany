@@ -105,4 +105,4 @@ with open(archive_path, "rb") as f:
 hash_path = f"{archive_path}.sha256"
 with open(hash_path, "w") as f:
     f.write(sha256.hexdigest())
-print(f"生成SHA256: {hash_path}")
+print(f"SHA256: {hash_path}")
