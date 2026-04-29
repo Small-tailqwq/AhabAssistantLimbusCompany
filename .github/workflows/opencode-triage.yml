@@ -16,6 +16,12 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Configure git for opencode
+        shell: bash
+        run: |
+          git config user.name "opencode[bot]"
+          git config user.email "opencode[bot]@users.noreply.github.com"
+
       - name: Save issue body
         uses: actions/github-script@v7
         with:
