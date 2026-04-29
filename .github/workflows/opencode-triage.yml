@@ -51,9 +51,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p /tmp/issue_assets
-          grep -oE 'https://github\.com/[^" )>]+' /tmp/issue_body.txt \
-            | grep -E '/(files|attachments)/' | sort -u \
+          (grep -oE 'https://github\.com/[^" )>]+' /tmp/issue_body.txt || true) \
+            | (grep -E '/(files|attachments)/' || true) \
+            | sort -u \
             | while IFS= read -r url; do
+            [ -z "$url" ] && continue
             filename=$(basename "${url%%\?*}")
             echo "DL: $filename"
             curl -sL --max-time 30 -o "/tmp/issue_assets/$filename" "$url" && {
