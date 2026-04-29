@@ -54,7 +54,17 @@ metadata:
 uv run python .opencode/tools/log_analyzer.py <log_path>
 ```
 
-### 第3步：模式识别
+### 第3步：先排查用户配置
+
+在深入代码分析之前，先检查问题是否由用户配置导致：
+
+- 提取日志头部配置文件中的关键配置项（`skip_enkephalin`、`simulator`、`win_input_type`、`background_click` 等）
+- 对比用户描述的现象和配置值：**配置项是否直接解释了现象？**
+  - 例：skip_enkephalin=True + 用户反馈"不换体力" → 配置使然，非代码 bug
+  - 例：未启用模拟器 + 用户反馈"模拟器没反应" → 配置问题
+- **如果配置项直接导致现象**：诊断结论应为"用户设置问题"，修复建议指向 UI 设置项而非改代码。仍可附带代码分析说明机制，但不要创建代码修复方案。
+
+### 第4步：模式识别
 
 从日志中识别以下模式：
 
@@ -70,22 +80,22 @@ uv run python .opencode/tools/log_analyzer.py <log_path>
   - 中（0.3~0.7）= 可能部分匹配，需结合画面上下文
   - 低（<0.3）= 按钮不在画面上 ❌
 
-**3c. 时序分析**
+**4c. 时序分析**
 - 截图→点击的间隔反映截图间隔配置
 - 点击→下一轮截图的间隔反映游戏渲染时间
 - 如果所有操作在 <500ms 内完成 → 循环速度快，截图间隔短
 
-**3d. 崩溃/恢复点**
+**4d. 崩溃/恢复点**
 - `NemuIpc` 断连 + `AttributeError: NoneType has no attribute 'fileno'` → Mumu 模拟器连接断开触发异常
 - `check_times()` 超时触发 → `kill_game()` + `restart_game()` 被执行
 - 异常后的流程（restart_game → retry → 继续任务）反映自动恢复能力
 
-**3e. 开始执行/结束执行 瞬时返回**
+**4e. 开始执行/结束执行 瞬时返回**
 - `开始执行 X` 和 `结束执行 X` 时间戳差 ≤1ms → 函数体未执行任何实际操作
 - 通常是因为前置条件（skip/skip_enkephalin 等配置）导致函数直接 return
 - 需与用户配置交叉验证：查日志头部 cfg 或 grep 对应配置项
 
-### 第4步：溯源调用链
+### 第5步：溯源调用链
 
 从日志中的文件路径追溯调用链：
 
@@ -100,7 +110,7 @@ uv run python .opencode/tools/log_analyzer.py <log_path>
 4. 读取该函数源码 → 分析 `while/if/continue/break` 结构
 5. 查找该函数的所有调用者 → `grep <function> *.py`
 
-### 第5步：关联分析
+### 第6步：关联分析
 
 如果新 issue 与历史 issue 行为相似（同为齿轮误匹配、同为 back_init_menu 循环、同为 Mumu 断连恢复），在诊断中标注关联关系和新旧差异。
 
@@ -115,7 +125,7 @@ uv run python .opencode/tools/log_analyzer.py <log_path>
 - 如果用户版本远低于 latest → 明确建议升级
 - 例如：用户 V1.4.5 反馈的问题在 V1.4.9 已修复 → "请升级到 V1.4.9+"
 
-### 第6步：形成诊断
+### 第7步：形成诊断
 
 输出以下结构。引用代码时使用 GitHub blob 行号链接：
 
