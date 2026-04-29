@@ -5,4 +5,5 @@ mode: primary
 permission:
   edit: deny
   question: deny
+  external_directory: allow
 ---
