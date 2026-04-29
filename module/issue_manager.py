@@ -43,10 +43,9 @@ def _format_time(iso_str: str) -> str:
 
 
 def _make_default_name(issue_id: str, version: str = "", iso_time: str = "") -> str:
-    """生成有辨识度的默认名称，包含版本和时间。"""
     time_part = _format_time(iso_time) if iso_time else ""
     if version and time_part:
-        return f"[v{version}] {time_part}"
+        return f"issue{issue_id} [v{version}] {time_part}"
     if time_part:
         return f"issue{issue_id} · {time_part}"
     return f"issue{issue_id}"
@@ -310,6 +309,45 @@ class IssueManager:
     def get_notes_path(self, issue_id: str) -> Path:
         return self.get_issue_dir(issue_id) / "dev_notes.md"
 
+    def _write_issue_files(
+        self,
+        issue_dir: Path,
+        log_text: str,
+        log_filename: str,
+        config_index: int,
+        auto_repair: bool = False,
+    ) -> tuple[list[dict], dict, list[str]]:
+        (issue_dir / "original.log").write_text(log_text, encoding="utf-8")
+
+        meta = find_metadata(log_text)
+        snapshots = find_config_snapshots(log_text)
+
+        if not snapshots:
+            return [], meta, ["未能在日志中找到任何配置快照"]
+
+        if config_index >= len(snapshots):
+            config_index = 0
+        config = snapshots[config_index]
+
+        if auto_repair:
+            config = repair_game_path(config)
+
+        warnings = validate_config(config)
+
+        (issue_dir / "extracted_config.yaml").write_text(dict_to_yaml(config), encoding="utf-8")
+
+        meta_lines = [
+            f"来源日志: {log_filename}",
+            f"AALC 版本: {meta.get('version', '未知')}",
+            f"配置文件版本: {meta.get('config_version', '未知')}",
+            f"游戏分辨率: {meta.get('resolution', '未知')}",
+            f"截图间隔: {meta.get('screenshot_interval', '未知')}",
+            f"鼠标间隔: {meta.get('mouse_interval', '未知')}",
+        ]
+        (issue_dir / "meta_info.txt").write_text("\n".join(meta_lines), encoding="utf-8")
+
+        return snapshots, meta, warnings
+
     def import_issue(
         self,
         log_text: str,
@@ -321,38 +359,13 @@ class IssueManager:
         issue_dir = self.get_issue_dir(issue_id)
         issue_dir.mkdir(parents=True, exist_ok=True)
 
-        (issue_dir / "original.log").write_text(log_text, encoding="utf-8")
-
-        meta = find_metadata(log_text)
-        snapshots = find_config_snapshots(log_text)
+        snapshots, meta, warnings = self._write_issue_files(
+            issue_dir, log_text, log_filename, config_index, auto_repair
+        )
 
         if not snapshots:
             shutil.rmtree(issue_dir)
-            return None, [], meta, ["未能在日志中找到任何配置快照"]
-
-        if config_index >= len(snapshots):
-            config_index = 0
-        config = snapshots[config_index]
-
-        if auto_repair:
-            config = repair_game_path(config)
-
-        warnings = validate_config(config)
-
-        yaml_text = dict_to_yaml(config)
-        (issue_dir / "extracted_config.yaml").write_text(yaml_text, encoding="utf-8")
-
-        meta_text = "\n".join(
-            [
-                f"来源日志: {log_filename}",
-                f"AALC 版本: {meta.get('version', '未知')}",
-                f"配置文件版本: {meta.get('config_version', '未知')}",
-                f"游戏分辨率: {meta.get('resolution', '未知')}",
-                f"截图间隔: {meta.get('screenshot_interval', '未知')}",
-                f"鼠标间隔: {meta.get('mouse_interval', '未知')}",
-            ]
-        )
-        (issue_dir / "meta_info.txt").write_text(meta_text, encoding="utf-8")
+            return None, [], meta, warnings
 
         created_at = _now_iso()
         default_name = _make_default_name(issue_id, meta.get("version", ""), created_at)
@@ -446,6 +459,8 @@ class IssueManager:
         rec = self._issues.get(issue_id)
         if rec:
             rec.modified_at = _now_iso()
+            if log_filename:
+                rec.log_filename = log_filename
             self._save_index()
             self._sync_issue_metadata(issue_id)
 
@@ -466,34 +481,12 @@ class IssueManager:
         if not rec:
             return False, [], {}, [f"issue{issue_id} 不在索引中"]
 
-        (issue_dir / "original.log").write_text(log_text, encoding="utf-8")
-
-        meta = find_metadata(log_text)
-        snapshots = find_config_snapshots(log_text)
+        snapshots, meta, warnings = self._write_issue_files(
+            issue_dir, log_text, log_filename, config_index
+        )
 
         if not snapshots:
-            return False, [], meta, ["未能在日志中找到任何配置快照"]
-
-        if config_index >= len(snapshots):
-            config_index = 0
-        config = snapshots[config_index]
-
-        warnings = validate_config(config)
-
-        yaml_text = dict_to_yaml(config)
-        (issue_dir / "extracted_config.yaml").write_text(yaml_text, encoding="utf-8")
-
-        meta_text = "\n".join(
-            [
-                f"来源日志: {log_filename}",
-                f"AALC 版本: {meta.get('version', '未知')}",
-                f"配置文件版本: {meta.get('config_version', '未知')}",
-                f"游戏分辨率: {meta.get('resolution', '未知')}",
-                f"截图间隔: {meta.get('screenshot_interval', '未知')}",
-                f"鼠标间隔: {meta.get('mouse_interval', '未知')}",
-            ]
-        )
-        (issue_dir / "meta_info.txt").write_text(meta_text, encoding="utf-8")
+            return False, [], meta, warnings
 
         rec.aalc_version = meta.get("version", rec.aalc_version)
         rec.log_filename = log_filename

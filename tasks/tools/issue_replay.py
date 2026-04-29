@@ -21,6 +21,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+try:
+    from markdown_it import MarkdownIt
+except ImportError:
+    MarkdownIt = None
+
 from app import mediator
 from module.config import cfg
 from module.issue_manager import (
@@ -93,18 +98,18 @@ class _MarkdownEditSidecar(QWidget):
 
     def _on_text_changed(self):
         text = self._edit.toPlainText()
-        try:
-            from markdown_it import MarkdownIt
-
-            md = MarkdownIt()
-            html = md.render(text)
-        except ImportError:
+        if MarkdownIt is not None:
+            html = MarkdownIt().render(text)
+        else:
             html = f"<pre>{text}</pre>"
         self._preview.setHtml(html)
 
     def _do_save(self):
-        self._on_save(self._issue_id, self._edit.toPlainText())
-        self.close()
+        try:
+            self._on_save(self._issue_id, self._edit.toPlainText())
+            self.close()
+        except Exception as e:
+            QMessageBox.warning(self, "保存失败", f"保存批注失败:\n{e}")
 
 
 class IssueReplay(QWidget):
@@ -400,10 +405,6 @@ class IssueReplay(QWidget):
         if has_sel:
             notes = self._manager.get_notes(issue_id)
             if notes:
-                try:
-                    from markdown_it import MarkdownIt
-                except ImportError:
-                    MarkdownIt = None
                 if MarkdownIt is not None:
                     md = MarkdownIt()
                     html = md.render(notes)
