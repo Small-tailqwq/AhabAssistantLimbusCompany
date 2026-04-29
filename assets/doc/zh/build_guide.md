@@ -1,5 +1,7 @@
 # 构建指南
 
+> **注意**：`scripts/build.py` 中的 `print()` 如果包含中文，在 GitHub Actions Windows runner（cp1252 终端）会触发 `UnicodeEncodeError`。所有输出文本必须使用 ASCII-safe 英文。
+
 ## 推荐构建方式
 
 项目当前推荐使用 `uv` 和仓库内置构建脚本：

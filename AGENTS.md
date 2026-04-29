@@ -14,6 +14,8 @@ uv run python .\scripts\translation_files_build.py       # 刷新 ts 源
 uv run python .\scripts\translation_files_compile.py     # 编译 ts → qm
 ```
 
+> **Windows CI 编码陷阱**：`scripts/build.py` 中的 `print()` 如果包含中文，在 GitHub Actions Windows runner（cp1252 终端）会触发 `UnicodeEncodeError`。所有输出文本必须使用 ASCII-safe 的英文，不要用中文。
+
 ## 项目现实
 
 - Windows-only 桌面自动化，Python 3.12+，`uv` 管理
