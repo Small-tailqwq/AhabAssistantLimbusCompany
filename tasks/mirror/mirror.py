@@ -127,7 +127,9 @@ class Mirror:
             )
         )
 
-    def wake_event_selection(self, wake_times=2, reason="skip", stop_on_decision=True):
+    def wake_event_selection(self, wake_times=None, reason="skip", stop_on_decision=True):
+        if wake_times is None:
+            wake_times = random.randint(3, 4)
         for wake_index in range(wake_times):
             sleep(0.25)
             log.debug(f"事件 {reason} 后发送空格唤醒 ({wake_index + 1}/{wake_times})")
@@ -173,7 +175,7 @@ class Mirror:
                     break
             if skip_disappeared:
                 log.debug("检测到事件 skip 按钮已消失，立即发送空格推进后续事件层")
-            if self.wake_event_selection(wake_times=2 if skip_disappeared else 1, reason="skip"):
+            if self.wake_event_selection(reason="skip"):
                 return True
             if skip_disappeared and self.nudge_event_after_skip():
                 return True
@@ -185,7 +187,7 @@ class Mirror:
         sleep(0.45)
         if auto.take_screenshot() is None:
             return False
-        if self.wake_event_selection(wake_times=1, reason=action_name, stop_on_decision=False):
+        if self.wake_event_selection(wake_times=random.randint(3, 4), reason=action_name, stop_on_decision=False):
             return True
         if auto.take_screenshot() is None:
             return False
@@ -200,13 +202,13 @@ class Mirror:
                 or self.event_decision_visible()
                 or auto.find_element("mirror/road_in_mir/ego_gift_get_confirm_assets.png")
             )
-        if self.wake_event_selection(wake_times=1, reason=action_name):
+        if self.wake_event_selection(wake_times=random.randint(3, 4), reason=action_name):
             return True
         return self.event_decision_visible()
 
     def recover_stalled_event_layer(self):
         log.debug("事件界面暂未识别到有效按钮，尝试空格推进当前层")
-        if self.wake_event_selection(wake_times=1, reason="stalled"):
+        if self.wake_event_selection(wake_times=random.randint(3, 4), reason="stalled"):
             return True
         if auto.take_screenshot() is None:
             return False
@@ -317,7 +319,7 @@ class Mirror:
             if auto.take_screenshot() is None:
                 continue
 
-            retry()
+            retry(skip_screenshot=True)
 
             if cfg.floor_3_exit and self.floor >= 4:
                 if auto.click_element("mirror/road_in_mir/towindow&forfeit_confirm_assets.png"):
@@ -392,7 +394,7 @@ class Mirror:
                     "mirror/claim_reward/complete_mirror_100%_assets.png"
                 ):
                     break
-                retry()
+                retry(skip_screenshot=True)
                 if self.get_floor_num:
                     self.get_which_floor()
 
@@ -1283,7 +1285,7 @@ class Mirror:
                 if not any((continue_visible, proceed_visible, commence_visible, commence_battle_visible)):
                     if not self.event_decision_visible():
                         log.debug("识别到罪人选择预加载界面，先发送空格并点击空白唤醒头像与成功率")
-                        self.wake_event_selection(wake_times=1, reason="decision_preload")
+                        self.wake_event_selection(wake_times=random.randint(3, 4), reason="decision_preload")
                         if auto.take_screenshot() is not None and not self.event_decision_visible():
                             auto.mouse_click_blank(move_back=False)
                             sleep(0.55)
@@ -1662,7 +1664,8 @@ class Mirror:
         get_floor_bbox = ImageUtils.get_bbox(ImageUtils.load_image("mirror/road_in_mir/get_floor_bbox.png"))
         previous_crop = ImageUtils.crop(np.array(auto.screenshot), get_floor_bbox)
 
-        for i in range(5):
+        # 第 1 轮：尝试 4 种图像变体（原始 → 放大 → 差值 → 二值）
+        for i in range(3):
             auto.take_screenshot(gray=False)
             current_crop = ImageUtils.crop(np.array(auto.screenshot), get_floor_bbox)
             diff = cv2.absdiff(previous_crop, current_crop)
@@ -1672,12 +1675,20 @@ class Mirror:
             binary_img = cv2.resize(binary_img, None, fx=3.0, fy=3.0, interpolation=cv2.INTER_CUBIC)
 
             floor_found = False
-            for stage_name, candidate_image in (
-                ("current", current_crop),
-                ("current_scaled", current_scaled),
-                ("diff_gray", diff_gray),
-                ("binary", binary_img),
-            ):
+            # 首轮尝试全部 4 种变体，后续轮次仅用最有效的 2 种
+            if i == 0:
+                variants = (
+                    ("current", current_crop),
+                    ("current_scaled", current_scaled),
+                    ("diff_gray", diff_gray),
+                    ("binary", binary_img),
+                )
+            else:
+                variants = (
+                    ("current_scaled", current_scaled),
+                    ("binary", binary_img),
+                )
+            for stage_name, candidate_image in variants:
                 floor_found, _ = handle_ocr(candidate_image, stage_name)
                 if floor_found:
                     break

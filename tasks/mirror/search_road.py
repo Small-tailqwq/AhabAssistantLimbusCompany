@@ -1267,25 +1267,39 @@ def analyze_route_map_screenshot(screenshot_image, hard_mode=False):
 # shop 是商店，small_boss_battle 是异想体遭遇战
 
 
-def identify_nodes(bus_x, screenshot_image=None):
-    import numpy as np
+_onnx_session = None
+_onnx_model_path = ""
+
+ONNX_MODEL_PATH = "./assets/model/best.onnx"
+ONNX_NODE_CLASSES = [
+    "battle",
+    "boss_battle",
+    "event",
+    "hard_battle",
+    "hard_battle_2",
+    "shop",
+    "small_boss_battle",
+]
+
+
+def _get_onnx_session(model_path: str = ONNX_MODEL_PATH):
     import onnxruntime as ort
 
-    # 定义检测目标的类别标签（与模型训练时的类别一致）
-    CLASSES = [
-        "battle",
-        "boss_battle",
-        "event",
-        "hard_battle",
-        "hard_battle_2",
-        "shop",
-        "small_boss_battle",
-    ]
+    global _onnx_session, _onnx_model_path
+    if _onnx_session is None or _onnx_model_path != model_path:
+        _onnx_session = ort.InferenceSession(model_path)
+        _onnx_model_path = model_path
+    return _onnx_session
 
-    no_flag = False  # 标记是否检测到目标（初始为 False，未检测到时设为 True）
 
-    # 加载 ONNX 格式的目标检测模型
-    session = ort.InferenceSession("./assets/model/best.onnx")
+def identify_nodes(bus_x, screenshot_image=None):
+    import numpy as np
+
+    CLASSES = ONNX_NODE_CLASSES
+
+    no_flag = False
+
+    session = _get_onnx_session()
 
     # 读取原始图像（BGR 格式，由 OpenCV 读取）
     if screenshot_image is None:
