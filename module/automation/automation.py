@@ -1,8 +1,10 @@
 import gc
 import math
 import random
+import threading
 import time
 from ast import List
+from concurrent.futures import ThreadPoolExecutor
 from numbers import Real
 
 import cv2
@@ -39,6 +41,19 @@ class Automation(metaclass=SingletonMeta):
         self.model = "clam"
         self._stop_requested = False
         self._stop_reason = "用户主动终止程序"
+
+        # 截图去重
+        self._last_dhash: bytes | None = None
+        self.frame_duplicate: bool = False
+        self._frame_count: int = 0
+
+        # 帧内匹配结果缓存
+        self._match_result_cache: dict[tuple, object] = {}
+        self._cache_frame_id: int = -1
+
+        # 多线程并行匹配
+        self._match_pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="match")
+        self._cache_lock = threading.Lock()
 
     def request_stop(self, reason: str = "用户主动终止程序") -> None:
         self._stop_requested = True
@@ -117,6 +132,30 @@ class Automation(metaclass=SingletonMeta):
             bool: 是否处于暂停状态
         """
         return self.input_handler.is_pause
+
+    @staticmethod
+    def _compute_dhash(image: Image) -> bytes:
+        """计算 64-bit 感知哈希（用于截图去重）"""
+        gray = image.convert("L")
+        small = gray.resize((9, 8))
+        pixels = list(small.getdata())
+        diff = []
+        for row in range(8):
+            row_start = row * 9
+            for col in range(8):
+                diff.append(pixels[row_start + col] > pixels[row_start + col + 1])
+        return bytes(diff)
+
+    def _invalidate_match_cache_if_needed(self):
+        """帧变化时清空匹配结果缓存"""
+        if self._cache_frame_id != self._frame_count:
+            with self._cache_lock:
+                self._match_result_cache.clear()
+            self._cache_frame_id = self._frame_count
+
+    def _get_match_cache_key(self, target, find_type, threshold, model, my_crop) -> tuple:
+        """生成匹配结果缓存键"""
+        return (self._frame_count, target, find_type, threshold, model, str(my_crop))
 
     def get_restore_time(self) -> float:
         """
@@ -329,6 +368,14 @@ class Automation(metaclass=SingletonMeta):
                 self.last_screenshot_time = time.time()
                 if result:
                     self.screenshot = result
+                    # 截图去重：计算感知哈希
+                    current_hash = self._compute_dhash(result)
+                    self._frame_count += 1
+                    if current_hash == self._last_dhash:
+                        self.frame_duplicate = True
+                    else:
+                        self.frame_duplicate = False
+                        self._last_dhash = current_hash
                     return result
                 else:
                     return None
@@ -382,6 +429,13 @@ class Automation(metaclass=SingletonMeta):
         """
         if model is None:
             model = self.model
+        # 帧内匹配缓存：同一帧相同参数直接返回缓存结果
+        self._invalidate_match_cache_if_needed()
+        cache_key = self._get_match_cache_key(target, find_type, threshold, model, my_crop)
+        if not take_screenshot:
+            with self._cache_lock:
+                if cache_key in self._match_result_cache:
+                    return self._match_result_cache[cache_key]
         # 如果不需要截图，则重试次数设置为1
         max_retries = 1 if not take_screenshot else max_retries
         screenshot_retry_interval = min(max(cfg.screenshot_interval if cfg.screenshot_interval else 0.85, 0.1), 1.0)
@@ -409,23 +463,57 @@ class Automation(metaclass=SingletonMeta):
                     # 使用文本查找方法查找元素
                     center = self.find_text_element(target, my_crop, addtional_stack=addtional_stack, log_result=log_result)
                 if center:
+                    with self._cache_lock:
+                        self._match_result_cache[cache_key] = center
                     return center
             elif find_type in ["feature"]:
-                return self.find_feature_element(target, my_crop, addtional_stack=addtional_stack, log_result=log_result)
+                result = self.find_feature_element(target, my_crop, addtional_stack=addtional_stack, log_result=log_result)
+                with self._cache_lock:
+                    self._match_result_cache[cache_key] = result
+                return result
             elif find_type in ["image_with_multiple_targets"]:
                 # 使用多目标图像查找方法查找元素
-                return self.find_image_with_multiple_targets(
+                result = self.find_image_with_multiple_targets(
                     target,
                     threshold,
                     addtional_stack=addtional_stack,
                     log_result=log_result,
                 )
+                with self._cache_lock:
+                    self._match_result_cache[cache_key] = result
+                return result
             else:
                 raise ValueError("错误的类型")
 
             if i < max_retries - 1:
                 time.sleep(1)  # 在重试前等待一定时间
+        with self._cache_lock:
+            self._match_result_cache[cache_key] = None
         return None
+
+    def find_elements_batch(self, queries: list[dict]) -> list:
+        """批量并行 find_element
+
+        Args:
+            queries: [{"target": "btn_a", "find_type": "image", ...}, ...]
+
+        Returns:
+            与 queries 一一对应的结果列表
+        """
+        if not queries:
+            return []
+
+        futures = []
+        for q in queries:
+            futures.append(self._match_pool.submit(self.find_element, **q))
+
+        results = []
+        for f in futures:
+            try:
+                results.append(f.result(timeout=10))
+            except Exception:
+                results.append(None)
+        return results
 
     def find_image_with_multiple_targets(self, target: str, threshold, addtional_stack, log_result=True) -> List:
         """

@@ -220,7 +220,20 @@ class Input(WinAbstractInput, metaclass=SingletonMeta):
             self.mouse_move(current_mouse_position)
 
     def key_press(self, key):
+        self.set_active()
         return pyautogui.press(key)
+
+    def set_active(self):
+        """将游戏窗口设置为输入焦点以让 Unity 接受输入事件"""
+        from module.game_and_screen import screen
+
+        hwnd = screen.handle.hwnd
+        if hwnd:
+            if screen.handle.isMinimized:
+                screen.handle.set_window_transparent()
+                screen.handle.restore()
+                sleep(0.5)
+            win32gui.SendMessage(hwnd, win32con.WM_ACTIVATE, win32con.WA_ACTIVE, 0)
 
 
 class BackgroundInput(WinAbstractInput, metaclass=SingletonMeta):
