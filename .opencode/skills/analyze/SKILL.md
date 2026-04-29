@@ -1,6 +1,6 @@
 ---
 name: analyze
-description: 智能调用日志分析工具对本地归档的 issue 进行诊断分析，输出复现流程与修复意见
+description: 智能调用日志分析工具对 AALC 本地归档或 GitHub Issue 进行诊断分析，输出复现流程与修复意见
 license: AGPL-3.0
 compatibility: opencode
 metadata:
@@ -10,51 +10,53 @@ metadata:
 
 ## 技能简介
 
-当需要排查本地已归档的 issue 时，本技能指导 agent 自动执行完整的分析流程：读取 issue 元数据 → 压缩日志 → 识别死循环/异常模式 → 溯源调用链 → 定位根因 → 写出修复方案。
+当需要排查 AALC issue 时，本技能指导 agent 自动执行完整的分析流程：获取 issue 上下文 → 读取日志 → 识别异常模式 → 溯源调用链 → 定位根因 → 写出修复方案。
 
-本技能基于本仓库的实际排障实践构建，参考了 issue 2（back_init_menu 无限循环）和 issue 3（re_start 齿轮卡死）的完整分析过程。
+本技能基于本仓库的实际排障实践构建，参考了 issue 2（back_init_menu 无限循环）、issue 3（re_start 齿轮卡死）和 CI triage 的实际运行经验。
 
 ## 前置依赖
 
-- `.opencode/tools/log_analyzer.py` — 日志压缩分析工具（运行时需要 `uv run python`）
+- `.opencode/tools/log_analyzer.py` — 日志压缩分析工具（纯 stdlib，无需额外依赖）
 - `issues/TEMPLATE.md` — issue 模板
 
 ## 分析流程
 
-### 第1步：读取 issue 上下文
+### 第1步：获取 issue 上下文
 
-读取 issue 目录下的所有文件：
+**本地归档场景**：读取 issue 目录下的所有文件：
 
 | 文件 | 用途 |
 |---|---|
 | `metadata.json` | issue id、创建时间、版本号、备注 |
 | `meta_info.txt` | 分辨率、截图间隔、AALC 版本等环境信息 |
-| `dev_notes.md` | 开发者已有的分析备注（可能为空或仅为初步印象） |
-| `extracted_config.yaml` | 配置文件快照，重点关注 `simulator`、`win_input_type`、`background_click` |
+| `dev_notes.md` | 开发者已有的分析备注 |
+| `extracted_config.yaml` | 配置快照，重点关注 `simulator`、`win_input_type`、`background_click` |
 
-输出：issue 基本画像（运行模式、分辨率、版本、已知现象）
+**GitHub Issue 场景**：直接从 issue body 和附件日志中提取。
 
-### 第2步：压缩日志
+提取以下锚点：
+- **AALC 版本**（以日志中**最后一次出现**的版本号为准，开头可能是旧版本覆盖）
+- **运行模式**：模拟器/后台点击/前台/Logitech/OBS
+- **功能场景**：镜牢/纺锤本/清体力/合成/日常任务
+- **用户描述的现象**：卡死/崩溃/误点/不响应
+- **配置文件关键项**：截图间隔、鼠标间隔、`skip_enkephalin` 等
 
-对 issue 目录下所有 `.log` 文件运行日志压缩工具：
+### 第2步：读取日志
 
+读日志时按以下策略：
+1. 先用 head 读开头 ~50 行，获取配置信息、版本号、运行模式
+2. 再用 tail 读末尾 ~200 行，定位异常/崩溃/卡死的位置
+3. 版本号**必须取日志中最后一次出现**的匹配
+4. 理解问题后按需 grep 关键时间段，不要通读全文
+
+日志较大的话（>5万行），可运行 log_analyzer.py 生成压缩报告：
 ```powershell
-uv run python .opencode/tools/log_analyzer.py issues/<issue_id>/<filename>.log
+uv run python .opencode/tools/log_analyzer.py <log_path>
 ```
-
-输出在 `<filename>.report.txt` 中。产出关键指标：
-- **总行数 + 时间跨度** — 卡死时长
-- **全局重复模式**（行频率统计）— 识别无限循环
-- **阶段切分** — 按模块变化自动分组
-- **关键事件**（WARNING / ERROR / INFO）— 异常与调用栈
-- **文件热力图** — 哪些模块被日志引用最多
-- **每分钟密度** — 密集程度变化
-
-如果有多份日志文件（如 debugLog1~4 + original），**全部压缩**后再对比分析。
 
 ### 第3步：模式识别
 
-从压缩报告中识别以下模式：
+从日志中识别以下模式：
 
 **3a. 无限循环检测**
 - 单行频率极高（千次以上）+ 同文件多行等频 → 说明在某函数内轮询
@@ -71,16 +73,21 @@ uv run python .opencode/tools/log_analyzer.py issues/<issue_id>/<filename>.log
 **3c. 时序分析**
 - 截图→点击的间隔反映截图间隔配置
 - 点击→下一轮截图的间隔反映游戏渲染时间
-- 如果所有操作在 <500ms 内完成→循环速度快，截图间隔短
+- 如果所有操作在 <500ms 内完成 → 循环速度快，截图间隔短
 
 **3d. 崩溃/恢复点**
 - `NemuIpc` 断连 + `AttributeError: NoneType has no attribute 'fileno'` → Mumu 模拟器连接断开触发异常
 - `check_times()` 超时触发 → `kill_game()` + `restart_game()` 被执行
 - 异常后的流程（restart_game → retry → 继续任务）反映自动恢复能力
 
+**3e. 开始执行/结束执行 瞬时返回**
+- `开始执行 X` 和 `结束执行 X` 时间戳差 ≤1ms → 函数体未执行任何实际操作
+- 通常是因为前置条件（skip/skip_enkephalin 等配置）导致函数直接 return
+- 需与用户配置交叉验证：查日志头部 cfg 或 grep 对应配置项
+
 ### 第4步：溯源调用链
 
-从日志中的文件路径追溯调用链。关键模式：
+从日志中的文件路径追溯调用链：
 
 - 日志行 `..\..\tasks\mirror\mirror.py:946` → 读取 `mirror.py` 对应行的源码
 - 日志行 `..\..\tasks\base\back_init_menu.py:83` → 读取对应行的源码
@@ -91,56 +98,71 @@ uv run python .opencode/tools/log_analyzer.py issues/<issue_id>/<filename>.log
 2. 从重复模式找**最高频行** — 卡死所在函数
 3. 从 `grep def <function> <file>` 找函数定义
 4. 读取该函数源码 → 分析 `while/if/continue/break` 结构
-5. 查找该函数的所有调用者 → `grep <function> \` *.py`
+5. 查找该函数的所有调用者 → `grep <function> *.py`
 
-### 第5步：形成诊断并写入
-
-更新 `dev_notes.md`，包含以下结构：
-
-```markdown
-# Issue N — 标题
-
-## 问题现象
-<!-- 用户反馈的现象 -->
-
-## 环境
-- 版本: xxx
-- 分辨率: xxx
-- 运行模式: 模拟器/后台点击
-
-## 分析时间线
-<!-- 多份日志的按时间顺序排列 -->
-
-## 根因分析
-### 卡死位置
-<!-- 代码片段 + 说明 -->
-
-### 画面推断
-<!-- 基于各图片匹配度推断当前画面状态 -->
-
-### 调用链
-<!-- onnx寻路→降级→back_init_menu→... 或 战斗失败→re_start→... -->
-
-## 修复建议
-<!-- 具体修改方案 -->
-
-## 已解决的
-<!-- 已应用的修复 -->
-
-## 未解决的
-<!-- 已知但未修复的问题 -->
-```
-
-### 第6步：关联分析
+### 第5步：关联分析
 
 如果新 issue 与历史 issue 行为相似（同为齿轮误匹配、同为 back_init_menu 循环、同为 Mumu 断连恢复），在诊断中标注关联关系和新旧差异。
+
+如果用户日志版本与当前主线代码明显不一致：
+- 确认用户版本，必要时切到对应 tag 复核旧逻辑
+- 若当前主线已修复，检查修复是否已进入 tag/release
+- 已发版建议升级，未发版建议等待 release
+
+### 第6步：形成诊断
+
+输出以下结构。引用代码时使用 GitHub blob 行号链接：
+
+## 问题概要
+
+## 环境
+- AALC 版本:
+- 分辨率:
+- 运行模式:
+- 功能场景:
+
+## 关键证据
+
+<details><summary>点击展开</summary>
+
+- 日志片段...
+- 配置关键项...
+- 代码依据...
+
+</details>
+
+## 根因分析
+
+### 异常位置
+### 画面推断（如有）
+### 调用链
+
+## 修复建议
+
+## 置信度
+- 高 / 中 / 低
+- 还缺什么证据
+
+## 常见模式速查
+
+以下是在 AALC 实际排障中积累的常见模式，供分析时参考：
+
+| 模式 | 典型日志特征 | 常见根因 |
+|------|-------------|---------|
+| 寻路无限循环 | 同一文件/图片匹配反复出现，`continue` 始终命中 | ONNX 模型问题 → 降级到兜底寻路 → back_init_menu 卡住 |
+| 齿轮误匹配 | `re_start` 高频出现，齿轮资产匹配度高但不该在画面上 | 资产图片过于通用，非齿轮界面也被匹配 |
+| Mumu 断连崩溃 | `NemuIpc` 断连 + `AttributeError` Traceback | 模拟器连接不稳定或异常断开 |
+| 跳过换体/日常 | `开始执行 体力换饼` 和 `结束执行` 时间戳相同 | `skip_enkephalin=True` 配置导致函数直接 return |
+| 战斗完不前进 | 战斗胜利后 stuck，路线识别/奖励确认资产匹配失败 | 分辨率不匹配、主题包资产缺失 |
+| 截图超时恢复 | `check_times()` 触发 → `kill_game()` + `restart_game()` | 游戏进程卡死/窗口失去焦点导致截图一直超时 |
 
 ## 注意事项
 
 - **绝不改动日志文件本身** — 只读不写
 - **绝不删除日志文件** — 即使压缩报告已生成也不删源文件
-- **确认文件存在** — 每一步操作前先检查文件是否存在（`Read tool` 或 `ls` 或 `Test-Path`），不存在则跳过并说明
-- **`log_analyzer.py` 输出 UTF-8 编码的报告文件** — 用 `Read tool` 读取，不要在终端直接打印
-- **代码分析优先用 `Read tool`** — 精准读取相关行，避免大段加载
+- **确认文件存在** — 每一步操作前先检查文件是否存在，不存在则跳过并说明
+- **`log_analyzer.py` 输出 UTF-8 编码的报告文件** — 用 Read tool 读取，不要在终端直接打印
+- **代码分析优先用 Read tool** — 精准读取相关行，避免大段加载
 - **复现步骤必须可执行** — 不能写"未知"，至少写"在 X 环境下运行 Y 功能时卡死"
 - **修复建议优先用最小改动方案**
+- **引用代码时用 GitHub blob 行号链接**，例如 `<https://github.com/Small-tailqwq/AhabAssistantLimbusCompany/blob/<commit>/path/to/file.py#L123-L130>`**
