@@ -34,6 +34,17 @@ jobs:
               context.payload.issue.body || ""
             );
 
+      - name: Post initial analysis notice
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.payload.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "🤖 **AI 正在分析该 Issue...**\n\n感谢反馈！AI 正在自动分析日志和问题描述，请稍候。\n\n> 此分析由 AI 自动生成，最终判断请以开发者确认为准。"
+            });
+
       - name: Download attachments
         shell: bash
         env:
@@ -70,19 +81,28 @@ jobs:
 
             ## 必须执行的步骤（按顺序）
             1. 检查 .issue_assets/ 目录有无日志（在工作目录下）。
-            2. 有日志就分析内容；没有就基于描述分析。
-            3. 回复诊断评论在 Issue 中（opencode 会自动发布）。
+            2. 有日志则分析；没有则基于描述分析。
+            3. 回复诊断评论（opencode 会自动发布）。
             4. 执行 gh issue edit ${{ github.event.issue.number }} --add-label bug 或 --add-label enhancement 打标签。
 
+            ## 日志分析方法
+            读取日志时按以下策略：
+            - 先用 head 读开头 ~50 行，获取配置信息、版本号、运行模式等环境信息
+            - 再用 tail 读末尾 ~200 行，定位异常/崩溃/卡死的具体位置
+            - 注意：版本号以日志中**最后一次出现**的为准（开头可能是旧版本覆盖），用 grep 找 "版本号" 取最后一个匹配
+            - 理解问题后，有需要再按需 grep 关键时间段
+            - 不要从头到尾通读整个日志
+
             ## 约束
-            - 可以读文件（Read），但不要做全局搜索（Glob/Grep 禁用了大量搜索）。
-            - 如果必须看源码，先确认具体文件名再 Read。
-            - 不要做多轮不必要的大范围搜索。
+            - 可以 Read/head/tail/grep 文件，不要全局 Glob 搜索
+            - 看源码时先确认具体文件名再 Read
 
             ## 回复格式
             ## 自动诊断报告
+            > 🤖 此分析由 AI 自动生成，最终判断请以开发者确认为准。
+
             ### 问题概要
-            ### 运行场景
+            ### 运行场景（AALC 版本以日志最后出现为准）
             ### 日志分析
             ### 根因推测
             ### 修复建议
@@ -90,7 +110,7 @@ jobs:
 
             ## 注意事项
             - 没有日志也能分析描述
-            - 非 GitHub 附件的日志链接 → 礼貌引导按模板上传
+            - 非 GitHub 附件的日志 → 礼貌引导按模板上传
             - 不确定根因时说明需要什么额外信息
 
 
