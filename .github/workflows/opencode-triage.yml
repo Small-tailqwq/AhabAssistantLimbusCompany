@@ -21,7 +21,7 @@ jobs:
         with:
           script: |
             require("fs").writeFileSync(
-              "/tmp/issue_body.txt",
+              "${{ github.workspace }}/.issue_body.txt",
               context.payload.issue.body || ""
             );
 
@@ -30,21 +30,21 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mkdir -p /tmp/issue_assets
-          grep -oE 'https://github\.com/[^" )>]+' /tmp/issue_body.txt \
+          mkdir -p "${{ github.workspace }}/.issue_assets"
+          grep -oE 'https://github\.com/[^" )>]+' "${{ github.workspace }}/.issue_body.txt" \
             | grep -E '/(files|attachments)/' | sort -u \
             | while IFS= read -r url; do
             filename=$(basename "${url%%\?*}")
             echo "DL: $filename"
-            curl -sL --max-time 30 -o "/tmp/issue_assets/$filename" "$url" && {
+            curl -sL --max-time 30 -o "${{ github.workspace }}/.issue_assets/$filename" "$url" && {
               case "${filename,,}" in
-                *.zip) unzip -o "/tmp/issue_assets/$filename" -d /tmp/issue_assets/ 2>/dev/null \
-                       && rm "/tmp/issue_assets/$filename" ;;
+                *.zip) unzip -o "${{ github.workspace }}/.issue_assets/$filename" -d "${{ github.workspace }}/.issue_assets/" 2>/dev/null \
+                       && rm "${{ github.workspace }}/.issue_assets/$filename" ;;
               esac
             } || echo "FAIL: $url"
           done
           echo "=== Downloads ==="
-          ls -lh /tmp/issue_assets/ 2>/dev/null || echo "(no attachments found)"
+          ls -lh "${{ github.workspace }}/.issue_assets/" 2>/dev/null || echo "(no attachments found)"
 
       - uses: anomalyco/opencode/github@latest
         timeout-minutes: 5
@@ -61,7 +61,7 @@ jobs:
             你是 AALC 项目的自动化 Issue 诊断助手。Issue #${{ github.event.issue.number }}。
 
             ## 必须执行的步骤（按顺序）
-            1. 检查 /tmp/issue_assets/ 目录有无日志。
+            1. 检查 .issue_assets/ 目录有无日志（在工作目录下）。
             2. 有日志就分析内容；没有就基于描述分析。
             3. 回复诊断评论在 Issue 中（opencode 会自动发布）。
             4. 执行 gh issue edit ${{ github.event.issue.number }} --add-label bug 或 --add-label enhancement 打标签。
