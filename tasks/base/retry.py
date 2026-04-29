@@ -66,17 +66,31 @@ def check_times(start_time, timeout=90, logs=True):
         return False
 
 
-def retry():
-    """重试连接"""
-    start_time = time.time()
+_last_retry_time = 0.0
+_RETRY_THROTTLE_SECONDS = 5.0
+
+
+def retry(skip_screenshot=False):
+    """重试连接
+
+    Args:
+        skip_screenshot: 为 True 时跳过内部截图，复用调用者已有的截图
+    """
+    global _last_retry_time
+    now = time.time()
+    if now - _last_retry_time < _RETRY_THROTTLE_SECONDS:
+        return None
+    _last_retry_time = now
+
+    start_time = now
     while True:
         if auto.get_restore_time() is not None:
             start_time = max(start_time, auto.get_restore_time())
         if check_times(start_time):
             return False
-        # 自动截图
-        if auto.take_screenshot() is None:
-            continue
+        if not skip_screenshot:
+            if auto.take_screenshot() is None:
+                continue
         if auto.find_element("base/connecting_assets.png"):
             continue
         if position := auto.find_element("base/retry_countdown.png"):
