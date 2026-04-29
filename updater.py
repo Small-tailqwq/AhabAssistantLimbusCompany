@@ -21,10 +21,9 @@ class Updater:
 
         self.exe_path = os.path.abspath("./assets/binary/7za.exe")
         self.delete_folder_path = os.path.abspath("./assets/images")
-        self.changes_file_path = os.path.abspath("./update_temp/changes.json")
-
-        self.download_file_path = os.path.join(self.temp_path, self.file_name)
         self.extract_folder_path = os.path.join(self.temp_path, self.file_name.rsplit(".", 1)[0])
+        self.download_file_path = os.path.join(self.temp_path, self.file_name)
+        self.changes_file_path = os.path.join(self.extract_folder_path, "changes.json")
 
     def extract_file(self):
         """解压下载的文件。"""
@@ -50,14 +49,53 @@ class Updater:
                 input("解压失败，按回车键重新解压. . .多次失败请手动下载更新")
                 return False
 
+    def _build_manifest(self) -> set:
+        """构建新版本文件清单（相对路径集合），用于清理旧残留。"""
+        manifest = set()
+        for root, _dirs, files in os.walk(self.extract_folder_path):
+            for f in files:
+                rel_path = os.path.relpath(os.path.join(root, f), self.extract_folder_path)
+                manifest.add(rel_path)
+        return manifest
+
+    def _remove_stale_files(self, manifest: set):
+        """删除安装目录中不在新版本清单内的文件（保留用户数据）。"""
+        preserve_dirs = {"update_temp", "3rdparty", "theme_pack_weight", "__pycache__"}
+        preserve_files = {"config.yaml", "theme_pack_list.yaml"}
+
+        for root, dirs, files in os.walk(self.cover_folder_path):
+            rel_root = os.path.relpath(root, self.cover_folder_path)
+            if rel_root == ".":
+                rel_root = ""
+            # 跳过受保护的目录
+            parts = rel_root.replace("\\", "/").split("/") if rel_root else []
+            if any(p in preserve_dirs for p in parts):
+                continue
+
+            for f in files:
+                rel_path = os.path.join(rel_root, f).replace("\\", "/")
+                if rel_path in preserve_files:
+                    continue
+                if rel_path not in manifest:
+                    file_path = os.path.join(root, f)
+                    try:
+                        os.remove(file_path)
+                        print(f"删除旧残留文件: {rel_path}")
+                    except Exception as e:
+                        print(f"删除残留文件失败 {rel_path}: {e}")
+
     def cover_folder(self):
-        """覆盖安装最新版本的文件。"""
+        """覆盖安装最新版本的文件，并清理旧版本残留。"""
         if not os.path.exists(self.changes_file_path):
             try:
                 if os.path.exists(self.delete_folder_path):
                     shutil.rmtree(self.delete_folder_path)
             except Exception as e:
                 print(f"删除旧资源文件失败: {e}")
+
+        manifest = self._build_manifest()
+        print(f"新版本文件清单: {len(manifest)} 个文件")
+
         print("开始覆盖安装...")
         while True:
             try:
@@ -67,6 +105,9 @@ class Updater:
             except Exception as e:
                 print(f"覆盖安装失败: {e}")
                 input("按回车键重试. . . \n Press any key to continue")
+
+        self._remove_stale_files(manifest)
+        print("旧残留清理完成")
 
     def terminate_processes(self):
         """终止相关进程以准备更新。"""

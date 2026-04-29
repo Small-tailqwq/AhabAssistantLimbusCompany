@@ -1,3 +1,4 @@
+import hashlib
 import os  # 导入os模块以便操作文件路径
 import re
 import shutil
@@ -402,6 +403,25 @@ def update(assets_url):
                         mediator.update_progress.emit(progress)
 
         log.info("下载进度100%")
+
+        # 下载完成 → 校验 SHA256（适用于 GitHub 源；Mirror酱/旧版本无 hash 文件则跳过）
+        try:
+            hash_url = assets_url + ".sha256"
+            hash_resp = requests.get(hash_url, timeout=10)
+            hash_resp.raise_for_status()
+            expected_hash = hash_resp.text.strip()
+
+            actual_hash = hashlib.sha256()
+            with open(file_path, "rb") as f:
+                for chunk in iter(lambda: f.read(65536), b""):
+                    actual_hash.update(chunk)
+
+            if actual_hash.hexdigest() != expected_hash:
+                log.error(f"下载文件哈希校验失败: 期望 {expected_hash}, 实际 {actual_hash.hexdigest()}")
+                return
+            log.info("下载文件哈希校验通过")
+        except requests.exceptions.RequestException:
+            log.warning("无法获取哈希文件（旧版本或无 hash 文件），跳过校验")
 
         if "OCR" in file_name:
             exe_path = os.path.abspath("./assets/binary/7za.exe")

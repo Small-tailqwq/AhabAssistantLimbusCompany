@@ -1,4 +1,5 @@
 import argparse
+import hashlib
 import os
 import shutil
 import subprocess
@@ -94,3 +95,14 @@ for rel_path in redundant_files:
 
 # 压缩为7z文件
 subprocess.run(["7z", "a", "-mx=7", f"AALC_{version}.7z", "AALC/*"], cwd="./dist")
+
+# 生成SHA256哈希文件，供更新程序校验下载完整性
+archive_path = os.path.join("dist", f"AALC_{version}.7z")
+sha256 = hashlib.sha256()
+with open(archive_path, "rb") as f:
+    for chunk in iter(lambda: f.read(65536), b""):
+        sha256.update(chunk)
+hash_path = f"{archive_path}.sha256"
+with open(hash_path, "w") as f:
+    f.write(sha256.hexdigest())
+print(f"生成SHA256: {hash_path}")
