@@ -17,15 +17,6 @@ PASS_ROW_ACTION_PADDING = (150, 18, 25, 18)
 PASS_CLAIM_ORANGE_THRESHOLD = 0.12
 
 
-def normalize_coordinates(coordinates, tolerance=25):
-    normalized = []
-    for coordinate in sorted(coordinates, key=lambda item: (item[1], item[0])):
-        if any(abs(coordinate[0] - item[0]) <= tolerance and abs(coordinate[1] - item[1]) <= tolerance for item in normalized):
-            continue
-        normalized.append(coordinate)
-    return normalized
-
-
 def to_gray_image(image):
     if image is None or image.size == 0:
         return None
@@ -99,44 +90,6 @@ def orange_pixel_ratio(image):
     return float(np.mean(orange_mask))
 
 
-def get_pass_progress_crop_bounds(coordinate, screenshot_shape=None):
-    scale = cfg.set_win_size / 1440
-    x1 = int(coordinate[0] + 515 * scale)
-    y1 = int(coordinate[1] - 66 * scale)
-    x2 = int(coordinate[0] + 640 * scale)
-    y2 = int(coordinate[1] + 45 * scale)
-    if screenshot_shape is None:
-        screenshot_shape = np.array(auto.screenshot).shape
-    return (
-        max(0, x1),
-        max(0, y1),
-        min(screenshot_shape[1], x2),
-        min(screenshot_shape[0], y2),
-    )
-
-
-def extract_pass_progress_ratio(progress_crop):
-    if progress_crop.size == 0:
-        return None
-    ratio_pattern = re.compile(r"(\d+)\s*/\s*(\d+)")
-    gray = to_gray_image(progress_crop)
-    if gray is None:
-        return None
-    for threshold in (100, None):
-        if threshold is None:
-            candidate = to_rgb_image(progress_crop)
-        else:
-            _, candidate = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY)
-            candidate = to_rgb_image(candidate)
-        if candidate is None:
-            continue
-        result = ocr.run(candidate)
-        recognized_text = " ".join(result.txts) if result.txts else ""
-        if match := ratio_pattern.search(recognized_text):
-            return int(match.group(1)), int(match.group(2))
-    return None
-
-
 def extract_pass_progress_entries(screenshot):
     x1, y1, x2, y2 = get_pass_tasks_right_column_bbox(screenshot.shape)
     progress_crop = screenshot[y1:y2, x1:x2]
@@ -171,32 +124,6 @@ def extract_pass_progress_entries(screenshot):
     return []
 
 
-def get_pass_task_progress_ratio(coordinate):
-    screenshot = np.array(auto.screenshot)
-    x1, y1, x2, y2 = get_pass_progress_crop_bounds(coordinate, screenshot.shape)
-    progress_crop = screenshot[y1:y2, x1:x2]
-    return extract_pass_progress_ratio(progress_crop)
-
-
-def find_pass_reward_icon_positions(screenshot, threshold=0.8):
-    if screenshot is None or screenshot.size == 0:
-        return []
-    use_1440_base = ImageUtils.should_use_low_res_match_optimization()
-    template = ImageUtils.load_image("pass/pass_coin.png", resize=not use_1440_base)
-    if template is None:
-        return []
-    screenshot_gray = to_gray_image(screenshot)
-    if screenshot_gray is None:
-        return []
-    scale_to_1440 = 1.0
-    if use_1440_base:
-        screenshot_gray, scale_to_1440 = ImageUtils.normalize_screenshot_for_1440_matching(screenshot_gray)
-    coordinates = ImageUtils.match_template_with_multiple_targets(screenshot_gray, template, threshold)
-    if use_1440_base and coordinates:
-        coordinates = ImageUtils.restore_coordinates_from_1440_matching(coordinates, scale_to_1440)
-    return normalize_coordinates(coordinates)
-
-
 def analyze_pass_reward_rows(screenshot, threshold=0.8):
     rows = []
     for entry in extract_pass_progress_entries(screenshot):
@@ -223,9 +150,9 @@ def analyze_pass_reward_rows(screenshot, threshold=0.8):
     return rows
 
 
-def claim_visible_pass_coins(max_rounds=6):
+def claim_visible_pass_coins():
     claimed = False
-    for _ in range(max_rounds):
+    for _ in range(2):
         if auto.take_screenshot(gray=False) is None:
             continue
         screenshot = np.array(auto.screenshot)
@@ -233,17 +160,17 @@ def claim_visible_pass_coins(max_rounds=6):
         claimable_rows = [row for row in rows if row["claimable"]]
         if not claimable_rows:
             break
-        target_row = claimable_rows[0]
-        current, total = target_row["progress_ratio"]
-        log.debug(
-            f"通行证任务进度识别：坐标{target_row['click_coordinate']} -> "
-            f"{current}/{total}, orange={target_row['orange_ratio']:.3f}"
-        )
-        auto.mouse_click(*target_row["click_coordinate"])
-        sleep(0.2)
-        retry()
-        claimed = True
-        sleep(0.5)
+        for target_row in claimable_rows:
+            current, total = target_row["progress_ratio"]
+            log.debug(
+                f"通行证任务进度识别：坐标{target_row['click_coordinate']} -> "
+                f"{current}/{total}, orange={target_row['orange_ratio']:.3f}"
+            )
+            auto.mouse_click(*target_row["click_coordinate"])
+            sleep(0.2)
+            retry()
+            claimed = True
+            sleep(0.5)
     return claimed
 
 
