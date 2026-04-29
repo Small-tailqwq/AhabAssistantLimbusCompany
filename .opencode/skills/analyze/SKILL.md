@@ -106,8 +106,14 @@ uv run python .opencode/tools/log_analyzer.py <log_path>
 
 如果用户日志版本与当前主线代码明显不一致：
 - 确认用户版本，必要时切到对应 tag 复核旧逻辑
-- 若当前主线已修复，检查修复是否已进入 tag/release
-- 已发版建议升级，未发版建议等待 release
+- 若当前主线已修复，用 `gh release list --repo <owner>/<repo>` 检查修复是否已进入 release
+- **如果问题在新版 release 中已修复**：在修复建议中明确"此问题已在 vX.X.X 中修复，请升级到最新版"
+- 如果修复未发版：建议等待 next release
+
+如果用户反馈的问题在当前版本的代码中已经不存在（代码已被重写或修复）：
+- 检查用户版本和当前 latest release 版本
+- 如果用户版本远低于 latest → 明确建议升级
+- 例如：用户 V1.4.5 反馈的问题在 V1.4.9 已修复 → "请升级到 V1.4.9+"
 
 ### 第6步：形成诊断
 
@@ -138,6 +144,9 @@ uv run python .opencode/tools/log_analyzer.py <log_path>
 ### 调用链
 
 ## 修复建议
+
+> [!TIP]
+> 如果问题已在较新版本中修复，优先建议用户升级。
 
 ## 置信度
 - 高 / 中 / 低

@@ -12,7 +12,8 @@ jobs:
       (github.event_name == 'issues' && github.event.action == 'opened') ||
       (github.event_name == 'issue_comment' &&
        contains(github.event.comment.body, '/triage') &&
-       github.event.comment.user.login == 'Small-tailqwq')
+       github.event.comment.user.login == 'Small-tailqwq' &&
+       github.event.comment.user.type != 'Bot')
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -23,14 +24,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Configure git for opencode
+      - name: Set git identity (read-only analysis, no push)
         shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "opencode[bot]"
           git config user.email "opencode[bot]@users.noreply.github.com"
-          gh auth setup-git
 
       - name: Save issue body
         uses: actions/github-script@v7
@@ -89,8 +87,9 @@ jobs:
             1. 用 Skill tool 加载 `.opencode/skills/analyze/SKILL.md`（本地 analyze skill），获取详细的日志分析模式（无限循环检测、画面推断、调用链溯源等）。
             2. 检查 .issue_assets/ 目录有无日志。
             3. 有日志则按分析策略分析；没有则基于描述分析。
-            4. 回复诊断评论（opencode 会自动使用其 GitHub App token 发表评论）。
+            4. 回复诊断评论（opencode 会自动发表评论）。
             5. 执行 gh issue edit ${{ github.event.issue.number }} --add-label bug 或 --add-label enhancement 打标签。
+            6. 严禁：不要创建任何 git 分支，不要提交代码，不要创建或打开 Pull Request。你是一个只读分析助手，唯一的产出是 Issue 评论中的诊断报告。
 
             ## 日志分析策略
             - 先用 head 读开头 ~50 行获取配置/版本/运行模式
