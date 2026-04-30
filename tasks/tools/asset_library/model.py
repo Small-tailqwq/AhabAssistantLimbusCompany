@@ -3,7 +3,6 @@
 import hashlib
 import json
 import os
-import time
 
 import yaml
 
@@ -13,6 +12,8 @@ ASSET_IMAGES_ROOT = "assets/images"
 DATA_ROOT = "data/asset_library"
 LIBRARY_DIR = os.path.join(DATA_ROOT, "library")
 CACHE_FILE = os.path.join(DATA_ROOT, "scan_cache.json")
+
+_IMAGE_EXTENSIONS = (".png", ".webp", ".jpg", ".jpeg", ".bmp")
 
 
 CATEGORY_MAP = {
@@ -67,8 +68,8 @@ def _category_for_path(rel_path: str) -> str:
     else:
         inner = normalized
 
-    # Check mirror root png files first
-    if inner.startswith("mirror/") and inner.endswith(".png") and "/" not in inner[7:].rstrip(".png"):
+    # Check mirror root png files first (e.g. mirror/some_button.png, not mirror/shop/xx.png)
+    if inner.startswith("mirror/") and inner.count("/") == 1 and inner.lower().endswith(_IMAGE_EXTENSIONS):
         return "mirror_ui"
 
     for prefix, category in CATEGORY_MAP.items():
@@ -98,12 +99,12 @@ class AssetLibraryModel:
     """Thread-safe(ish) model for asset metadata management."""
 
     def __init__(self):
-        self._assets_cache: dict[str, list] = {}
+        self._assets_cache: dict[str, list[dict]] = {}
         self._dirty: set[str] = set()
 
     # --- YAML I/O ---
 
-    def _load_yaml(self, category: str) -> list:
+    def _load_yaml(self, category: str) -> list[dict]:
         if category in self._assets_cache:
             return self._assets_cache[category]
         yaml_name = _category_to_yaml(category)
@@ -111,7 +112,11 @@ class AssetLibraryModel:
         if os.path.exists(path):
             with open(path, "r", encoding="utf-8") as f:
                 data = yaml.safe_load(f)
-                result = data.get("assets", []) if data else []
+                if isinstance(data, dict) and "assets" in data:
+                    result = data["assets"]
+                else:
+                    log.warning(f"_load_yaml: {yaml_name} missing 'assets' key, returning empty")
+                    result = []
         else:
             result = []
         self._assets_cache[category] = result
@@ -128,7 +133,7 @@ class AssetLibraryModel:
     # --- Query ---
 
     def get_assets(self, category: str | None = None, tags: list[str] | None = None, search: str | None = None) -> list[dict]:
-        """Return filtered asset dicts with _category field added."""
+        """Return filtered asset dicts with _category field added (shallow copies)."""
         result = []
         if category:
             categories = [category]
@@ -139,35 +144,34 @@ class AssetLibraryModel:
 
         for cat in categories:
             for asset in self._load_yaml(cat):
-                asset["_category"] = cat
+                copy = dict(asset, _category=cat)
                 # Tag filter
                 if tags:
-                    asset_tags = set(asset.get("tags") or [])
+                    asset_tags = set(copy.get("tags") or [])
                     if not asset_tags.issuperset(tags):
                         continue
                 # Search filter
                 if search_lower:
                     needle = search_lower
-                    bn = (asset.get("business_name") or "").lower()
-                    n = (asset.get("note") or "").lower()
-                    f = (asset.get("file") or "").lower()
+                    bn = (copy.get("business_name") or "").lower()
+                    n = (copy.get("note") or "").lower()
+                    f = (copy.get("file") or "").lower()
                     if needle not in bn and needle not in n and needle not in f:
                         continue
-                result.append(asset)
+                result.append(copy)
 
         return result
 
     def get_asset(self, file_path: str) -> dict | None:
-        """Get a single asset by file path."""
+        """Get a single asset by file path (shallow copy)."""
         for cat in _CATEGORY_YAMLS:
             for asset in self._load_yaml(cat):
                 if asset.get("file") == file_path:
-                    asset["_category"] = cat
-                    return asset
+                    return dict(asset, _category=cat)
         return None
 
     def get_all_categories(self) -> list[str]:
-        return list(_CATEGORY_YAMLS.keys())
+        return list(_CATEGORY_YAMLS)
 
     # --- Mutation ---
 
@@ -231,61 +235,57 @@ class AssetLibraryModel:
         deleted = []
         all_scanned = []
 
-        total = 0
+        image_files = []
         for root, dirs, files in os.walk(ASSET_IMAGES_ROOT):
             for f in files:
-                if f.lower().endswith((".png", ".webp", ".jpg", ".jpeg", ".bmp")):
-                    total += 1
+                if f.lower().endswith(_IMAGE_EXTENSIONS):
+                    abspath = os.path.join(root, f)
+                    rel = os.path.relpath(abspath, ASSET_IMAGES_ROOT)
+                    image_files.append((abspath, rel.replace("\\", "/")))
 
-        count = 0
-        for root, dirs, files in os.walk(ASSET_IMAGES_ROOT):
-            for f in files:
-                if not f.lower().endswith((".png", ".webp", ".jpg", ".jpeg", ".bmp")):
-                    continue
-                abspath = os.path.join(root, f)
-                rel = os.path.relpath(abspath, ASSET_IMAGES_ROOT)
-                rel_forward = rel.replace("\\", "/")
-                found.add(rel_forward)
+        total = len(image_files)
 
-                ms = _file_to_mtime_size(abspath)
-                cached = cache.get(rel_forward, {})
-                if cached.get("mtime") == ms["mtime"] and cached.get("size") == ms["size"]:
-                    checksum = cached.get("checksum", "")
+        for count, (abspath, rel_forward) in enumerate(image_files, 1):
+            found.add(rel_forward)
+
+            ms = _file_to_mtime_size(abspath)
+            cached = cache.get(rel_forward, {})
+            if cached.get("mtime") == ms["mtime"] and cached.get("size") == ms["size"]:
+                checksum = cached.get("checksum", "")
+            else:
+                checksum = _file_to_checksum(abspath)
+                cache[rel_forward] = {**ms, "checksum": checksum}
+
+            category = _category_for_path(rel_forward)
+
+            if rel_forward not in existing_files:
+                asset = {
+                    "file": rel_forward,
+                    "business_name": "",
+                    "tags": [],
+                    "category": category,
+                    "note": "",
+                    "checksum": checksum,
+                }
+                if category == "uncategorized":
+                    all_scanned.append(asset)
                 else:
-                    checksum = _file_to_checksum(abspath)
-                    cache[rel_forward] = {**ms, "checksum": checksum}
+                    added.append(asset)
+            else:
+                exc = existing_files[rel_forward]
+                old_checksum = exc.get("checksum", "")
+                if old_checksum and old_checksum != checksum:
+                    changed.append(
+                        {
+                            "old": exc.copy(),
+                            "new_checksum": checksum,
+                            "new_file": rel_forward,
+                        }
+                    )
+                    cache[rel_forward]["checksum"] = checksum
 
-                category = _category_for_path(rel_forward)
-
-                if rel_forward not in existing_files:
-                    asset = {
-                        "file": rel_forward,
-                        "business_name": "",
-                        "tags": [],
-                        "category": category,
-                        "note": "",
-                        "checksum": checksum,
-                    }
-                    if category == "uncategorized":
-                        all_scanned.append(asset)
-                    else:
-                        added.append(asset)
-                else:
-                    exc = existing_files[rel_forward]
-                    old_checksum = exc.get("checksum", "")
-                    if old_checksum and old_checksum != checksum:
-                        changed.append(
-                            {
-                                "old": exc.copy(),
-                                "new_checksum": checksum,
-                                "new_file": rel_forward,
-                            }
-                        )
-                        cache[rel_forward]["checksum"] = checksum
-
-                count += 1
-                if progress_callback:
-                    progress_callback(count, total)
+            if progress_callback:
+                progress_callback(count, total)
 
         for rel, asset in existing_files.items():
             if rel not in found:
@@ -332,8 +332,11 @@ class AssetLibraryModel:
 
     def _load_scan_cache(self) -> dict:
         if os.path.exists(CACHE_FILE):
-            with open(CACHE_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
+            try:
+                with open(CACHE_FILE, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except json.JSONDecodeError:
+                log.warning("_load_scan_cache: cache file corrupted, ignoring")
         return {}
 
     def _save_scan_cache(self, cache: dict) -> None:
@@ -348,4 +351,7 @@ class AssetLibraryModel:
     # --- Reload ---
 
     def reload(self) -> None:
+        if self.has_dirty:
+            log.warning("reload() called with unsaved changes, flushing first")
+            self.flush_dirty()
         self._assets_cache.clear()
