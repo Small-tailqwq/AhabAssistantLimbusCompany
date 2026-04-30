@@ -100,9 +100,12 @@ class AssetGridWidget(QListWidget):
         self.clear()
         self._assets = assets
         self._loaded = 0
-        self._load_batch()
+        if len(assets) <= self._batch_size:
+            self._load_batch(final=True)
+        else:
+            self._load_batch()
 
-    def _load_batch(self):
+    def _load_batch(self, final=False):
         end = min(self._loaded + self._batch_size, len(self._assets))
         for i in range(self._loaded, end):
             asset = self._assets[i]
@@ -126,6 +129,11 @@ class AssetGridWidget(QListWidget):
             )
             self.addItem(item)
         self._loaded = end
+
+        if not final and end < len(self._assets):
+            from PySide6.QtWidgets import QApplication
+
+            QApplication.processEvents()
 
     def _on_scroll(self, value):
         scrollbar = self.verticalScrollBar()

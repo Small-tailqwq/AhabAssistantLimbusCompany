@@ -137,7 +137,9 @@ class AssetManager(QWidget):
         changed = len(diff.get("changed", []))
         deleted = len(diff.get("deleted", []))
 
-        self._refresh_grid()
+        self.status_bar.showMessage("正在加载缩略图...")
+        self._do_refresh_grid()
+
         self.progress_bar.setVisible(False)
         self.refresh_btn.setEnabled(True)
 
@@ -152,7 +154,7 @@ class AssetManager(QWidget):
         if msg_parts:
             self.status_bar.showMessage(", ".join(msg_parts))
         else:
-            self.status_bar.showMessage("扫描完成，无变化")
+            self.status_bar.showMessage("就绪")
 
     def _on_scan_error(self, error_msg):
         self.progress_bar.setVisible(False)
@@ -163,14 +165,21 @@ class AssetManager(QWidget):
     # --- Grid refresh ---
 
     def _refresh_grid(self):
+        self._do_refresh_grid()
+        total = self._total_count()
+        assets = getattr(self, "_cached_asset_count", 0)
+        self.status_bar.showMessage(f"共 {total} 个资产  |  筛选结果 {assets}")
+
+    def _do_refresh_grid(self):
+        from PySide6.QtWidgets import QApplication
+
         category = getattr(self, "_active_category", None)
         search = self.search_bar.text().strip() or None
         tags = self._active_tags()
         assets = self.model.get_assets(category=category, tags=tags, search=search)
+        self._cached_asset_count = len(assets)
         self.grid.set_assets(assets)
-
-        total = self._total_count()
-        self.status_bar.showMessage(f"共 {total} 个资产  |  筛选结果 {len(assets)}")
+        QApplication.processEvents()
 
     def _total_count(self) -> int:
         count = 0
