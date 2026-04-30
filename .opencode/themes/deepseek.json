@@ -1,0 +1,236 @@
+{
+  "$schema": "https://opencode.ai/theme.json",
+  "defs": {
+    "void": "#0a0c14",
+    "abyss": "#0e101c",
+    "cinder": "#131520",
+    "basalt": "#191c2a",
+    "slate": "#222636",
+    "graphite": "#2d3142",
+    "steel": "#3a3f52",
+    "iron": "#4a4f64",
+    "silver": "#6c7288",
+    "mist": "#8e95ae",
+    "chalk": "#b4bcd0",
+    "frost": "#d0d6e4",
+    "snow": "#e8ecf4",
+    "deepseek": "#4d6bfe",
+    "seek": "#5b7eff",
+    "stream": "#3d5cf0",
+    "mind": "#6988ff",
+    "wave": "#7b98ff",
+    "cove": "#3a98d6",
+    "tide": "#52aee8",
+    "azure": "#38bdf8",
+    "emerald": "#34d399",
+    "jade": "#2ea87a",
+    "ruby": "#f43f5e",
+    "rose": "#fb7185",
+    "amber": "#f59e0b",
+    "gold": "#f7b955",
+    "orchid": "#a78bfa",
+    "violet": "#8b5cf6"
+  },
+  "theme": {
+    "primary": {
+      "dark": "deepseek",
+      "light": "deepseek"
+    },
+    "secondary": {
+      "dark": "cove",
+      "light": "stream"
+    },
+    "accent": {
+      "dark": "azure",
+      "light": "cove"
+    },
+    "error": {
+      "dark": "ruby",
+      "light": "ruby"
+    },
+    "warning": {
+      "dark": "amber",
+      "light": "amber"
+    },
+    "success": {
+      "dark": "emerald",
+      "light": "jade"
+    },
+    "info": {
+      "dark": "wave",
+      "light": "stream"
+    },
+    "text": {
+      "dark": "frost",
+      "light": "void"
+    },
+    "textMuted": {
+      "dark": "silver",
+      "light": "iron"
+    },
+    "background": {
+      "dark": "void",
+      "light": "snow"
+    },
+    "backgroundPanel": {
+      "dark": "abyss",
+      "light": "frost"
+    },
+    "backgroundElement": {
+      "dark": "cinder",
+      "light": "chalk"
+    },
+    "border": {
+      "dark": "basalt",
+      "light": "mist"
+    },
+    "borderActive": {
+      "dark": "slate",
+      "light": "silver"
+    },
+    "borderSubtle": {
+      "dark": "basalt",
+      "light": "chalk"
+    },
+    "diffAdded": {
+      "dark": "emerald",
+      "light": "jade"
+    },
+    "diffRemoved": {
+      "dark": "ruby",
+      "light": "ruby"
+    },
+    "diffContext": {
+      "dark": "silver",
+      "light": "steel"
+    },
+    "diffHunkHeader": {
+      "dark": "graphite",
+      "light": "mist"
+    },
+    "diffHighlightAdded": {
+      "dark": "emerald",
+      "light": "jade"
+    },
+    "diffHighlightRemoved": {
+      "dark": "ruby",
+      "light": "ruby"
+    },
+    "diffAddedBg": {
+      "dark": "#0a2818",
+      "light": "#d1fae5"
+    },
+    "diffRemovedBg": {
+      "dark": "#280a0e",
+      "light": "#ffe4e6"
+    },
+    "diffContextBg": {
+      "dark": "cinder",
+      "light": "frost"
+    },
+    "diffLineNumber": {
+      "dark": "graphite",
+      "light": "mist"
+    },
+    "diffAddedLineNumberBg": {
+      "dark": "#0a2818",
+      "light": "#d1fae5"
+    },
+    "diffRemovedLineNumberBg": {
+      "dark": "#280a0e",
+      "light": "#ffe4e6"
+    },
+    "markdownText": {
+      "dark": "frost",
+      "light": "void"
+    },
+    "markdownHeading": {
+      "dark": "seek",
+      "light": "deepseek"
+    },
+    "markdownLink": {
+      "dark": "cove",
+      "light": "stream"
+    },
+    "markdownLinkText": {
+      "dark": "wave",
+      "light": "mind"
+    },
+    "markdownCode": {
+      "dark": "emerald",
+      "light": "jade"
+    },
+    "markdownBlockQuote": {
+      "dark": "silver",
+      "light": "steel"
+    },
+    "markdownEmph": {
+      "dark": "rose",
+      "light": "ruby"
+    },
+    "markdownStrong": {
+      "dark": "gold",
+      "light": "amber"
+    },
+    "markdownHorizontalRule": {
+      "dark": "basalt",
+      "light": "mist"
+    },
+    "markdownListItem": {
+      "dark": "seek",
+      "light": "deepseek"
+    },
+    "markdownListEnumeration": {
+      "dark": "cove",
+      "light": "stream"
+    },
+    "markdownImage": {
+      "dark": "seek",
+      "light": "deepseek"
+    },
+    "markdownImageText": {
+      "dark": "cove",
+      "light": "stream"
+    },
+    "markdownCodeBlock": {
+      "dark": "frost",
+      "light": "void"
+    },
+    "syntaxComment": {
+      "dark": "silver",
+      "light": "iron"
+    },
+    "syntaxKeyword": {
+      "dark": "wave",
+      "light": "stream"
+    },
+    "syntaxFunction": {
+      "dark": "seek",
+      "light": "deepseek"
+    },
+    "syntaxVariable": {
+      "dark": "frost",
+      "light": "void"
+    },
+    "syntaxString": {
+      "dark": "emerald",
+      "light": "jade"
+    },
+    "syntaxNumber": {
+      "dark": "orchid",
+      "light": "violet"
+    },
+    "syntaxType": {
+      "dark": "cove",
+      "light": "stream"
+    },
+    "syntaxOperator": {
+      "dark": "wave",
+      "light": "stream"
+    },
+    "syntaxPunctuation": {
+      "dark": "chalk",
+      "light": "iron"
+    }
+  }
+}
