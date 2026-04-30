@@ -62,9 +62,9 @@ try:
                 png_converted += 1
                 os.remove(png_path)
     if png_converted:
-        print(f"PNG→WebP converted {png_converted} files, saved {png_saved / 1_000_000:.1f} MB")
+        print(f"PNG->WebP converted {png_converted} files, saved {png_saved / 1_000_000:.1f} MB")
 except ImportError:
-    print("Warning: Pillow not available, skipping PNG→WebP conversion")
+    print("Warning: Pillow not available, skipping PNG->WebP conversion")
 
 # 字体子集化：扫描源码中的 CJK 字符，裁剪 dist 中的字体
 try:
