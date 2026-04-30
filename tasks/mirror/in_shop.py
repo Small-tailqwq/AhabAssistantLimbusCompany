@@ -1,3 +1,5 @@
+import os
+from datetime import datetime
 from time import sleep
 
 from module.automation import auto
@@ -8,6 +10,21 @@ from tasks.base.back_init_menu import back_init_menu
 from tasks.base.retry import retry
 from tasks.mirror import fusion_result, must_be_abandoned, must_purchase
 from utils.image_utils import ImageUtils
+
+
+def _is_shop_debug_enabled():
+    return bool(cfg.get_value("debug_mode", False) and cfg.get_value("debug_shop", False))
+
+
+def _shop_debug_save(step_name):
+    if not _is_shop_debug_enabled():
+        return
+    debug_dir = "logs/shop_debug"
+    os.makedirs(debug_dir, exist_ok=True)
+    ts = datetime.now().strftime("%H%M%S_%f")[:13]
+    if auto.screenshot:
+        auto.screenshot.save(f"{debug_dir}/{ts}_{step_name}.png")
+    log.info(f"[商店调试] {step_name}")
 
 
 class Shop:
@@ -1377,6 +1394,18 @@ class Shop:
             loop_count = 30
             auto.model = "clam"
             while True:
+                loop_count -= 1
+                if loop_count < 20:
+                    auto.model = "normal"
+                if loop_count < 10:
+                    auto.model = "aggressive"
+                    auto.mouse_click_blank(times=3)
+                if loop_count < 0:
+                    _shop_debug_save("leave_shop_failed")
+                    log.error("无法退出商店,尝试回到初始界面")
+                    back_init_menu()
+                    break
+
                 # 自动截图
                 if auto.take_screenshot() is None:
                     continue
@@ -1386,22 +1415,13 @@ class Shop:
                 if auto.find_element("mirror/road_in_mir/legend_assets.png"):
                     break
                 if auto.click_element("mirror/shop/leave_shop_confirm_assets.png"):
+                    _shop_debug_save("leave_shop_confirm_clicked")
                     continue
                 if auto.click_element("mirror/shop/leave_assets.png"):
                     sleep(1)
                     continue
                 if auto.click_element("mirror/shop/heal_sinner/heal_sinner_return_assets.png"):
                     continue
-                loop_count -= 1
-                if loop_count < 20:
-                    auto.model = "normal"
-                if loop_count < 10:
-                    auto.model = "aggressive"
-                    auto.mouse_click_blank(times=3)
-                if loop_count < 0:
-                    log.error("无法退出商店,尝试回到初始界面")
-                    back_init_menu()
-                    break
         except self.RestartGame:
             log.error("执行商店操作期间出现错误，尝试重启游戏")
             return
@@ -1415,7 +1435,10 @@ class Shop:
             else:
                 money_bbox = ImageUtils.get_bbox(ImageUtils.load_image("mirror/shop/my_money_bbox.png"))
             my_money = auto.get_text_from_screenshot(money_bbox)
-            if my_money:  # 避免非空
+            if _is_shop_debug_enabled():
+                _shop_debug_save(f"get_cost_{'heal' if in_heal else 'shop'}_bbox")
+                log.info(f"[商店调试] OCR原始结果: {my_money}, 坐标: {money_bbox}")
+            if my_money:
                 my_remaining_money = int(my_money[0])
             if not my_money or not isinstance(my_remaining_money, int):
                 log.error("获取剩余金钱失败")
