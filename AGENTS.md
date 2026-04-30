@@ -16,7 +16,7 @@ uv run python .\scripts\translation_files_build.py       # 刷新 ts 源
 uv run python .\scripts\translation_files_compile.py     # 编译 ts → qm
 ```
 
-> **Windows CI 编码陷阱**：`scripts/build.py` 中的 `print()` 如果包含中文，在 GitHub Actions Windows runner（cp1252 终端）会触发 `UnicodeEncodeError`。所有输出文本必须使用 ASCII-safe 的英文，不要用中文。
+> **Windows CI 编码陷阱**：`scripts/build.py` 中的 `print()` 如果包含非 ASCII 字符（中文、`→`、`✓` 等），在 GitHub Actions Windows runner（cp1252 终端）会触发 `UnicodeEncodeError` 导致构建失败。所有输出文本必须使用纯 ASCII（英文 + 基本符号）。`v1.5.0-canary.5` 因 `→` 字符构建失败，浪费一个版本号。
 
 ## 项目现实
 

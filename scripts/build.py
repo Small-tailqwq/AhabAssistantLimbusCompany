@@ -220,7 +220,6 @@ redundant_files = [
     "PySide6/Qt6RemoteObjects.dll",
     "PySide6/Qt6RemoteObjectsQml.dll",
     "PySide6/Qt6UiTools.dll",
-    "PySide6/Qt6Xml.dll",
     "PySide6/Qt6ShaderTools.dll",
     # Qt Quick 相关剩余
     "PySide6/Qt6QuickWidgets.dll",

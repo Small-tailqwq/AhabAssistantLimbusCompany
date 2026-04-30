@@ -2,6 +2,18 @@
 
 ## [Unreleased] — Canary
 
+## [1.5.0-canary.7] — 2026-05-01
+
+### 构建修复
+- fix: 修复 `Qt6Xml.dll` 被误删导致 dist 构建产物启动报错 (ImportError)
+- fix: 从冗余文件列表移除 `PySide6/Qt6Xml.dll`，`qfluentwidgets.common.icon` 运行时依赖它
+
+## [1.5.0-canary.6] — 2026-04-30
+
+### CI 修复
+- fix: 修复 build.py 中非 ASCII 字符 (`→`) 导致 Windows CI 构建失败 (UnicodeEncodeError)
+- docs: 更新 AGENTS.md 编码陷阱警告，补充具体案例
+
 ## [1.5.0-canary.5] — 2026-04-30
 
 ### 资产管理器 (Asset Manager)
