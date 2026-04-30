@@ -544,6 +544,7 @@ class MainWindow(FramelessWindow):
         QApplication.processEvents()
 
         self.farming_interface.interface_left.refresh_config_display()
+        self.farming_interface.interface_center.mirror.refresh_from_cfg()
 
         old = self.setting_interface
         idx = self.stackedWidget.indexOf(old)

@@ -88,9 +88,8 @@ def retry(skip_screenshot=False):
             start_time = max(start_time, auto.get_restore_time())
         if check_times(start_time):
             return False
-        if not skip_screenshot:
-            if auto.take_screenshot() is None:
-                continue
+        if auto.take_screenshot() is None:
+            continue
         if auto.find_element("base/connecting_assets.png"):
             continue
         if position := auto.find_element("base/retry_countdown.png"):

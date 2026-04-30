@@ -204,9 +204,10 @@ class ImageUtils:
         :param threshold: float，定义有效像素的阈值，默认为0。
         :return tuple: (xmin, ymin, xmax, ymax) 表示有效区域的边界框坐标。
         """
-        # 检查图像是否有3个通道（RGB），如果有，则转换为灰度图像
-        if ImageUtils.image_channel(image) == 3:
-            image = np.max(image, axis=2)
+        # 检查图像是否有多个通道，如果有，则转换为单通道灰度
+        ch = ImageUtils.image_channel(image)
+        if ch >= 3:
+            image = np.max(image[:, :, :3], axis=2)
         # 计算在x轴方向上有效像素的投影，并找到投影大于阈值的像素列
         x = np.where(np.max(image, axis=0) > threshold)[0]
         # 计算在y轴方向上有效像素的投影，并找到投影大于阈值的像素行

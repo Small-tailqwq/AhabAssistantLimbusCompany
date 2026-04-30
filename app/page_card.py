@@ -94,6 +94,9 @@ class PageCard(QFrame):
         self.pivot.setItemText("general", self.tr("常规设置"))
         self.pivot.setItemText("advanced", self.tr("高级设置"))
 
+    def refresh_from_cfg(self):
+        pass
+
     @classmethod
     def tr(cls, text):
         return QCoreApplication.translate("PageCard", text)
@@ -701,6 +704,16 @@ class PageMirror(PageCard):
                 team.order.setText(str(teams_order[number - 1]))
             else:
                 team.order.setText("")
+
+    def refresh_from_cfg(self):
+        self.get_setting()
+        for cb in self.findChildren(BaseCheckBox):
+            val = cfg.get_value(cb.config_name)
+            if val is not None:
+                cb.check_box.setChecked(bool(val))
+        val = cfg.get_value(self.mirror_count.box.config_name)
+        if val is not None:
+            self.mirror_count.box.spin_box.setValue(val)
 
     def connect_mediator(self):
         # 连接所有可能信号

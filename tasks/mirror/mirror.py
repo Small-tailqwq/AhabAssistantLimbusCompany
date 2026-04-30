@@ -1281,7 +1281,7 @@ class Mirror:
             # 某些随机事件在点击 continue 后会进入“应该让谁去呢”的罪人判定层，
             # 此时 skip 会灰掉，advantage_check 又可能误匹配，因此要优先按判定界面处理。
             if choice_screen_visible or decision_feature_visible:
-                if select_first_option_visible:
+                if select_first_option_visible and not any((continue_visible, proceed_visible, commence_visible, commence_battle_visible)):
                     auto.click_element("event/select_first_option_assets.png")
                     continue
                 if not any((continue_visible, proceed_visible, commence_visible, commence_battle_visible)):
