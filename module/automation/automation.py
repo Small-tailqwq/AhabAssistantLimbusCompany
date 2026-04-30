@@ -524,7 +524,7 @@ class Automation(metaclass=SingletonMeta):
             template = ImageUtils.load_image(target, resize=not use_1440_base)
             if template is None:
                 return []
-            if target.endswith("assets.png"):
+            if target.endswith(("assets.png", "assets.webp")):
                 bbox = ImageUtils.get_bbox(template)
                 template = ImageUtils.crop(template, bbox)
             else:
@@ -718,7 +718,7 @@ class Automation(metaclass=SingletonMeta):
                     if log_result:
                         log.debug(f"无法加载图片: {target}", stacklevel=addtional_stack + 3)
                     return None
-                if target.endswith("assets.png"):
+                if target.endswith(("assets.png", "assets.webp")):
                     bbox = ImageUtils.get_bbox(template)
                     template = ImageUtils.crop(template, bbox)
                 else:
@@ -750,7 +750,7 @@ class Automation(metaclass=SingletonMeta):
                         resize=not use_1440_base,
                     )
                     if default_template is not None:
-                        if target.endswith("assets.png"):
+                        if target.endswith(("assets.png", "assets.webp")):
                             default_bbox = ImageUtils.get_bbox(default_template)
                             default_template = ImageUtils.crop(default_template, default_bbox)
                         else:

@@ -7,8 +7,8 @@ from PySide6.QtWidgets import QApplication, QWidget
 
 from module.logger import log
 from tasks.base.script_task_scheme import init_game
-from tasks.tools.infinite_battle import InfiniteBattles
 from tasks.tools.asset_manager import AssetManager
+from tasks.tools.infinite_battle import InfiniteBattles
 from tasks.tools.issue_replay import IssueReplay
 from tasks.tools.production_module import ProductionModule
 from tasks.tools.screenshot_module import ScreenshotGet

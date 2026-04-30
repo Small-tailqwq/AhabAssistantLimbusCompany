@@ -12,6 +12,15 @@ from utils.path_manager import path_manager
 
 class ImageUtils:
     @staticmethod
+    def resolve_asset_path(path: str) -> str:
+        """解析资产路径，优先 .webp，回退 .png。用于 QPixmap 等不经过 load_image 的场景。"""
+        if path.endswith(".png"):
+            webp = path[:-4] + ".webp"
+            if os.path.exists(webp):
+                return webp
+        return path
+
+    @staticmethod
     def should_use_low_res_match_optimization() -> bool:
         return bool(getattr(cfg, "experimental_low_res_match", False) and getattr(cfg, "set_win_size", 1440) < 1080)
 
@@ -59,6 +68,19 @@ class ImageUtils:
         return restored
 
     @staticmethod
+    def _resolve_image_path(image_path):
+        """在 pic_path 搜索链中查找图片，优先 .webp，回退 .png。"""
+        webp_path = image_path
+        if image_path.endswith(".png"):
+            webp_path = image_path[:-4] + ".webp"
+        for path in path_manager.pic_path:
+            for candidate in (webp_path, image_path):
+                img_path = os.path.join(f"./assets/images/{path}/{candidate}")
+                if os.path.exists(img_path):
+                    return img_path, path
+        return None, None
+
+    @staticmethod
     def load_image(image_path, resize=True, gray=True, return_path=False):
         """
         加载图片，并根据指定区域裁剪图片。
@@ -69,14 +91,8 @@ class ImageUtils:
         :return: 图片数组；若 return_path=True，则返回 (图片数组, 路径名)。
         """
         try:
-            img_path = None
-            selected_path = None
-            for path in path_manager.pic_path:
-                img_path = os.path.join(f"./assets/images/{path}/{image_path}")
-                if os.path.exists(img_path):
-                    selected_path = path
-                    break
-            if img_path is None or not os.path.exists(img_path):
+            img_path, selected_path = ImageUtils._resolve_image_path(image_path)
+            if img_path is None:
                 log.error(f"未找到图片： {image_path} ")
                 return (None, None) if return_path else None
             # 使用上下文管理器打开图片文件，确保文件对象及时关闭
@@ -98,26 +114,34 @@ class ImageUtils:
     @staticmethod
     def check_default_path_exists(image_path):
         """检查图片在默认路径（非 dark）中是否存在。"""
+        webp_path = image_path
+        if image_path.endswith(".png"):
+            webp_path = image_path[:-4] + ".webp"
         for path in path_manager.pic_path:
             if path_manager.is_path_dark(path):
                 continue
-            img_path = os.path.join(f"./assets/images/{path}/{image_path}")
-            if os.path.exists(img_path):
-                return True, path
+            for candidate in (webp_path, image_path):
+                img_path = os.path.join(f"./assets/images/{path}/{candidate}")
+                if os.path.exists(img_path):
+                    return True, path
         return False, None
 
     @staticmethod
     def load_from_specific_path(image_path, target_path, resize=True):
         """从指定路径加载图片。"""
-        img_path = os.path.join(f"./assets/images/{target_path}/{image_path}")
-        if not os.path.exists(img_path):
-            return None
-        try:
-            with Image.open(img_path) as img:
-                return ImageUtils._prepare_loaded_image(np.array(img), resize)
-        except Exception as e:
-            log.error(f"从指定路径加载图片失败: {e}")
-            return None
+        webp_path = image_path
+        if image_path.endswith(".png"):
+            webp_path = image_path[:-4] + ".webp"
+        for candidate in (webp_path, image_path):
+            img_path = os.path.join(f"./assets/images/{target_path}/{candidate}")
+            if os.path.exists(img_path):
+                try:
+                    with Image.open(img_path) as img:
+                        return ImageUtils._prepare_loaded_image(np.array(img), resize)
+                except Exception as e:
+                    log.error(f"从指定路径加载图片失败: {e}")
+                    return None
+        return None
 
     @staticmethod
     def _prepare_loaded_image(image, resize, gray=True):

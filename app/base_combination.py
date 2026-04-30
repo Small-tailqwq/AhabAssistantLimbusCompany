@@ -65,6 +65,7 @@ from module.logger import log
 from module.my_error.my_error import settingsTypeError
 from module.update.check_update import check_update
 from utils.utils import decrypt_string, encrypt_string, get_timezone
+from utils.image_utils import ImageUtils
 
 
 class ToolCheckButton(ToolButton):
@@ -492,7 +493,7 @@ class SinnerSelect(QFrame):
             f"""
             QFrame {{
                 background-color: transparent;
-                border-image: url({img_path}/Sinner.png) 0 0 0 0 stretch stretch;
+                border-image: url({ImageUtils.resolve_asset_path(img_path + "/Sinner.png")}) 0 0 0 0 stretch stretch;
                 border-width: 0px;
             }}"""
         )
@@ -531,14 +532,14 @@ class SinnerSelect(QFrame):
         # Frame Overlay
         self.frame_overlay = QLabel(self)
         self.frame_overlay.setAttribute(Qt.WA_TransparentForMouseEvents)
-        frame_pixmap = QPixmap(f"{ui_img_path}/FrameOverlay.png")
+        frame_pixmap = QPixmap(ImageUtils.resolve_asset_path(f"{ui_img_path}/FrameOverlay.png"))
         self.frame_overlay.setPixmap(frame_pixmap)
         self.frame_overlay.setScaledContents(True)
 
         # Hover Overlay
         self.hover_overlay = QLabel(self)
         self.hover_overlay.setAttribute(Qt.WA_TransparentForMouseEvents)
-        hover_pixmap = QPixmap(f"{ui_img_path}/HoverOverlay.png")
+        hover_pixmap = QPixmap(ImageUtils.resolve_asset_path(f"{ui_img_path}/HoverOverlay.png"))
         self.hover_overlay.setPixmap(hover_pixmap)
         self.hover_overlay.setScaledContents(True)
 
@@ -642,7 +643,7 @@ class SinnerSelect(QFrame):
                 number = int(text)
                 if number >= 8:
                     # BACKUP: Teal style
-                    banner_pixmap = QPixmap("./assets/app/sinner/ui_components/SinnerBackup.png")
+                    banner_pixmap = QPixmap(ImageUtils.resolve_asset_path("./assets/app/sinner/ui_components/SinnerBackup.png"))
                     self.number_label.setStyleSheet(
                         """
                         color: rgb(34, 255, 227);
@@ -652,7 +653,7 @@ class SinnerSelect(QFrame):
                     self.number_glow_effect.setColor(QColor(7, 104, 92))
                 else:
                     # SELECTED: Amber style
-                    banner_pixmap = QPixmap("./assets/app/sinner/ui_components/SinnerSelected.png")
+                    banner_pixmap = QPixmap(ImageUtils.resolve_asset_path("./assets/app/sinner/ui_components/SinnerSelected.png"))
                     self.number_label.setStyleSheet(
                         """
                         color: rgb(255, 185, 0);
@@ -663,7 +664,7 @@ class SinnerSelect(QFrame):
                 self.banner_label.setPixmap(banner_pixmap)
             except ValueError:
                 # Fallback if text is not a number
-                banner_pixmap = QPixmap("./assets/app/sinner/ui_components/SinnerSelected.png")
+                banner_pixmap = QPixmap(ImageUtils.resolve_asset_path("./assets/app/sinner/ui_components/SinnerSelected.png"))
                 self.banner_label.setPixmap(banner_pixmap)
                 # Fallback Glow
                 self.number_glow_effect.setColor(QColor(254, 95, 0))

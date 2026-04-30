@@ -26,6 +26,7 @@ from app.base_tools import BaseSpinBox
 from app.card.messagebox_custom import MessageBoxConfirm
 from module import THEME_PACK_LIST_EXAMPLE_PATH
 from module.config import cfg, theme_list
+from utils.image_utils import ImageUtils
 
 # 英文key到中文名称的映射表（普通模式）
 THEME_PACK_NAME_MAP = {
@@ -268,7 +269,7 @@ def get_image_path(pack_key, is_hard=False, is_cn=False):
     pack_key_str = str(pack_key)
     image_name = image_map.get(pack_key_str, "")
     if image_name:
-        return f"./assets/app/theme_packs/{image_name}"
+        return ImageUtils.resolve_asset_path(f"./assets/app/theme_packs/{image_name}")
     return ""
 
 

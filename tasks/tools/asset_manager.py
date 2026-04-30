@@ -3,11 +3,11 @@
 import os
 import shutil
 
-from PySide6.QtCore import QTimer, Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
-    QLabel,
+    QInputDialog,
     QLineEdit,
     QMessageBox,
     QProgressBar,
@@ -16,8 +16,6 @@ from PySide6.QtWidgets import (
     QStatusBar,
     QVBoxLayout,
     QWidget,
-    QFileDialog,
-    QInputDialog,
 )
 
 from module.logger import log
@@ -25,11 +23,11 @@ from tasks.tools.asset_library.model import AssetLibraryModel, _file_to_checksum
 from tasks.tools.asset_library.recycle import RecycleManager, _asset_key_from_path
 from tasks.tools.asset_library.scan_worker import ScanWorker
 from tasks.tools.asset_library.widgets import (
+    ASSETS_ROOT,
     AssetDetailPanel,
     AssetGridWidget,
     CategoryTree,
     VersionHistoryDialog,
-    ASSETS_ROOT,
 )
 
 

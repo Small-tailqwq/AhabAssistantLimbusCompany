@@ -1,5 +1,7 @@
 # AhabAssistantLimbusCompany — Agent 指引
 
+`origin` → Small-tailqwq/AhabAssistantLimbusCompany，`upstream` → KIYI671/AhabAssistantLimbusCompany。
+
 ## 快速命令
 
 ```ps1

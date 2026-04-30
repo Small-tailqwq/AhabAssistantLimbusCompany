@@ -117,7 +117,7 @@ class RecycleManager:
             reason = f"Archiving current version before restoring v{version}"
             self.archive(original_path, reason=reason)
         else:
-            log.info(f"RecycleManager.restore: original file missing, restoring from scratch")
+            log.info("RecycleManager.restore: original file missing, restoring from scratch")
 
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         shutil.copy2(src, dest)

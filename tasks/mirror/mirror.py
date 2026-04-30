@@ -352,7 +352,7 @@ class Mirror:
                 break
 
             # 选择楼层主题包的情况
-            if auto.find_element("mirror/theme_pack/feature_theme_pack_assets.png"):
+            if auto.find_element("mirror/theme_pack/feature_theme_pack_assets.png", threshold=0.75):
                 sleep(2)
                 select_theme_pack(self.hard_switch, self.floor, self.team_order, self.use_custom_theme_pack_weight)
                 if self.re_formation_each_floor:

@@ -9,25 +9,23 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QDragEnterEvent, QDropEvent, QIcon, QImageReader, QPixmap
 from PySide6.QtWidgets import (
     QDialog,
+    QFileDialog,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QListWidget,
     QListWidgetItem,
     QMenu,
+    QMessageBox,
     QPushButton,
     QTextEdit,
     QTreeWidget,
     QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
-    QFileDialog,
-    QMessageBox,
-    QInputDialog,
 )
 
-from module.logger import log
-from tasks.tools.asset_library.model import AssetLibraryModel, ASSET_IMAGES_ROOT
+from tasks.tools.asset_library.model import ASSET_IMAGES_ROOT
 from tasks.tools.asset_library.recycle import RecycleManager, _asset_key_from_path
 
 ASSETS_ROOT = os.path.abspath(ASSET_IMAGES_ROOT)

@@ -538,6 +538,9 @@ class ConfigModel(BaseModel):
     debug_retry: bool = False
     """重试调试：在尝试退出、重启镜牢时输出识别情况的日志断点"""
 
+    debug_shop: bool = False
+    """商店调试：输出商店各操作的详细识别和点击日志"""
+
     experimental_keep_screen_awake: bool = False
     """运行期间阻止系统与显示器休眠，任务结束自动恢复"""
 
