@@ -2,6 +2,37 @@
 
 ## [Unreleased] — Canary
 
+## [1.5.0-canary.5] — 2026-04-30
+
+### 资产管理器 (Asset Manager)
+- feat: 新增资产管理器完整功能 — 扫描、搜索、过滤、缓存、回收站版本链归档恢复
+- feat: 集成到工具启动器，支持独立窗口与信号路由
+- feat: 添加设计文档与实现计划
+
+### 镜牢稳定性
+- fix: DARK 主题下多个模拟器兼容性问题
+- fix: 退出商店循环 loop_count 递减移至 while 顶部，防止无限卡死
+- fix: 空星光列表时 all_click_level 误算为 1
+
+### 自动化优化
+- feat: 镜牢事件唤醒次数随机化、楼层识别优化、ONNX 模型会话缓存
+- opt: 通行证奖励领取改为批量点击 + 2 轮校验
+- feat: 截图去重、帧内匹配结果缓存和批量并行匹配
+- opt: OCR 跳过二值图的 CLAHE 处理，简化颜色空间转换
+- fix: retry 添加节流保护和 skip_screenshot 参数，避免高频重复截图
+- feat: BaseComboBox 新增 set_value 方法
+
+### CI & Issue 自动诊断
+- feat: 新增 Issue 自动诊断 CI (opencode-triage)，新 Issue 自动分析日志并回复
+- feat: analyze skill 吸收 MaaEnd 经验 — 常见模式速查表、版本感知分析、置信度
+- fix: 多项 CI 稳定性修复 — git 认证、超时控制、编码兼容
+- docs: 添加 Windows CI 编码陷阱说明到 AGENTS.md 和构建指南
+
+### 其他
+- feat: 更新系统新增 SHA256 校验与旧残留清理
+- feat: 添加代码审阅基础设施
+- chore: 添加资产管理器设计文档和提取脚本
+
 ## [1.5.0-canary.4] — 2026-04-28
 
 ### issue 管理 & 调试工具
