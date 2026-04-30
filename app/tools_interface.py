@@ -68,12 +68,23 @@ class ToolsInterface(ScrollArea):
             QT_TRANSLATE_NOOP("BasePushSettingCard", "导入问题日志，热切换配置文件进行调试"),
             parent=self.tools_group,
         )
+        self.asset_manager_card = BasePushSettingCard(
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "运行"),
+            FIF.ALBUM,
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "资产管理"),
+            QT_TRANSLATE_NOOP(
+                "BasePushSettingCard",
+                "可视化浏览、分类、替换游戏图片资产",
+            ),
+            parent=self.tools_group,
+        )
 
     def __initLayout(self):
         self.tools_group.addSettingCard(self.auto_battle_card)
         self.tools_group.addSettingCard(self.auto_production_card)
         self.tools_group.addSettingCard(self.get_screenshot_card)
         self.tools_group.addSettingCard(self.issue_replay_card)
+        self.tools_group.addSettingCard(self.asset_manager_card)
 
         self.expand_layout.addWidget(self.tools_group)
 
@@ -98,6 +109,7 @@ class ToolsInterface(ScrollArea):
         self.auto_production_card.clicked.connect(lambda: self._tool_start("production", self.auto_production_card))
         self.get_screenshot_card.clicked.connect(lambda: self._tool_start("screenshot", self.get_screenshot_card))
         self.issue_replay_card.clicked.connect(lambda: self._tool_start("issue_replay", self.issue_replay_card))
+        self.asset_manager_card.clicked.connect(lambda: self._tool_start("asset_manager", self.asset_manager_card))
 
     def _tool_start(self, tool_name: str, card: BasePushSettingCard):
         if tool_name in self.tools:
@@ -150,3 +162,4 @@ class ToolsInterface(ScrollArea):
         self.auto_production_card.retranslateUi()
         self.get_screenshot_card.retranslateUi()
         self.issue_replay_card.retranslateUi()
+        self.asset_manager_card.retranslateUi()

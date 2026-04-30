@@ -36,6 +36,15 @@ __main_dev_temp__.py
 # 更新清理测试垃圾
 /assets/garbage_test/
 
+# 解包的游戏资源（由外部工具生成，不纳入版本控制）
+/assets/extracted/
+# 存档的游戏资源（由外部工具生成，不纳入版本控制）
+/archive/
+
 # 其他
 MaaFramework
 .worktrees
+
+# Asset library — recycle bin and scan cache (large binaries, local-only)
+data/asset_library/recycle/
+data/asset_library/scan_cache.json
