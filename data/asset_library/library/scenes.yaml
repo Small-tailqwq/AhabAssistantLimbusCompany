@@ -1,0 +1,21 @@
+assets:
+- file: dark/share/scenes/story_skip_confirm_assets.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:1823bb2573fa6cafac65af785e1dc2bfd36b2b787ebbb6b4ae13755d4dd89fc8
+- file: default/share/scenes/story_meun_assets.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:faed65a81aef238e70cec1a928f3ec267ce5ac5b82e42afa241e8ba2a21a13bb
+- file: default/share/scenes/story_skip_assets.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:d92d9c571002c1d96920cba0125e05a415e49aaad006de2fc48fe500013219c2
+- file: default/share/scenes/story_skip_confirm_assets.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:ee362096bdf7c644b981e261213be326b991627d6ca5796d04475de8cf4f8e80
