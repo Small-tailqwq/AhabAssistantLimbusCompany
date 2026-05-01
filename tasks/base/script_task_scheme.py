@@ -429,6 +429,7 @@ def script_task() -> None | int:
     should_exit_aalc = False
     if platform.system() == "Windows":
         actions, power_action = get_after_completion_config()
+        log.info(f"结束后操作: actions={actions}, power_action={power_action}")
         try:
             should_exit_aalc = execute_after_completion(actions, power_action)
         except Exception:

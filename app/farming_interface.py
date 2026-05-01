@@ -204,9 +204,6 @@ class AfterCompletionSelector(QFrame):
         self.setMinimumWidth(280)
         self._editor_dialog = None
 
-        if cfg.get_value("keep_after_completion", False) is False:
-            self._set_after_completion_config([], POWER_ACTION_NONE, persist=False)
-
         self.edit_button.installEventFilter(ToolTipFilter(self))
         self.summary.installEventFilter(ToolTipFilter(self.summary, position=ToolTipPosition.BOTTOM))
 
