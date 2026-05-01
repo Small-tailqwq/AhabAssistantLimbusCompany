@@ -2,6 +2,31 @@
 
 ## [Unreleased] — Canary
 
+## [1.5.0-canary.8] — 2026-05-01
+
+### 资产管理器 (Asset Manager)
+- fix: 修复编辑元数据后切图片内容"消失"的问题（`_on_asset_selected` 改从 model 缓存取最新值）
+- fix: 修复关闭资产管理器导致主程序退出的崩溃（QThread 销毁时序 + WA_DeleteOnClose）
+- feat: 异步缩略图加载 + 磁盘缓存（`data/asset_library/thumbnails/`），滚动不再卡顿
+- feat: CLAHE 对比度增强 + 内容感知裁剪（自动去除黑边，只保留有效内容区域）
+- feat: 图片预览弹窗支持滚轮缩放、拖拽平移、适应窗口/原始大小按钮
+- fix: 模块级 QPixmap 导入时崩溃（占位图标延迟到 widget 构造时创建）
+- fix: 切分类时旧 loader 线程信号覆盖新 grid 条目的竞态（生成计数器验证）
+- fix: 缺失文件不再显示 [Missing] 标签的回归
+- fix: KeyError 崩溃 loader 线程的防御（asset.get("file") 兜底）
+- fix: 分步加载导致未滚动到的图片永远不生成缩略图（改为一次性创建所有 item）
+- feat: 统一网格布局（setGridSize），行/列对齐如资源管理器
+- feat: 窗口图标统一为 canary.ico，所有工具窗口自动继承
+- feat: 新增"清除缩略图缓存"按钮，方便重新生成
+
+### CI & 构建
+- fix: 关闭 PyInstaller strip 避免构建产物启动报错
+- fix: CI 构建排除 Windows Defender 干扰
+
+### 其他
+- docs: 添加安全红线 — 禁止在对话中泄漏凭证
+- chore: 补充资产元数据标注（业务名、标签、备注）
+
 ## [1.5.0-canary.7] — 2026-05-01
 
 > v1.5.0-canary.5 因 CI 编码问题构建失败，v1.5.0-canary.6 因 Qt6Xml.dll 被误删导致产物无法启动。
