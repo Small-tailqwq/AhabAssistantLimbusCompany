@@ -5,6 +5,7 @@
 - [ ] Bug #1: `leave_shop_confirm` 在 Mumu background_click 下点击无效，循环逃生路径被 `continue` 跳过
   - 方向：要么补 `loop_count -= 1` 让计时能逃生，要么换成前台点击
 - [ ] Bug #2: DARK 主题下 `_get_cost()` OCR 金钱读取失败，需确认是 bbox 偏移还是 OCR 兼容性
+  - 背景：困难镜牢里的特殊商店（非普通商店），需要有账号才能测试
   - 方向：debug_shop 已加，跑一次看 `logs/shop_debug/` 截图
 - [ ] Bug #3: `back_init_menu` 卡死后强重启，未知 UI 状态未覆盖
   - 方向：需要 DARK 主题下的异常状态截图分析
