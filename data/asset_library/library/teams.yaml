@@ -40,7 +40,7 @@ assets:
   note: ''
   checksum: sha256:12464c7658ae02084475dddbd550656d51c2e1dde6db75c565509e4b4bb454aa
 - file: default/share/teams/DonQuixote_assets.png
-  business_name: ''
+  business_name: 堂吉诃德
   tags: []
   note: ''
   checksum: sha256:67bdb289edb15e5dc022bf6117ba5352736ff84dc5021f0ca3d25efad26cc704
@@ -50,7 +50,7 @@ assets:
   note: ''
   checksum: sha256:c8b43cd607b9d100b75053b76855b892643a9f93f4f2f3576f1f76d119702294
 - file: default/share/teams/Gregor_assets.png
-  business_name: ''
+  business_name: 格里高尔
   tags: []
   note: ''
   checksum: sha256:8d54b71aa23cdbf3540c929bef2fd1790bdd3535a62f55030f7a381cb09f3b74
@@ -115,7 +115,7 @@ assets:
   note: ''
   checksum: sha256:434acc8a5ad2be17482f178ffc260704747c506c435ede34ab7cdf81dbbc628e
 - file: default/share/teams/YiSang_assets.png
-  business_name: ''
+  business_name: 李箱
   tags: []
   note: ''
   checksum: sha256:97fd458d868b0e3f8fa335d5961b1eb077dcff463dba43132c33aa913c0551d0

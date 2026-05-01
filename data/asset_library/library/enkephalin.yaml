@@ -45,13 +45,17 @@ assets:
   note: ''
   checksum: sha256:e497e7fc216d4edbb4249175fb83ca4acc48ec306734bfae5a8ed6f970bbee4f
 - file: dark/zh_cn/enkephalin/use_lunacy_assets.png
-  business_name: ''
-  tags: []
+  business_name: 使用狂气
+  tags:
+  - 中文
+  - 暗色
   note: ''
   checksum: sha256:522e439470b3585c8a1177c6d5e4fe740e5ed5559e6a273c5f91764aba723db2
 - file: default/en/enkephalin/use_lunacy_assets.png
-  business_name: ''
-  tags: []
+  business_name: 使用狂气
+  tags:
+  - 英文
+  - 亮色
   note: ''
   checksum: sha256:d08b2e76b0752be0ddfd969ad674e96d1e23961181a1060b2e154e4548ae5143
 - file: default/share/enkephalin/all_in_assets.png

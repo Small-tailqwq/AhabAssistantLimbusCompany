@@ -130,9 +130,10 @@ assets:
   note: ''
   checksum: sha256:5dcd6b4cbda1c9966445210b52c9113b3d52dac84697e71b15305d76abe56859
 - file: default/zh_cn/base/try_again.png
-  business_name: ''
-  tags: []
-  note: ''
+  business_name: 服务器错误提示
+  tags:
+  - 中文
+  note: 服务器发生错误。请稍后再试的文本提示图片模板
   checksum: sha256:922da568f2b6d881076850d39de2ace1740986949304118231e80fd7f2984ec2
 - file: default/zh_cn/base/victory_assets.png
   business_name: ''
