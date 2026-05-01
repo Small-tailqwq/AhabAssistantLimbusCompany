@@ -4,6 +4,7 @@ import os
 import shutil
 
 from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
@@ -22,6 +23,7 @@ from module.logger import log
 from tasks.tools.asset_library.model import AssetLibraryModel, _file_to_checksum
 from tasks.tools.asset_library.recycle import RecycleManager, _asset_key_from_path
 from tasks.tools.asset_library.scan_worker import ScanWorker
+from tasks.tools.asset_library.thumb_loader import THUMB_CACHE_DIR
 from tasks.tools.asset_library.widgets import (
     ASSETS_ROOT,
     AssetDetailPanel,
@@ -34,7 +36,9 @@ from tasks.tools.asset_library.widgets import (
 class AssetManager(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setAttribute(Qt.WA_DeleteOnClose)
         self.setWindowTitle("资产管理")
+        self.setWindowIcon(QIcon("./assets/logo/canary.ico"))
         self.resize(1200, 750)
         self.setMinimumSize(900, 550)
 
@@ -68,6 +72,8 @@ class AssetManager(QWidget):
 
         self.refresh_btn = QPushButton("刷新扫描")
         top_bar.addWidget(self.refresh_btn)
+        self.clear_thumb_btn = QPushButton("清除缩略图缓存")
+        top_bar.addWidget(self.clear_thumb_btn)
         main_layout.addLayout(top_bar)
 
         # --- Progress ---
@@ -114,6 +120,18 @@ class AssetManager(QWidget):
         self.detail.tag_removed.connect(self._on_tag_removed)
 
         self.refresh_btn.clicked.connect(self._start_scan)
+        self.clear_thumb_btn.clicked.connect(self._clear_thumb_cache)
+
+    def _clear_thumb_cache(self):
+        self.clear_thumb_btn.setEnabled(False)
+        self.status_bar.showMessage("正在清除缩略图缓存...")
+        self.grid.cleanup()
+        if os.path.exists(THUMB_CACHE_DIR):
+            import shutil
+            shutil.rmtree(THUMB_CACHE_DIR, ignore_errors=True)
+        self.status_bar.showMessage("缩略图缓存已清除，正在重新生成...")
+        self._do_refresh_grid()
+        self.clear_thumb_btn.setEnabled(True)
 
     def _start_scan(self):
         self.refresh_btn.setEnabled(False)
@@ -210,8 +228,14 @@ class AssetManager(QWidget):
 
     def _on_asset_selected(self, asset: dict):
         self._flush_model()
-        self._current_asset = asset
-        self.detail.set_asset(asset)
+        fresh = self.model.get_asset(asset["file"])
+        if fresh:
+            self._current_asset = fresh
+            self.detail.set_asset(fresh)
+            self.grid.refresh_item(fresh)
+        else:
+            self._current_asset = asset
+            self.detail.set_asset(asset)
 
     def _on_business_changed(self, text: str):
         if self._current_asset:
@@ -352,4 +376,5 @@ class AssetManager(QWidget):
 
     def closeEvent(self, event):
         self._flush_model()
+        self.grid.cleanup()
         super().closeEvent(event)

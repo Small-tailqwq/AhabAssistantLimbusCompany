@@ -42,6 +42,7 @@ if not pyuac.isUserAdmin():
         sys.exit(1)
 
 from PySide6.QtCore import QObject, Qt, QTimer, Signal
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
@@ -98,6 +99,7 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
     app.setAttribute(Qt.AA_DontCreateNativeWidgetSiblings)
+    app.setWindowIcon(QIcon("./assets/logo/canary.ico"))
 
     # 创建主窗口
     ui = MainWindow(sys.argv)

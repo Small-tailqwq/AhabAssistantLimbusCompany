@@ -5,11 +5,21 @@ import subprocess
 import sys
 
 import pyperclip
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QDragEnterEvent, QDropEvent, QIcon, QImageReader, QPixmap
+from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtGui import (
+    QDragEnterEvent,
+    QDropEvent,
+    QIcon,
+    QImage,
+    QImageReader,
+    QPainter,
+    QPixmap,
+)
 from PySide6.QtWidgets import (
     QDialog,
     QFileDialog,
+    QGraphicsScene,
+    QGraphicsView,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -27,6 +37,7 @@ from PySide6.QtWidgets import (
 
 from tasks.tools.asset_library.model import ASSET_IMAGES_ROOT
 from tasks.tools.asset_library.recycle import RecycleManager, _asset_key_from_path
+from tasks.tools.asset_library.thumb_loader import ThumbnailLoader
 
 ASSETS_ROOT = os.path.abspath(ASSET_IMAGES_ROOT)
 
@@ -84,61 +95,68 @@ class AssetGridWidget(QListWidget):
         super().__init__(parent)
         self.setViewMode(QListWidget.IconMode)
         self.setIconSize(QPixmap(120, 120).size())
+        self.setGridSize(QSize(130, 165))
         self.setResizeMode(QListWidget.Adjust)
         self.setSelectionMode(QListWidget.SingleSelection)
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self._context_menu)
         self.itemSelectionChanged.connect(self._on_selection)
 
+        self._placeholder = self._make_placeholder()
         self._assets: list[dict] = []
-        self._batch_size = 100
-        self._loaded = 0
-
-        self.verticalScrollBar().valueChanged.connect(self._on_scroll)
+        self._loader: ThumbnailLoader | None = None
+        self._loader_gen = 0
 
     def set_assets(self, assets: list[dict]):
+        self._cancel_loader()
         self.clear()
         self._assets = assets
-        self._loaded = 0
-        if len(assets) <= self._batch_size:
-            self._load_batch(final=True)
-        else:
-            self._load_batch()
+        self._loader_gen += 1
 
-    def _load_batch(self, final=False):
-        end = min(self._loaded + self._batch_size, len(self._assets))
-        for i in range(self._loaded, end):
-            asset = self._assets[i]
+        for i, asset in enumerate(assets):
             item = QListWidgetItem()
             item.setData(Qt.UserRole, asset)
-
-            abspath = os.path.join(ASSETS_ROOT, asset["file"])
-            if os.path.exists(abspath):
-                reader = QImageReader(abspath)
-                reader.setScaledSize(QPixmap(120, 120).size())
-                pixmap = QPixmap.fromImageReader(reader)
-                icon = QIcon(pixmap)
-                item.setIcon(icon)
-            else:
-                item.setText("[Missing]")
-
-            name = asset.get("business_name") or os.path.basename(asset["file"])
+            item.setIcon(self._placeholder)
+            name = asset.get("business_name") or os.path.basename(asset.get("file", ""))
+            if not os.path.exists(os.path.join(ASSETS_ROOT, asset.get("file", ""))):
+                name = f"[Missing] {name}"
             item.setText(name)
             item.setToolTip(
-                f"{asset['file']}\n{asset.get('business_name', '')}\n{asset.get('note', '')}"
+                f"{asset.get('file', '')}\n{asset.get('business_name', '')}\n{asset.get('note', '')}"
             )
             self.addItem(item)
-        self._loaded = end
+        if assets:
+            self._start_loader()
 
-        if not final and end < len(self._assets):
-            from PySide6.QtWidgets import QApplication
+    @staticmethod
+    def _make_placeholder() -> QIcon:
+        pm = QPixmap(QSize(120, 120))
+        pm.fill(Qt.transparent)
+        return QIcon(pm)
 
-            QApplication.processEvents()
+    def _start_loader(self):
+        gen = self._loader_gen
+        self._loader = ThumbnailLoader(list(enumerate(self._assets)), self)
+        self._loader.thumbnail_ready.connect(
+            lambda idx, img, g=gen: self._on_thumbnail_ready(idx, img, g)
+        )
+        self._loader.start()
 
-    def _on_scroll(self, value):
-        scrollbar = self.verticalScrollBar()
-        if value >= scrollbar.maximum() - 10 and self._loaded < len(self._assets):
-            self._load_batch()
+    def _on_thumbnail_ready(self, index: int, image: QImage, gen: int):
+        if gen != self._loader_gen:
+            return
+        item = self.item(index)
+        if item and not image.isNull():
+            item.setIcon(QIcon(QPixmap.fromImage(image)))
+
+    def _cancel_loader(self):
+        if self._loader and self._loader.isRunning():
+            self._loader.cancel()
+            self._loader.wait(2000)
+        self._loader = None
+
+    def cleanup(self):
+        self._cancel_loader()
 
     def _on_selection(self):
         items = self.selectedItems()
@@ -358,16 +376,73 @@ class AssetDetailPanel(QWidget):
             return
         abspath = os.path.join(ASSETS_ROOT, self._current_asset["file"])
         if os.path.exists(abspath):
-            dialog = QDialog(self)
-            dialog.setWindowTitle("图片预览")
-            dialog.resize(800, 600)
-            layout = QVBoxLayout(dialog)
-            label = QLabel()
-            pixmap = QPixmap(abspath)
-            label.setPixmap(pixmap.scaled(780, 560, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-            label.setAlignment(Qt.AlignCenter)
-            layout.addWidget(label)
+            dialog = PreviewDialog(abspath, self)
             dialog.exec()
+
+
+class ZoomableGraphicsView(QGraphicsView):
+    zoom_changed = Signal(float)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setRenderHints(QPainter.SmoothPixmapTransform | QPainter.Antialiasing)
+        self.setDragMode(QGraphicsView.ScrollHandDrag)
+        self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+
+    def wheelEvent(self, event):
+        factor = 1.15 if event.angleDelta().y() > 0 else 1 / 1.15
+        self.scale(factor, factor)
+        self.zoom_changed.emit(self.transform().m11())
+
+
+class PreviewDialog(QDialog):
+    def __init__(self, image_path: str, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("图片预览")
+        self.resize(800, 600)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        self.view = ZoomableGraphicsView()
+        scene = QGraphicsScene(self.view)
+        self.view.setScene(scene)
+
+        pixmap = QPixmap(image_path)
+        self._pixmap_item = scene.addPixmap(pixmap)
+        scene.setSceneRect(pixmap.rect())
+        self.view.fitInView(scene.sceneRect(), Qt.KeepAspectRatio)
+
+        layout.addWidget(self.view)
+
+        self.view.zoom_changed.connect(self._on_zoom_changed)
+
+        bar = QHBoxLayout()
+        bar.setContentsMargins(10, 4, 10, 4)
+        self._zoom_label = QLabel("100%")
+        bar.addWidget(self._zoom_label)
+        bar.addStretch()
+        fit_btn = QPushButton("适应窗口")
+        fit_btn.clicked.connect(self._fit_to_window)
+        bar.addWidget(fit_btn)
+        orig_btn = QPushButton("原始大小")
+        orig_btn.clicked.connect(self._original_size)
+        bar.addWidget(orig_btn)
+        layout.addLayout(bar)
+
+    def _on_zoom_changed(self, scale: float):
+        self._zoom_label.setText(f"{int(scale * 100)}%")
+
+    def _fit_to_window(self):
+        self.view.fitInView(self.view.scene().sceneRect(), Qt.KeepAspectRatio)
+        scale = self.view.transform().m11()
+        self._zoom_label.setText(f"{int(scale * 100)}%")
+
+    def _original_size(self):
+        self.view.resetTransform()
+        self._zoom_label.setText("100%")
 
 
 class VersionHistoryDialog(QDialog):

@@ -45,6 +45,8 @@ __main_dev_temp__.py
 MaaFramework
 .worktrees
 
-# Asset library — recycle bin and scan cache (large binaries, local-only)
+# Asset library — recycle bin, scan cache & thumbnail cache (large binaries, local-only)
 data/asset_library/recycle/
 data/asset_library/scan_cache.json
+data/asset_library/thumbnails/
+assets/app/fonts/chars.txt
