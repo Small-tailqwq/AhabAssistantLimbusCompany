@@ -14,6 +14,10 @@ uv run python -m py_compile path\to\file.py              # 语法检查
 uv run python .\scripts\build.py --version dev           # 构建
 uv run python .\scripts\translation_files_build.py       # 刷新 ts 源
 uv run python .\scripts\translation_files_compile.py     # 编译 ts → qm
+
+## 日志分析工具
+uv run python .opencode/tools/log_analyzer.py <log>      # 日志压缩报告
+uv run python .opencode/tools/mirror_analyzer.py <logs>  # 镜牢耗时分析（支持多文件）
 ```
 
 > **Windows CI 编码陷阱**：`scripts/build.py` 中的 `print()` 如果包含非 ASCII 字符（中文、`→`、`✓` 等），在 GitHub Actions Windows runner（cp1252 终端）会触发 `UnicodeEncodeError` 导致构建失败。所有输出文本必须使用纯 ASCII（英文 + 基本符号）。`v1.5.0-canary.5` 因 `→` 字符构建失败，浪费一个版本号。
@@ -65,6 +69,15 @@ uv run python .\scripts\translation_files_compile.py     # 编译 ts → qm
 - 需要删除 → 告知用户，让用户决定
 - 写入文件发现目标已存在 → 先问用户是否覆盖
 - 不慎执行了可能删除文件的操作 → 立即报告用户
+
+## 🔒 安全红线：禁止在对话中泄漏凭证
+
+**任何形式的 token、密码、API key 都不得在对话上下文中明文出现。** 包括：
+- `$env:GITHUB_TOKEN` 等环境变量值的任何部分（即使截断）
+- 配置文件中的 `apiKey`、`password`、`secret` 等字段值（包括配置文件的原始内容）
+- `read-credential.ps1` 等脚本读取到的凭据输出值
+
+读取凭证后必须直接用于 API 调用，不可在回复/日志中出现其值（包括部分截断）。
 
 ## 核心约定
 
