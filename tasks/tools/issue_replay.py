@@ -1,8 +1,9 @@
 import os
 
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QBrush, QColor, QIcon
+from PySide6.QtGui import QColor, QIcon, QImage, QPainter, QPixmap, QTransform, qAlpha
 from PySide6.QtWidgets import (
+    QApplication,
     QComboBox,
     QFileDialog,
     QGroupBox,
@@ -37,19 +38,150 @@ from module.issue_manager import (
 from module.logger import log
 
 
+class _DropableTextEdit(QTextEdit):
+    """支持文件拖入的 QTextEdit（通过 Qt 原生拖放）。"""
+
+    def __init__(self, filename_label: QLabel | None = None, parent=None):
+        super().__init__(parent)
+        self._filename_label = filename_label
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            super().dragEnterEvent(event)
+
+    def dropEvent(self, event):
+        urls = event.mimeData().urls()
+        if not urls:
+            super().dropEvent(event)
+            return
+        path = urls[0].toLocalFile()
+        if not path:
+            return
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                self.setPlainText(f.read())
+            if self._filename_label is not None:
+                self._filename_label.setText(f"已选择: {path}")
+            event.acceptProposedAction()
+        except Exception as e:
+            log.warning(f"拖入文件读取失败: {path}, {e}")
+
+
+def _crop_transparent(pm: QPixmap) -> QPixmap:
+    """裁剪掉 QPixmap 四周的透明像素，缩小实际渲染面积。"""
+    img = pm.toImage()
+    if img.format() != QImage.Format.Format_ARGB32_Premultiplied:
+        img = img.convertToFormat(QImage.Format.Format_ARGB32_Premultiplied)
+    w, h = img.width(), img.height()
+
+    def scan_row(y):
+        for x in range(w):
+            if qAlpha(img.pixel(x, y)) > 0:
+                return True
+        return False
+
+    def scan_col(x):
+        for y in range(h):
+            if qAlpha(img.pixel(x, y)) > 0:
+                return True
+        return False
+
+    top = next((y for y in range(h) if scan_row(y)), 0)
+    bottom = next((y for y in range(h - 1, -1, -1) if scan_row(y)), h - 1)
+    left = next((x for x in range(w) if scan_col(x)), 0)
+    right = next((x for x in range(w - 1, -1, -1) if scan_col(x)), w - 1)
+    return pm.copy(left, top, right - left + 1, bottom - top + 1)
+
+
+class _ConnectorWidget(QWidget):
+    """音叉/连接器图标。LEFT 装在主窗口右边缘，RIGHT 装在小窗口左边缘。"""
+
+    LEFT = 0
+    RIGHT = 1
+    _pm_left: QPixmap | None = None
+    _pm_right: QPixmap | None = None
+
+    @classmethod
+    def _init_pixmaps(cls):
+        if cls._pm_left is not None:
+            return
+        path = "assets/logo/tuning-fork.webp"
+        raw = QPixmap(path)
+        if raw.isNull():
+            return
+        raw = _crop_transparent(raw)
+        target_h = 28
+        raw = raw.scaledToHeight(target_h, Qt.TransformationMode.SmoothTransformation)
+
+        cls._pm_left = raw.transformed(QTransform().rotate(-90))
+        cls._pm_right = raw.transformed(QTransform().rotate(90))
+
+    def __init__(self, orientation: int, parent=None, click_callback=None):
+        super().__init__(parent)
+        self._orientation = orientation
+        self._connected = False
+        self._click_callback = click_callback
+
+        self._init_pixmaps()
+        pm = self._pm_left if orientation == self.LEFT else self._pm_right
+        if pm is not None and not pm.isNull():
+            self.setFixedSize(pm.size())
+        else:
+            self.setFixedSize(32, 20)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def mousePressEvent(self, event):
+        if self._click_callback:
+            self._click_callback()
+
+    def set_connected(self, state: bool):
+        self._connected = state
+        self.update()
+
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        pm = self._pm_left if self._orientation == self.LEFT else self._pm_right
+        if pm is None or pm.isNull():
+            return
+
+        if self._connected:
+            tinted = QPixmap(pm.size())
+            tinted.fill(Qt.GlobalColor.transparent)
+            tp = QPainter(tinted)
+            tp.drawPixmap(0, 0, pm)
+            tp.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceAtop)
+            tp.fillRect(tinted.rect(), QColor(79, 195, 247, 100))
+            tp.end()
+            p.drawPixmap(0, 0, tinted)
+        else:
+            p.drawPixmap(0, 0, pm)
+
+
 class _MarkdownEditSidecar(QWidget):
-    """Markdown 编辑侧窗：左源码右预览，类似 Typora 的编辑体验。"""
+    """Markdown 编辑侧窗：左源码右预览，支持与主窗口吸附/解除。"""
 
     def __init__(self, issue_id: str, initial_text: str, on_save, parent):
         super().__init__(parent, Qt.WindowType.Window)
         self._issue_id = issue_id
         self._on_save = on_save
         self._parent_window = parent
+        self._snapped = True
         self.setWindowTitle(f"编辑批注 — issue{issue_id}")
         self.setWindowIcon(QIcon("./assets/logo/canary.ico"))
         self.resize(760, 520)
 
-        splitter = QSplitter(Qt.Orientation.Horizontal, self)
+        self._connector = _ConnectorWidget(_ConnectorWidget.RIGHT, self, click_callback=lambda: self._parent_window._toggle_snap(self))
+        self._connector.move(0, (self.height() - self._connector.height()) // 2)
+        self._connector.show()
+
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(22, 4, 4, 4)
+
+        splitter = QSplitter(Qt.Orientation.Horizontal)
 
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
@@ -78,7 +210,6 @@ class _MarkdownEditSidecar(QWidget):
         btn_save.clicked.connect(self._do_save)
         bottom_row.addWidget(btn_save)
 
-        main_layout = QVBoxLayout(self)
         main_layout.addWidget(splitter)
         main_layout.addLayout(bottom_row)
 
@@ -88,13 +219,36 @@ class _MarkdownEditSidecar(QWidget):
     def showEvent(self, event):
         super().showEvent(event)
         self._position_next_to_parent()
+        self._reposition_connector()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._reposition_connector()
+
+    def closeEvent(self, event):
+        self._parent_window._on_sidecar_closed()
+        super().closeEvent(event)
+
+    def _reposition_connector(self):
+        cy = (self.height() - self._connector.height()) // 2
+        self._connector.move(0, cy)
 
     def _position_next_to_parent(self):
         if self._parent_window and self._parent_window.isVisible():
-            p_geo = self._parent_window.geometry()
-            self.move(p_geo.right() + 8, p_geo.top())
-            if self.height() > p_geo.height():
-                self.resize(self.width(), p_geo.height())
+            p_frame = self._parent_window.frameGeometry()
+            self.move(p_frame.right() + 8, p_frame.top())
+            cur_frame = self.frameGeometry()
+            if cur_frame.isValid() and cur_frame.height() > 0:
+                title_h = cur_frame.height() - self.geometry().height()
+                target_h = p_frame.height() - title_h
+                if self.height() != target_h:
+                    self.resize(self.width(), target_h)
+
+    def _move_to_safe_position(self):
+        screen = QApplication.primaryScreen().geometry()
+        x = (screen.width() - self.width()) // 2
+        y = (screen.height() - self.height()) // 2
+        self.move(x, y)
 
     def _on_text_changed(self):
         text = self._edit.toPlainText()
@@ -127,12 +281,49 @@ class IssueReplay(QWidget):
         self._preview_text: str = ""
         self._replay_active = False
 
+        self._notes_sidecar: _MarkdownEditSidecar | None = None
+        self._snap_connector = _ConnectorWidget(_ConnectorWidget.LEFT, self, click_callback=lambda: self._toggle_snap(self._notes_sidecar))
+        self._snap_connector.hide()
+        self._position_snap_connector()
+
         self.setup_ui()
         self._refresh_issue_list()
+
+    def _position_snap_connector(self):
+        cw = self._snap_connector.width()
+        self._snap_connector.move(self.width() - cw - 2, (self.height() - self._snap_connector.height()) // 2)
 
     def showEvent(self, event):
         super().showEvent(event)
         QTimer.singleShot(300, self._setup_win_file_drop)
+
+    def moveEvent(self, event):
+        super().moveEvent(event)
+        self._update_sidecar_position()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._position_snap_connector()
+        self._update_sidecar_position()
+
+    def _update_sidecar_position(self):
+        if self._notes_sidecar and self._notes_sidecar._snapped:
+            self._notes_sidecar._position_next_to_parent()
+
+    def _toggle_snap(self, sidecar):
+        if not sidecar:
+            return
+        sidecar._snapped = not sidecar._snapped
+        sidecar._connector.set_connected(sidecar._snapped)
+        self._snap_connector.set_connected(sidecar._snapped)
+        if sidecar._snapped:
+            sidecar._position_next_to_parent()
+        else:
+            sidecar._move_to_safe_position()
+
+    def _on_sidecar_closed(self):
+        self._notes_sidecar = None
+        self._snap_connector.hide()
 
     def _setup_win_file_drop(self):
         if os.name != "nt":
@@ -205,7 +396,6 @@ class IssueReplay(QWidget):
 
     def _find_active_drop_target(self) -> QTextEdit | None:
         from PySide6.QtGui import QCursor
-        from PySide6.QtWidgets import QApplication
 
         global_pos = QCursor.pos()
         widget = QApplication.widgetAt(global_pos)
@@ -269,23 +459,23 @@ class IssueReplay(QWidget):
         group = QGroupBox("问题列表")
         layout = QVBoxLayout(group)
 
-        self.issue_table = QTableWidget(0, 6)
+        self.issue_table = QTableWidget(0, 5)
         self.issue_table.setHorizontalHeaderLabels(
-            ["#", "ID", "名称", "版本", "导入时间", "修改时间"]
+            ["ID", "名称", "版本", "导入时间", "修改时间"]
         )
         self.issue_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.issue_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.issue_table.setAlternatingRowColors(True)
+        self.issue_table.setSortingEnabled(True)
         self.issue_table.horizontalHeader().setStretchLastSection(True)
         self.issue_table.horizontalHeader().setSectionResizeMode(
             QHeaderView.ResizeMode.Interactive
         )
         self.issue_table.verticalHeader().setVisible(False)
-        self.issue_table.setColumnWidth(0, 36)
-        self.issue_table.setColumnWidth(1, 40)
-        self.issue_table.setColumnWidth(2, 180)
-        self.issue_table.setColumnWidth(3, 64)
-        self.issue_table.setColumnWidth(4, 128)
+        self.issue_table.setColumnWidth(0, 44)
+        self.issue_table.setColumnWidth(1, 180)
+        self.issue_table.setColumnWidth(2, 64)
+        self.issue_table.setColumnWidth(3, 128)
         self.issue_table.setMinimumHeight(180)
         self.issue_table.itemSelectionChanged.connect(self._on_issue_selected)
         self.issue_table.itemDoubleClicked.connect(self._on_issue_double_clicked)
@@ -367,29 +557,28 @@ class IssueReplay(QWidget):
         row = self.issue_table.currentRow()
         if row < 0:
             return None
-        item = self.issue_table.item(row, 1)
+        item = self.issue_table.item(row, 0)
         return item.text() if item else None
 
     def _refresh_issue_list(self):
+        self.issue_table.setSortingEnabled(False)
         self.issue_table.setRowCount(0)
         issues = self._manager.list_issues()
         for i, rec in enumerate(issues):
             row = self.issue_table.rowCount()
             self.issue_table.insertRow(row)
 
-            num_item = QTableWidgetItem(str(i + 1))
-            num_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            num_item.setForeground(QBrush(QColor("#888888")))
-            self.issue_table.setItem(row, 0, num_item)
-
-            id_item = QTableWidgetItem(rec.id)
+            id_item = QTableWidgetItem()
+            id_item.setData(Qt.DisplayRole, int(rec.id))
             id_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.issue_table.setItem(row, 1, id_item)
+            self.issue_table.setItem(row, 0, id_item)
 
-            self.issue_table.setItem(row, 2, QTableWidgetItem(rec.name))
-            self.issue_table.setItem(row, 3, QTableWidgetItem(rec.aalc_version))
-            self.issue_table.setItem(row, 4, QTableWidgetItem(_format_time(rec.created_at)))
-            self.issue_table.setItem(row, 5, QTableWidgetItem(_format_time(rec.modified_at)))
+            self.issue_table.setItem(row, 1, QTableWidgetItem(rec.name))
+            self.issue_table.setItem(row, 2, QTableWidgetItem(rec.aalc_version))
+            self.issue_table.setItem(row, 3, QTableWidgetItem(_format_time(rec.created_at)))
+            self.issue_table.setItem(row, 4, QTableWidgetItem(_format_time(rec.modified_at)))
+
+        self.issue_table.setSortingEnabled(True)
 
         self._on_issue_selected()
 
@@ -620,8 +809,13 @@ class IssueReplay(QWidget):
             self._refresh_issue_list()
             self._on_issue_selected()
 
-        sidecar = _MarkdownEditSidecar(issue_id, current_notes, save_notes, self)
-        sidecar.show()
+        self._notes_sidecar = _MarkdownEditSidecar(issue_id, current_notes, save_notes, self)
+        self._notes_sidecar._snapped = True
+        self._snap_connector.show()
+        self._snap_connector.set_connected(True)
+        self._notes_sidecar._connector.set_connected(True)
+        self._position_snap_connector()
+        self._notes_sidecar.show()
 
     def _on_append_log(self):
         issue_id = self._current_issue_id()
@@ -644,12 +838,13 @@ class IssueReplay(QWidget):
         top_row.addWidget(btn_select)
         layout.addLayout(top_row)
 
-        edit = QTextEdit()
-        edit.setPlaceholderText("在此粘贴日志内容，或点击上方按钮选择 .log / .txt 文件...")
-        layout.addWidget(edit)
-
         filename_label = QLabel("")
         filename_label.setStyleSheet("color: #888;")
+
+        edit = _DropableTextEdit(filename_label)
+        edit.setPlaceholderText("在此粘贴日志内容，或拖入 .log / .txt 文件到此处...")
+        layout.addWidget(edit)
+
         layout.addWidget(filename_label)
 
         btn_layout = QHBoxLayout()
@@ -728,13 +923,14 @@ class IssueReplay(QWidget):
         top_row.addWidget(btn_select)
         layout.addLayout(top_row)
 
-        edit = QTextEdit()
-        edit.setPlaceholderText("在此粘贴日志内容，或点击上方按钮选择 .log / .txt 文件...")
+        filename_label = QLabel("")
+        filename_label.setStyleSheet("color: #888;")
+
+        edit = _DropableTextEdit(filename_label)
+        edit.setPlaceholderText("在此粘贴日志内容，或拖入 .log / .txt 文件到此处...")
         edit.setMaximumHeight(150)
         layout.addWidget(edit)
 
-        filename_label = QLabel("")
-        filename_label.setStyleSheet("color: #888;")
         layout.addWidget(filename_label)
 
         preview_label = QLabel("")

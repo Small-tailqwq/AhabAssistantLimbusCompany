@@ -292,7 +292,12 @@ class IssueManager:
         self._save_index()
 
     def list_issues(self) -> list[IssueRecord]:
-        return sorted(self._issues.values(), key=lambda r: r.id)
+        def _sort_key(r: IssueRecord):
+            try:
+                return (0, int(r.id))
+            except ValueError:
+                return (1, r.id)
+        return sorted(self._issues.values(), key=_sort_key)
 
     def get_issue(self, issue_id: str) -> Optional[IssueRecord]:
         return self._issues.get(issue_id)
