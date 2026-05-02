@@ -2,6 +2,28 @@
 
 ## [Unreleased] — Canary
 
+## [1.5.0-canary.9] — 2026-05-03
+
+### 镜牢稳定性
+- fix: event_chance 在主路径中不递减导致多目标兜底永远无法触发
+- fix: event_chance 递减用 max(0, ...) 兜底防溢出到负数
+- fix: 通过 HSV 亮度/饱和度检测替代双模板灰度匹配，提高事件选项识别准确率
+
+### UI
+- refactor: 合并更新设置到关于页，移除废弃的 Mirror酱 更新通道
+- fix: 修复设置导航栏最后一项高亮错位
+- fix: 修复 canary 版本号解析失败
+
+### 自动化稳定性
+- fix: 修复 refresh_team_setting_card 中未定义变量 i 及 StarlightCard 缺少防御性读取
+- fix: get_mouse_position 加异常保护，解锁过渡期 GetCursorPos 报错不崩脚本
+
+### 调试工具
+- feat(日志复现): 自然排序 + 表头可排序 + 追加日志拖入 + 使用了U公司科技，窗口可以吸在一块了
+
+### CI & 工具链
+- fix: 修复 CI 配置及模型切换相关的一系列问题
+
 ## [1.5.0-canary.8] — 2026-05-01
 
 ### 资产管理器 (Asset Manager)
