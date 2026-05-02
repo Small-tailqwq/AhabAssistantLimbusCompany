@@ -17,13 +17,13 @@ from app.card.messagebox_custom import BaseInfoBar, MessageBoxUpdate
 from module.config import cfg
 from module.decorator.decorator import begin_and_finish_time_log
 from module.logger import log
-from utils.utils import decrypt_string
 
 md_renderer = MarkdownIt("gfm-like", {"html": True})
 
 
-class MirrorChyanSkip(Exception):
-    """金丝雀通道跳过 Mirror酱 的哨兵异常"""
+def _normalize_version(v: str) -> str:
+    """将 canary 版本号（X.Y.Z-canary.N）转换为 PEP 440 兼容格式（X.Y.ZdevN）。"""
+    return v.replace("-canary.", "dev")
 
 
 class UpdateStatus(Enum):
@@ -79,24 +79,18 @@ class UpdateThread(QThread):
             if self.flag and not cfg.get_value("check_update"):
                 return
 
-            if self._canary:
-                raise MirrorChyanSkip
+            data = self.check_update_info_github()
+            version = data["tag_name"]
+            content = self.remove_images_from_markdown(data["body"])
+            assets_url = self.get_download_url_from_assets(data["assets"])
 
-            # 获取最新发布版本的信息
-            data = self.check_update_info_mirrorchyan()
-            version = data["version_name"]
-            content = self.remove_images_from_markdown(data["release_note"])
-            content = re.sub(
-                r"\r\n\r\n\[.*?Mirror酱.*?CDK.*?下载\]\(https?://.*?mirrorchyan\.com[^\)]*\)",
-                "",
-                content,
-                flags=re.IGNORECASE,
-            )
-            if cfg.update_source == "GitHub":
-                content = content + "\n\n若下载速度较慢，可尝试使用 Mirror酱（设置 → 关于 → 更新源） 高速下载"
+            # 如果没有可用的下载 URL，则发送成功信号并返回
+            if assets_url is None:
+                self.updateSignal.emit(UpdateStatus.SUCCESS)
+                return
 
             # 比较当前版本和最新版本，如果最新版本更高，则准备更新
-            if parse(version.lstrip("Vv")) > parse(cfg.version.lstrip("Vv")):
+            if parse(_normalize_version(version.lstrip("Vv"))) > parse(_normalize_version(cfg.version.lstrip("Vv"))):
                 self.title = self.tr("发现新版本：{Old_version} ——> {New_version}\n更新日志:").format(
                     Old_version=cfg.version, New_version=version
                 )
@@ -106,42 +100,9 @@ class UpdateThread(QThread):
                 # 如果没有新版本，则发送成功信号
                 self.updateSignal.emit(UpdateStatus.SUCCESS)
         except Exception as e:
-            # 记录失败日志，尝试使用GitHub源检查更新
-            log.error(f"从Mirror酱源检查更新失败:{e},尝试使用GitHub源检查更新")
-            try:
-                data = self.check_update_info_github()
-                version = data["tag_name"]
-                content = self.remove_images_from_markdown(data["body"])
-                content = re.sub(
-                    r"\r\n\r\n\[.*?Mirror酱.*?CDK.*?下载\]\(https?://.*?mirrorchyan\.com[^\)]*\)",
-                    "",
-                    content,
-                    flags=re.IGNORECASE,
-                )
-                assets_url = self.get_download_url_from_assets(data["assets"])
-
-                if cfg.update_source == "GitHub":
-                    content = content + "\n\n若下载速度较慢，可尝试使用 Mirror酱（设置 → 关于 → 更新源） 高速下载"
-
-                # 如果没有可用的下载 URL，则发送成功信号并返回
-                if assets_url is None:
-                    self.updateSignal.emit(UpdateStatus.SUCCESS)
-                    return
-
-                # 比较当前版本和最新版本，如果最新版本更高，则准备更新
-                if parse(version.lstrip("Vv")) > parse(cfg.version.lstrip("Vv")):
-                    self.title = self.tr("发现新版本：{Old_version} ——> {New_version}\n更新日志:").format(
-                        Old_version=cfg.version, New_version=version
-                    )
-                    self.content = "<style>a {color: #586f50; font-weight: bold;}</style>" + md_renderer.render(content)
-                    self.updateSignal.emit(UpdateStatus.UPDATE_AVAILABLE)
-                else:
-                    # 如果没有新版本，则发送成功信号
-                    self.updateSignal.emit(UpdateStatus.SUCCESS)
-            except Exception as e:
-                # 异常处理，发送失败信号
-                log.error(f"Mirror酱源与GitHub源均检查更新失败:{e}")
-                self.updateSignal.emit(UpdateStatus.FAILURE)
+            # 异常处理，发送失败信号
+            log.error(f"检查更新失败:{e}")
+            self.updateSignal.emit(UpdateStatus.FAILURE)
 
     @property
     def _github_use_releases_list(self):
@@ -169,34 +130,6 @@ class UpdateThread(QThread):
             )
         response.raise_for_status()
         return response.json()[0] if self._github_use_releases_list else response.json()
-
-    def check_update_info_mirrorchyan(self, cdk=""):
-        """
-        从 mirror酱 获取最新发布版本的信息。
-
-        参数:
-        cdk -- Mirror酱 CDK
-
-        返回:
-        最新发布版本的信息（JSON 格式）
-        """
-        if not cfg.update_prerelease_enable:
-            response = requests.get(
-                f"https://mirrorchyan.com/api/resources/AALC/latest?current_version={cfg.version}&user_agent={self.repo}&cdk={cdk}",
-                timeout=10,
-                headers=cfg.useragent,
-            )
-        else:
-            response = requests.get(
-                f"https://mirrorchyan.com/api/resources/AALC/latest?current_version={cfg.version}&user_agent={self.repo}&channel=beta&cdk={cdk}",
-                timeout=10,
-                headers=cfg.useragent,
-            )
-        if cdk == "":
-            # 返回获取的最新发布版本信息
-            return response.json()["data"]
-        else:
-            return response
 
     def remove_images_from_markdown(self, markdown_content):
         """
@@ -228,43 +161,10 @@ class UpdateThread(QThread):
 
     def get_assets_url(self):
         try:
-            if not self._canary and cfg.update_source == "MirrorChyan":
-                return self._get_assets_url_mirrorchyan()
-
             return self._get_assets_url_github()
         except Exception as e:
             log.error(f"更新失败:{e}")
             self.updateSignal.emit(UpdateStatus.FAILURE)
-
-    def _get_assets_url_mirrorchyan(self):
-        if cfg.mirrorchyan_cdk == "":
-            self.error_msg = "未设置 Mirror酱 CDK"
-            self.updateSignal.emit(UpdateStatus.FAILURE)
-            return None
-        cdk = decrypt_string(cfg.mirrorchyan_cdk)
-        response = self.check_update_info_mirrorchyan(cdk)
-        if response.status_code == 200:
-            mirrorchyan_data = response.json()
-            if mirrorchyan_data["code"] == 0 and mirrorchyan_data["msg"] == "success":
-                return mirrorchyan_data["data"]["url"]
-        else:
-            try:
-                mirrorchyan_data = response.json()
-                self.code = mirrorchyan_data["code"]
-                self.error_msg = mirrorchyan_data["msg"]
-                cdk_error_messages = {
-                    7001: "Mirror酱 CDK 已过期",
-                    7002: "Mirror酱 CDK 错误",
-                    7003: "Mirror酱 CDK 今日下载次数已达上限",
-                    7004: "Mirror酱 CDK 类型和待下载的资源不匹配",
-                    7005: "Mirror酱 CDK 已被封禁",
-                }
-                if self.code in cdk_error_messages:
-                    self.error_msg = cdk_error_messages[self.code]
-            except Exception:
-                self.error_msg = "Mirror酱API请求失败"
-            self.updateSignal.emit(UpdateStatus.FAILURE)
-            return None
 
     def _get_assets_url_github(self):
         if self._github_use_releases_list:

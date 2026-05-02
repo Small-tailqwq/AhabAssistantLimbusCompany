@@ -71,6 +71,14 @@ Invoke-RestMethod -Uri "https://api.github.com/repos/{owner}/{repo}/releases/$re
 - 如果 `prerelease` 未自动设为 `true`，需要通过 GitHub API PATCH 更新
 - **Windows CI 编码陷阱**：`scripts/build.py` 中的 `print()` 不能包含非 ASCII 字符（中文、`→`、`✓` 等），否则会触发 `UnicodeEncodeError` 导致构建失败。所有输出必须使用纯 ASCII
 
+### 版本兼容性
+
+`X.Y.Z-canary.N` 不是 [PEP 440](https://peps.python.org/pep-0440/) 合法的预发布后缀，`packaging.version.parse()` 会抛出 `InvalidVersion`。`module/update/check_update.py` 中的 `_normalize_version()` 在调用 `parse()` 前将 `-canary.` 替换为 `dev`（`1.5.0-canary.8` → `1.5.0dev8`）。**对外格式不变**：`version.txt`、git tag、GitHub Release 仍使用 `X.Y.Z-canary.N`，仅在内部比较时归一化。`devN < release`，符合 canary pre-release 语义。
+
+### Mirror酱 已移除
+
+本分支（金丝雀版）已移除全部 Mirror酱（MirrorChyan）更新通道代码。`check_update.py` 仅保留 GitHub 源，`update_source` 配置项仍存在于 schema 中供 UI 显示，但不再参与更新逻辑。
+
 ## 常见问题
 
 ### CI 构建失败：UnicodeEncodeError
