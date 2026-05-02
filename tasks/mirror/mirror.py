@@ -1215,7 +1215,7 @@ class Mirror:
                 if auto.click_element(key_word, find_type="text", offset=False):
                     event_chance += 5
             if 5 <= event_chance < 10:
-                auto.click_element("event/select_first_option_assets.png")
+                auto.click_element("event/select_first_option_assets.png", check_gray=True)
                 event_chance -= 1
             elif 5 > event_chance > 0:
                 if coordinates := auto.find_element(
@@ -1271,19 +1271,45 @@ class Mirror:
                 event_chance -= 1
                 continue
             choice_screen_visible = auto.find_element("event/choices_assets.png")
-            select_first_option_visible = choice_screen_visible and auto.find_element("event/select_first_option_assets.png")
+            select_first_option_visible = choice_screen_visible and auto.find_element("event/select_first_option_assets.png", check_gray=True)
             decision_feature_visible = auto.find_element("event/perform_the_check_feature_assets.png")
             continue_visible = auto.find_element("event/continue_assets.png")
             proceed_visible = auto.find_element("event/proceed_assets.png")
             commence_visible = auto.find_element("event/commence_assets.png")
             commence_battle_visible = auto.find_element("event/commence_battle_assets.png")
 
-            # 某些随机事件在点击 continue 后会进入“应该让谁去呢”的罪人判定层，
+            # 某些随机事件在点击 continue 后会进入"应该让谁去呢"的罪人判定层，
             # 此时 skip 会灰掉，advantage_check 又可能误匹配，因此要优先按判定界面处理。
             if choice_screen_visible or decision_feature_visible:
                 if select_first_option_visible and not any((continue_visible, proceed_visible, commence_visible, commence_battle_visible)):
-                    auto.click_element("event/select_first_option_assets.png")
+                    auto.click_element("event/select_first_option_assets.png", check_gray=True)
                     continue
+                if choice_screen_visible and not select_first_option_visible and not any((continue_visible, proceed_visible, commence_visible, commence_battle_visible)):
+                    log.debug("首选项灰色不可点击，尝试多目标匹配寻找可用选项")
+                    if all_options := auto.find_element(
+                        "event/select_first_option_assets.png",
+                        find_type="image_with_multiple_targets",
+                        threshold=0.75,
+                    ):
+                        all_options.sort(key=lambda x: (x[1], x[0]))
+                        clicked = False
+                        for opt_x, opt_y in all_options:
+                            roi_w, roi_h = 40, 40
+                            y1 = max(0, opt_y - roi_h // 2)
+                            y2 = min(auto.screenshot_rgb.shape[0], opt_y + roi_h // 2)
+                            x1 = max(0, opt_x - roi_w // 2)
+                            x2 = min(auto.screenshot_rgb.shape[1], opt_x + roi_w // 2)
+                            roi = auto.screenshot_rgb[y1:y2, x1:x2]
+                            if roi.size > 0:
+                                hsv = cv2.cvtColor(roi, cv2.COLOR_RGB2HSV)
+                                sat_mean = float(np.mean(hsv[:, :, 1]))
+                                if sat_mean >= 15:
+                                    auto.mouse_click(opt_x, opt_y)
+                                    log.debug(f"已点击非灰色选项 ({opt_x},{opt_y}), 饱和度={sat_mean:.1f}")
+                                    clicked = True
+                                    break
+                        if clicked:
+                            continue
                 if not any((continue_visible, proceed_visible, commence_visible, commence_battle_visible)):
                     if not self.event_decision_visible():
                         log.debug("识别到罪人选择预加载界面，先发送空格并点击空白唤醒头像与成功率")

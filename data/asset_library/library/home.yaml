@@ -25,8 +25,9 @@ assets:
   note: ''
   checksum: sha256:6efcce45e79683570a3f12aa61ec7a28968c958e91fc517f95ce3ba1820af6ea
 - file: dark/share/home/mail_assets.png
-  business_name: ''
-  tags: []
+  business_name: 邮件图标
+  tags:
+  - 暗色
   note: ''
   checksum: sha256:a69f11d6c7ed298c855af28fd49264da79689b2c9e33739e6f8430d0104b5d3f
 - file: dark/share/home/window_assets.png
@@ -36,22 +37,26 @@ assets:
   checksum: sha256:abdc589606abd7b74571e9626656b6ffc47d0703f67870baa34ff9b534dcfee4
 - file: dark/zh_cn/home/luxcavation_assets.png
   business_name: ''
-  tags: []
+  tags:
+  - 中文
   note: ''
   checksum: sha256:6110993e35586d5dafda8e6ce482efe6e9ab42bd43f8832b4fafc52f2db89757
 - file: default/en/home/luxcavation_assets.png
   business_name: ''
-  tags: []
+  tags:
+  - 英文
   note: ''
   checksum: sha256:ff36355658aabbf0303a969953d0aff25e940d9c79fca01e4a07e919a24995f2
 - file: default/en/home/mirror_dungeons_assets.png
   business_name: ''
-  tags: []
+  tags:
+  - 英文
   note: ''
   checksum: sha256:982cb453e7e79870d5df64712778a595f4cd8d59ed16b38345274b4d35990fce
 - file: default/en/home/settings_assets.png
   business_name: ''
-  tags: []
+  tags:
+  - 英文
   note: ''
   checksum: sha256:380945896a49282f418cb5bd731cfd927a64eac64c8cb5e83ecbc4b7f5e2bbae
 - file: default/share/home/back_assets.png
@@ -121,22 +126,26 @@ assets:
   checksum: sha256:cd792a2430050215c83c4bd5d5e42b4e05268aa5a8fc5b0053e0c3f2ec229c72
 - file: default/zh_cn/home/luxcavation_assets.png
   business_name: ''
-  tags: []
+  tags:
+  - 中文
   note: ''
   checksum: sha256:4afef847cd3433b99f17ae9910608806c0f4b7f07f88649c55a75bde4b9db80d
 - file: default/zh_cn/home/mail_assets.png
   business_name: ''
-  tags: []
+  tags:
+  - 中文
   note: ''
   checksum: sha256:61cff8ba9c7b9f152e39678c7c9fe3ca326f03a238e67875564ae4ff8c9147ac
 - file: default/zh_cn/home/mail_cn_assets.png
   business_name: ''
-  tags: []
+  tags:
+  - 中文
   note: ''
   checksum: sha256:7a9d49a0139487cc31abcc0b3a0b4e58b38112684adad4c37b2efcd7ea28f13a
 - file: default/zh_cn/home/mirror_dungeons_assets.png
   business_name: ''
-  tags: []
+  tags:
+  - 中文
   note: ''
   checksum: sha256:2f0c799bbb0a9b691aeb3674e98c622dd4197e02fffaa936fd30972fdb051c99
 - file: default/zh_cn/home/settings_assets.png

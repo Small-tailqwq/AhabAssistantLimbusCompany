@@ -1,35 +1,10 @@
 from time import sleep
-import numpy as np
 
 from module.automation import auto
 from module.config import cfg
 from module.decorator.decorator import begin_and_finish_time_log
 from module.logger import log
 from utils.image_utils import ImageUtils
-
-
-def find_color_image_element(target, threshold=0.85):
-    use_1440_base = ImageUtils.should_use_low_res_match_optimization()
-    template = ImageUtils.load_image(target, resize=not use_1440_base, gray=False)
-    if template is None:
-        return None
-    bbox = ImageUtils.get_bbox(template)
-    template_crop = ImageUtils.crop(template, bbox)
-    if auto.take_screenshot(gray=False) is None:
-        return None
-    screenshot = np.array(auto.screenshot)
-    scale_to_1440 = 1.0
-    if use_1440_base:
-        screenshot, scale_to_1440 = ImageUtils.normalize_screenshot_for_1440_matching(screenshot)
-    center, match_val = ImageUtils.match_template(screenshot, template_crop, bbox, "clam")
-    if use_1440_base and center:
-        center = ImageUtils.restore_coordinates_from_1440_matching(center, scale_to_1440)
-        log.debug(f"{target} 1440基准彩色匹配：相似度{match_val:.2f}, 目标位置：{center}")
-    else:
-        log.debug(f"{target} 彩色匹配：相似度{match_val:.2f}, 目标位置：{center}")
-    if isinstance(match_val, (int, float)) and match_val >= threshold:
-        return center
-    return None
 
 
 def handle_disabled_module_exchange(cancel, close_when_disabled=True):
@@ -75,7 +50,6 @@ def get_current_enkephalin():
     import numpy as np
 
     from module.ocr import ocr
-    from utils.image_utils import ImageUtils
 
     enkephalin_bbox = ImageUtils.get_bbox(ImageUtils.load_image("enkephalin/enkephalin_now_bbox.png"))
     for _ in range(5):
@@ -165,8 +139,7 @@ def make_enkephalin_module(cancel=True, skip=True, close_when_disabled=True):
             if auto.click_element("home/enkephalin_box_assets.png", threshold=0.75):
                 sleep(0.5)
             continue
-        if all_in_position := find_color_image_element("enkephalin/all_in_assets.png"):
-            auto.mouse_click(*all_in_position)
+        if auto.click_element("enkephalin/all_in_assets.png", check_gray=True, gray_saturation_threshold=15, gray_brightness_threshold=65):
             sleep(0.2)
             if auto.take_screenshot() is None:
                 continue
@@ -174,8 +147,7 @@ def make_enkephalin_module(cancel=True, skip=True, close_when_disabled=True):
             if cancel:
                 auto.click_element("enkephalin/enkephalin_cancel_assets.png")
             return True
-        if find_color_image_element("enkephalin/all_in_disabled_assets.png"):
-            return handle_disabled_module_exchange(cancel, close_when_disabled=close_when_disabled)
+        return handle_disabled_module_exchange(cancel, close_when_disabled=close_when_disabled)
         if auto.take_screenshot() is None:
             continue
         log.debug("未识别到脑啡肽模块兑换按钮状态，等待界面稳定后重试")

@@ -153,9 +153,9 @@ class Automation(metaclass=SingletonMeta):
                 self._match_result_cache.clear()
             self._cache_frame_id = self._frame_count
 
-    def _get_match_cache_key(self, target, find_type, threshold, model, my_crop) -> tuple:
+    def _get_match_cache_key(self, target, find_type, threshold, model, my_crop, check_gray=False, gray_saturation_threshold=15, gray_brightness_threshold=50) -> tuple:
         """生成匹配结果缓存键"""
-        return (self._frame_count, target, find_type, threshold, model, str(my_crop))
+        return (self._frame_count, target, find_type, threshold, model, str(my_crop), check_gray, gray_saturation_threshold, gray_brightness_threshold)
 
     def get_restore_time(self) -> float:
         """
@@ -183,6 +183,9 @@ class Automation(metaclass=SingletonMeta):
         drag_time=None,
         interval=0.5,
         log_result=True,
+        check_gray=False,
+        gray_saturation_threshold=15,
+        gray_brightness_threshold=50,
     ):
         """查找并点击屏幕上的元素"""
         self.ensure_not_stopped()
@@ -198,6 +201,9 @@ class Automation(metaclass=SingletonMeta):
             my_crop=my_crop,
             addtional_stack=1,
             log_result=log_result,
+            check_gray=check_gray,
+            gray_saturation_threshold=gray_saturation_threshold,
+            gray_brightness_threshold=gray_brightness_threshold,
         )
         if coordinates:
             if click:
@@ -364,19 +370,23 @@ class Automation(metaclass=SingletonMeta):
                 if wait_time > 0:
                     time.sleep(wait_time)
 
-                result = ScreenShot.take_screenshot(gray)
+                color_result = ScreenShot.take_screenshot(gray=False)
                 self.last_screenshot_time = time.time()
-                if result:
-                    self.screenshot = result
+                if color_result:
+                    self.screenshot_rgb = np.array(color_result)
+                    if gray:
+                        self.screenshot = color_result.convert("L")
+                    else:
+                        self.screenshot = color_result
                     # 截图去重：计算感知哈希
-                    current_hash = self._compute_dhash(result)
+                    current_hash = self._compute_dhash(color_result)
                     self._frame_count += 1
                     if current_hash == self._last_dhash:
                         self.frame_duplicate = True
                     else:
                         self.frame_duplicate = False
                         self._last_dhash = current_hash
-                    return result
+                    return color_result
                 else:
                     return None
             except userStopError:
@@ -412,6 +422,9 @@ class Automation(metaclass=SingletonMeta):
         my_crop=None,
         addtional_stack=0,
         log_result=True,
+        check_gray=False,
+        gray_saturation_threshold=15,
+        gray_brightness_threshold=50,
     ):
         """
         查找元素，并根据指定的查找类型执行不同的查找策略。
@@ -424,6 +437,9 @@ class Automation(metaclass=SingletonMeta):
             model: 查找的策略,'clam' 为在模板图片位置查找，'normal' 为模板图片位置扩大范围查找，'aggressive' 为全截屏区域查找
             my_crop: 用于OCR识别的已截取的部分图片
             addtional_stack: 用于日志堆栈层级调整
+            check_gray: 匹配后检查HSV饱和度/亮度，跳过灰色或过暗的不可点击按钮
+            gray_saturation_threshold: 饱和度阈值，低于此值的匹配视为灰色按钮
+            gray_brightness_threshold: 亮度阈值，低于此值的匹配视为过暗按钮
         Returns:
             查找到的元素位置，或者在图像计数查找时返回计数。
         """
@@ -431,7 +447,7 @@ class Automation(metaclass=SingletonMeta):
             model = self.model
         # 帧内匹配缓存：同一帧相同参数直接返回缓存结果
         self._invalidate_match_cache_if_needed()
-        cache_key = self._get_match_cache_key(target, find_type, threshold, model, my_crop)
+        cache_key = self._get_match_cache_key(target, find_type, threshold, model, my_crop, check_gray, gray_saturation_threshold, gray_brightness_threshold)
         if not take_screenshot:
             with self._cache_lock:
                 if cache_key in self._match_result_cache:
@@ -458,6 +474,9 @@ class Automation(metaclass=SingletonMeta):
                         my_crop=my_crop,
                         addtional_stack=addtional_stack,
                         log_result=log_result,
+                        check_gray=check_gray,
+                        gray_saturation_threshold=gray_saturation_threshold,
+                        gray_brightness_threshold=gray_brightness_threshold,
                     )
                 elif find_type == "text":
                     # 使用文本查找方法查找元素
@@ -689,6 +708,9 @@ class Automation(metaclass=SingletonMeta):
         my_crop=None,
         addtional_stack=0,
         log_result=True,
+        check_gray=False,
+        gray_saturation_threshold=15,
+        gray_brightness_threshold=50,
     ):
         """
         在当前截图中查找目标图像的位置
@@ -740,6 +762,30 @@ class Automation(metaclass=SingletonMeta):
                     stacklevel=addtional_stack + 3,
                 )
             if isinstance(matchVal, (int, float)) and not math.isinf(matchVal) and matchVal >= threshold:
+                if check_gray and center and hasattr(self, "screenshot_rgb"):
+                    h, w = template.shape[:2]
+                    if use_1440_base and abs(scale_to_1440 - 1.0) > 1e-6:
+                        roi_h = int(round(h / scale_to_1440))
+                        roi_w = int(round(w / scale_to_1440))
+                    else:
+                        roi_h, roi_w = h, w
+                    cx, cy = center
+                    y1 = max(0, cy - roi_h // 2)
+                    y2 = min(self.screenshot_rgb.shape[0], cy + roi_h // 2)
+                    x1 = max(0, cx - roi_w // 2)
+                    x2 = min(self.screenshot_rgb.shape[1], cx + roi_w // 2)
+                    roi = self.screenshot_rgb[y1:y2, x1:x2]
+                    if roi.size > 0:
+                        hsv = cv2.cvtColor(roi, cv2.COLOR_RGB2HSV)
+                        sat_mean = float(np.mean(hsv[:, :, 1]))
+                        val_mean = float(np.mean(hsv[:, :, 2]))
+                        if sat_mean < gray_saturation_threshold or val_mean < gray_brightness_threshold:
+                            if log_result:
+                                log.debug(
+                                    f"不可点击按钮已跳过: {target.replace('./assets/images/', '')}, 饱和度={sat_mean:.1f}, 亮度={val_mean:.1f}",
+                                    stacklevel=addtional_stack + 3,
+                                )
+                            return None
                 return center
             if loaded_path and not path_manager.is_dark_eliminated and path_manager.is_path_dark(loaded_path):
                 default_exists, default_path = ImageUtils.check_default_path_exists(target)

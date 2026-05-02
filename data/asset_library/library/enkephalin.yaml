@@ -1,7 +1,9 @@
 assets:
 - file: dark/en/enkephalin/use_lunacy_assets.png
-  business_name: ''
-  tags: []
+  business_name: 英暗狂气按钮
+  tags:
+  - 英文
+  - 暗色
   note: ''
   checksum: sha256:f8fe051a29a34765a76dcbad729d9103fb4da3dc73e8744f3ecb5b3bfe899a15
 - file: dark/share/enkephalin/all_in_assets.png
@@ -25,8 +27,9 @@ assets:
   note: ''
   checksum: sha256:0b1897d4f2d336932a397f3e397eb455747bc9fdef3c7b75d017d2ba7e94ba5e
 - file: dark/share/enkephalin/lunacy_assets.png
-  business_name: ''
-  tags: []
+  business_name: 狂气图标
+  tags:
+  - 暗色
   note: ''
   checksum: sha256:269c8845a5ec540add435801c72ad0d653c32032ae287dc7debe9f880e5490c4
 - file: dark/share/enkephalin/lunacy_spend_26_assets.png
@@ -45,28 +48,30 @@ assets:
   note: ''
   checksum: sha256:e497e7fc216d4edbb4249175fb83ca4acc48ec306734bfae5a8ed6f970bbee4f
 - file: dark/zh_cn/enkephalin/use_lunacy_assets.png
-  business_name: 使用狂气
+  business_name: 中暗狂气按钮
   tags:
   - 中文
   - 暗色
   note: ''
   checksum: sha256:522e439470b3585c8a1177c6d5e4fe740e5ed5559e6a273c5f91764aba723db2
 - file: default/en/enkephalin/use_lunacy_assets.png
-  business_name: 使用狂气
+  business_name: 英亮狂气按钮
   tags:
   - 英文
   - 亮色
   note: ''
   checksum: sha256:d08b2e76b0752be0ddfd969ad674e96d1e23961181a1060b2e154e4548ae5143
 - file: default/share/enkephalin/all_in_assets.png
-  business_name: ''
-  tags: []
+  business_name: 换饼可全换
+  tags:
+  - 亮色
   note: ''
   checksum: sha256:392cbc83bcf31540d63188a8b4cbde1206214acddaa1892285c4083988634e90
 - file: default/share/enkephalin/all_in_disabled_assets.png
-  business_name: ''
-  tags: []
-  note: ''
+  business_name: 换饼不可全换
+  tags:
+  - 亮色
+  note: 感觉可以废弃了
   checksum: sha256:8852cf9329b2d39e724869020a631d715fc458a384bfc93582823b5fe48b4658
 - file: default/share/enkephalin/enkephalin_cancel_assets.png
   business_name: ''
@@ -89,8 +94,9 @@ assets:
   note: ''
   checksum: sha256:f96128e7f84b01dfee2139b0611de9cb307f9bd7b8746c9f8abfe8639dfdd356
 - file: default/share/enkephalin/lunacy_assets.png
-  business_name: ''
-  tags: []
+  business_name: 狂气图标
+  tags:
+  - 亮色
   note: ''
   checksum: sha256:8506924c1183ef2ec8aa93ba2422c201ef3e138d234b1eac358547c1fedcc328
 - file: default/share/enkephalin/lunacy_spend_26_assets.png
@@ -109,7 +115,9 @@ assets:
   note: ''
   checksum: sha256:77efa331d9576b19e1a0cb821ef1998d794d8abe028b4e639f69074ab02ebbf6
 - file: default/zh_cn/enkephalin/use_lunacy_assets.png
-  business_name: ''
-  tags: []
+  business_name: 中亮使用狂气
+  tags:
+  - 中文
+  - 亮色
   note: ''
   checksum: sha256:a2186a5e36ca84082e7627216d4d969175fc1a53947e8b7e5394fb44cc8d6d5f
