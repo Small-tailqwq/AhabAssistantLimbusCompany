@@ -370,13 +370,11 @@ class ConfigModel(BaseModel):
     check_update: bool = True
     """检查更新"""
 
-    update_prerelease_enable: bool = False
-    """启用预发布版更新"""
-
     update_channel: str = "stable"
     """更新通道: stable (稳定版, 检查上游 KIYI671 仓库) / canary (金丝雀版, 检查 Small-tailqwq 仓库)"""
 
-
+    update_use_system_proxy: bool = False
+    """使用系统代理进行更新"""
 
     default_page: int = 0
     """保存启动后的页面"""

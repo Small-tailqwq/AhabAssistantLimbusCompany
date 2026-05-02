@@ -67,12 +67,21 @@ class SettingNav(QFrame):
                     self.navClicked.emit(k, widget)
                     break
 
-    def process_content_scrolled(self, value: int, scroll_widget: QWidget):
+    def process_content_scrolled(self, value: int, scroll_widget: QWidget, scroll_max: int = 0):
         """处理右侧内容区域的滚动事件
         根据当前滚动条的位置，计算哪个卡片组最靠近顶部，并自动高亮左侧导航栏的对应项目
         """
         if not self.nav_items:
             return
+
+        # 滚动到底部附近时，直接选中最后一项，避免末项内容过短时误选上一项
+        BOTTOM_THRESHOLD = 20
+        if scroll_max > 0 and value >= scroll_max - BOTTOM_THRESHOLD:
+            last_key = self.nav_items[-1][0]
+            if last_key != self._current_nav:
+                self.set_active_nav(last_key, emit_signal=False)
+            return
+
         closest_key = None
         closest_delta = None
         for key, _title, widget in self.nav_items:

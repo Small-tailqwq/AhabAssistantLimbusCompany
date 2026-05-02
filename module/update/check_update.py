@@ -3,6 +3,7 @@ import os  # 导入os模块以便操作文件路径
 import re
 import shutil
 import subprocess
+import urllib.request
 from enum import Enum
 from threading import Thread
 
@@ -24,6 +25,13 @@ md_renderer = MarkdownIt("gfm-like", {"html": True})
 def _normalize_version(v: str) -> str:
     """将 canary 版本号（X.Y.Z-canary[.N]）转换为 PEP 440 兼容格式（X.Y.ZdevN）。"""
     return re.sub(r"-canary[\.-]?", "dev", v)
+
+
+def _get_proxies() -> dict:
+    """当启用系统代理配置时，返回 Windows 系统代理设置。"""
+    if cfg.update_use_system_proxy:
+        return urllib.request.getproxies()
+    return {}
 
 
 class UpdateStatus(Enum):
@@ -69,6 +77,10 @@ class UpdateThread(QThread):
         self.user = "Small-tailqwq" if self._canary else "KIYI671"
         self.new_version = ""
 
+    @property
+    def _version_url(self) -> str:
+        return f"https://raw.githubusercontent.com/{self.user}/{self.repo}/main/assets/config/version.txt"
+
     def run(self) -> None:
         """
         更新线程的主逻辑。
@@ -79,6 +91,8 @@ class UpdateThread(QThread):
             if self.flag and not cfg.get_value("check_update"):
                 return
 
+            # 主路径：GitHub API（兼容性好，代理友好）
+            # 兜底：raw.githubusercontent.com（CDN 直连，部分网络环境更快）
             data = self.check_update_info_github()
             version = data["tag_name"]
             self.new_version = version
@@ -98,17 +112,36 @@ class UpdateThread(QThread):
                 self.content = "<style>a {color: #586f50; font-weight: bold;}</style>" + md_renderer.render(content)
                 self.updateSignal.emit(UpdateStatus.UPDATE_AVAILABLE)
             else:
-                # 如果没有新版本，则发送成功信号
+                log.info("当前已是最新版本")
                 self.updateSignal.emit(UpdateStatus.SUCCESS)
-        except Exception as e:
-            # 异常处理，发送失败信号
-            log.error(f"检查更新失败:{e}")
-            self.updateSignal.emit(UpdateStatus.FAILURE)
+        except Exception:
+            log.warning("GitHub API 检查失败，降级到 raw.githubusercontent.com")
+            try:
+                proxies = _get_proxies()
+                resp = requests.get(self._version_url, timeout=10, headers=cfg.useragent, proxies=proxies)
+                resp.raise_for_status()
+                remote_version = resp.text.strip()
+                self.new_version = remote_version
+
+                if parse(_normalize_version(remote_version.lstrip("Vv"))) > parse(
+                    _normalize_version(cfg.version.lstrip("Vv"))
+                ):
+                    self.title = self.tr("发现新版本：{Old_version} ——> {New_version}\n更新日志:").format(
+                        Old_version=cfg.version, New_version=remote_version
+                    )
+                    self.content = self.tr("请前往 GitHub Releases 页面查看更新说明并手动下载。")
+                    self.updateSignal.emit(UpdateStatus.UPDATE_AVAILABLE)
+                else:
+                    log.info("当前已是最新版本")
+                    self.updateSignal.emit(UpdateStatus.SUCCESS)
+            except Exception as e:
+                log.error(f"检查更新失败:{e}")
+                self.updateSignal.emit(UpdateStatus.FAILURE)
 
     @property
     def _github_use_releases_list(self):
         """金丝雀通道始终走 releases 列表（含 prerelease），稳定版按配置决定"""
-        return self._canary or cfg.update_prerelease_enable
+        return self._canary
 
     def check_update_info_github(self):
         """
@@ -117,17 +150,20 @@ class UpdateThread(QThread):
         返回:
         最新发布版本的信息（JSON 格式）
         """
+        proxies = _get_proxies()
         if self._github_use_releases_list:
             response = requests.get(
                 f"https://api.github.com/repos/{self.user}/{self.repo}/releases",
                 timeout=10,
                 headers=cfg.useragent,
+                proxies=proxies,
             )
         else:
             response = requests.get(
                 f"https://api.github.com/repos/{self.user}/{self.repo}/releases/latest",
                 timeout=10,
                 headers=cfg.useragent,
+                proxies=proxies,
             )
         response.raise_for_status()
         return response.json()[0] if self._github_use_releases_list else response.json()
@@ -170,17 +206,20 @@ class UpdateThread(QThread):
             self.updateSignal.emit(UpdateStatus.FAILURE)
 
     def _get_assets_url_github(self):
+        proxies = _get_proxies()
         if self._github_use_releases_list:
             response = requests.get(
                 f"https://api.github.com/repos/{self.user}/{self.repo}/releases",
                 timeout=10,
                 headers=cfg.useragent,
+                proxies=proxies,
             )
         else:
             response = requests.get(
                 f"https://api.github.com/repos/{self.user}/{self.repo}/releases/latest",
                 timeout=10,
                 headers=cfg.useragent,
+                proxies=proxies,
             )
         response.raise_for_status()
         data = response.json()[0] if self._github_use_releases_list else response.json()
@@ -283,9 +322,10 @@ def update(assets_url):
         file_name = "AALC.7z"
     log.info(f"正在下载 {file_name} ...")
 
+    proxies = _get_proxies()
     try:
         # 发起HTTP请求获取文件
-        response = requests.get(assets_url, stream=True, timeout=10)
+        response = requests.get(assets_url, stream=True, timeout=10, proxies=proxies)
         response.raise_for_status()  # 检查 HTTP 请求是否成功
 
         # 获取文件总大小
@@ -297,7 +337,7 @@ def update(assets_url):
         # 构建保存文件的完整路径
         file_path = os.path.join("update_temp", file_name)
 
-        with requests.get(assets_url, stream=True) as r:
+        with requests.get(assets_url, stream=True, proxies=proxies) as r:
             with open(file_path, "wb") as f:
                 for chunk in r.iter_content(chunk_size=1024):
                     if chunk:
@@ -311,7 +351,7 @@ def update(assets_url):
         # 下载完成 → 校验 SHA256（旧版本无 hash 文件时跳过）
         try:
             hash_url = assets_url + ".sha256"
-            hash_resp = requests.get(hash_url, timeout=10)
+            hash_resp = requests.get(hash_url, timeout=10, proxies=proxies)
             hash_resp.raise_for_status()
             expected_hash = hash_resp.text.strip()
 

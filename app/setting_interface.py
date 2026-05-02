@@ -395,13 +395,6 @@ class SettingInterface(QWidget):
             QT_TRANSLATE_NOOP("VersionCard", "当前版本: {version}").format(version=cfg.version),
             parent=self.about_group,
         )
-        self.check_update_card = SwitchSettingCard(
-            FIF.SYNC,
-            QT_TRANSLATE_NOOP("SwitchSettingCard", "加入预览版更新渠道"),
-            "",
-            "update_prerelease_enable",
-            parent=self.about_group,
-        )
         self.system_proxy_card = SwitchSettingCard(
             FIF.GLOBE,
             QT_TRANSLATE_NOOP("SwitchSettingCard", "使用系统代理"),
@@ -608,7 +601,6 @@ class SettingInterface(QWidget):
         self.about_group.addSettingCard(self.discord_group_card)
         self.about_group.addSettingCard(self.feedback_card)
         self.about_group.addSettingCard(self.version_card)
-        self.about_group.addSettingCard(self.check_update_card)
         self.about_group.addSettingCard(self.system_proxy_card)
 
         self.experimental_group.addSettingCard(self.auto_lang_card)
@@ -679,7 +671,8 @@ class SettingInterface(QWidget):
 
     def __on_content_scrolled(self, value: int):
         """内容区域滚动，同步高亮导航栏"""
-        self.setting_nav.process_content_scrolled(value, self.scroll_widget)
+        scroll_max = self.content_scroll.verticalScrollBar().maximum()
+        self.setting_nav.process_content_scrolled(value, self.scroll_widget, scroll_max)
 
     def _apply_theme_style(self, *_):
         light_qss, dark_qss = get_setting_interface_qss()
@@ -945,7 +938,6 @@ class SettingInterface(QWidget):
         self.experimental_group.retranslateUi()
         self.about_group.retranslateUi()
         self.version_card.retranslateUi()
-        self.check_update_card.retranslateUi()
         self.system_proxy_card.retranslateUi()
         self.open_logs_card.retranslateUi()
         self.github_card.retranslateUi()
