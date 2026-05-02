@@ -1283,7 +1283,7 @@ class Mirror:
             if choice_screen_visible or decision_feature_visible:
                 if select_first_option_visible and not any((continue_visible, proceed_visible, commence_visible, commence_battle_visible)):
                     auto.click_element("event/select_first_option_assets.png", check_gray=True)
-                    event_chance -= 1
+                    event_chance = max(0, event_chance - 1)
                     continue
                 if choice_screen_visible and not select_first_option_visible and not any((continue_visible, proceed_visible, commence_visible, commence_battle_visible)):
                     log.debug("首选项灰色不可点击，尝试多目标匹配寻找可用选项")
