@@ -30,6 +30,24 @@ jobs:
       - name: Run opencode
         uses: anomalyco/opencode/github@latest
         env:
-          OPENCODE_API_KEY: ${{ secrets.API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          OPENCODE_CONFIG_CONTENT: |
+            {
+              "provider": {
+                "opencode-go": {
+                  "name": "OpenCode Go",
+                  "npm": "@ai-sdk/openai-compatible",
+                  "options": {
+                    "baseURL": "https://opencode.ai/zen/go/v1",
+                    "apiKey": "{env:DEEPSEEK_API_KEY}"
+                  },
+                  "models": {
+                    "deepseek-v4-flash": {
+                      "name": "DeepSeek V4 Flash"
+                    }
+                  }
+                }
+              }
+            }
         with:
-          model: opencode/deepseek-v4-flash
+          model: opencode-go/deepseek-v4-flash
