@@ -30,6 +30,6 @@ jobs:
       - name: Run opencode
         uses: anomalyco/opencode/github@latest
         env:
-          OPENCODE-GO_API_KEY: ${{ secrets.API_KEY }}
+          OPENCODE_API_KEY: ${{ secrets.API_KEY }}
         with:
-          model: opencode-go/deepseek-v4-flash
+          model: opencode/deepseek-v4-flash
