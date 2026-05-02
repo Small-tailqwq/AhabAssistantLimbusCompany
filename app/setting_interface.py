@@ -30,8 +30,8 @@ from app.base_combination import (
     HotkeySettingCard,
     PushSettingCardChance,
     PushSettingCardDate,
-    PushSettingCardMirrorchyan,
     SwitchSettingCard,
+    VersionCard,
 )
 from app.card.messagebox_custom import BaseInfoBar, MessageBoxEdit
 from app.common.ui_config import get_setting_interface_qss
@@ -311,36 +311,6 @@ class SettingInterface(QWidget):
             parent=self.personal_group,
         )
 
-        self.update_group = BaseSettingCardGroup(
-            QT_TRANSLATE_NOOP("BaseSettingCardGroup", "更新设置"), self.scroll_widget
-        )
-        self.check_update_card = SwitchSettingCard(
-            FIF.SYNC,
-            QT_TRANSLATE_NOOP("SwitchSettingCard", "加入预览版更新渠道"),
-            "",
-            "update_prerelease_enable",
-            parent=self.update_group,
-        )
-        self.update_source_card = ComboBoxSettingCard(
-            "update_source",
-            FIF.CLOUD_DOWNLOAD,
-            QT_TRANSLATE_NOOP("ComboBoxSettingCard", "更新源"),
-            QT_TRANSLATE_NOOP("ComboBoxSettingCard", "选择更新源"),
-            texts={
-                QT_TRANSLATE_NOOP("ComboBoxSettingCard", "Github源"): "GitHub",
-                QT_TRANSLATE_NOOP("ComboBoxSettingCard", "Mirror 酱"): "MirrorChyan",
-            },
-            parent=self.update_group,
-        )
-        self.mirrorchyan_cdk_card = PushSettingCardMirrorchyan(
-            QT_TRANSLATE_NOOP("PushSettingCardMirrorchyan", "修改"),
-            FIF.BOOK_SHELF,
-            QT_TRANSLATE_NOOP("PushSettingCardMirrorchyan", "Mirror 酱 CDK"),
-            self.parent(),
-            "mirrorchyan_cdk",
-            parent=self.update_group,
-        )
-
         self.logs_group = BaseSettingCardGroup(QT_TRANSLATE_NOOP("BaseSettingCardGroup", "调试"), self.scroll_widget)
         self.debug_mode_card = SwitchSettingCard(
             FIF.DEVELOPER_TOOLS,
@@ -417,6 +387,30 @@ class SettingInterface(QWidget):
             FIF.FEEDBACK,
             QT_TRANSLATE_NOOP("BasePrimaryPushSettingCard", "提供反馈"),
             QT_TRANSLATE_NOOP("BasePrimaryPushSettingCard", "帮助我们改进 AhabAssistantLimbusCompany"),
+        )
+
+        self.version_card = VersionCard(
+            FIF.SYNC,
+            QT_TRANSLATE_NOOP("VersionCard", "版本信息"),
+            QT_TRANSLATE_NOOP("VersionCard", "当前版本: {version}").format(version=cfg.version),
+            parent=self.about_group,
+        )
+        self.check_update_card = SwitchSettingCard(
+            FIF.SYNC,
+            QT_TRANSLATE_NOOP("SwitchSettingCard", "加入预览版更新渠道"),
+            "",
+            "update_prerelease_enable",
+            parent=self.about_group,
+        )
+        self.system_proxy_card = SwitchSettingCard(
+            FIF.GLOBE,
+            QT_TRANSLATE_NOOP("SwitchSettingCard", "使用系统代理"),
+            QT_TRANSLATE_NOOP(
+                "SwitchSettingCard",
+                "启用后自动读取 Windows 系统代理设置（如 Clash），适用于有代理工具的网络环境",
+            ),
+            "update_use_system_proxy",
+            parent=self.about_group,
         )
 
         self.theme_pack_group = BaseSettingCardGroup(
@@ -603,10 +597,6 @@ class SettingInterface(QWidget):
         self.personal_group.addSettingCard(self.zoom_card)
         self.personal_group.addSettingCard(self.hotkey_card)
 
-        self.update_group.addSettingCard(self.check_update_card)
-        self.update_group.addSettingCard(self.update_source_card)
-        self.update_group.addSettingCard(self.mirrorchyan_cdk_card)
-
         self.logs_group.addSettingCard(self.debug_mode_card)
         self.logs_group.addSettingCard(self.debug_mirror_route_card)
         self.logs_group.addSettingCard(self.debug_thread_dungeon_card)
@@ -617,6 +607,9 @@ class SettingInterface(QWidget):
         self.about_group.addSettingCard(self.github_card)
         self.about_group.addSettingCard(self.discord_group_card)
         self.about_group.addSettingCard(self.feedback_card)
+        self.about_group.addSettingCard(self.version_card)
+        self.about_group.addSettingCard(self.check_update_card)
+        self.about_group.addSettingCard(self.system_proxy_card)
 
         self.experimental_group.addSettingCard(self.auto_lang_card)
         self.experimental_group.addSettingCard(self.low_res_match_card)
@@ -639,10 +632,9 @@ class SettingInterface(QWidget):
         self.expand_layout.addWidget(self.game_path_group)
         self.expand_layout.addWidget(self.autodaily_group)
         self.expand_layout.addWidget(self.personal_group)
-        self.expand_layout.addWidget(self.update_group)
         self.expand_layout.addWidget(self.logs_group)
-        self.expand_layout.addWidget(self.about_group)
         self.expand_layout.addWidget(self.experimental_group)
+        self.expand_layout.addWidget(self.about_group)
 
     def __init_nav(self):
         """初始化左侧导航栏组件"""
@@ -662,14 +654,13 @@ class SettingInterface(QWidget):
             ("game_path", QT_TRANSLATE_NOOP("Nav", "启动游戏"), self.game_path_group),
             ("autodaily", QT_TRANSLATE_NOOP("Nav", "定时执行"), self.autodaily_group),
             ("personal", QT_TRANSLATE_NOOP("Nav", "个性化"), self.personal_group),
-            ("update", QT_TRANSLATE_NOOP("Nav", "更新设置"), self.update_group),
             ("logs", QT_TRANSLATE_NOOP("Nav", "调试"), self.logs_group),
-            ("about", QT_TRANSLATE_NOOP("Nav", "关于"), self.about_group),
             (
                 "experimental",
                 QT_TRANSLATE_NOOP("Nav", "实验性"),
                 self.experimental_group,
             ),
+            ("about", QT_TRANSLATE_NOOP("Nav", "关于"), self.about_group),
         ]
 
         self.setting_nav.add_nav_items(nav_items)
@@ -950,12 +941,12 @@ class SettingInterface(QWidget):
         self.autodaily_card_2.retranslateUi()
         self.autodaily_card_3.retranslateUi()
         self.autodaily_card_4.retranslateUi()
-        self.update_group.retranslateUi()
-        self.update_source_card.retranslateUi()
-        self.check_update_card.retranslateUi()
-        self.mirrorchyan_cdk_card.retranslateUi()
         self.logs_group.retranslateUi()
+        self.experimental_group.retranslateUi()
         self.about_group.retranslateUi()
+        self.version_card.retranslateUi()
+        self.check_update_card.retranslateUi()
+        self.system_proxy_card.retranslateUi()
         self.open_logs_card.retranslateUi()
         self.github_card.retranslateUi()
         self.discord_group_card.retranslateUi()

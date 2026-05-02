@@ -22,8 +22,8 @@ md_renderer = MarkdownIt("gfm-like", {"html": True})
 
 
 def _normalize_version(v: str) -> str:
-    """将 canary 版本号（X.Y.Z-canary.N）转换为 PEP 440 兼容格式（X.Y.ZdevN）。"""
-    return v.replace("-canary.", "dev")
+    """将 canary 版本号（X.Y.Z-canary[.N]）转换为 PEP 440 兼容格式（X.Y.ZdevN）。"""
+    return re.sub(r"-canary[\.-]?", "dev", v)
 
 
 class UpdateStatus(Enum):
@@ -81,11 +81,12 @@ class UpdateThread(QThread):
 
             data = self.check_update_info_github()
             version = data["tag_name"]
+            self.new_version = version
             content = self.remove_images_from_markdown(data["body"])
-            assets_url = self.get_download_url_from_assets(data["assets"])
+            self._cached_assets_url = self.get_download_url_from_assets(data["assets"])
 
             # 如果没有可用的下载 URL，则发送成功信号并返回
-            if assets_url is None:
+            if self._cached_assets_url is None:
                 self.updateSignal.emit(UpdateStatus.SUCCESS)
                 return
 
@@ -160,6 +161,8 @@ class UpdateThread(QThread):
         return None
 
     def get_assets_url(self):
+        if getattr(self, "_cached_assets_url", None):
+            return self._cached_assets_url
         try:
             return self._get_assets_url_github()
         except Exception as e:
@@ -183,7 +186,8 @@ class UpdateThread(QThread):
         data = response.json()[0] if self._github_use_releases_list else response.json()
         assets_url = self.get_download_url_from_assets(data["assets"])
         if assets_url is None:
-            self.updateSignal.emit(UpdateStatus.SUCCESS)
+            log.error("更新失败：未找到可用的下载资产")
+            self.updateSignal.emit(UpdateStatus.FAILURE)
             return
         return assets_url
 
@@ -304,7 +308,7 @@ def update(assets_url):
 
         log.info("下载进度100%")
 
-        # 下载完成 → 校验 SHA256（适用于 GitHub 源；Mirror酱/旧版本无 hash 文件则跳过）
+        # 下载完成 → 校验 SHA256（旧版本无 hash 文件时跳过）
         try:
             hash_url = assets_url + ".sha256"
             hash_resp = requests.get(hash_url, timeout=10)

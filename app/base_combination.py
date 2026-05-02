@@ -10,12 +10,11 @@ from PySide6.QtCore import (
     QPropertyAnimation,
     QRect,
     QTime,
-    QUrl,
+    QTimer,
     Signal,
 )
 from PySide6.QtGui import (
     QColor,
-    QDesktopServices,
     QFont,
     QKeyEvent,
     QKeySequence,
@@ -57,13 +56,14 @@ from app.card.messagebox_custom import (
     MessageBoxDate,
     MessageBoxEdit,
     MessageBoxSpinbox,
+    MessageBoxUpdate,
 )
 from app.common.icons import OverflowIcons
 from app.language_manager import LanguageManager
 from module.font_manager import font_manager
 from module.logger import log
 from module.my_error.my_error import settingsTypeError
-from module.update.check_update import check_update
+from module.update.check_update import UpdateStatus, UpdateThread, check_update, start_update_thread
 from utils.utils import decrypt_string, encrypt_string, get_timezone
 from utils.image_utils import ImageUtils
 
@@ -851,57 +851,110 @@ class BasePrimaryPushSettingCard(PrimaryPushSettingCard):
         self.button.setText(self.tr(self.text))
 
 
-class PushSettingCardMirrorchyan(SettingCard):
-    def __init__(
-        self,
-        text,
-        icon: Union[str, QIcon, FluentIconBase],
-        title,
-        update_callback,
-        config_name,
-        parent: QObject | None = None,
-    ):
-        self.config_value = decrypt_string(str(cfg.get_value(config_name)))
-        self.update_callback = update_callback
-        super().__init__(icon, title, "", parent)
-
+class VersionCard(SettingCard):
+    def __init__(self, icon, title, content, parent=None):
+        super().__init__(icon, title, content, parent)
         self.title = title
-        self.button_text = text
-        self.config_name = config_name
+        self.content = content
 
-        self.button2 = QPushButton("获取 CDK", self)
-        self.button2.setObjectName("primaryButton")
-        self.hBoxLayout.addWidget(self.button2, 0, Qt.AlignRight)
-        self.hBoxLayout.addSpacing(10)
-        self.button2.clicked.connect(self.__onclicked2)
+        self.latest_label = QLabel(self)
+        self.latest_label.setObjectName("latestLabel")
+        self.latest_label.setStyleSheet("#latestLabel { color: green; font-weight: bold; }")
+        self.latest_label.setVisible(False)
 
-        self.button = QPushButton(text, self)
-        self.hBoxLayout.addWidget(self.button, 0, Qt.AlignRight)
+        self.check_update_btn = PrimaryPushButton(self.tr("检查更新"), self)
+        self.check_update_btn.setFocusPolicy(Qt.NoFocus)
+        self.hBoxLayout.addWidget(self.check_update_btn, 0, Qt.AlignRight)
         self.hBoxLayout.addSpacing(16)
-        self.button.clicked.connect(self.__onclicked)
+        self.check_update_btn.clicked.connect(self._on_check_update)
 
-    def __onclicked(self):
-        message_box = MessageBoxEdit(self.tr(self.title), self.config_value, self.window())
-        if message_box.exec():
-            base64_cdk = encrypt_string(message_box.getText())
-            cfg.set_value(self.config_name, base64_cdk)
-            self.contentLabel.setText(message_box.getText())
-            self.config_value = message_box.getText()
-            parent = self._find_parent(self)
-            check_update(parent, flag=True)
+        self.vBoxLayout.addWidget(self.latest_label)
 
-    def __onclicked2(self):
-        QDesktopServices.openUrl(QUrl("https://mirrorchyan.com/?source=aalc_app"))
+        self._update_timer = QTimer(self)
+        self._update_timer.setSingleShot(True)
+        self._update_timer.timeout.connect(self._on_update_timeout)
 
-    def _find_parent(self, widget):
-        while widget.parent() is not None:
-            widget = widget.parent()
-        return widget
+    def _set_loading(self, loading: bool):
+        self.check_update_btn.setEnabled(not loading)
+        self.check_update_btn.setText(
+            self.tr("正在检查...") if loading else self.tr("检查更新")
+        )
+
+    def _on_check_update(self):
+        if hasattr(self, "_update_thread") and self._update_thread.isRunning():
+            return
+        self.latest_label.setVisible(False)
+        self._set_loading(True)
+
+        self._update_thread = UpdateThread(timeout=10, flag=True)
+        self._update_thread.updateSignal.connect(self._on_update_result)
+        self._update_thread.start()
+        self._update_timer.start(30000)
+        log.info("开始检查更新")
+
+    def _on_update_timeout(self):
+        log.warning("检查更新超时")
+        if hasattr(self, "_update_thread") and self._update_thread.isRunning():
+            self._update_thread.terminate()
+            self._update_thread.wait()
+        self._set_loading(False)
+        BaseInfoBar.warning(
+            title=QT_TRANSLATE_NOOP("BaseInfoBar", "检测更新失败"),
+            content=QT_TRANSLATE_NOOP("BaseInfoBar", "请求超时，请检查网络连接"),
+            orient=Qt.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP,
+            duration=5000,
+            parent=self.window(),
+        )
+
+    def _on_update_result(self, status: UpdateStatus):
+        self._update_timer.stop()
+        self._set_loading(False)
+
+        if status == UpdateStatus.UPDATE_AVAILABLE:
+            self.latest_label.setText(
+                self.tr("最新版本: {version}").format(version=self._update_thread.new_version)
+            )
+            self.latest_label.setVisible(True)
+            messages_box = MessageBoxUpdate(
+                self._update_thread.title, self._update_thread.content, self.window()
+            )
+            if messages_box.exec():
+                assets_url = self._update_thread.get_assets_url()
+                if assets_url:
+                    start_update_thread(assets_url)
+        elif status == UpdateStatus.SUCCESS:
+            BaseInfoBar.success(
+                title=QT_TRANSLATE_NOOP("BaseInfoBar", "当前是最新版本(＾∀＾●)"),
+                content="",
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=1000,
+                parent=self.window(),
+            )
+        else:
+            BaseInfoBar.warning(
+                title=QT_TRANSLATE_NOOP("BaseInfoBar", "检测更新失败(╥╯﹏╰╥)"),
+                content=self._update_thread.error_msg,
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=5000,
+                parent=self.window(),
+            )
 
     def retranslateUi(self):
-        self.button2.setText(self.tr("获取 CDK"))
         self.titleLabel.setText(self.tr(self.title))
-        self.button.setText(self.tr(self.button_text))
+        self.contentLabel.setText(self.tr(self.content))
+        self.check_update_btn.setText(
+            self.tr("正在检查...") if not self.check_update_btn.isEnabled() else self.tr("检查更新")
+        )
+        if self.latest_label.isVisible():
+            self.latest_label.setText(
+                self.tr("最新版本: {version}").format(version=self._update_thread.new_version)
+            )
 
 
 class SwitchSettingCard(SettingCard):

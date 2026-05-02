@@ -92,8 +92,6 @@ start_emulator_timeout: 120 # 启动模拟器超时时间
 # 自动更新
 check_update: True
 update_prerelease_enable: False
-update_source: GitHub # 更新源
-mirrorchyan_cdk: "" # Mirror酱 CDK
 
 # 保存启动后的页面
 default_page: 0

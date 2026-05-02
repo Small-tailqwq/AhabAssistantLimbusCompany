@@ -356,9 +356,6 @@ class Config(metaclass=SingletonMeta):
         else:
             setattr(self.config, key, value)
 
-        # 防止 cdk 泄露
-        if key == "mirrorchyan_cdk":
-            value = "已加密"
         if config_obj:
             if isinstance(config_obj, dict):
                 value_obj: BaseModel | None | Any = config_obj.get(key, None)

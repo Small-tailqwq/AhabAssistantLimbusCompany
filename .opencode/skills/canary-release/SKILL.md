@@ -77,7 +77,7 @@ Invoke-RestMethod -Uri "https://api.github.com/repos/{owner}/{repo}/releases/$re
 
 ### Mirror酱 已移除
 
-本分支（金丝雀版）已移除全部 Mirror酱（MirrorChyan）更新通道代码。`check_update.py` 仅保留 GitHub 源，`update_source` 配置项仍存在于 schema 中供 UI 显示，但不再参与更新逻辑。
+本分支（金丝雀版）已移除全部 Mirror酱（MirrorChyan）代码：`check_update.py` 仅保留 GitHub 源，`setting_interface.py` 中的更新源选择器和 CDK 输入卡已删除，`config_typing.py` 中对应的 `update_source` 和 `mirrorchyan_cdk` 字段已清理。
 
 ## 常见问题
 

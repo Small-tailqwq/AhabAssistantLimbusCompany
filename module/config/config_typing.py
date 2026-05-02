@@ -376,11 +376,7 @@ class ConfigModel(BaseModel):
     update_channel: str = "stable"
     """更新通道: stable (稳定版, 检查上游 KIYI671 仓库) / canary (金丝雀版, 检查 Small-tailqwq 仓库)"""
 
-    update_source: str = "GitHub"
-    """更新源"""
 
-    mirrorchyan_cdk: str = ""
-    """Mirror酱 CDK"""
 
     default_page: int = 0
     """保存启动后的页面"""
