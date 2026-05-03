@@ -688,8 +688,8 @@ class PageMirror(PageCard):
                 continue
             cfg.config.teams[f"{save_index}"] = cfg.config.teams[f"{index}"]
             del cfg.config.teams[f"{index}"]
-            theme_list.set_team_weight_config_from_team(i, i + 1)
-            theme_list.delete_team_weight_config(i + 1)
+            theme_list.set_team_weight_config_from_team(save_index, index)
+            theme_list.delete_team_weight_config(index)
             save_index += 1
 
         cfg.save()
@@ -700,8 +700,9 @@ class PageMirror(PageCard):
         teams_order = cfg.config.teams_order
         for team in mirror_teams:
             number = team.team_number
-            if teams_order[number - 1] != 0:
-                team.order.setText(str(teams_order[number - 1]))
+            idx = number - 1
+            if idx < len(teams_order) and teams_order[idx] != 0:
+                team.order.setText(str(teams_order[idx]))
             else:
                 team.order.setText("")
 
