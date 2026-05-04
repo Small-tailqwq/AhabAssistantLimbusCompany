@@ -33,29 +33,39 @@ $releaseId = $release.id
 ```
 
 **Step 2: 更新 Release 名称和内容**
+
+> ⚠️ **不要使用 `Invoke-RestMethod` + `ConvertTo-Json` + here-string** —— 该组合会因 Markdown 特殊字符（`` ` ``、`"`、`@`）导致 `ConvertTo-Json` 生成畸形 JSON，表现为 `Invoke-RestMethod` 报 "response ended prematurely" 或 body 为空。
+
+使用 `Invoke-WebRequest -UseBasicParsing` + 手写单引号 JSON（`\r\n` 换行）：
+
 ```powershell
 $token = powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\Ko_teiru\bin\github-mcp-server\read-credential.ps1"
-$headers = @{"Authorization" = "token $token"; "Accept" = "application/vnd.github.v3+json"}
+$headers = @{
+    "Authorization" = "token $token"
+    "Accept" = "application/vnd.github.v3+json"
+}
 
-$body = @"
-# 金丝雀预览版 vX.Y.Z-canary.N
+# 手写 JSON 字符串（单引号，\r\n 换行），避免 ConvertTo-Json 转义 Markdown 特殊字符
+$body = '{"name":"vX.Y.Z-canary.N — 金丝雀预览版","body":"# 金丝雀预览版 vX.Y.Z-canary.N\r\n\r\n### 分类标题\r\n\r\n- feat: 新功能描述\r\n- fix: 修复描述\r\n\r\n[查看完整变更](https://github.com/{owner}/{repo}/compare/v{prev}...v{new})"}'
 
-> 变更说明 Markdown 内容...
-
-## 分类标题
-- feat: 新功能
-- fix: 修复
-"@
-
-$json = @{name = "vX.Y.Z-canary.N — 金丝雀预览版"; body = $body} | ConvertTo-Json -Depth 5
-Invoke-RestMethod -Uri "https://api.github.com/repos/{owner}/{repo}/releases/$releaseId" -Headers $headers -Method Patch -Body $json -ContentType "application/json; charset=utf-8"
+Invoke-WebRequest -Uri "https://api.github.com/repos/{owner}/{repo}/releases/$releaseId" `
+    -Headers $headers `
+    -Method Patch `
+    -Body $body `
+    -ContentType "application/json; charset=utf-8" `
+    -UseBasicParsing
 ```
+
+**为什么不用 `Invoke-RestMethod`：**
+- `Invoke-RestMethod` 会解析响应体，当 PATCH 返回的 JSON 意外或空时抛出 "response ended prematurely"
+- `Invoke-WebRequest -UseBasicParsing` 不做自动解析，只要 HTTP 200 就表示成功
 
 **关键点：**
 - Token 从 Windows Credential Manager 读取（`read-credential.ps1`），不要硬编码
-- `ConvertTo-Json` 会自动处理换行符转义
+- JSON body 使用**单引号字符串** + 手动 `\r\n` 换行，**禁止** `ConvertTo-Json`（会错误转义 Markdown）
 - 必须指定 `charset=utf-8` 否则中文会乱码
 - Release ID 比 tag name 更可靠（避免 tag 格式问题）
+- Validate：执行后 `Invoke-RestMethod -Uri "...releases/tags/v..."` 检查 `name` 和 `body` 是否更新
 
 ## 何时使用我
 
@@ -87,10 +97,11 @@ Invoke-RestMethod -Uri "https://api.github.com/repos/{owner}/{repo}/releases/$re
 - **修复**：将 `build.py` 中的 `→` 替换为 `->`，中文替换为英文
 - **预防**：提交前运行 `python -c "检查 scripts/build.py 中 print 的非 ASCII 字符"`
 
-### Release Body 为空
-- **症状**：API PATCH 返回成功但 body 为空
-- **原因**：`ConvertTo-Json` 未正确处理多行字符串
-- **修复**：使用 PowerShell here-string (`@"..."@`) 并指定 `charset=utf-8`
+### Release Body 为空或 PATCH 失败
+- **症状**：API PATCH 返回成功但 `name`/`body` 未变，或 `Invoke-RestMethod` 报 "response ended prematurely"
+- **原因**：`ConvertTo-Json` 对 Markdown 特殊字符（反引号 `` ` ``、双引号 `"`、`@`）进行了错误的 JSON 转义，HTTP 层面虽返回 200 但 GitHub 服务端解析 JSON body 失败
+- **修复**：改用 `Invoke-WebRequest -UseBasicParsing` + 手写单引号 JSON 字符串（`\r\n` 换行），参考 Step 2 示例代码
+- **预防**：PATCH 后务必用 `Invoke-RestMethod -Uri "...releases/tags/v..."` 验证 `name` 和 `body` 字段已更新
 
 ### GitHub MCP 认证失败 (401)
 - **症状**：MCP 工具返回 `Bad credentials`
