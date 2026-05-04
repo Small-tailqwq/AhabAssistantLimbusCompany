@@ -2,6 +2,14 @@
 
 ## [Unreleased] — Canary
 
+## [1.5.0-canary.10] — 2026-05-04
+
+### 镜牢稳定性
+- fix: 主题包选取增加模拟器卡死检测，连续10次未离开判卡死自动重启
+- fix: select_theme_pack 循环计数器移至 while 顶部防无限循环，参照 a88f235 修复模式
+- fix: 修复编队队列状态归一化
+- fix: 修复编队删除/重启崩溃链（NameError + IndexError + KeyError）
+
 ## [1.5.0-canary.9] — 2026-05-03
 
 ### 镜牢稳定性
