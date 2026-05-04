@@ -25,6 +25,16 @@ def select_theme_pack(hard_switch=False, floor=None, team_num=None, use_custom_t
     if auto.find_element("mirror/road_in_mir/legend_assets.png", take_screenshot=True):
         return
     while True:
+        loop_count -= 1
+        if loop_count < 20:
+            auto.model = "normal"
+        if loop_count < 10:
+            auto.model = "aggressive"
+        if loop_count < 0:
+            log.error("无法选取主题包,尝试回到初始界面")
+            back_init_menu()
+            return
+
         # 自动截图
         if auto.take_screenshot() is None:
             continue
@@ -34,8 +44,6 @@ def select_theme_pack(hard_switch=False, floor=None, team_num=None, use_custom_t
             and auto.find_element("mirror/theme_pack/normal_assets.png") is None
             and auto.find_element("mirror/theme_pack/hard_assets.png") is None
         ):
-            if loop_count < 0:
-                break
             if loop_count < 5:
                 normal_bbox = ImageUtils.get_bbox(ImageUtils.load_image("mirror/theme_pack/normal_assets.png"))
                 hard_bbox = ImageUtils.get_bbox(ImageUtils.load_image("mirror/theme_pack/hard_assets.png"))
@@ -54,7 +62,6 @@ def select_theme_pack(hard_switch=False, floor=None, team_num=None, use_custom_t
                     difficulty = "normal"
                 elif "hard" in ocr_result:
                     difficulty = "hard"
-            loop_count -= 1
             sleep(1)
             continue
 
@@ -164,16 +171,6 @@ def select_theme_pack(hard_switch=False, floor=None, team_num=None, use_custom_t
             except Exception as e:
                 log.error(f"选择主题包出错:{e},尝试回到初始界面")
                 back_init_menu()
-                break
-
-        loop_count -= 1
-        if loop_count < 20:
-            auto.model = "normal"
-        if loop_count < 10:
-            auto.model = "aggressive"
-        if loop_count < 0:
-            log.error("无法选取主题包,尝试回到初始界面")
-            back_init_menu()
-            break
+                return
     log.error("无法选取主题包,尝试回到初始界面")
     back_init_menu()

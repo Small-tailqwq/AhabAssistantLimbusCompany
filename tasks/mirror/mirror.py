@@ -311,6 +311,8 @@ class Mirror:
 
         main_loop_count = self.LOOP_COUNT
         back_menu_count = 0
+        _theme_pack_consecutive = 0  # 连续检测到主题包画面的迭代计数
+        _MAX_THEME_PACK_CONSECUTIVE = 10  # 超时约120秒(每次循环~12秒，含sleep+OCR)
         # 未到达奖励页不会停止
         while True:
             if main_loop_count >= 50:
@@ -353,6 +355,12 @@ class Mirror:
 
             # 选择楼层主题包的情况
             if auto.find_element("mirror/theme_pack/feature_theme_pack_assets.png", threshold=0.75):
+                _theme_pack_consecutive += 1
+                if _theme_pack_consecutive > _MAX_THEME_PACK_CONSECUTIVE:
+                    log.warning(f"主题包选取连续{_theme_pack_consecutive}次循环未离开，判定模拟器卡死")
+                    _theme_pack_consecutive = 0
+                    back_init_menu()
+                    continue
                 sleep(2)
                 select_theme_pack(self.hard_switch, self.floor, self.team_order, self.use_custom_theme_pack_weight)
                 if self.re_formation_each_floor:
@@ -373,6 +381,7 @@ class Mirror:
                 self.get_floor_num = True
                 main_loop_count += 50
                 continue
+            _theme_pack_consecutive = 0  # 不在主题包画面，重置计数
 
             # 遇到选择增益事件（少见）
             if auto.click_element("mirror/road_in_mir/event_effect_button.png", threshold=0.75):
