@@ -5,11 +5,12 @@ import shutil
 import subprocess
 import urllib.request
 from enum import Enum
+from pathlib import Path
 from threading import Thread
 
 import requests  # 导入requests模块，用于发送HTTP请求
 from markdown_it import MarkdownIt
-from packaging.version import parse
+from packaging.version import InvalidVersion, parse
 from PySide6.QtCore import QT_TRANSLATE_NOOP, Qt, QThread, Signal
 from qfluentwidgets import InfoBarPosition
 
@@ -18,6 +19,11 @@ from app.card.messagebox_custom import BaseInfoBar, MessageBoxUpdate
 from module.config import cfg
 from module.decorator.decorator import begin_and_finish_time_log
 from module.logger import log
+from module.update.update_protocol import (
+    REMOTE_UPDATE_MANIFEST_ASSET,
+    read_bootstrap_version,
+    select_compatible_release,
+)
 
 md_renderer = MarkdownIt("gfm-like", {"html": True})
 
@@ -76,6 +82,10 @@ class UpdateThread(QThread):
         self._canary = cfg.update_channel == "canary" or "-canary" in cfg.version
         self.user = "Small-tailqwq" if self._canary else "KIYI671"
         self.new_version = ""
+        self._cached_assets_url = None
+        self._selected_release_bundle = None
+        self._latest_release_tag = None
+        self._bridge_release_selected = False
 
     @property
     def _version_url(self) -> str:
@@ -97,7 +107,7 @@ class UpdateThread(QThread):
             version = data["tag_name"]
             self.new_version = version
             content = self.remove_images_from_markdown(data["body"])
-            self._cached_assets_url = self.get_download_url_from_assets(data["assets"])
+            self._cached_assets_url = data.get("archive_url")
 
             # 如果没有可用的下载 URL，则发送成功信号并返回
             if self._cached_assets_url is None:
@@ -110,10 +120,16 @@ class UpdateThread(QThread):
                     Old_version=cfg.version, New_version=version
                 )
                 self.content = "<style>a {color: #586f50; font-weight: bold;}</style>" + md_renderer.render(content)
+                if self._bridge_release_selected:
+                    self.content += f"\n\n当前引导器版本较旧，将先安装兼容桥接版本 {version}。"
                 self.updateSignal.emit(UpdateStatus.UPDATE_AVAILABLE)
             else:
                 log.info("当前已是最新版本")
                 self.updateSignal.emit(UpdateStatus.SUCCESS)
+        except RuntimeError as e:
+            self.error_msg = str(e)
+            log.error(f"检查更新失败:{e}")
+            self.updateSignal.emit(UpdateStatus.FAILURE)
         except Exception:
             log.warning("GitHub API 检查失败，降级到 raw.githubusercontent.com")
             try:
@@ -150,23 +166,29 @@ class UpdateThread(QThread):
         返回:
         最新发布版本的信息（JSON 格式）
         """
+        releases = self._fetch_release_candidates_github()
+        bundle = self.select_release_bundle(releases)
+        if bundle is None:
+            raise RuntimeError("未找到与当前更新引导器兼容的更新包")
+        self._selected_release_bundle = bundle
+        self._cached_assets_url = bundle.get("archive_url")
+        return bundle
+
+    def _fetch_release_candidates_github(self):
         proxies = _get_proxies()
-        if self._github_use_releases_list:
-            response = requests.get(
-                f"https://api.github.com/repos/{self.user}/{self.repo}/releases",
-                timeout=10,
-                headers=cfg.useragent,
-                proxies=proxies,
-            )
-        else:
-            response = requests.get(
-                f"https://api.github.com/repos/{self.user}/{self.repo}/releases/latest",
-                timeout=10,
-                headers=cfg.useragent,
-                proxies=proxies,
-            )
+        response = requests.get(
+            f"https://api.github.com/repos/{self.user}/{self.repo}/releases",
+            timeout=10,
+            headers=cfg.useragent,
+            proxies=proxies,
+        )
         response.raise_for_status()
-        return response.json()[0] if self._github_use_releases_list else response.json()
+        data = response.json()
+        if not isinstance(data, list):
+            return []
+        if self._canary:
+            return data
+        return [release for release in data if not release.get("prerelease")]
 
     def remove_images_from_markdown(self, markdown_content):
         """
@@ -191,10 +213,88 @@ class UpdateThread(QThread):
         返回:
         .7z 文件的下载 URL，如果没有找到则返回 None
         """
+        matches = []
         for asset in assets:
-            if asset["name"].endswith(".7z"):
-                return asset["browser_download_url"]
-        return None
+            name = asset.get("name")
+            url = asset.get("browser_download_url")
+            if isinstance(name, str) and isinstance(url, str) and re.fullmatch(r"AALC_.+\.7z", name):
+                matches.append(url)
+        return matches[0] if len(matches) == 1 else None
+
+    def get_remote_manifest_url_from_assets(self, assets):
+        matches = []
+        for asset in assets:
+            name = asset.get("name")
+            url = asset.get("browser_download_url")
+            if name == REMOTE_UPDATE_MANIFEST_ASSET and isinstance(url, str):
+                matches.append(url)
+        return matches[0] if len(matches) == 1 else None
+
+    def fetch_remote_manifest(self, release):
+        assets = release.get("assets") if isinstance(release, dict) else None
+        if not isinstance(assets, list):
+            return None
+        manifest_url = self.get_remote_manifest_url_from_assets(assets)
+        if manifest_url is None:
+            return None
+        proxies = _get_proxies()
+        response = requests.get(manifest_url, timeout=10, headers=cfg.useragent, proxies=proxies)
+        response.raise_for_status()
+        manifest = response.json()
+        return manifest if isinstance(manifest, dict) else None
+
+    def select_release_bundle(self, releases):
+        local_bootstrap_version = read_bootstrap_version(Path.cwd())
+        self._bridge_release_selected = False
+        self._latest_release_tag = None
+        bundles = []
+        latest_valid_tag_name = None
+        latest_valid_requires_newer_bootstrap = False
+        for release in releases:
+            if not isinstance(release, dict):
+                continue
+            tag_name = release.get("tag_name")
+            assets = release.get("assets")
+            if not isinstance(assets, list):
+                continue
+            archive_url = self.get_download_url_from_assets(assets)
+            manifest_url = self.get_remote_manifest_url_from_assets(assets)
+            if archive_url is None or manifest_url is None:
+                continue
+            try:
+                manifest = self.fetch_remote_manifest(release)
+            except Exception:
+                continue
+            if not isinstance(manifest, dict):
+                continue
+            required_bootstrap_version = manifest.get("bootstrap_version")
+            try:
+                required_bootstrap_version = int(required_bootstrap_version)
+            except (TypeError, ValueError):
+                continue
+            if required_bootstrap_version < 1:
+                continue
+            if isinstance(tag_name, str):
+                try:
+                    parse(_normalize_version(tag_name.lstrip("Vv")))
+                except InvalidVersion:
+                    continue
+                if latest_valid_tag_name is None:
+                    latest_valid_tag_name = tag_name
+                    self._latest_release_tag = tag_name
+                    latest_valid_requires_newer_bootstrap = required_bootstrap_version > local_bootstrap_version
+            bundles.append(
+                {
+                    **release,
+                    "archive_url": archive_url,
+                    "manifest_url": manifest_url,
+                    "manifest": manifest,
+                }
+            )
+        selected = select_compatible_release(bundles, local_bootstrap_version)
+        if selected is not None and latest_valid_requires_newer_bootstrap:
+            self._bridge_release_selected = selected.get("tag_name") != latest_valid_tag_name
+        return selected
 
     def get_assets_url(self):
         if getattr(self, "_cached_assets_url", None):
@@ -206,29 +306,14 @@ class UpdateThread(QThread):
             self.updateSignal.emit(UpdateStatus.FAILURE)
 
     def _get_assets_url_github(self):
-        proxies = _get_proxies()
-        if self._github_use_releases_list:
-            response = requests.get(
-                f"https://api.github.com/repos/{self.user}/{self.repo}/releases",
-                timeout=10,
-                headers=cfg.useragent,
-                proxies=proxies,
-            )
-        else:
-            response = requests.get(
-                f"https://api.github.com/repos/{self.user}/{self.repo}/releases/latest",
-                timeout=10,
-                headers=cfg.useragent,
-                proxies=proxies,
-            )
-        response.raise_for_status()
-        data = response.json()[0] if self._github_use_releases_list else response.json()
-        assets_url = self.get_download_url_from_assets(data["assets"])
-        if assets_url is None:
-            log.error("更新失败：未找到可用的下载资产")
-            self.updateSignal.emit(UpdateStatus.FAILURE)
-            return
-        return assets_url
+        bundle = self.select_release_bundle(self._fetch_release_candidates_github())
+        if bundle is not None:
+            self._selected_release_bundle = bundle
+            self._cached_assets_url = bundle.get("archive_url")
+            return self._cached_assets_url
+        log.error("更新失败：未找到可用的下载资产")
+        self.updateSignal.emit(UpdateStatus.FAILURE)
+        return None
 
 
 @begin_and_finish_time_log(task_name="检查更新")

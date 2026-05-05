@@ -1,15 +1,40 @@
 import argparse
 import hashlib
+import json
 import os
 import re
 import shutil
 import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 import PyInstaller.__main__
+from module.update.update_protocol import (
+    BOOTSTRAP_VERSION_PATH,
+    DEFAULT_PROTECTED_PATHS,
+    REMOTE_UPDATE_MANIFEST_ASSET,
+    UPDATE_MANIFEST_NAME,
+    build_update_manifest,
+    collect_managed_files,
+)
+
+
+def positive_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("bootstrap version must be >= 1")
+    return parsed
+
 
 # 读取版本号
 parser = argparse.ArgumentParser(description="Build AALC")
 parser.add_argument("--version", default="dev", help="AALC Version")
+parser.add_argument("--bridge-updater", action="store_true", help="Build legacy root-dir updater package")
+parser.add_argument("--bootstrap-version", type=positive_int, default=2, help="Bootstrap protocol version")
 args = parser.parse_args()
 version = args.version
 
@@ -126,6 +151,10 @@ with open(
     encoding="utf-8",
 ) as f:
     f.write(version)
+
+dist_app_root = Path("dist") / "AALC"
+bootstrap_version_path = dist_app_root / Path(*BOOTSTRAP_VERSION_PATH.split("/"))
+bootstrap_version_path.write_text(str(args.bootstrap_version), encoding="utf-8")
 
 # 裁剪多余的文件
 bundled_internal_dir = os.path.join("dist", "AALC", "_internal")
@@ -266,8 +295,37 @@ for rel_path in redundant_files:
     else:
         print(f"Warning: {abs_path} not found.")
 
+managed_files = collect_managed_files(dist_app_root, DEFAULT_PROTECTED_PATHS)
+managed_files_text = "\n".join(managed_files)
+if managed_files_text:
+    managed_files_text += "\n"
+
+managed_files_path = dist_app_root / "managed_files.txt"
+managed_files_path.write_text(managed_files_text, encoding="utf-8")
+managed_files_sha256 = hashlib.sha256(managed_files_text.encode("utf-8")).hexdigest()
+
+package_layout = "root_dir" if args.bridge_updater else "flat"
+update_manifest = build_update_manifest(
+    version=version,
+    bootstrap_version=args.bootstrap_version,
+    package_layout=package_layout,
+    cleanup_mode="manifest",
+    min_source_version_for_cleanup="0",
+    managed_files_sha256=managed_files_sha256,
+    protected_paths=DEFAULT_PROTECTED_PATHS,
+)
+update_manifest_path = dist_app_root / UPDATE_MANIFEST_NAME
+update_manifest_path.write_text(
+    json.dumps(update_manifest, ensure_ascii=True, indent=2) + "\n",
+    encoding="utf-8",
+)
+shutil.copyfile(update_manifest_path, Path("dist") / REMOTE_UPDATE_MANIFEST_ASSET)
+
 # 压缩为7z文件
-subprocess.run(["7z", "a", "-mx=7", f"AALC_{version}.7z", "AALC/*"], cwd="./dist")
+if args.bridge_updater:
+    subprocess.run(["7z", "a", "-mx=7", f"AALC_{version}.7z", "AALC/*"], cwd="./dist")
+else:
+    subprocess.run(["7z", "a", "-mx=7", f"../AALC_{version}.7z", "./*"], cwd="./dist/AALC")
 
 # 生成SHA256哈希文件，供更新程序校验下载完整性
 archive_path = os.path.join("dist", f"AALC_{version}.7z")
