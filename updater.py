@@ -86,6 +86,9 @@ class Updater:
 
     def cover_folder(self):
         """覆盖安装最新版本的文件，并清理旧版本残留。"""
+        aalc_dir = os.path.join(self.extract_folder_path, "AALC")
+        if os.path.isdir(aalc_dir):
+            self.extract_folder_path = aalc_dir
         if not os.path.exists(self.changes_file_path):
             try:
                 if os.path.exists(self.delete_folder_path):

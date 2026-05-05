@@ -266,8 +266,8 @@ for rel_path in redundant_files:
     else:
         print(f"Warning: {abs_path} not found.")
 
-# 压缩为7z文件
-subprocess.run(["7z", "a", "-mx=7", f"AALC_{version}.7z", "AALC/*"], cwd="./dist")
+# 压缩为7z文件（从 dist/AALC 目录打包，消除路径前缀）
+subprocess.run(["7z", "a", "-mx=7", f"../AALC_{version}.7z", "./*"], cwd=os.path.join(".", "dist", "AALC"))
 
 # 生成SHA256哈希文件，供更新程序校验下载完整性
 archive_path = os.path.join("dist", f"AALC_{version}.7z")

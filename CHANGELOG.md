@@ -2,6 +2,16 @@
 
 ## [Unreleased] — Canary
 
+### 更新系统
+- fix: 修复 7z 打包包含 `AALC/` 路径前缀导致在线更新后文件错位，引发 `python313.dll` 找不到的错误
+- fix: updater 解压后检测 `AALC/` 子目录做兼容处理
+
+### 镜牢稳定性
+- fix: 主题包选取增加模拟器卡死检测，连续10次未离开判卡死自动重启
+- fix: select_theme_pack 循环计数器移至 while 顶部防无限循环，参照 a88f235 修复模式
+- fix: 修复编队队列状态归一化
+- fix: 修复编队删除/重启崩溃链（NameError + IndexError + KeyError）
+
 ## [1.5.0-canary.10] — 2026-05-04
 
 ### 镜牢稳定性
