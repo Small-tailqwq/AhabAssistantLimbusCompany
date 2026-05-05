@@ -3,8 +3,8 @@
 ## [Unreleased] — Canary
 
 ### 更新系统
-- fix: 修复 7z 打包包含 `AALC/` 路径前缀导致在线更新后文件错位，引发 `python313.dll` 找不到的错误
-- fix: updater 解压后检测 `AALC/` 子目录做兼容处理
+- fix: updater extract_file 解压目标改用 extract_folder_path 子目录，避免覆盖运行中的 updater 导致 extract 失败
+- fix: updater cover_folder 检测 `AALC/` 双层嵌套做兼容处理
 
 ### 镜牢稳定性
 - fix: 主题包选取增加模拟器卡死检测，连续10次未离开判卡死自动重启

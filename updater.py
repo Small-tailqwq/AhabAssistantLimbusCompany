@@ -36,13 +36,13 @@ class Updater:
                             self.exe_path,
                             "x",
                             self.download_file_path,
-                            f"-o{self.temp_path}",
+                            f"-o{self.extract_folder_path}",
                             "-aoa",
                         ],
                         check=True,
                     )
                 else:
-                    shutil.unpack_archive(self.download_file_path, self.temp_path)
+                    shutil.unpack_archive(self.download_file_path, self.extract_folder_path)
                 print("解压完成")
                 return True
             except Exception:
