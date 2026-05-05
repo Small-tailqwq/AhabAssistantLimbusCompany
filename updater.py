@@ -1,129 +1,264 @@
-import os
+import hashlib
+import json
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 
 import psutil
+
+from module.update.update_protocol import (
+    BOOTSTRAP_VERSION_PATH,
+    DEFAULT_PROTECTED_PATHS,
+    INSTALLED_MANIFEST_META_PATH,
+    INSTALLED_MANIFEST_PATH,
+    LEGACY_DANGEROUS_VERSION,
+    MANAGED_FILES_NAME,
+    UPDATE_MANIFEST_NAME,
+    is_protected_path,
+    read_bootstrap_version,
+    resolve_safe_child,
+    validate_relative_manifest_path,
+    version_at_least,
+    version_at_most,
+)
 
 
 class Updater:
     """应用程序更新器，负责检查、下载、解压和安装最新版本的应用程序。"""
 
-    def __init__(self, file_name=None):
+    def __init__(self, file_name=None, base_dir=None):
         self.process_names = ["AALC.exe"]
 
-        self.temp_path = os.path.abspath("./update_temp")
-        os.makedirs(self.temp_path, exist_ok=True)
-
         self.file_name = file_name
+        self.base_dir = Path(base_dir) if base_dir is not None else Path.cwd()
+        self.temp_path = self.base_dir / "update_temp"
+        self.temp_path.mkdir(parents=True, exist_ok=True)
 
-        self.cover_folder_path = os.path.abspath("./")
-
-        self.exe_path = os.path.abspath("./assets/binary/7za.exe")
-        self.delete_folder_path = os.path.abspath("./assets/images")
-        self.extract_folder_path = os.path.join(self.temp_path, self.file_name.rsplit(".", 1)[0])
-        self.download_file_path = os.path.join(self.temp_path, self.file_name)
-        self.changes_file_path = os.path.join(self.extract_folder_path, "changes.json")
+        archive_stem = Path(file_name).stem if file_name else "payload"
+        self.cover_folder_path = self.base_dir
+        self.exe_path = self.base_dir / "assets" / "binary" / "7za.exe"
+        self.delete_folder_path = self.base_dir / "assets" / "images"
+        self.extract_folder_path = self.temp_path / archive_stem
+        self.download_file_path = self.temp_path / file_name if file_name else self.temp_path / "payload.7z"
+        self.changes_file_path = self.extract_folder_path / "changes.json"
 
     def extract_file(self):
         """解压下载的文件。"""
         print("开始解压...")
         while True:
             try:
-                if os.path.exists(self.exe_path):
+                if self.exe_path.exists():
                     subprocess.run(
                         [
-                            self.exe_path,
+                            str(self.exe_path),
                             "x",
-                            self.download_file_path,
+                            str(self.download_file_path),
                             f"-o{self.extract_folder_path}",
                             "-aoa",
                         ],
                         check=True,
                     )
                 else:
-                    shutil.unpack_archive(self.download_file_path, self.extract_folder_path)
+                    shutil.unpack_archive(str(self.download_file_path), str(self.extract_folder_path))
                 print("解压完成")
                 return True
             except Exception:
                 input("解压失败，按回车键重新解压. . .多次失败请手动下载更新")
                 return False
 
-    def _build_manifest(self) -> set:
-        """构建新版本文件清单（相对路径集合），用于清理旧残留。"""
-        manifest = set()
-        for root, _dirs, files in os.walk(self.extract_folder_path):
-            for f in files:
-                rel_path = os.path.relpath(os.path.join(root, f), self.extract_folder_path)
-                manifest.add(rel_path)
-        return manifest
+    def discover_payload_root(self):
+        payload_root = self.extract_folder_path
+        aalc_dir = payload_root / "AALC"
+        if aalc_dir.is_dir():
+            return aalc_dir
+        return payload_root
 
-    def _remove_stale_files(self, manifest: set):
-        """删除安装目录中不在新版本清单内的文件（保留用户数据）。"""
-        preserve_dirs = {"update_temp", "3rdparty", "theme_pack_weight", "__pycache__"}
-        preserve_files = {"config.yaml", "theme_pack_list.yaml"}
+    def load_managed_files(self, payload_root, manifest):
+        managed_manifest_name = manifest.get("managed_files_manifest", MANAGED_FILES_NAME)
+        if not isinstance(managed_manifest_name, str) or not managed_manifest_name.strip():
+            raise ValueError("missing managed files manifest path")
 
-        for root, dirs, files in os.walk(self.cover_folder_path):
-            rel_root = os.path.relpath(root, self.cover_folder_path)
-            if rel_root == ".":
-                rel_root = ""
-            # 跳过受保护的目录
-            parts = rel_root.replace("\\", "/").split("/") if rel_root else []
-            if any(p in preserve_dirs for p in parts):
+        managed_manifest_path = resolve_safe_child(payload_root, managed_manifest_name.replace("\\", "/"))
+        managed_manifest_bytes = managed_manifest_path.read_bytes()
+        normalized_manifest_bytes = managed_manifest_bytes.replace(b"\r\n", b"\n")
+        expected_hash = manifest.get("managed_files_sha256")
+        if not isinstance(expected_hash, str) or not expected_hash.strip():
+            raise ValueError("missing managed files hash")
+        actual_hash = hashlib.sha256(normalized_manifest_bytes).hexdigest()
+        if actual_hash != expected_hash:
+            raise ValueError("managed files hash mismatch")
+
+        protected_paths = manifest.get("protected_paths", DEFAULT_PROTECTED_PATHS)
+        if not isinstance(protected_paths, list) or not all(isinstance(item, str) for item in protected_paths):
+            raise ValueError("invalid protected paths")
+        declared_protected_paths = {path.replace("\\", "/").strip("/").lower() for path in protected_paths if path.strip()}
+        required_protected_paths = {
+            path.replace("\\", "/").strip("/").lower() for path in DEFAULT_PROTECTED_PATHS if path.strip()
+        }
+        if not required_protected_paths.issubset(declared_protected_paths):
+            raise ValueError("manifest weakens required protected paths")
+
+        managed_files = []
+        seen = set()
+        for raw_line in managed_manifest_bytes.decode("utf-8").splitlines():
+            rel_path = raw_line.strip()
+            if not rel_path:
                 continue
+            normalized = validate_relative_manifest_path(rel_path, protected_paths)
+            if normalized in seen:
+                continue
+            source_path = resolve_safe_child(payload_root, normalized)
+            if not source_path.is_file():
+                raise ValueError(f"payload file missing: {normalized}")
+            managed_files.append(normalized)
+            seen.add(normalized)
+        return managed_files, protected_paths
 
-            for f in files:
-                rel_path = os.path.join(rel_root, f).replace("\\", "/")
-                if rel_path in preserve_files:
-                    continue
-                if rel_path not in manifest:
-                    file_path = os.path.join(root, f)
-                    try:
-                        os.remove(file_path)
-                        print(f"删除旧残留文件: {rel_path}")
-                    except Exception as e:
-                        print(f"删除残留文件失败 {rel_path}: {e}")
+    def validate_manifest_metadata(self, manifest, payload_root):
+        try:
+            bootstrap_version = int(manifest.get("bootstrap_version"))
+        except (TypeError, ValueError):
+            raise ValueError("invalid bootstrap version") from None
+        if bootstrap_version < 1:
+            raise ValueError("invalid bootstrap version")
 
-    def cover_folder(self):
-        """覆盖安装最新版本的文件，并清理旧版本残留。"""
-        aalc_dir = os.path.join(self.extract_folder_path, "AALC")
-        if os.path.isdir(aalc_dir):
-            self.extract_folder_path = aalc_dir
-        if not os.path.exists(self.changes_file_path):
+        payload_bootstrap_version = read_bootstrap_version(payload_root)
+        if payload_bootstrap_version != bootstrap_version:
+            raise ValueError(
+                f"bootstrap metadata mismatch: manifest={bootstrap_version}, payload={payload_bootstrap_version}"
+            )
+        return {
+            "current_version": manifest.get("current_version", ""),
+            "bootstrap_version": bootstrap_version,
+        }
+
+    def load_installed_manifest(self):
+        manifest_path = resolve_safe_child(self.base_dir, INSTALLED_MANIFEST_PATH)
+        if not manifest_path.exists():
+            return None
+
+        installed_files = set()
+        for raw_line in manifest_path.read_text(encoding="utf-8").splitlines():
+            rel_path = raw_line.strip()
+            if not rel_path:
+                continue
+            installed_files.add(validate_relative_manifest_path(rel_path, []))
+        return installed_files
+
+    def current_installed_version(self):
+        meta_path = resolve_safe_child(self.base_dir, INSTALLED_MANIFEST_META_PATH)
+        if meta_path.exists():
             try:
-                if os.path.exists(self.delete_folder_path):
-                    shutil.rmtree(self.delete_folder_path)
-            except Exception as e:
-                print(f"删除旧资源文件失败: {e}")
+                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                meta = None
+            if isinstance(meta, dict):
+                current_version = meta.get("current_version")
+                if isinstance(current_version, str) and current_version.strip():
+                    return current_version.strip()
 
-        manifest = self._build_manifest()
-        print(f"新版本文件清单: {len(manifest)} 个文件")
+        version_path = resolve_safe_child(self.base_dir, "assets/config/version.txt")
+        if version_path.exists():
+            version_text = version_path.read_text(encoding="utf-8").strip()
+            if version_text:
+                return version_text
+        return None
 
+    def copy_payload(self, payload_root, managed_files):
         print("开始覆盖安装...")
         while True:
             try:
-                shutil.copytree(self.extract_folder_path, self.cover_folder_path, dirs_exist_ok=True)
+                for rel_path in managed_files:
+                    source_path = resolve_safe_child(payload_root, rel_path)
+                    target_path = resolve_safe_child(self.base_dir, rel_path)
+                    target_path.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(source_path, target_path)
                 print("覆盖安装完成")
-                break
+                return
             except Exception as e:
                 print(f"覆盖安装失败: {e}")
                 input("按回车键重试. . . \n Press any key to continue")
 
-        self._remove_stale_files(manifest)
-        print("旧残留清理完成")
+    def should_allow_cleanup(self, installed_manifest, manifest):
+        if not installed_manifest:
+            return False
+
+        current_version = self.current_installed_version()
+        if not current_version:
+            return False
+        if version_at_most(current_version, LEGACY_DANGEROUS_VERSION):
+            return False
+
+        cleanup_mode = manifest.get("cleanup_mode")
+        if cleanup_mode not in {"managed_only", "manifest"}:
+            return False
+
+        min_source_version = manifest.get("min_source_version_for_cleanup")
+        if isinstance(min_source_version, str) and min_source_version.strip():
+            return version_at_least(current_version, min_source_version)
+        return True
+
+    def remove_retired_managed_files(self, installed_manifest, managed_files, protected_paths):
+        retired_files = sorted(installed_manifest - set(managed_files))
+        for rel_path in retired_files:
+            if is_protected_path(rel_path, protected_paths):
+                print(f"跳过受保护的历史文件: {rel_path}")
+                continue
+            target_path = resolve_safe_child(self.base_dir, rel_path)
+            if target_path.exists() and target_path.is_file():
+                target_path.unlink()
+                print(f"删除旧残留文件: {rel_path}")
+
+    def write_installed_manifest(self, managed_files, manifest):
+        manifest_path = resolve_safe_child(self.base_dir, INSTALLED_MANIFEST_PATH)
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        manifest_body = "\n".join(sorted(managed_files))
+        manifest_path.write_text(f"{manifest_body}\n" if manifest_body else "", encoding="utf-8")
+
+        meta_path = resolve_safe_child(self.base_dir, INSTALLED_MANIFEST_META_PATH)
+        meta_path.parent.mkdir(parents=True, exist_ok=True)
+        meta_path.write_text(json.dumps(manifest, ensure_ascii=True, indent=2), encoding="utf-8")
+
+    def apply_update_from_extracted_payload(self):
+        payload_root = self.discover_payload_root()
+        manifest_path = resolve_safe_child(payload_root, UPDATE_MANIFEST_NAME)
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if not isinstance(manifest, dict):
+            raise ValueError("invalid update manifest")
+        manifest_metadata = self.validate_manifest_metadata(manifest, payload_root)
+
+        managed_files, protected_paths = self.load_managed_files(payload_root, manifest)
+        installed_manifest = self.load_installed_manifest()
+
+        if not self.changes_file_path.exists():
+            try:
+                if self.delete_folder_path.exists():
+                    shutil.rmtree(self.delete_folder_path)
+            except Exception as e:
+                print(f"删除旧资源文件失败: {e}")
+
+        self.copy_payload(payload_root, managed_files)
+        if self.should_allow_cleanup(installed_manifest, manifest):
+            self.remove_retired_managed_files(installed_manifest, managed_files, protected_paths)
+            print("旧残留清理完成")
+        else:
+            print("跳过旧残留清理")
+        self.write_installed_manifest(managed_files, manifest_metadata)
 
     def terminate_processes(self):
         """终止相关进程以准备更新。"""
         print("开始终止进程...")
         for proc in psutil.process_iter(attrs=["pid", "name"]):
-            if proc.info["name"] in self.process_names or any(name in proc.info["name"] for name in self.process_names):
+            proc_name = proc.info.get("name") or ""
+            if proc_name in self.process_names or any(name in proc_name for name in self.process_names):
                 try:
                     proc.terminate()
                     try:
-                        proc.wait(timeout=10)  # 等待最多10秒
+                        proc.wait(timeout=10)
                     except psutil.TimeoutExpired:
-                        proc.kill()  # 超时强制终止
-                        proc.wait(timeout=5)  # 再次等待
+                        proc.kill()
+                        proc.wait(timeout=5)
                 except psutil.AccessDenied:
                     print(f"无权限终止进程 PID: {proc.info['pid']}")
                 except psutil.NoSuchProcess:
@@ -134,10 +269,12 @@ class Updater:
         """清理下载和解压的临时文件。"""
         print("开始清理...")
         try:
-            os.remove(self.download_file_path)
-            shutil.rmtree(self.extract_folder_path)
-            if os.path.exists(self.changes_file_path):
-                os.remove(self.changes_file_path)
+            if self.download_file_path.exists():
+                self.download_file_path.unlink()
+            if self.extract_folder_path.exists():
+                shutil.rmtree(self.extract_folder_path)
+            if self.changes_file_path.exists():
+                self.changes_file_path.unlink()
             print("清理完成")
         except Exception as e:
             print(f"清理失败: {e}")
@@ -148,11 +285,21 @@ class Updater:
             if self.extract_file():
                 break
         self.terminate_processes()
-        self.cover_folder()
+        app_path = self.base_dir / "AALC.exe"
+        try:
+            self.apply_update_from_extracted_payload()
+        except Exception as e:
+            print(f"更新失败: {e}")
+            self.cleanup()
+            if app_path.exists():
+                subprocess.Popen(str(app_path))
+            input("更新失败，按回车键退出并重新打开软件")
+            return
+
         self.cleanup()
         input("已完成更新，按回车键退出并打开软件\nThe update is complete, press enter to exit and open the software")
-        if os.system(f'cmd /c start "" "{os.path.abspath("./AALC.exe")}"'):
-            subprocess.Popen(os.path.abspath("./AALC.exe"))
+        if subprocess.call(f'cmd /c start "" "{app_path}"', shell=True):
+            subprocess.Popen(str(app_path))
 
 
 def check_temp_dir_and_run():
@@ -161,22 +308,21 @@ def check_temp_dir_and_run():
         print("更新程序只支持打包成exe后运行")
         sys.exit(1)
 
-    temp_path = os.path.abspath("./update_temp")
-    file_path = sys.argv[0]
-    destination_path = os.path.join(temp_path, os.path.basename(file_path))
+    base_dir = Path.cwd()
+    temp_path = base_dir / "update_temp"
+    file_path = Path(sys.argv[0]).resolve()
+    destination_path = temp_path / file_path.name
 
     if file_path != destination_path:
-        if os.path.exists("./Update.exe"):
-            os.remove("./Update.exe")
-        os.makedirs(temp_path, exist_ok=True)
+        temp_path.mkdir(parents=True, exist_ok=True)
         shutil.copy(file_path, destination_path)
-        args = [destination_path] + sys.argv[1:]
+        args = [str(destination_path)] + sys.argv[1:]
         subprocess.Popen(args, creationflags=subprocess.DETACHED_PROCESS)
         sys.exit(0)
 
     file_name = sys.argv[1] if len(sys.argv) == 2 else None
 
-    updater = Updater(file_name)
+    updater = Updater(file_name, base_dir=base_dir)
     updater.run()
 
 

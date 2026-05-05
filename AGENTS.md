@@ -28,6 +28,17 @@ uv run python .opencode/tools/mirror_analyzer.py <logs>  # 镜牢耗时分析（
 - 无自动化测试套件；`test/` 下是手动脚本，依赖真实游戏/OBS/模拟器
 - `ruff` 已配置；遗留模块已有预存警告（通配符导入、裸 `except`），功能开发中不做无关清理
 
+## 更新发布约束
+
+- 自动更新的用户可见“更新信息”来自 GitHub Release body；不再维护额外的本地更新说明文件。发版时需要同步维护 `CHANGELOG.md` 和 Release body。
+- 每个可被自动更新消费的 Release 必须包含且只包含一份匹配的主包：`AALC_<version>.7z`。若出现 0 份或多份匹配 `.7z` 资产，当前更新逻辑会跳过该 Release。
+- 每个 Release 必须同时上传构建产物 `AALC.update_manifest.json`。这是 sidecar 更新协议文件，GUI 侧会先读取它来判断 `bootstrap_version` 和兼容性；缺失、损坏或重复时，该 Release 会被跳过。
+- 每个 Release 应同时上传 `AALC_<version>.7z.sha256`。客户端会在下载完成后校验 SHA256；缺失时会降级为“跳过校验”而不是失败，因此正式发版不要漏传。
+- 常规 `canary.10+` 发版使用默认平铺包：`uv run python .\scripts\build.py --version <version> --bootstrap-version 2`。不要在正常发版时使用 `--bridge-updater`；该参数只用于生成 legacy `root_dir` 包做历史兼容/排障。
+- `bootstrap_version` 只在 updater 协议发生不兼容变化时提升。只要提升它，旧客户端就会跳过该 Release，因此发版前必须同时准备兼容迁移方案。
+- `scripts/build.py` 生成的 `update_manifest.json`、`managed_files.txt`、`bootstrap_version.txt` 是一组协议文件；发布时应直接上传构建产物，不要手工修改 sidecar manifest 内容。
+- 当前稳定通道会过滤 GitHub `prerelease=true` 的 Release；canary 通道读取完整 releases 列表。金丝雀发布仍建议保持 Release 元数据完整可读，不要依赖额外渠道补发更新说明。
+
 ## 架构要点
 
 | 层 | 目录 | 关键文件 |
