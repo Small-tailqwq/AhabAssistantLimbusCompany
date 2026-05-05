@@ -27,6 +27,8 @@ from module.update.update_protocol import (
 class Updater:
     """应用程序更新器，负责检查、下载、解压和安装最新版本的应用程序。"""
 
+    RETRY_LIMIT = 5
+
     def __init__(self, file_name=None, base_dir=None):
         self.process_names = ["AALC.exe"]
 
@@ -46,7 +48,7 @@ class Updater:
     def extract_file(self):
         """解压下载的文件。"""
         print("开始解压...")
-        while True:
+        for _ in range(self.RETRY_LIMIT):
             try:
                 if self.exe_path.exists():
                     subprocess.run(
@@ -65,7 +67,7 @@ class Updater:
                 return True
             except Exception:
                 input("解压失败，按回车键重新解压. . .多次失败请手动下载更新")
-                return False
+        return False
 
     def discover_payload_root(self):
         payload_root = self.extract_folder_path
@@ -167,7 +169,8 @@ class Updater:
 
     def copy_payload(self, payload_root, managed_files):
         print("开始覆盖安装...")
-        while True:
+        last_error = None
+        for _ in range(self.RETRY_LIMIT):
             try:
                 for rel_path in managed_files:
                     source_path = resolve_safe_child(payload_root, rel_path)
@@ -177,8 +180,10 @@ class Updater:
                 print("覆盖安装完成")
                 return
             except Exception as e:
+                last_error = e
                 print(f"覆盖安装失败: {e}")
                 input("按回车键重试. . . \n Press any key to continue")
+        raise last_error or OSError("payload copy failed")
 
     def should_allow_cleanup(self, installed_manifest, manifest):
         if not installed_manifest:
@@ -207,8 +212,11 @@ class Updater:
                 continue
             target_path = resolve_safe_child(self.base_dir, rel_path)
             if target_path.exists() and target_path.is_file():
-                target_path.unlink()
-                print(f"删除旧残留文件: {rel_path}")
+                try:
+                    target_path.unlink()
+                    print(f"删除旧残留文件: {rel_path}")
+                except OSError as e:
+                    print(f"删除旧残留文件失败: {rel_path}: {e}")
 
     def write_installed_manifest(self, managed_files, manifest):
         manifest_path = resolve_safe_child(self.base_dir, INSTALLED_MANIFEST_PATH)
@@ -281,9 +289,9 @@ class Updater:
 
     def run(self):
         """运行更新流程。"""
-        while True:
-            if self.extract_file():
-                break
+        if not self.extract_file():
+            input("解压多次失败，按回车键退出更新程序")
+            return
         self.terminate_processes()
         app_path = self.base_dir / "AALC.exe"
         try:

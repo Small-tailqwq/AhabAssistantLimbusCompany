@@ -11,6 +11,9 @@ REMOTE_UPDATE_MANIFEST_ASSET = "AALC.update_manifest.json"
 INSTALLED_MANIFEST_PATH = "assets/config/installed_manifest.txt"
 INSTALLED_MANIFEST_META_PATH = "assets/config/installed_manifest_meta.json"
 BOOTSTRAP_VERSION_PATH = "assets/config/bootstrap_version.txt"
+# canary.9 and earlier used the legacy updater cleanup logic that can delete
+# live payload files on Windows, so manifest-based cleanup must stay disabled
+# when upgrading from those versions.
 LEGACY_DANGEROUS_VERSION = "1.5.0-canary.9"
 
 DEFAULT_PROTECTED_PATHS = [

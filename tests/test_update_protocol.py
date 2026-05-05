@@ -882,6 +882,83 @@ class TestUpdaterInstallFlow(unittest.TestCase):
 
             self.assertEqual((base_dir / "AALC.exe").read_text(encoding="utf-8"), "old exe")
 
+    def test_cleanup_continues_when_one_retired_file_cannot_be_deleted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base_dir = Path(tmp)
+            (base_dir / "AALC.exe").write_text("old exe", encoding="utf-8")
+            (base_dir / "obsolete_a.txt").write_text("remove a", encoding="utf-8")
+            (base_dir / "obsolete_b.txt").write_text("remove b", encoding="utf-8")
+            installed_manifest_path = base_dir / INSTALLED_MANIFEST_PATH
+            installed_manifest_path.parent.mkdir(parents=True, exist_ok=True)
+            installed_manifest_path.write_text("AALC.exe\nobsolete_a.txt\nobsolete_b.txt\n", encoding="utf-8")
+            (base_dir / INSTALLED_MANIFEST_META_PATH).write_text(
+                json.dumps({"current_version": "1.5.0-canary.11", "bootstrap_version": 2}),
+                encoding="utf-8",
+            )
+
+            payload_root = base_dir / "update_temp" / "pkg"
+            self._write_payload(
+                payload_root,
+                "1.5.0-canary.12",
+                {
+                    "AALC.exe": "new exe",
+                    "assets/config/version.txt": "1.5.0-canary.12",
+                    "assets/config/bootstrap_version.txt": "2",
+                },
+                extra_manifest={"cleanup_mode": "manifest"},
+            )
+
+            updater = Updater(file_name="pkg.7z", base_dir=base_dir)
+            updater.extract_folder_path = payload_root
+
+            original_unlink = Path.unlink
+
+            def flaky_unlink(path_obj, *args, **kwargs):
+                if path_obj == base_dir / "obsolete_a.txt":
+                    raise OSError("locked")
+                return original_unlink(path_obj, *args, **kwargs)
+
+            with mock.patch.object(Path, "unlink", autospec=True, side_effect=flaky_unlink):
+                updater.apply_update_from_extracted_payload()
+
+            self.assertTrue((base_dir / "obsolete_a.txt").exists())
+            self.assertFalse((base_dir / "obsolete_b.txt").exists())
+            meta = json.loads((base_dir / INSTALLED_MANIFEST_META_PATH).read_text(encoding="utf-8"))
+            self.assertEqual(meta["current_version"], "1.5.0-canary.12")
+
+    def test_extract_file_stops_after_retry_limit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base_dir = Path(tmp)
+            exe_dir = base_dir / "assets" / "binary"
+            exe_dir.mkdir(parents=True, exist_ok=True)
+            (exe_dir / "7za.exe").write_text("stub", encoding="utf-8")
+            updater = Updater(file_name="pkg.7z", base_dir=base_dir)
+
+            with mock.patch.object(updater_module.subprocess, "run", side_effect=OSError("boom")) as run_mock, mock.patch.object(
+                updater_module, "input", return_value=""
+            ) as input_mock:
+                self.assertFalse(updater.extract_file())
+
+            self.assertEqual(run_mock.call_count, 5)
+            self.assertEqual(input_mock.call_count, 5)
+
+    def test_copy_payload_stops_after_retry_limit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base_dir = Path(tmp)
+            payload_root = base_dir / "update_temp" / "pkg"
+            payload_root.mkdir(parents=True, exist_ok=True)
+            (payload_root / "AALC.exe").write_text("new exe", encoding="utf-8")
+            updater = Updater(file_name="pkg.7z", base_dir=base_dir)
+
+            with mock.patch.object(updater_module.shutil, "copy2", side_effect=OSError("boom")) as copy_mock, mock.patch.object(
+                updater_module, "input", return_value=""
+            ) as input_mock:
+                with self.assertRaises(OSError):
+                    updater.copy_payload(payload_root, ["AALC.exe"])
+
+            self.assertEqual(copy_mock.call_count, 5)
+            self.assertEqual(input_mock.call_count, 5)
+
 
 class TestUpdaterBootstrapFlow(unittest.TestCase):
     def test_run_relaunches_existing_app_when_payload_validation_fails(self):
