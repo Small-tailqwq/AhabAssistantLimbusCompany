@@ -4,7 +4,6 @@ import random
 import threading
 import time
 from ast import List
-from concurrent.futures import ThreadPoolExecutor
 from numbers import Real
 
 import cv2
@@ -42,17 +41,12 @@ class Automation(metaclass=SingletonMeta):
         self._stop_requested = False
         self._stop_reason = "用户主动终止程序"
 
-        # 截图去重
-        self._last_dhash: bytes | None = None
-        self.frame_duplicate: bool = False
+        # 帧计数（每次截图递增，用于缓存键）
         self._frame_count: int = 0
 
         # 帧内匹配结果缓存
         self._match_result_cache: dict[tuple, object] = {}
         self._cache_frame_id: int = -1
-
-        # 多线程并行匹配
-        self._match_pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="match")
         self._cache_lock = threading.Lock()
 
     def request_stop(self, reason: str = "用户主动终止程序") -> None:
@@ -133,28 +127,17 @@ class Automation(metaclass=SingletonMeta):
         """
         return self.input_handler.is_pause
 
-    @staticmethod
-    def _compute_dhash(image: Image) -> bytes:
-        """计算 64-bit 感知哈希（用于截图去重）"""
-        gray = image.convert("L")
-        small = gray.resize((9, 8))
-        pixels = list(small.getdata())
-        diff = []
-        for row in range(8):
-            row_start = row * 9
-            for col in range(8):
-                diff.append(pixels[row_start + col] > pixels[row_start + col + 1])
-        return bytes(diff)
-
     def _invalidate_match_cache_if_needed(self):
         """帧变化时清空匹配结果缓存"""
         if self._cache_frame_id != self._frame_count:
             with self._cache_lock:
                 self._match_result_cache.clear()
-            self._cache_frame_id = self._frame_count
+                self._cache_frame_id = self._frame_count
 
     def _get_match_cache_key(self, target, find_type, threshold, model, my_crop, check_gray=False, gray_saturation_threshold=15, gray_brightness_threshold=50) -> tuple:
         """生成匹配结果缓存键"""
+        if isinstance(target, list):
+            target = tuple(target)
         return (self._frame_count, target, find_type, threshold, model, str(my_crop), check_gray, gray_saturation_threshold, gray_brightness_threshold)
 
     def get_restore_time(self) -> float:
@@ -378,14 +361,7 @@ class Automation(metaclass=SingletonMeta):
                         self.screenshot = color_result.convert("L")
                     else:
                         self.screenshot = color_result
-                    # 截图去重：计算感知哈希
-                    current_hash = self._compute_dhash(color_result)
                     self._frame_count += 1
-                    if current_hash == self._last_dhash:
-                        self.frame_duplicate = True
-                    else:
-                        self.frame_duplicate = False
-                        self._last_dhash = current_hash
                     return color_result
                 else:
                     return None
@@ -509,30 +485,6 @@ class Automation(metaclass=SingletonMeta):
         with self._cache_lock:
             self._match_result_cache[cache_key] = None
         return None
-
-    def find_elements_batch(self, queries: list[dict]) -> list:
-        """批量并行 find_element
-
-        Args:
-            queries: [{"target": "btn_a", "find_type": "image", ...}, ...]
-
-        Returns:
-            与 queries 一一对应的结果列表
-        """
-        if not queries:
-            return []
-
-        futures = []
-        for q in queries:
-            futures.append(self._match_pool.submit(self.find_element, **q))
-
-        results = []
-        for f in futures:
-            try:
-                results.append(f.result(timeout=10))
-            except Exception:
-                results.append(None)
-        return results
 
     def find_image_with_multiple_targets(self, target: str, threshold, addtional_stack, log_result=True) -> List:
         """
