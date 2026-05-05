@@ -2,15 +2,25 @@
 
 ## [Unreleased] — Canary
 
+## [1.5.0-canary.11] — 2026-05-05
+
 ### 更新系统
+- fix: 协议化 updater 更新链路 — 引入 update_manifest.json 协议，托管路径声明 + 路径穿越防护 + 精准差集清理
+- fix: 提升 updater 重试韧性 — 解压/复制上限 5 次，单文件删除失败不中止
 - fix: updater extract_file 解压目标改用 extract_folder_path 子目录，避免覆盖运行中的 updater 导致 extract 失败
 - fix: updater cover_folder 检测 `AALC/` 双层嵌套做兼容处理
 
-### 镜牢稳定性
-- fix: 主题包选取增加模拟器卡死检测，连续10次未离开判卡死自动重启
-- fix: select_theme_pack 循环计数器移至 while 顶部防无限循环，参照 a88f235 修复模式
-- fix: 修复编队队列状态归一化
-- fix: 修复编队删除/重启崩溃链（NameError + IndexError + KeyError）
+### 更新检测
+- feat: 更新检查按 bootstrap_version 选择兼容发布，支持桥接版本降级提示
+
+### 自动化稳定性
+- fix: 修复匹配缓存键 list 不可哈希，移除截图去重和废弃的批量并行匹配
+
+### 构建
+- feat: build.py 写入 update_manifest.json、managed_files.txt、bootstrap_version.txt 协议文件
+
+### 测试
+- test: 增补路径安全、版本选择、安装流程、清理韧性等 900+ 行单元测试
 
 ## [1.5.0-canary.10] — 2026-05-04
 
