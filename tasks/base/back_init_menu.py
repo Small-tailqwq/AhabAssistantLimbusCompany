@@ -142,6 +142,11 @@ def back_init_menu():
         if auto.click_element("home/close_anniversary_event_assets.png"):
             continue
 
+        if auto.click_element("base/battle_finish_confirm_assets.png"):
+            continue
+        if auto.click_element("battle/battle_finish_confirm_assets.png"):
+            continue
+
         # 在刚进入游戏界面时
         if auto.find_element("base/clear_all_caches_assets.png", model="clam"):
             if auto.click_element("base/update_confirm_assets.png"):

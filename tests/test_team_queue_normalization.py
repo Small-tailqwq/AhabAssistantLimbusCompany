@@ -6,6 +6,7 @@ from ruamel.yaml import YAML
 
 import app.base_tools as base_tools
 import app.farming_interface as farming_interface
+import app.my_app as my_app_module
 import app.page_card as page_card
 import module.automation.input_handlers.logitech as logitech_module
 import module.config.team_import_export as team_import_export
@@ -832,6 +833,57 @@ class TestTeamQueueNormalization(unittest.TestCase):
 
         self.assertEqual(calls[:2], [("normalize", (2, 3, 4, 0), 4), ("flush",)])
         self.assertNotIn(("warning", ("没有启用任何队伍，请选择一个队伍进行镜牢任务",)), calls)
+
+    def test_main_window_close_event_blocks_when_announcement_thread_still_running(self):
+        app = my_app_module.QApplication.instance() or my_app_module.QApplication([])
+        calls = []
+
+        class EventStub:
+            def __init__(self):
+                self.ignored = False
+
+            def ignore(self):
+                self.ignored = True
+
+        class AnnouncementThreadStub:
+            def isRunning(self):
+                return True
+
+            def wait(self, timeout):
+                calls.append(("announcement_wait", timeout))
+                return False
+
+        class WarningStub:
+            def exec(self):
+                calls.append(("warning",))
+
+        window = my_app_module.MainWindow.__new__(my_app_module.MainWindow)
+        window.x = lambda: 12
+        window.y = lambda: 34
+        window.isVisible = lambda: True
+        window.showNormal = lambda: calls.append(("showNormal",))
+        window.raise_ = lambda: calls.append(("raise",))
+        window.activateWindow = lambda: calls.append(("activate",))
+        window.window = lambda: window
+        window.tr = lambda text: text
+        window.farming_interface = type("FarmingStub", (), {"interface_left": type("IL", (), {"my_script": None})()})()
+        window.tools_interface = type("ToolsStub", (), {"tools": {}})()
+        window.announcement_thread = AnnouncementThreadStub()
+
+        cfg_stub = type("CfgStub", (), {"set_value": lambda self, key, value: calls.append((key, value))})()
+        event = EventStub()
+
+        with (
+            patch.object(my_app_module, "cfg", cfg_stub),
+            patch.object(my_app_module, "MessageBoxWarning", lambda *args, **kwargs: WarningStub()),
+            patch.object(my_app_module.FramelessWindow, "closeEvent", lambda self, e: calls.append(("super",))),
+        ):
+            my_app_module.MainWindow.closeEvent(window, event)
+
+        self.assertIn(("announcement_wait", 5000), calls)
+        self.assertIn(("warning",), calls)
+        self.assertTrue(event.ignored)
+        self.assertNotIn(("super",), calls)
 
     def test_mirror_task_uses_front_queue_team_instead_of_legacy_order(self):
         calls = []

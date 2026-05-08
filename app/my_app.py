@@ -444,6 +444,9 @@ class MainWindow(FramelessWindow):
             else:
                 e.ignore()
                 return
+        if hasattr(self, "announcement_thread") and self.announcement_thread.isRunning():
+            self.announcement_thread.wait(5000)
+
         return super().closeEvent(e)
 
     def changeEvent(self, event):
