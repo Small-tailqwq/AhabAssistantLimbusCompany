@@ -7,10 +7,14 @@ from ruamel.yaml import YAML
 import app.base_tools as base_tools
 import app.farming_interface as farming_interface
 import app.page_card as page_card
+import module.automation.input_handlers.logitech as logitech_module
+import module.config.team_import_export as team_import_export
+import module.config.theme_pack_import_export as theme_pack_import_export
 import tasks.base.script_task_scheme as script_task_scheme
 import utils.utils as utils_module
 from module.config.config import Config
 from module.config.config_typing import ConfigModel, TeamSetting
+from utils.singletonmeta import SingletonMeta
 
 
 class TestTeamQueueNormalization(unittest.TestCase):
@@ -121,7 +125,7 @@ class TestTeamQueueNormalization(unittest.TestCase):
         self.assertEqual(cfg.config.teams_be_select_num, 2)
         self.assertEqual(save_calls, [])
 
-    def test_normalize_repairs_drifted_team_number_fields(self):
+    def test_normalize_does_not_override_runtime_team_selection(self):
         cfg = self.make_config([1, 2, 3])
         cfg.config.teams["1"].team_number = 9
         cfg.config.teams["2"].team_number = 1
@@ -129,9 +133,9 @@ class TestTeamQueueNormalization(unittest.TestCase):
 
         cfg.normalize_and_sync_team_state(persist=False)
 
-        self.assertEqual(cfg.config.teams["1"].team_number, 1)
-        self.assertEqual(cfg.config.teams["2"].team_number, 2)
-        self.assertEqual(cfg.config.teams["3"].team_number, 3)
+        self.assertEqual(cfg.config.teams["1"].team_number, 9)
+        self.assertEqual(cfg.config.teams["2"].team_number, 1)
+        self.assertEqual(cfg.config.teams["3"].team_number, 1)
 
     def test_just_load_config_normalizes_team_state_in_memory(self):
         yaml = YAML()
@@ -200,6 +204,33 @@ class TestTeamQueueNormalization(unittest.TestCase):
                     expected_queue,
                 )
 
+    def test_load_phase_sync_repairs_drifted_team_number_fields(self):
+        yaml = YAML()
+        payload = {
+            "teams": {
+                "1": {"team_number": 9},
+                "2": {"team_number": 1},
+                "3": {"team_number": 1},
+            },
+            "teams_active_queue": [1, 2, 3],
+        }
+
+        cfg = Config.__new__(Config)
+        cfg.yaml = YAML()
+        cfg.config = ConfigModel()
+        cfg._schedule_save = lambda *args, **kwargs: None
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_path = f"{temp_dir}\\config.yaml"
+            with open(config_path, "w", encoding="utf-8") as file:
+                yaml.dump(payload, file)
+
+            cfg.just_load_config(config_path)
+
+        self.assertEqual(cfg.config.teams["1"].team_number, 1)
+        self.assertEqual(cfg.config.teams["2"].team_number, 2)
+        self.assertEqual(cfg.config.teams["3"].team_number, 3)
+
     def test_reindex_team_queue_updates_team_numbers(self):
         cfg = self.make_config(
             [1, 2, 3, 4, 5, 6],
@@ -234,6 +265,121 @@ class TestTeamQueueNormalization(unittest.TestCase):
         self.assertEqual(cfg.config.teams_be_select, [False, False, True, False])
         self.assertEqual(cfg.config.teams_order, [0, 0, 1, 0])
         self.assertEqual(cfg.config.teams_be_select_num, 1)
+
+    def test_apply_team_settings_reindexes_imported_team_number_for_target_slot(self):
+        yaml = YAML()
+        team_setting = TeamSetting(team_number=1, remark_name="Imported")
+
+        class CfgStub:
+            def __init__(self):
+                self.config = type("ConfigStub", (), {"teams": {}})()
+                self.save_calls = 0
+
+            def save(self):
+                self.save_calls += 1
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            theme_weight_path = f"{temp_dir}\\theme_pack_weight_team_7.yaml"
+
+            class ThemeListStub:
+                def build_team_weight_path(self, team_num):
+                    self.last_team_num = team_num
+                    return theme_weight_path
+
+            cfg_stub = CfgStub()
+            theme_pack_weight = {"theme_pack_list": {"forgot": 9}}
+
+            with patch.object(team_import_export, "cfg", cfg_stub), patch.object(
+                team_import_export,
+                "theme_list",
+                ThemeListStub(),
+            ):
+                team_import_export.apply_team_settings(7, team_setting, theme_pack_weight)
+
+            self.assertIs(cfg_stub.config.teams["7"], team_setting)
+            self.assertEqual(team_setting.team_number, 7)
+            self.assertEqual(cfg_stub.config.teams["7"].team_number, 7)
+            self.assertEqual(cfg_stub.save_calls, 1)
+
+            with open(theme_weight_path, "r", encoding="utf-8") as file:
+                self.assertEqual(yaml.load(file), theme_pack_weight)
+
+    def test_import_theme_pack_weight_overwrites_existing_file(self):
+        yaml = YAML()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            target_path = f"{temp_dir}\\theme_pack_weight_team_3.yaml"
+            import_path = f"{temp_dir}\\import_theme_pack.yaml"
+
+            with open(target_path, "w", encoding="utf-8") as file:
+                yaml.dump(
+                    {
+                        "preferred_thresholds": 5,
+                        "theme_pack_list": {"forgot": 1, "gambl": 2},
+                    },
+                    file,
+                )
+
+            imported_data = {"theme_pack_list": {"forgot": 9}}
+            with open(import_path, "w", encoding="utf-8") as file:
+                yaml.dump(imported_data, file)
+
+            class ThemeListStub:
+                def build_team_weight_path(self, team_num):
+                    self.last_team_num = team_num
+                    return target_path
+
+            with patch.object(theme_pack_import_export, "theme_list", ThemeListStub()):
+                self.assertTrue(theme_pack_import_export.import_theme_pack_weight(import_path, 3))
+
+            with open(target_path, "r", encoding="utf-8") as file:
+                self.assertEqual(yaml.load(file), imported_data)
+
+    def test_logitech_input_pastes_text_with_ctrl_v(self):
+        clipboard_calls = []
+        key_calls = []
+        focus_calls = []
+
+        def fake_base_init(self):
+            self.is_pause = False
+            self.restore_time = None
+
+        logitech_cfg = type(
+            "CfgStub",
+            (),
+            {"logitech_dll_path": "", "logitech_bionic_trajectory": True, "set_win_size": 1080},
+        )()
+
+        SingletonMeta._instances.pop(logitech_module.LogitechInput, None)
+        try:
+            with (
+                patch.object(logitech_module, "cfg", logitech_cfg),
+                patch.object(logitech_module.WinAbstractInput, "__init__", fake_base_init),
+            ):
+                handler = logitech_module.LogitechInput()
+
+            with (
+                patch.object(
+                    logitech_module,
+                    "pyperclip",
+                    type("PyperclipStub", (), {"copy": staticmethod(clipboard_calls.append)})(),
+                    create=True,
+                ),
+                patch.object(logitech_module.LogitechInput, "_ensure_input_focus", lambda self: focus_calls.append("focus")),
+                patch.object(logitech_module.LogitechInput, "key_down", lambda self, key: key_calls.append(("down", key))),
+                patch.object(logitech_module.LogitechInput, "key_up", lambda self, key: key_calls.append(("up", key))),
+                patch.object(logitech_module.HumanKinematics, "human_sleep", lambda *args, **kwargs: None),
+            ):
+                handler.input_text("TEAMCODE123")
+        finally:
+            SingletonMeta._instances.pop(logitech_module.LogitechInput, None)
+
+        self.assertEqual(clipboard_calls, ["TEAMCODE123"])
+        self.assertEqual(focus_calls, ["focus"])
+        self.assertEqual(
+            key_calls,
+            [("down", "ctrl"), ("down", "v"), ("up", "v"), ("up", "ctrl")],
+        )
 
     def test_base_checkbox_team_toggle_uses_queue_helper_and_emits_refresh(self):
         checkbox = base_tools.BaseCheckBox.__new__(base_tools.BaseCheckBox)
@@ -399,8 +545,8 @@ class TestTeamQueueNormalization(unittest.TestCase):
 
         self.assertIs(cfg_stub.config.teams["1"], team_setting_sentinel)
         self.assertIn(("create_weight", 1), calls)
-        self.assertIn(("save",), calls)
         self.assertIn(("normalize", ("1",)), calls)
+        self.assertNotIn(("save",), calls)
 
     def test_page_mirror_refresh_team_setting_card_compacts_and_reindexes_queue(self):
         page = page_card.PageMirror.__new__(page_card.PageMirror)

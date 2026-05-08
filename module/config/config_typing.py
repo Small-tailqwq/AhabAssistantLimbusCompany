@@ -176,12 +176,17 @@ class TeamSetting(BaseModel):
 
     reserve_upgrade_funds: int = 500
     """保留最低升级资金"""
-
     remark_name: Optional[str] = None
     """队伍备注名"""
 
     use_custom_theme_pack_weight: bool = False
     """启用队伍自定义主题包权重"""
+
+    use_team_code: bool = False
+    """是否使用编队码自动组队"""
+
+    team_code: str = ""
+    """编队码字符串"""
 
     total_mirror_time_hard: List[float] = [0.0, 0.0, 0.0]
     """困难镜牢总用时"""

@@ -1,6 +1,7 @@
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QResizeEvent
 from PySide6.QtWidgets import (
+    QFileDialog,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -8,7 +9,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from qfluentwidgets import ExpandSettingCard, PrimaryPushButton, PushButton, ScrollArea
+from qfluentwidgets import ExpandSettingCard, InfoBarPosition, PrimaryPushButton, PushButton, ScrollArea
 from qfluentwidgets import FluentIcon as FIF
 
 from app import *
@@ -19,11 +20,18 @@ from app.base_combination import (
     SinnerSelect,
     ToolCheckButton,
 )
-from app.base_tools import BaseCheckBox, BaseComboBox, BaseLabel, BaseSettingLayout
+from app.base_tools import BaseCheckBox, BaseComboBox, BaseLabel, BaseLineEdit, BaseSettingLayout
+from app.card.messagebox_custom import BaseInfoBar, MessageBoxConfirm
 from app.common.icons import OverflowIcons
 from app.language_manager import LanguageManager
 from app.theme_pack_setting_interface import ThemePackSettingDialog
 from module.config import TeamSetting, cfg, theme_list
+from module.config.team_import_export import (
+    apply_team_settings,
+    export_team_settings,
+    generate_team_export_filename,
+    import_team_settings,
+)
 
 
 class TeamSettingCard(QFrame):
@@ -220,6 +228,11 @@ class TeamSettingCard(QFrame):
             self.open_theme_pack_weight_dialog
         )
 
+        self.export_button = PrimaryPushButton(self.tr("导出设置"))
+        self.export_button.clicked.connect(self.on_export_settings)
+        self.import_button = PushButton(self.tr("导入设置"))
+        self.import_button.clicked.connect(self.on_import_settings)
+
         self.cancel_button = PushButton(self.tr("取消"))
         self.cancel_button.clicked.connect(self.cancel_team_setting)
         self.confirm_button = PrimaryPushButton(self.tr("保存"))
@@ -259,6 +272,9 @@ class TeamSettingCard(QFrame):
         self.gift_system_layout.add(self.gift_system_list_1)
         self.gift_system_layout.add(self.gift_system_list_2)
 
+        self.setting_layout.addWidget(self.export_button)
+        self.setting_layout.addWidget(self.import_button)
+        self.setting_layout.addStretch()
         self.setting_layout.addWidget(self.cancel_button)
         self.setting_layout.addWidget(self.confirm_button)
 
@@ -331,6 +347,7 @@ class TeamSettingCard(QFrame):
         elif "ignore_shop_" in keys:
             shop_index = int(keys.split("_")[-1]) - 1
             self.team_setting.ignore_shop[shop_index] = values
+
 
     def save_team_setting(self):
         cfg.set_value(f"{self.team_num}", self.team_setting, config_obj=cfg.config.teams)
@@ -412,9 +429,16 @@ class TeamSettingCard(QFrame):
 
         for combobox in all_combobox_config_name:
             if self.findChild(BaseComboBox, combobox):
-                self.findChild(BaseComboBox, combobox).set_value(getattr(self.team_setting, combobox))
-                if combobox == "team_system":
-                    self.foolproof(getattr(self.team_setting, combobox))
+                if combobox == "team_number":
+                    self.findChild(BaseComboBox, combobox).set_options(getattr(self.team_setting, combobox) - 1)
+                else:
+                    self.findChild(BaseComboBox, combobox).set_value(getattr(self.team_setting, combobox))
+                    if combobox == "team_system":
+                        self.foolproof(getattr(self.team_setting, combobox))
+
+        # 读取编队码设置
+        if team_code_input := self.findChild(BaseLineEdit, "team_code"):
+            team_code_input.setText(self.team_setting.team_code)
 
     def foolproof(self, team_system):
         for checkbox in all_checkbox_config_name:
@@ -429,6 +453,100 @@ class TeamSettingCard(QFrame):
 
     def cancel_team_setting(self):
         mediator.close_setting.emit()
+
+    def on_export_settings(self):
+        """导出队伍设置到 YAML 文件"""
+        default_filename = generate_team_export_filename(self.team_num)
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            self.tr("导出队伍设置"),
+            default_filename,
+            "YAML Files (*.yaml *.yml)"
+        )
+
+        if file_path:
+            success = export_team_settings(self.team_num, file_path)
+            if success:
+                BaseInfoBar.success(
+                    title=self.tr("导出成功"),
+                    content=self.tr("队伍设置已导出到: ") + file_path,
+                    orient=Qt.Orientation.Horizontal,
+                    isClosable=True,
+                    position=InfoBarPosition.TOP,
+                    duration=3000,
+                    parent=self
+                )
+            else:
+                BaseInfoBar.error(
+                    title=self.tr("导出失败"),
+                    content=self.tr("无法导出队伍设置，请检查日志"),
+                    orient=Qt.Orientation.Horizontal,
+                    isClosable=True,
+                    position=InfoBarPosition.TOP,
+                    duration=3000,
+                    parent=self
+                )
+
+    def on_import_settings(self):
+        """从 YAML 文件导入队伍设置"""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            self.tr("导入队伍设置"),
+            "",
+            "YAML Files (*.yaml *.yml)"
+        )
+
+        if not file_path:
+            return
+
+        team_setting, theme_pack_weight, missing_fields = import_team_settings(file_path, self.team_num)
+
+        if team_setting is None:
+            BaseInfoBar.error(
+                title=self.tr("导入失败"),
+                content=self.tr("无法解析导入文件，请检查文件格式"),
+                orient=Qt.Orientation.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=3000,
+                parent=self
+            )
+            return
+
+        # 如果有缺失字段则显示警告
+        if missing_fields:
+            BaseInfoBar.warning(
+                title=self.tr("部分字段缺失"),
+                content=self.tr("以下字段将使用默认值: ") + ", ".join(missing_fields),
+                orient=Qt.Orientation.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=5000,
+                parent=self
+            )
+
+        # 显示确认对话框
+        confirm = MessageBoxConfirm(
+            self.tr("确认导入"),
+            self.tr("导入将覆盖当前队伍设置，是否继续？"),
+            self.window()
+        )
+
+        if confirm.exec():
+            apply_team_settings(self.team_num, team_setting, theme_pack_weight)
+            self.team_setting = team_setting
+            self.read_settings()
+            self.refresh_starlight_select()
+
+            BaseInfoBar.success(
+                title=self.tr("导入成功"),
+                content=self.tr("队伍设置已导入并应用"),
+                orient=Qt.Orientation.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=3000,
+                parent=self
+            )
 
     def retranslateUi(self):
         self.select_system.retranslateUi()
@@ -461,6 +579,8 @@ class TeamSettingCard(QFrame):
         self.pierce.check_box.setText(self.tr("突刺"))
         self.blunt.check_box.setText(self.tr("打击"))
 
+        self.export_button.setText(self.tr("导出设置"))
+        self.import_button.setText(self.tr("导入设置"))
         self.cancel_button.setText(self.tr("取消"))
         self.confirm_button.setText(self.tr("保存"))
 
@@ -574,6 +694,8 @@ class CustomizeSettingsModule(QFrame):
         self.ninth_line = QHBoxLayout(self.ninth_line_widget)
         self.tenth_line_widget = QWidget()
         self.tenth_line = QHBoxLayout(self.tenth_line_widget)
+        self.eleventh_line_widget = QWidget()
+        self.eleventh_line = QHBoxLayout(self.eleventh_line_widget)
         self.floor_shop = QHBoxLayout()
 
     def __init_card(self):
@@ -754,6 +876,20 @@ class CustomizeSettingsModule(QFrame):
         )
         self.select_theme_pack_weight_button = PushButton(self.tr("权重选择"))
 
+        self.use_team_code = BaseCheckBox(
+            "use_team_code",
+            None,
+            QT_TRANSLATE_NOOP("BaseCheckBox", "使用编队码"),
+        )
+        self.team_code_warning = BaseLabel("")
+        self.team_code_warning.add_icon(FIF.INFO)
+        self.team_code_warning.setMaximumWidth(40)
+        self.team_code_warning.iconLabel.setToolTip(self.tr("后台模式下输入编队码可能不稳定\n输入编队码会覆盖原有的队伍配置"))
+        self.team_code_warning.iconLabel.setToolTipDuration(-1)
+        self.team_code_input = BaseLineEdit("team_code", self)
+        self.team_code_input.line_edit.setPlaceholderText(self.tr("输入编队码"))
+        self.team_code_input.line_edit.setMaximumWidth(400)
+
     def __init_layout(self):
         self.first_line.addWidget(self.do_not_heal)
         self.first_line.addWidget(self.do_not_buy)
@@ -823,6 +959,10 @@ class CustomizeSettingsModule(QFrame):
         self.tenth_line.addWidget(self.select_theme_pack_weight_button)
         self.tenth_line.addStretch()
 
+        self.eleventh_line.addWidget(self.use_team_code)
+        self.eleventh_line.addWidget(self.team_code_warning)
+        self.eleventh_line.addWidget(self.team_code_input)
+        self.eleventh_line.addStretch()
         self.main_layout.addWidget(self.first_line_widget)
         self.main_layout.addWidget(self.second_line_widget)
         self.main_layout.addWidget(self.third_line_widget)
@@ -836,6 +976,7 @@ class CustomizeSettingsModule(QFrame):
         self.main_layout.addWidget(self.eighth_line_widget)
         self.main_layout.addWidget(self.ninth_line_widget)
         self.main_layout.addWidget(self.tenth_line_widget)
+        self.main_layout.addWidget(self.eleventh_line_widget)
 
     def retranslateUi(self):
         self.do_not_heal.retranslateUi()

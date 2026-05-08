@@ -5,6 +5,7 @@ import os
 import random
 from time import sleep, time
 
+import pyperclip
 import win32api
 
 try:
@@ -573,3 +574,25 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         self.key_down(key)
         HumanKinematics.human_sleep(0.018, jitter=0.35, minimum=0.012, maximum=0.045)
         self.key_up(key)
+
+    def input_text(self, text: str):
+        """将 `text` 粘贴到当前前台游戏窗口。"""
+        if not text:
+            log.warning("未提供要粘贴的文本")
+            return
+
+        self._ensure_input_focus()
+
+        try:
+            pyperclip.copy(text)
+        except Exception as e:
+            log.error(f"复制编队码到剪贴板失败: {e}")
+            return
+
+        self.key_down("ctrl")
+        HumanKinematics.human_sleep(0.012, jitter=0.25, minimum=0.008, maximum=0.03)
+        self.key_down("v")
+        HumanKinematics.human_sleep(0.018, jitter=0.25, minimum=0.012, maximum=0.04)
+        self.key_up("v")
+        HumanKinematics.human_sleep(0.01, jitter=0.25, minimum=0.006, maximum=0.025)
+        self.key_up("ctrl")

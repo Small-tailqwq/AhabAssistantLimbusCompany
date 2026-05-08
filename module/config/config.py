@@ -225,6 +225,7 @@ class Config(metaclass=SingletonMeta):
                     normalized_queue = self._normalize_team_queue(self.migrate_legacy_team_queue())
                 else:
                     normalized_queue = self._normalize_team_queue(queue_in_loaded_config)
+                self._sync_team_setting_numbers()
                 self._sync_legacy_team_state(normalized_queue)
                 # 成功加载后保存当前文件为备份
                 shutil.copy(path, path.with_suffix(".yaml.backup"))
@@ -265,6 +266,7 @@ class Config(metaclass=SingletonMeta):
         return value
 
     def get_team_numbers(self) -> list[int]:
+        """获取所有已配置的队伍编号，返回排序后的列表"""
         teams = self.get_value("teams", {}) or {}
         team_numbers: list[int] = []
         for team_key in teams:
@@ -277,6 +279,7 @@ class Config(metaclass=SingletonMeta):
         return sorted(team_numbers)
 
     def _sync_team_setting_numbers(self) -> None:
+        """同步每个 TeamSetting.team_number 与其字典键一致，防止漂移"""
         teams = self.get_value("teams", {}) or {}
         for team_key, team_setting in teams.items():
             try:
@@ -289,6 +292,7 @@ class Config(metaclass=SingletonMeta):
                 self.unsaved_set_value("team_number", team_num, config_obj=team_setting)
 
     def _normalize_team_queue(self, queue: list[int]) -> list[int]:
+        """去重并过滤无效队伍编号，返回干净的队列"""
         valid_team_numbers = set(self.get_team_numbers())
         normalized_queue: list[int] = []
         seen: set[int] = set()
@@ -302,6 +306,7 @@ class Config(metaclass=SingletonMeta):
         return normalized_queue
 
     def migrate_legacy_team_queue(self) -> list[int]:
+        """从旧的 teams_order/teams_be_select 迁移出队列顺序"""
         team_numbers = self.get_team_numbers()
         if not team_numbers:
             return []
@@ -332,7 +337,7 @@ class Config(metaclass=SingletonMeta):
         return migrated_queue
 
     def _sync_legacy_team_state(self, queue: list[int]) -> None:
-        self._sync_team_setting_numbers()
+        """将队列状态写回 teams_be_select / teams_order 等旧字段"""
         max_team_num = max(self.get_team_numbers(), default=0)
         teams_be_select = [False] * max_team_num
         teams_order = [0] * max_team_num
@@ -348,6 +353,7 @@ class Config(metaclass=SingletonMeta):
         self.unsaved_set_value("teams_be_select_num", len(queue))
 
     def normalize_and_sync_team_state(self, persist: bool = True) -> None:
+        """归一化队伍队列并同步到旧字段，persist=True 时写入磁盘"""
         queue = self.get_value("teams_active_queue")
         if queue is None:
             queue = self._normalize_team_queue(self.migrate_legacy_team_queue())
@@ -358,6 +364,7 @@ class Config(metaclass=SingletonMeta):
             self.save()
 
     def reindex_team_queue(self, old_to_new: dict[int, int]) -> None:
+        """根据 old_to_new 映射重新索引队列（队伍编号压缩后调用）"""
         queue = []
         for team_num in self.get_value("teams_active_queue", []) or []:
             new_team_num = old_to_new.get(team_num)
@@ -367,6 +374,7 @@ class Config(metaclass=SingletonMeta):
         self.save()
 
     def rotate_team_queue(self) -> None:
+        """将队首队伍轮转到队尾"""
         queue = self._normalize_team_queue(self.get_value("teams_active_queue", []))
         if len(queue) > 1:
             queue = queue[1:] + queue[:1]
@@ -374,11 +382,13 @@ class Config(metaclass=SingletonMeta):
         self.save()
 
     def remove_team_from_queue(self, team_num: int) -> None:
+        """从队列中移除指定队伍"""
         queue = [value for value in self.get_value("teams_active_queue", []) or [] if value != team_num]
         self._sync_legacy_team_state(self._normalize_team_queue(queue))
         self.save()
 
     def set_team_enabled(self, team_num: int, enabled: bool) -> None:
+        """启用/禁用指定队伍（将其加入或移出队列）"""
         queue = self._normalize_team_queue(self.get_value("teams_active_queue", []))
         if enabled:
             if team_num not in queue:
@@ -471,6 +481,7 @@ class Config(metaclass=SingletonMeta):
                     normalized_queue = self._normalize_team_queue(self.migrate_legacy_team_queue())
                 else:
                     normalized_queue = self._normalize_team_queue(queue_in_loaded_config)
+                self._sync_team_setting_numbers()
                 self._sync_legacy_team_state(normalized_queue)
         except FileNotFoundError:
             self._schedule_save()

@@ -437,7 +437,10 @@ class MainWindow(FramelessWindow):
                     if isinstance(tool.w, QWidget):
                         tool.w.close()
                     elif isinstance(tool.w, QThread):
-                        tool.w.terminate()
+                        tool.w.requestInterruption()
+                        tool.w.quit()
+                        if not tool.w.wait(3000):
+                            log.warning("工具线程未在 3 秒内退出")
             else:
                 e.ignore()
                 return

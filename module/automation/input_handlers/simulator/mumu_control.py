@@ -531,7 +531,9 @@ class MumuControl(AbstractInput):
 
             # 尝试解析JSON
             try:
-                proc_result = json.loads(proc.stdout.strip())
+                output_lines = proc.stdout.strip().splitlines()
+                clean_json = "\n".join([line for line in output_lines if "Active code page" not in line])
+                proc_result = json.loads(clean_json)
                 result = bool(proc_result.get("app_keptlive") == "true")  # 使用get避免KeyError
                 return result
             except json.JSONDecodeError:
@@ -820,6 +822,32 @@ class MumuControl(AbstractInput):
         self.key_down(usual_key_code[key])
         time.sleep(0.015)
         self.key_up(usual_key_code[key])
+
+    def input_text(self, text: str):
+        """将提供的 `text` 直接发送到 MuMu 原生输入接口。"""
+        if not text:
+            log.warning("未提供要粘贴的文本")
+            return
+        try:
+            # 将文本编码为C字符串指针，确保与原生接口参数类型一致
+            text_bytes = text.encode('utf-8')
+            text_buffer = ctypes.c_char_p(text_bytes)
+
+            # 使用 nemu_input_text 将文本输入到模拟器，第二个参数是文本长度
+            ret = self.ev_run_sync(
+                self.lib.nemu_input_text,
+                self.connect_id,
+                len(text_bytes),
+                text_buffer,
+            )
+
+            if ret == 0:
+                log.debug(f"成功粘贴文本: {text}")
+            else:
+                log.warning(f"粘贴文本失败，返回值: {ret}")
+        except Exception as e:
+            log.error(f"粘贴操作发生异常: {e}")
+
 
     def click(self, x, y):
         msg = f"点击位置:({x},{y})"

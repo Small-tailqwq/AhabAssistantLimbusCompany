@@ -138,7 +138,6 @@ reserve_upgrade_funds_options = {
     "800": 800,
     "1000": 1000,
 }
-
 blank_team_setting = {}
 
 
@@ -231,6 +230,7 @@ all_checkbox_config_name = [
     "skill_replacement",
     "ignore_shop",
     "use_custom_theme_pack_weight",
+    "use_team_code",
 ]
 
 win_input_type_options = {

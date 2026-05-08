@@ -342,6 +342,17 @@ class Shop:
                             self.replacement_skill()
                         continue
 
+            if normal_refresh_count < self.max_normal_refresh and my_remaining_money >= 200:
+                auto.mouse_click_blank(times=3)
+                if auto.click_element("mirror/shop/refresh_assets.png"):
+                    normal_refresh_count += 1
+                    sleep(3)
+                    if retry() is False:
+                        raise self.RestartGame()
+                    if self.skill_replacement and self.replacement < 3:
+                        self.replacement_skill()
+                    continue
+
             break
 
     def fuse_useless_gifts_aggressive(self):
@@ -715,7 +726,7 @@ class Shop:
             points = auto.find_element(
                 "mirror/shop/fuse_label.png",
                 find_type="image_with_multiple_targets",
-                threshold=0.9,
+                threshold=0.85,
                 take_screenshot=True,
             )
             if len(points) < 2:
