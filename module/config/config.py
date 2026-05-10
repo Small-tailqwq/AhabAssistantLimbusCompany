@@ -171,8 +171,6 @@ class Config(metaclass=SingletonMeta):
                 settings["remark_name"] = remark_name
                 teams[f"{i}"] = TeamSetting(**settings).model_dump()
             loaded_config["teams"] = teams
-            if loaded_config.get("timezone", "None") == "None":
-                loaded_config["timezone"] = None
 
         log.info("配置升级完成")
 
@@ -220,12 +218,12 @@ class Config(metaclass=SingletonMeta):
                     self._old_version_cfg_upgrade(saved_version, loaded_config)
                 # 使用更新后的配置初始化 Config 对象
                 self.config = ConfigModel(**loaded_config)
+                self._reset_session_only_config()
                 queue_in_loaded_config = loaded_config.get("teams_active_queue")
                 if queue_in_loaded_config is None:
                     normalized_queue = self._normalize_team_queue(self.migrate_legacy_team_queue())
                 else:
                     normalized_queue = self._normalize_team_queue(queue_in_loaded_config)
-                self._sync_team_setting_numbers()
                 self._sync_legacy_team_state(normalized_queue)
                 # 成功加载后保存当前文件为备份
                 shutil.copy(path, path.with_suffix(".yaml.backup"))
@@ -277,19 +275,6 @@ class Config(metaclass=SingletonMeta):
             if team_num > 0:
                 team_numbers.append(team_num)
         return sorted(team_numbers)
-
-    def _sync_team_setting_numbers(self) -> None:
-        """同步每个 TeamSetting.team_number 与其字典键一致，防止漂移"""
-        teams = self.get_value("teams", {}) or {}
-        for team_key, team_setting in teams.items():
-            try:
-                team_num = int(team_key)
-            except (TypeError, ValueError):
-                continue
-            if team_num <= 0 or not isinstance(team_setting, TeamSetting):
-                continue
-            if team_setting.team_number != team_num:
-                self.unsaved_set_value("team_number", team_num, config_obj=team_setting)
 
     def _normalize_team_queue(self, queue: list[int]) -> list[int]:
         """去重并过滤无效队伍编号，返回干净的队列"""
@@ -468,6 +453,17 @@ class Config(metaclass=SingletonMeta):
             # 等待下一次
             self._writer_event.clear()
 
+    def _reset_session_only_config(self) -> None:
+        """确保会话级配置项不跨生命周期生效。
+
+        因 _save_config() 全量序列化 self.config，任何 cfg.set_value()
+        都会把此前通过 cfg.unsaved_set_value() 设置的 "仅本次" 值一起写盘。
+        此处启动加载时若 keep_after_completion 为 False，回退为默认值。
+        """
+        if not self.config.keep_after_completion:
+            self.config.after_completion_actions = []
+            self.config.after_completion_power_action = "none"
+
     def just_load_config(self, path: Optional[Path | str] = None) -> None:
         """仅加载配置文件，不保存"""
         path = path or self.config_path
@@ -476,12 +472,12 @@ class Config(metaclass=SingletonMeta):
                 loaded_config = self.yaml.load(file)
             if loaded_config:
                 self.config = ConfigModel(**loaded_config)
+                self._reset_session_only_config()
                 queue_in_loaded_config = loaded_config.get("teams_active_queue")
                 if queue_in_loaded_config is None:
                     normalized_queue = self._normalize_team_queue(self.migrate_legacy_team_queue())
                 else:
                     normalized_queue = self._normalize_team_queue(queue_in_loaded_config)
-                self._sync_team_setting_numbers()
                 self._sync_legacy_team_state(normalized_queue)
         except FileNotFoundError:
             self._schedule_save()
@@ -565,9 +561,9 @@ class Theme_pack_list(metaclass=SingletonMeta):
         loaded_config = self.load_config(self.theme_pack_list_path)
         self.config = copy.deepcopy(loaded_config) if loaded_config else copy.deepcopy(default_config)
 
-    def build_setting_key(self, hard_switch: bool, language_in_game: str) -> list[str]:
+    def build_setting_key(self, hard_switch: bool, language: str | None) -> list[str]:
         """构建配置项键名列表。开启困难模式时同时返回普通和困难键。"""
-        suffix = "_cn" if language_in_game == "zh_cn" else ""
+        suffix = "_cn" if language == "zh_cn" else ""
         normal_key = f"theme_pack_list{suffix}"
         hard_key = f"theme_pack_list_hard{suffix}"
         if hard_switch:
@@ -644,10 +640,10 @@ class Theme_pack_list(metaclass=SingletonMeta):
                 self.save_config(path=str(team_weight_path), config_data=merged_config)
 
     def get_effective_theme_pack_list(
-        self, hard_switch: bool, language_in_game: str, team_num: int, use_custom_theme_pack_weight: bool
+        self, hard_switch: bool, language: str | None, team_num: int, use_custom_theme_pack_weight: bool
     ) -> tuple[dict]:
         """获取当前生效的主题包名单，考虑难度、语言、队伍和是否启用自定义权重等因素"""
-        setting_keys = self.build_setting_key(hard_switch, language_in_game)
+        setting_keys = self.build_setting_key(hard_switch, language)
         theme_pack_list = {}
         for key in setting_keys:
             theme_pack_list.update(self.config.get(key, {}))

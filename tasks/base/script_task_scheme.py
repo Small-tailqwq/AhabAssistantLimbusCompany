@@ -1,20 +1,13 @@
 import platform
 import random
 from datetime import datetime
-from sys import exc_info
 from time import sleep, time
-from traceback import format_exception
 
 from playsound3 import playsound
-from PySide6.QtCore import QT_TRANSLATE_NOOP, QThread
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QMutex, QThread
 
 from app import mediator
 from app.windows_toast import TemplateToast, send_toast
-from module.ALI import (
-    AutoSwitchCon,
-    auto_switch_language_in_game,
-    get_game_config_from_registry,
-)
 from module.automation import auto
 from module.automation.obs_capture import disconnect_obs_capture, get_obs_capture
 from module.config import TeamSetting, cfg
@@ -49,7 +42,7 @@ from tasks.daily.luxcavation import EXP_luxcavation, thread_luxcavation
 from tasks.mirror.mirror import Mirror
 from tasks.teams.team_formation import select_battle_team
 from utils.path_manager import path_manager
-from utils.utils import calculate_the_teams, get_day_of_week
+from utils.utils import calculate_the_teams, get_day_of_week, check_hard_mirror_time
 
 
 @begin_and_finish_time_log(task_name="一次经验本")
@@ -87,6 +80,13 @@ def onetime_thread_process(combat_count: int = 1):
 @begin_and_finish_time_log(task_name="一次镜牢")
 # 一次镜牢的过程
 def onetime_mir_process(team_setting: TeamSetting, team_num: int):
+    # 实时检查是否需要切换到困难镜牢
+    if cfg.auto_hard_mirror and check_hard_mirror_time():
+        log.info("检测到新的困牢周期，实时切换困难镜牢，设置困牢次数为3")
+        cfg.set_value("last_auto_change", datetime.now().timestamp())
+        cfg.set_value("hard_mirror", True)
+        cfg.set_value("hard_mirror_chance", 3)
+
     # 进行一次镜牢
     try:
         mirror_adventure = Mirror(team_setting, team_num)
@@ -98,8 +98,6 @@ def onetime_mir_process(team_setting: TeamSetting, team_num: int):
             return True
         else:
             return False
-    except userStopError:
-        raise
     except Exception as e:
         log.exception(f"镜牢行动出错: {e}")
         return False
@@ -125,6 +123,7 @@ def to_get_reward():
 def init_game():
     log.debug("初始化游戏")
     stop_checker = auto.ensure_not_stopped
+    simulator = None
     if cfg.simulator:
         stop_checker()
         if cfg.simulator_type == 0:
@@ -143,7 +142,7 @@ def init_game():
                 MumuControl,
             )
 
-            MumuControl(instance_number=mumu_instance_number, stop_checker=stop_checker)
+            simulator = MumuControl(instance_number=mumu_instance_number, stop_checker=stop_checker)
         else:
             from module.automation.input_handlers.simulator.simulator_control import (
                 SimulatorControl,
@@ -152,7 +151,7 @@ def init_game():
             # 启动时先清理旧连接
             stop_checker()
             SimulatorControl.clean_connect()
-            SimulatorControl(stop_checker=stop_checker)
+            simulator = SimulatorControl(stop_checker=stop_checker)
     auto.init_input()
     if cfg.simulator:
         stop_checker()
@@ -184,9 +183,37 @@ def Resonate_with_Ahab():
     playsound(f"assets/audio/This_is_all_your_fault_{random_number}.mp3", block=False)
 
 
+def _get_game_rendering_scale() -> int | None:
+    """读取非模拟器模式下 Limbus 的渲染比例设置。"""
+    try:
+        import json
+        import winreg
+
+        root = winreg.HKEY_CURRENT_USER
+        sub_key = r"Software\ProjectMoon\LimbusCompany"
+        value_name = "LocalSave.LocalGameOptionData_h467498167"
+        with winreg.OpenKey(root, sub_key, 0, winreg.KEY_READ) as key:
+            raw_data, reg_type = winreg.QueryValueEx(key, value_name)
+
+        if reg_type != winreg.REG_BINARY:
+            log.debug(f"游戏设置注册表值类型为 {reg_type}，预期为 REG_BINARY")
+            return None
+
+        json_str = raw_data.rstrip(b"\x00").decode("utf-8")
+        game_config = json.loads(json_str)
+        return game_config.get("_renderingScale")
+    except FileNotFoundError:
+        log.debug(r"游戏设置注册表路径不存在: HKEY_CURRENT_USER\Software\ProjectMoon\LimbusCompany")
+    except PermissionError:
+        log.debug("读取游戏设置注册表时权限不足")
+    except Exception as e:
+        log.debug(f"读取游戏渲染比例失败: {e}")
+    return None
+
+
 def _batch_combat(process_fn, times, max_times):
-    """按 max_times 分批执行战斗，无返回值"""
-    if times <= 0 or max_times < 1:
+    """按 max_times 分批执行战斗"""
+    if times <= 0:
         return
     if times > max_times:
         once = max_times
@@ -309,53 +336,8 @@ def Mirror_task():
 
 def script_task() -> None | int:
     start_time = time()
-
     # 获取（启动）游戏对游戏窗口进行设置
     init_game()
-    auto.ensure_not_stopped()
-
-    # 自动更改语言, 如果不支持则直接退出
-    try:
-        if cfg.experimental_auto_lang:
-            ret = auto_switch_language_in_game(screen.handle.hwnd)
-            if ret == AutoSwitchCon.FAILED:
-                log.info("自动切换语言失败，使用英语尝试")
-                cfg.set_value("language_in_game", "en")
-        else:
-            if cfg.language_in_game == "-":
-                log.warning("自动切换语言已关闭但是并未设置语言! 即将使用英语尝试!")
-                cfg.set_value("language_in_game", "en")
-    except Exception as e:
-        log.error(f"自动切换语言出错: {e}，使用英语尝试")
-        cfg.set_value("language_in_game", "en")
-
-    if cfg.simulator and not cfg.experimental_simulator_chinese_patch and cfg.language_in_game != "en":
-        log.info("模拟器模式下强制使用英文图片与文本识别")
-        cfg.set_value("language_in_game", "en")
-
-    if cfg.skip_enkephalin:
-        log.info("设置了跳过合成脑啡肽，将不会自动合成\nSet to skip make enkephalin, it will not to do")
-
-    if not cfg.simulator:
-        # 低渲染比例发出警告
-        if get_game_config_from_registry().get("_renderingScale", -1) == 2:
-            log.warning("当前游戏渲染比例为低, 可能会导致识别错误, 建议设置为中或更高")
-        if cfg.set_win_size == 720:
-            log.warning("当前游戏分辨率为1280*720, 可能会导致识别错误或卡死, 建议设置为更高分辨率")
-
-        # 非默认ui发出警告
-        if get_game_config_from_registry().get("_duiTheme", -1) != 0:
-            log.warning("当前游戏UI为非亮色UI, 可能会导致识别错误, 建议设置为亮色(基础)UI")
-
-        if getattr(cfg, "lab_mouse_logitech", False):
-            if screen.ensure_direct_input_ready():
-                log.info("已确认游戏窗口当前处于前台，可安全开始罗技模拟输入。")
-            else:
-                log.warning("罗技模拟已启用：脚本不会自动抢焦点，若游戏未在前台，将等待你手动点回游戏窗口。")
-
-    path_manager.initialize_paths(cfg.language_in_game)
-    auto.clear_img_cache()
-    log.debug(f"初始化图片路径: {path_manager.pic_path}")
 
     if getattr(cfg, "lab_screenshot_obs", False):
         obs = get_obs_capture()
@@ -366,6 +348,18 @@ def script_task() -> None | int:
             raise cannotOperateGameError(message)
 
     auto.ensure_not_stopped()
+
+    if cfg.skip_enkephalin:
+        log.info("设置了跳过合成脑啡肽，将不会自动合成\nSet to skip make enkephalin, it will not to do")
+    if not cfg.simulator:
+        if _get_game_rendering_scale() == 2:
+            log.warning("当前游戏渲染比例为低, 可能会导致识别错误, 建议设置为中或更高")
+        if cfg.set_win_size == 720:
+            log.warning("当前游戏分辨率为1280*720, 可能会导致识别错误或卡死, 建议设置为更高分辨率")
+
+    path_manager.initialize_paths()
+    auto.clear_img_cache()
+    log.debug(f"初始化图片路径: {path_manager.pic_path}")
 
     if cfg.resonate_with_Ahab:
         Resonate_with_Ahab()
@@ -421,7 +415,6 @@ def script_task() -> None | int:
     should_exit_aalc = False
     if platform.system() == "Windows":
         actions, power_action = get_after_completion_config()
-        log.info(f"结束后操作: actions={actions}, power_action={power_action}")
         try:
             should_exit_aalc = execute_after_completion(actions, power_action)
         except Exception:
@@ -443,13 +436,15 @@ class my_script_task(QThread):
     def __init__(self):
         # 初始化，构造函数
         super().__init__()
-        self.exc_traceback = ""
+        self.mutex = QMutex()
         self.exception = None
 
     def stop(self, reason: str = "用户主动终止程序"):
         auto.request_stop(reason)
 
     def run(self):
+        self.mutex.lock()
+
         try:
             self._run()
         except (
@@ -466,18 +461,15 @@ class my_script_task(QThread):
             withOutAdminError,
         ) as e:
             self.exception = e
-            if isinstance(e, userStopError):
-                log.info(str(e))
         except Exception as e:
             self.exception = e
-            log.error(f"出现错误: {e}")
-            self.exc_traceback = "".join(format_exception(*exc_info()))
+            log.exception("脚本线程执行失败")
         finally:
-            if self.exc_traceback:
-                log.error(self.exc_traceback)
-            auto.clear_stop_request()
-            disconnect_obs_capture()
-            mediator.script_finished.emit()
+            self.mutex.unlock()
+
+        auto.clear_stop_request()
+        disconnect_obs_capture()
+        mediator.script_finished.emit()
 
     def _run(self):
         keep_awake_enabled = bool(cfg.get_value("experimental_keep_screen_awake", False))

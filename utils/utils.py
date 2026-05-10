@@ -15,14 +15,14 @@ from module.logger import log
 
 
 def get_day_of_week():
-    # 直接获取当前东九区时间（Asia/Tokyo）
-    now_time = datetime.now(ZoneInfo("Asia/Tokyo"))
+    # 直接获取当前东九区时间（Asia/Seoul）
+    now_time = datetime.now(ZoneInfo("Asia/Seoul"))
 
     # 提取星期几（中文）、小时、分钟
     day = now_time.isoweekday()  # isoweekday() 返回 1（周一）~7（周日）
     hour = now_time.hour  # 小时（0-23）
 
-    if hour < 6 and day == 1:  # 如果是凌晨0点到6点之间，且不是周一，则视为前一天 （修复周一凌晨判断传参为0的bug）
+    if hour < 6 and day == 1:  # 周一凌晨归到周日
         day = 7
     elif hour < 6:
         day -= 1
@@ -31,59 +31,38 @@ def get_day_of_week():
 
 
 def get_timezone():
-    # 获取当前UTC时间（带时区信息）
     utc_now = datetime.now(ZoneInfo("UTC"))
-
-    # 转换为本地时区的时间（自动获取系统时区）
     local_now = utc_now.astimezone()
+    jst_now = utc_now.astimezone(ZoneInfo("Asia/Tokyo"))
 
-    # 东九区时区（如东京时间）
-    jst_tz = ZoneInfo("Asia/Tokyo")
-    jst_now = utc_now.astimezone(jst_tz)  # 东九区当前时间
-
-    # 获取本地时区和东九区的UTC偏移量（timedelta对象）
     local_offset = local_now.utcoffset()
     jst_offset = jst_now.utcoffset()
-
-    # 计算时间差（小时）
+    if local_offset is None or jst_offset is None:
+        log.error("无法获取时区偏移量，使用默认时区差 0")
+        cfg.set_value("timezone", 0.0)
+        return
     diff_hours = (jst_offset - local_offset).total_seconds() / 3600
-    cfg.set_value("timezone", round(diff_hours, 2))  # 保留二位小数，保存在配置文件中
+    cfg.set_value("timezone", round(diff_hours, 2))
 
 
 def check_hard_mirror_time():
-    if cfg.last_auto_change == 1715990400:
-        get_timezone()
-
-    last_time = datetime.fromtimestamp(cfg.last_auto_change)
-    now_time = datetime.now()
+    seoul_tz = ZoneInfo("Asia/Seoul")
+    last_time = datetime.fromtimestamp(cfg.last_auto_change, seoul_tz)
+    now_time = datetime.now(seoul_tz)
 
     if last_time >= now_time:
-        return False  # 原始时间t1不早于t2，偏移后也不会
+        return False  # 原始时间不应晚于当前时间
 
-    if cfg.timezone is None:
-        get_timezone()
-    # 应用时间偏移量（支持浮点数小时）
-    offset = timedelta(hours=cfg.timezone)
-    last_time_offset = last_time + offset
-    now_time_offset = now_time + offset
+    # 查找当前或下一个首尔时间周四 05:00
+    weekday = last_time.weekday()  # 0=周一，3=周四
+    days_to_thursday = (3 - weekday) % 7
+    candidate_date = last_time.date() + timedelta(days=days_to_thursday)
+    candidate = datetime.combine(candidate_date, time(5, 0), tzinfo=seoul_tz)
 
-    # 计算last_time_offset的星期几（0=周一，3=周四）
-    weekday = last_time_offset.weekday()  # 0-6分别对应周一到周日
-
-    # 计算到下一个周四的天数差（若当前是周四则为0，否则调整到最近的周四）
-    days_to_thursday = (3 - weekday) % 7  # 3对应周四的weekday值
-
-    # 构造候选时间：last_time_offset的日期 + 天数差，时间设为12:00
-    candidate_date = last_time_offset.date() + timedelta(days=days_to_thursday)
-    candidate = datetime.combine(candidate_date, time(12, 0))
-
-    # 如果候选时间早于last_time_offset，说明需要下一个周四
-    if candidate < last_time_offset:
+    if candidate <= last_time:
         candidate += timedelta(days=7)
 
-    # 检查候选时间是否在[last_time_offset, now_time_offset)区间内
-    return last_time_offset <= candidate < now_time_offset
-
+    return last_time < candidate <= now_time
 
 def calculate_the_teams():
     day = get_day_of_week()
@@ -93,7 +72,7 @@ def calculate_the_teams():
         return "3_4"
     if day == 5 or day == 6:
         return "5_6"
-    if day == 7 or day == 8:
+    if day == 7:
         return "7"
 
 
@@ -141,7 +120,7 @@ def find_skill3(background, known_rgb, threshold=40, min_pixels=10):
     while cluster_centers:
         current = cluster_centers.pop()
         group = [c for c in cluster_centers if np.linalg.norm(current - c) <= 67 * comp]
-        cluster_centers = [c for c in cluster_centers if np.linalg.norm(current - c) > 66 * comp]
+        cluster_centers = [c for c in cluster_centers if np.linalg.norm(current - c) > 67 * comp]
         merged.append(np.mean([current] + group, axis=0))
 
     return merged
@@ -281,7 +260,7 @@ def run_as_user(command: list[str], timeout: int = 30):
         # /f: 强制创建；/rl limited: 确保以受限权限运行（非管理员）
         username = os.environ.get("USERNAME")
         create_cmd = (
-            f'schtasks /create /f /tn "{task_name}" /sc once /st 23:59 /ru "{username}" /tr "cmd.exe /c \'{bat_path}\'"'
+            f'schtasks /create /f /tn "{task_name}" /sc once /st 23:59 /ru "{username}" /tr "cmd.exe /c \\"{bat_path}\\""'
         )
         if run_cmd(create_cmd) is None:
             return False

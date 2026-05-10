@@ -90,6 +90,27 @@ class WinAbstractInput(AbstractInput):
             log.debug("获取鼠标位置失败（可能锁屏），返回 (0, 0)")
             return (0, 0)
 
+    def input_text(self, text: str):
+        """将 `text` 通过 WM_CHAR 消息逐字符输入目标窗口。
+
+        使用 WM_CHAR 消息而非 WM_SETTEXT，因为游戏窗口通常不处理 WM_SETTEXT。
+        对每个字符发送单独的 WM_CHAR 消息。
+        """
+        if not text:
+            log.warning("未提供要粘贴的文本")
+            return
+        hwnd = screen.handle.hwnd
+        if not hwnd:
+            log.warning("未获取窗口句柄")
+            return
+        try:
+            for char in text:
+                char_code = ord(char)
+                win32api.SendMessage(hwnd, win32con.WM_CHAR, char_code, 0)
+                sleep(0.01)
+        except Exception as e:
+            log.debug(f"通过 WM_CHAR 输入文本失败: {e}")
+
 
 class Input(WinAbstractInput, metaclass=SingletonMeta):
     """基于 `pyautogui` 的输入类, 仅支持前台操作"""
@@ -246,6 +267,7 @@ class Input(WinAbstractInput, metaclass=SingletonMeta):
         if not text:
             log.warning("未提供要粘贴的文本")
             return
+        self.set_active()
         try:
             pyperclip.copy(text)
         except Exception:
@@ -528,30 +550,6 @@ class BackgroundInput(WinAbstractInput, metaclass=SingletonMeta):
         self.key_down(key)
         self.key_up(key)
 
-    def input_text(self, text: str):
-        """将 `text` 通过 WM_CHAR 消息逐字符输入目标窗口（后台模式）。
-
-        使用 WM_CHAR 消息而非 WM_SETTEXT，因为游戏窗口通常不处理 WM_SETTEXT。
-        对每个字符发送单独的 WM_CHAR 消息。
-        """
-        if not text:
-            log.warning("未提供要粘贴的文本")
-            return
-        hwnd = screen.handle.hwnd
-        if not hwnd:
-            log.warning("未获取窗口句柄")
-            return
-        try:
-            # 对每个字符发送 WM_CHAR 消息
-            for char in text:
-                char_code = ord(char)
-                # wParam: 字符代码（Unicode）
-                # lParam: 重复计数和标志（为简化起见设为 0）
-                win32api.SendMessage(hwnd, win32con.WM_CHAR, char_code, 0)
-                sleep(0.01)  # 字符之间的延迟，防止字符丢失
-        except Exception as e:
-            log.debug(f"通过 WM_CHAR 输入文本失败: {e}")
-
     def mouse_move(self, coordinate=(1, 1)) -> None:
         """鼠标移动到指定坐标
 
@@ -779,30 +777,6 @@ class WindowMoveInput(WinAbstractInput, metaclass=SingletonMeta):
         self.set_active()
         self.key_down(key)
         self.key_up(key)
-
-    def input_text(self, text: str):
-        """将 `text` 通过 WM_CHAR 消息逐字符输入窗口。
-
-        使用 WM_CHAR 消息而非 WM_SETTEXT，因为游戏窗口通常不处理 WM_SETTEXT。
-        对每个字符发送单独的 WM_CHAR 消息。
-        """
-        if not text:
-            log.warning("未提供要粘贴的文本")
-            return
-        hwnd = screen.handle.hwnd
-        if not hwnd:
-            log.warning("未获取窗口句柄")
-            return
-        try:
-            # 对每个字符发送 WM_CHAR 消息
-            for char in text:
-                char_code = ord(char)
-                # wParam: 字符代码（Unicode）
-                # lParam: 重复计数和标志（为简化起见设为 0）
-                win32api.SendMessage(hwnd, win32con.WM_CHAR, char_code, 0)
-                sleep(0.01)  # 字符之间的延迟，防止字符丢失
-        except Exception as e:
-            log.debug(f"通过 WM_CHAR 输入文本失败: {e}")
 
     def mouse_down(self, x, y):
         """鼠标左键按下

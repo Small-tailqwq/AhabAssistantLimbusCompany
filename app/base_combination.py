@@ -682,9 +682,10 @@ class SinnerSelect(QFrame):
         if event.button() == Qt.LeftButton:
             self.hover_overlay.lower()
             self.box.check_box.toggle()
+            target = self.raw_geom if self.raw_geom is not None else self.geometry()
             self.ani.stop()
             self.ani.setStartValue(self.geometry())
-            self.ani.setEndValue(self.raw_geom)
+            self.ani.setEndValue(target)
             self.ani.start()
 
     def resizeEvent(self, event):

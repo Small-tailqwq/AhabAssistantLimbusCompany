@@ -151,9 +151,9 @@ function getTokenStats(api, sessionId) {
     if (msg.role !== "assistant") continue
     if (!msg.modelID) continue
     lastModelID = msg.modelID
-    totalInput = (msg.tokens?.total || msg.tokens?.input) ?? 0
+    totalInput += msg.tokens?.input ?? 0
     totalOutput += msg.tokens?.output ?? 0
-    totalCache = msg.tokens?.cache?.read ?? 0
+    totalCache += msg.tokens?.cache?.read ?? 0
     totalCost += msg.cost ?? 0
     const outTokens = (msg.tokens?.output ?? 0) + (msg.tokens?.reasoning ?? 0)
     if (outTokens > 0 && msg.time?.completed && msg.time?.created) {
@@ -285,7 +285,7 @@ function SideCharacter(props) {
                     {fmt(s.totalOutput)} / {fmt(s.outputLimit)}
                   </text>
                 </Show>
-                <Show when={s.totalInput > 0}>
+                <Show when={s.contextLimit > 0}>
                   <text>
                     <span fg={t().textMuted}>CSH </span>
                     <span fg={t().success}>[{bar(s.cacheRatio, barW)}]</span>
@@ -319,12 +319,6 @@ function SideCharacter(props) {
 const id = "model-mascot"
 
 const tui = async (api, _options) => {
-  await api.plugins.deactivate("internal:sidebar-context").catch(() => {})
-
-  api.lifecycle.onDispose(async () => {
-    await api.plugins.activate("internal:sidebar-context").catch(() => {})
-  })
-
   const tracker = {
     streamSamplesBySession: {},
     messageTimingByID: {},
@@ -417,7 +411,7 @@ const tui = async (api, _options) => {
   api.slots.register({
     order: 60,
     slots: {
-      sidebar_content(ctx, input) {
+      sidebar_footer(ctx, input) {
         return (
           <SideCharacter
             api={api}
