@@ -17,6 +17,7 @@ from utils.singletonmeta import SingletonMeta
 
 from ..config import cfg
 from ..logger import log
+from ..my_error.my_error import userStopError
 from ..ocr import ocr
 from .input_handlers.input import AbstractInput
 from .screenshot import ScreenShot
@@ -38,6 +39,8 @@ class Automation(metaclass=SingletonMeta):
         self.windows_title = windows_title
         self.screenshot = None
         self.input_handler = AbstractInput()
+        self._stop_requested = False
+        self._stop_reason = "用户主动终止程序"
 
         self.init_input()
 
@@ -45,6 +48,19 @@ class Automation(metaclass=SingletonMeta):
         self.last_screenshot_time = 0
         self.last_click_time = 0
         self.model = "clam"
+
+    def request_stop(self, reason: str = "用户主动终止程序") -> None:
+        self._stop_requested = True
+        self._stop_reason = reason
+        log.debug(f"收到停止请求: {reason}")
+
+    def clear_stop_request(self) -> None:
+        self._stop_requested = False
+        self._stop_reason = "用户主动终止程序"
+
+    def ensure_not_stopped(self) -> None:
+        if self._stop_requested:
+            raise userStopError(self._stop_reason)
 
     def init_input(self):
         """初始化输入处理器，将输入操作如点击、拖动等绑定至实例变量"""
@@ -64,7 +80,12 @@ class Automation(metaclass=SingletonMeta):
                 self.input_handler = SimulatorControl.connection_device
         else:
             input_type = cfg.win_input_type
-            if input_type == "background":
+            if getattr(cfg, "lab_mouse_logitech", False):
+                from .input_handlers.logitech import LogitechInput
+
+                log.debug("使用罗技硬件鼠标模拟模块（延迟加载 DLL）")
+                self.input_handler = LogitechInput()
+            elif input_type == "background":
                 from .input_handlers.input import BackgroundInput
 
                 log.debug("使用后台点击模块")
@@ -84,6 +105,7 @@ class Automation(metaclass=SingletonMeta):
 
             self.input_handler = BackgroundInput()
         assert isinstance(self.input_handler, AbstractInput), "输入处理器必须是AbstractInput的实例"
+        self.input_handler.stop_checker = self.ensure_not_stopped
         self.mouse_click = self.input_handler.mouse_click
         self.mouse_click_blank = self.input_handler.mouse_click_blank
         self.mouse_drag = self.input_handler.mouse_drag

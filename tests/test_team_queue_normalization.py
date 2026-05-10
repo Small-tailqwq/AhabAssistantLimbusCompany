@@ -8,6 +8,8 @@ import app.base_tools as base_tools
 import app.farming_interface as farming_interface
 import app.my_app as my_app_module
 import app.page_card as page_card
+import module.automation.automation as automation_module
+import module.automation.input_handlers.input as input_module
 import module.automation.input_handlers.logitech as logitech_module
 import module.config.team_import_export as team_import_export
 import module.config.theme_pack_import_export as theme_pack_import_export
@@ -200,18 +202,14 @@ class TestTeamQueueNormalization(unittest.TestCase):
                 self.assertEqual(cfg.config.teams_be_select, expected_selected)
                 self.assertEqual(cfg.config.teams_order, expected_order)
                 self.assertEqual(cfg.config.teams_be_select_num, expected_count)
-                self.assertEqual(
-                    [cfg.config.teams[str(team_num)].team_number for team_num in expected_queue],
-                    expected_queue,
-                )
 
-    def test_load_phase_sync_repairs_drifted_team_number_fields(self):
+    def test_load_phase_preserves_selected_team_number_fields(self):
         yaml = YAML()
         payload = {
             "teams": {
                 "1": {"team_number": 9},
                 "2": {"team_number": 1},
-                "3": {"team_number": 1},
+                "3": {"team_number": 5},
             },
             "teams_active_queue": [1, 2, 3],
         }
@@ -228,9 +226,9 @@ class TestTeamQueueNormalization(unittest.TestCase):
 
             cfg.just_load_config(config_path)
 
-        self.assertEqual(cfg.config.teams["1"].team_number, 1)
-        self.assertEqual(cfg.config.teams["2"].team_number, 2)
-        self.assertEqual(cfg.config.teams["3"].team_number, 3)
+        self.assertEqual(cfg.config.teams["1"].team_number, 9)
+        self.assertEqual(cfg.config.teams["2"].team_number, 1)
+        self.assertEqual(cfg.config.teams["3"].team_number, 5)
 
     def test_reindex_team_queue_updates_team_numbers(self):
         cfg = self.make_config(
@@ -267,9 +265,9 @@ class TestTeamQueueNormalization(unittest.TestCase):
         self.assertEqual(cfg.config.teams_order, [0, 0, 1, 0])
         self.assertEqual(cfg.config.teams_be_select_num, 1)
 
-    def test_apply_team_settings_reindexes_imported_team_number_for_target_slot(self):
+    def test_apply_team_settings_preserves_imported_team_number_for_target_slot(self):
         yaml = YAML()
-        team_setting = TeamSetting(team_number=1, remark_name="Imported")
+        team_setting = TeamSetting(team_number=9, remark_name="Imported")
 
         class CfgStub:
             def __init__(self):
@@ -298,8 +296,8 @@ class TestTeamQueueNormalization(unittest.TestCase):
                 team_import_export.apply_team_settings(7, team_setting, theme_pack_weight)
 
             self.assertIs(cfg_stub.config.teams["7"], team_setting)
-            self.assertEqual(team_setting.team_number, 7)
-            self.assertEqual(cfg_stub.config.teams["7"].team_number, 7)
+            self.assertEqual(team_setting.team_number, 9)
+            self.assertEqual(cfg_stub.config.teams["7"].team_number, 9)
             self.assertEqual(cfg_stub.save_calls, 1)
 
             with open(theme_weight_path, "r", encoding="utf-8") as file:
@@ -549,15 +547,15 @@ class TestTeamQueueNormalization(unittest.TestCase):
         self.assertIn(("normalize", ("1",)), calls)
         self.assertNotIn(("save",), calls)
 
-    def test_page_mirror_refresh_team_setting_card_compacts_and_reindexes_queue(self):
+    def test_page_mirror_refresh_team_setting_card_compacts_slots_without_rewriting_selected_team_numbers(self):
         page = page_card.PageMirror.__new__(page_card.PageMirror)
         calls = []
 
-        team1 = TeamSetting(team_number=1)
+        team1 = TeamSetting(team_number=8)
         team2 = TeamSetting(team_number=2)
-        team4 = TeamSetting(team_number=1)
-        team5 = TeamSetting(team_number=1)
-        team6 = TeamSetting(team_number=1)
+        team4 = TeamSetting(team_number=7)
+        team5 = TeamSetting(team_number=5)
+        team6 = TeamSetting(team_number=9)
 
         class CfgStub:
             def __init__(self):
@@ -608,9 +606,11 @@ class TestTeamQueueNormalization(unittest.TestCase):
                 "5": team6,
             },
         )
-        self.assertEqual(cfg_stub.config.teams["3"].team_number, 3)
-        self.assertEqual(cfg_stub.config.teams["4"].team_number, 4)
-        self.assertEqual(cfg_stub.config.teams["5"].team_number, 5)
+        self.assertEqual(cfg_stub.config.teams["1"].team_number, 8)
+        self.assertEqual(cfg_stub.config.teams["2"].team_number, 2)
+        self.assertEqual(cfg_stub.config.teams["3"].team_number, 7)
+        self.assertEqual(cfg_stub.config.teams["4"].team_number, 5)
+        self.assertEqual(cfg_stub.config.teams["5"].team_number, 9)
         self.assertIn(("reindex", {1: 1, 2: 2, 4: 3, 5: 4, 6: 5}), calls)
         self.assertIn(("weight_copy", 3, 4), calls)
         self.assertIn(("weight_copy", 4, 5), calls)
@@ -1195,6 +1195,201 @@ class TestTeamQueueNormalization(unittest.TestCase):
         self.assertIn(("onetime", 2, cfg_stub.config.teams["2"]), calls)
         self.assertEqual(cfg_stub.rotate_calls, 1)
         self.assertIn(("rotate", 1, (2, 1)), calls)
+
+    def test_automation_exposes_stop_lifecycle_contract(self):
+        self.assertTrue(hasattr(automation_module.Automation, "request_stop"))
+        self.assertTrue(hasattr(automation_module.Automation, "clear_stop_request"))
+        self.assertTrue(hasattr(automation_module.Automation, "ensure_not_stopped"))
+
+    def test_my_script_task_initializes_exception_and_stop_requests_auto(self):
+        calls = []
+        task = script_task_scheme.my_script_task()
+
+        auto_stub = type("AutoStub", (), {"request_stop": lambda self, reason: calls.append(reason)})()
+
+        with patch.object(script_task_scheme, "auto", auto_stub):
+            task.stop("stop-now")
+
+        self.assertIsNone(task.exception)
+        self.assertEqual(calls, ["stop-now"])
+
+    def test_my_script_task_run_clears_stop_state_and_disconnects_obs(self):
+        calls = []
+        task = script_task_scheme.my_script_task()
+        task._run = lambda: calls.append(("run",))
+
+        auto_stub = type("AutoStub", (), {"clear_stop_request": lambda self: calls.append(("clear_stop",))})()
+        mediator_stub = type(
+            "MediatorStub",
+            (),
+            {"script_finished": type("SignalStub", (), {"emit": lambda self: calls.append(("finished",))})()},
+        )()
+
+        with (
+            patch.object(script_task_scheme, "auto", auto_stub),
+            patch.object(script_task_scheme, "mediator", mediator_stub),
+            patch.object(script_task_scheme, "disconnect_obs_capture", lambda: calls.append(("disconnect_obs",)), create=True),
+        ):
+            task.run()
+
+        self.assertIn(("clear_stop",), calls)
+        self.assertIn(("disconnect_obs",), calls)
+        self.assertIn(("finished",), calls)
+
+    def test_init_game_passes_stop_checker_into_screen_init_handle(self):
+        calls = []
+
+        class AutoStub:
+            def ensure_not_stopped(self):
+                calls.append(("ensure_not_stopped",))
+
+            def init_input(self):
+                calls.append(("init_input",))
+
+        class GameProcessStub:
+            def start_game(self):
+                calls.append(("start_game",))
+
+        class ScreenStub:
+            def init_handle(self, stop_checker=None):
+                calls.append(("init_handle", callable(stop_checker)))
+                return True
+
+            def set_win(self):
+                calls.append(("set_win",))
+
+        cfg_stub = type("CfgStub", (), {"simulator": False, "set_windows": True})()
+
+        with (
+            patch.object(script_task_scheme, "auto", AutoStub()),
+            patch.object(script_task_scheme, "cfg", cfg_stub),
+            patch.object(script_task_scheme, "game_process", GameProcessStub()),
+            patch.object(script_task_scheme, "screen", ScreenStub()),
+        ):
+            script_task_scheme.init_game()
+
+        self.assertIn(("init_handle", True), calls)
+        self.assertIn(("start_game",), calls)
+        self.assertIn(("set_win",), calls)
+
+    def test_script_task_validates_obs_capture_before_running(self):
+        calls = []
+
+        class AutoStub:
+            def clear_img_cache(self):
+                calls.append(("clear_img_cache",))
+
+            def click_element(self, *args, **kwargs):
+                calls.append(("click_element", args[0]))
+                return False
+
+            def ensure_not_stopped(self):
+                calls.append(("ensure_not_stopped",))
+
+        class ObsStub:
+            def validate_capture_ready(self):
+                calls.append(("validate_capture_ready",))
+                return False, "obs not ready"
+
+        cfg_stub = type(
+            "CfgStub",
+            (),
+            {
+                "skip_enkephalin": False,
+                "simulator": False,
+                "set_win_size": 1080,
+                "resonate_with_Ahab": False,
+                "daily_task": False,
+                "get_reward": False,
+                "buy_enkephalin": False,
+                "mirror": False,
+                "set_reduce_miscontact": False,
+                "lab_screenshot_obs": True,
+            },
+        )()
+        mediator_stub = type(
+            "MediatorStub",
+            (),
+            {"warning": type("SignalStub", (), {"emit": lambda self, msg: calls.append(("warning", msg))})()},
+        )()
+        path_manager_stub = type(
+            "PathManagerStub",
+            (),
+            {"initialize_paths": lambda self: calls.append(("initialize_paths",)), "pic_path": []},
+        )()
+
+        with (
+            patch.object(script_task_scheme, "cfg", cfg_stub),
+            patch.object(script_task_scheme, "auto", AutoStub()),
+            patch.object(script_task_scheme, "mediator", mediator_stub),
+            patch.object(script_task_scheme, "path_manager", path_manager_stub),
+            patch.object(script_task_scheme, "init_game", lambda: calls.append(("init_game",))),
+            patch.object(script_task_scheme, "get_obs_capture", lambda: ObsStub(), create=True),
+        ):
+            with self.assertRaises(script_task_scheme.cannotOperateGameError):
+                script_task_scheme.script_task()
+
+        self.assertIn(("validate_capture_ready",), calls)
+        self.assertIn(("warning", "obs not ready"), calls)
+
+    def test_automation_init_input_prefers_logitech_handler_when_enabled(self):
+        class FakeBaseInput(automation_module.AbstractInput):
+            def mouse_click(self, *args, **kwargs):
+                return True
+
+            def mouse_click_blank(self, *args, **kwargs):
+                return True
+
+            def mouse_drag(self, *args, **kwargs):
+                return None
+
+            def mouse_drag_down(self, *args, **kwargs):
+                return None
+
+            def mouse_drag_link(self, *args, **kwargs):
+                return None
+
+            def mouse_scroll(self, *args, **kwargs):
+                return True
+
+            def mouse_to_blank(self, *args, **kwargs):
+                return None
+
+            def key_press(self, *args, **kwargs):
+                return None
+
+            def input_text(self, *args, **kwargs):
+                return None
+
+        class FakeLogitechInput(FakeBaseInput):
+            pass
+
+        class FakeBackgroundInput(FakeBaseInput):
+            pass
+
+        cfg_stub = type(
+            "CfgStub",
+            (),
+            {
+                "simulator": False,
+                "simulator_type": 0,
+                "win_input_type": "background",
+                "lab_mouse_logitech": True,
+                "memory_protection": False,
+            },
+        )()
+
+        automation = automation_module.Automation.__new__(automation_module.Automation)
+        automation.input_handler = None
+
+        with (
+            patch.object(automation_module, "cfg", cfg_stub),
+            patch.object(logitech_module, "LogitechInput", FakeLogitechInput),
+            patch.object(input_module, "BackgroundInput", FakeBackgroundInput),
+        ):
+            automation_module.Automation.init_input(automation)
+
+        self.assertIsInstance(automation.input_handler, FakeLogitechInput)
 
 
 if __name__ == "__main__":

@@ -30,6 +30,17 @@ def get_day_of_week():
     return day
 
 
+def get_timezone():
+    utc_now = datetime.now(ZoneInfo("UTC"))
+    local_now = utc_now.astimezone()
+    jst_now = utc_now.astimezone(ZoneInfo("Asia/Tokyo"))
+
+    local_offset = local_now.utcoffset()
+    jst_offset = jst_now.utcoffset()
+    diff_hours = (jst_offset - local_offset).total_seconds() / 3600
+    cfg.set_value("timezone", round(diff_hours, 2))
+
+
 def check_hard_mirror_time():
     seoul_tz = ZoneInfo("Asia/Seoul")
     last_time = datetime.fromtimestamp(cfg.last_auto_change, seoul_tz)

@@ -9,6 +9,7 @@ from PySide6.QtCore import QT_TRANSLATE_NOOP, QMutex, QThread
 from app import mediator
 from app.windows_toast import TemplateToast, send_toast
 from module.automation import auto
+from module.automation.obs_capture import disconnect_obs_capture, get_obs_capture
 from module.config import TeamSetting, cfg
 from module.decorator.decorator import begin_and_finish_time_log
 from module.game_and_screen import game_process, screen
@@ -121,8 +122,10 @@ def to_get_reward():
 
 def init_game():
     log.debug("初始化游戏")
+    stop_checker = auto.ensure_not_stopped
     simulator = None
     if cfg.simulator:
+        stop_checker()
         if cfg.simulator_type == 0:
             mumu_instance_number = 0
             if cfg.simulator_port == 0 and cfg.mumu_instance_number == -1:
@@ -139,17 +142,19 @@ def init_game():
                 MumuControl,
             )
 
-            simulator = MumuControl(instance_number=mumu_instance_number)
+            simulator = MumuControl(instance_number=mumu_instance_number, stop_checker=stop_checker)
         else:
             from module.automation.input_handlers.simulator.simulator_control import (
                 SimulatorControl,
             )
 
             # 启动时先清理旧连接
+            stop_checker()
             SimulatorControl.clean_connect()
-            simulator = SimulatorControl()
+            simulator = SimulatorControl(stop_checker=stop_checker)
     auto.init_input()
     if cfg.simulator:
+        stop_checker()
         if cfg.simulator_type == 0:
             from module.automation.input_handlers.simulator.mumu_control import (
                 MumuControl,
@@ -163,10 +168,13 @@ def init_game():
 
             SimulatorControl.connection_device.start_game()
     else:
+        stop_checker()
         game_process.start_game()
-        while not screen.init_handle():
-            sleep(10)
+        while not screen.init_handle(stop_checker=stop_checker):
+            stop_checker()
+            sleep(1)
         if cfg.set_windows:
+            stop_checker()
             screen.set_win()
 
 
@@ -216,20 +224,25 @@ def _batch_combat(process_fn, times, max_times):
         total = 0
         last = times
     for _ in range(total):
+        auto.ensure_not_stopped()
         process_fn(once)
     if last > 0:
+        auto.ensure_not_stopped()
         process_fn(last)
 
 
 def _single_combat_run(exp_times, thread_times):
     for _ in range(exp_times):
+        auto.ensure_not_stopped()
         onetime_EXP_process()
     for _ in range(thread_times):
+        auto.ensure_not_stopped()
         onetime_thread_process()
 
 
 def Daily_task_wrapper(get_reward=None):
     def wrapper():
+        auto.ensure_not_stopped()
         back_init_menu()
         make_enkephalin_module()
         exp_times = cfg.set_EXP_count
@@ -249,6 +262,7 @@ def Daily_task_wrapper(get_reward=None):
 
 
 def Buy_enkephalin():
+    auto.ensure_not_stopped()
     back_init_menu()
     lunacy_to_enkephalin(times=cfg.set_lunacy_to_enkephalin)
 
@@ -265,6 +279,7 @@ def Mirror_task():
     cfg.normalize_and_sync_team_state(persist=False)
     # 开始执行镜牢任务
     while mir_times > 0:
+        auto.ensure_not_stopped()
         # 检测配置的队伍能否顺利执行
         useful = False
         hard = bool(cfg.hard_mirror)
@@ -324,6 +339,16 @@ def script_task() -> None | int:
     # 获取（启动）游戏对游戏窗口进行设置
     init_game()
 
+    if getattr(cfg, "lab_screenshot_obs", False):
+        obs = get_obs_capture()
+        ready, message = obs.validate_capture_ready()
+        if not ready:
+            log.error(message)
+            mediator.warning.emit(message)
+            raise cannotOperateGameError(message)
+
+    auto.ensure_not_stopped()
+
     if cfg.skip_enkephalin:
         log.info("设置了跳过合成脑啡肽，将不会自动合成\nSet to skip make enkephalin, it will not to do")
     if not cfg.simulator:
@@ -362,6 +387,7 @@ def script_task() -> None | int:
         task_list.append(Mirror_task)
 
     for task in task_list:
+        auto.ensure_not_stopped()
         task()
 
     if cfg.set_reduce_miscontact and not cfg.simulator:
@@ -411,6 +437,10 @@ class my_script_task(QThread):
         # 初始化，构造函数
         super().__init__()
         self.mutex = QMutex()
+        self.exception = None
+
+    def stop(self, reason: str = "用户主动终止程序"):
+        auto.request_stop(reason)
 
     def run(self):
         self.mutex.lock()
@@ -437,11 +467,9 @@ class my_script_task(QThread):
         finally:
             self.mutex.unlock()
 
+        auto.clear_stop_request()
+        disconnect_obs_capture()
         mediator.script_finished.emit()
-
-    """def stop(self):
-        self.running=False
-        self.finished_signal.emit()"""
 
     def _run(self):
         keep_awake_enabled = bool(cfg.get_value("experimental_keep_screen_awake", False))
