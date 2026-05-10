@@ -29,7 +29,7 @@ DEFAULT_PROTECTED_PATHS = [
 
 def normalize_version_text(version: str) -> str:
     cleaned = version.strip().lstrip("Vv")
-    return re.sub(r"-canary[\\.-]?", "dev", cleaned)
+    return re.sub(r"-canary[.\-]?", "dev", cleaned)
 
 
 def version_at_least(current: str, minimum: str) -> bool:

@@ -21,16 +21,12 @@ from module.decorator.decorator import begin_and_finish_time_log
 from module.logger import log
 from module.update.update_protocol import (
     REMOTE_UPDATE_MANIFEST_ASSET,
+    normalize_version_text,
     read_bootstrap_version,
     select_compatible_release,
 )
 
 md_renderer = MarkdownIt("gfm-like", {"html": True})
-
-
-def _normalize_version(v: str) -> str:
-    """将 canary 版本号（X.Y.Z-canary[.N]）转换为 PEP 440 兼容格式（X.Y.ZdevN）。"""
-    return re.sub(r"-canary[\.-]?", "dev", v)
 
 
 def _get_proxies() -> dict:
@@ -115,7 +111,7 @@ class UpdateThread(QThread):
                 return
 
             # 比较当前版本和最新版本，如果最新版本更高，则准备更新
-            if parse(_normalize_version(version.lstrip("Vv"))) > parse(_normalize_version(cfg.version.lstrip("Vv"))):
+            if parse(normalize_version_text(version.lstrip("Vv"))) > parse(normalize_version_text(cfg.version.lstrip("Vv"))):
                 self.title = self.tr("发现新版本：{Old_version} ——> {New_version}\n更新日志:").format(
                     Old_version=cfg.version, New_version=version
                 )
@@ -138,8 +134,8 @@ class UpdateThread(QThread):
                 remote_version = resp.text.strip()
                 self.new_version = remote_version
 
-                if parse(_normalize_version(remote_version.lstrip("Vv"))) > parse(
-                    _normalize_version(cfg.version.lstrip("Vv"))
+                if parse(normalize_version_text(remote_version.lstrip("Vv"))) > parse(
+                    normalize_version_text(cfg.version.lstrip("Vv"))
                 ):
                     self.title = self.tr("发现新版本：{Old_version} ——> {New_version}\n更新日志:").format(
                         Old_version=cfg.version, New_version=remote_version
@@ -275,7 +271,7 @@ class UpdateThread(QThread):
                 continue
             if isinstance(tag_name, str):
                 try:
-                    parse(_normalize_version(tag_name.lstrip("Vv")))
+                    parse(normalize_version_text(tag_name.lstrip("Vv")))
                 except InvalidVersion:
                     continue
                 if latest_valid_tag_name is None:
