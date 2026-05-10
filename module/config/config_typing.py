@@ -351,9 +351,6 @@ class ConfigModel(BaseModel):
     resonate_with_Ahab: bool = False
     """是否播放亚哈语录"""
 
-    experimental_simulator_chinese_patch: bool = False
-    """模拟器已安装零协汉化（模拟器下不做稳定性保证）"""
-
     simulator: bool = False
     """是否使用模拟器"""
 

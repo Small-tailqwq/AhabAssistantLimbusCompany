@@ -9,15 +9,8 @@ from module.config import cfg
 from module.decorator.decorator import begin_and_finish_time_log
 from module.logger import log
 from module.ocr import ocr
-from utils.path_manager import path_manager
 
 LAST_BATTLE_TEAM_PAGE = None
-
-
-def get_team_name_candidates(num):
-    if path_manager.current_language == "en":
-        return [f"TEAMS #{num}", f"TEAMS#{num}", f"TFAMS#{num}"]
-    return [f"编队#{num}", f"编队 # {num}", f"编队 {num}"]
 
 
 def get_team_text_crop(position, scale):

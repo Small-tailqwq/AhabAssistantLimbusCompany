@@ -157,6 +157,7 @@ class Automation(metaclass=SingletonMeta):
         check_gray=False,
         gray_saturation_threshold=15,
         gray_brightness_threshold=50,
+        log_result=True,
     ):
         """查找并点击屏幕上的元素"""
         if model is None:
@@ -173,6 +174,7 @@ class Automation(metaclass=SingletonMeta):
             check_gray=check_gray,
             gray_saturation_threshold=gray_saturation_threshold,
             gray_brightness_threshold=gray_brightness_threshold,
+            log_result=log_result,
         )
         if coordinates:
             if click:
@@ -351,7 +353,7 @@ class Automation(metaclass=SingletonMeta):
                 try:
                     _, pid = win32process.GetWindowThreadProcessId(screen.handle.hwnd)
                     os.system(f"taskkill /F /PID {pid}")
-                except:
+                except Exception:
                     pass
                 from tasks.base.script_task_scheme import init_game
 

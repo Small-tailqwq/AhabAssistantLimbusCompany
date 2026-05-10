@@ -188,12 +188,14 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
 
     def _ensure_input_focus(self):
         while not screen.ensure_direct_input_ready():
+            self.check_stop_requested()
             if not self._focus_waiting_notified:
                 message = "罗技模拟要求游戏窗口保持前台。请手动点回游戏窗口，脚本会在确认焦点后继续。"
                 log.warning(message)
                 mediator.warning.emit(message)
                 self._focus_waiting_notified = True
             HumanKinematics.human_sleep(0.4, jitter=0.15, minimum=0.25, maximum=0.6)
+            self.check_stop_requested()
         if self._focus_waiting_notified:
             log.info("已检测到游戏窗口重新获得焦点，继续执行罗技模拟输入。")
             mediator.warning_clear.emit()

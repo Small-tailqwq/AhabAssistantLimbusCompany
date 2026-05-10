@@ -17,6 +17,7 @@ import tasks.base.script_task_scheme as script_task_scheme
 import utils.utils as utils_module
 from module.config.config import Config
 from module.config.config_typing import ConfigModel, TeamSetting
+from module.my_error.my_error import userStopError
 from utils.singletonmeta import SingletonMeta
 
 
@@ -835,7 +836,7 @@ class TestTeamQueueNormalization(unittest.TestCase):
         self.assertNotIn(("warning", ("没有启用任何队伍，请选择一个队伍进行镜牢任务",)), calls)
 
     def test_main_window_close_event_blocks_when_announcement_thread_still_running(self):
-        app = my_app_module.QApplication.instance() or my_app_module.QApplication([])
+        my_app_module.QApplication.instance() or my_app_module.QApplication([])
         calls = []
 
         class EventStub:
@@ -1390,6 +1391,73 @@ class TestTeamQueueNormalization(unittest.TestCase):
             automation_module.Automation.init_input(automation)
 
         self.assertIsInstance(automation.input_handler, FakeLogitechInput)
+
+    def test_automation_click_element_accepts_and_forwards_log_result(self):
+        automation = automation_module.Automation.__new__(automation_module.Automation)
+        automation.model = "clam"
+        captured = {}
+
+        def fake_find_element(*args, **kwargs):
+            captured["kwargs"] = kwargs
+            return (10, 20)
+
+        automation.find_element = fake_find_element
+
+        result = automation_module.Automation.click_element(
+            automation,
+            "mirror/road_in_mir/enter_assets.png",
+            click=False,
+            log_result=False,
+        )
+
+        self.assertEqual(result, (10, 20))
+        self.assertIn("log_result", captured["kwargs"])
+        self.assertFalse(captured["kwargs"]["log_result"])
+
+    def test_logitech_input_focus_waiting_respects_stop_checker(self):
+        checks = []
+
+        class SignalStub:
+            def __init__(self, name):
+                self.name = name
+                self.events = []
+
+            def emit(self, *args):
+                self.events.append((self.name, args))
+
+        mediator_stub = type(
+            "MediatorStub",
+            (),
+            {
+                "warning": SignalStub("warning"),
+                "warning_clear": SignalStub("warning_clear"),
+            },
+        )()
+
+        logitech_input = logitech_module.LogitechInput.__new__(logitech_module.LogitechInput)
+        logitech_input._focus_waiting_notified = False
+
+        def stop_checker():
+            checks.append("checked")
+            raise userStopError("stop")
+
+        ready_state = {"count": 0}
+
+        def fake_ready():
+            ready_state["count"] += 1
+            return ready_state["count"] >= 2
+
+        logitech_input.stop_checker = stop_checker
+
+        with (
+            patch.object(logitech_module, "mediator", mediator_stub),
+            patch.object(logitech_module.screen, "ensure_direct_input_ready", side_effect=fake_ready),
+            patch.object(logitech_module.HumanKinematics, "human_sleep", lambda *args, **kwargs: None),
+        ):
+            with self.assertRaises(userStopError):
+                logitech_input._ensure_input_focus()
+
+        self.assertIn("checked", checks)
 
 
 if __name__ == "__main__":

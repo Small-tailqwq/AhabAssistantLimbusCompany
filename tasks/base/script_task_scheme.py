@@ -42,7 +42,7 @@ from tasks.daily.luxcavation import EXP_luxcavation, thread_luxcavation
 from tasks.mirror.mirror import Mirror
 from tasks.teams.team_formation import select_battle_team
 from utils.path_manager import path_manager
-from utils.utils import calculate_the_teams, get_day_of_week, check_hard_mirror_time
+from utils.utils import calculate_the_teams, check_hard_mirror_time, get_day_of_week
 
 
 @begin_and_finish_time_log(task_name="一次经验本")
@@ -125,7 +125,6 @@ def to_get_reward():
 def init_game():
     log.debug("初始化游戏")
     stop_checker = auto.ensure_not_stopped
-    simulator = None
     if cfg.simulator:
         stop_checker()
         if cfg.simulator_type == 0:
@@ -144,7 +143,7 @@ def init_game():
                 MumuControl,
             )
 
-            simulator = MumuControl(instance_number=mumu_instance_number, stop_checker=stop_checker)
+            MumuControl(instance_number=mumu_instance_number, stop_checker=stop_checker)
         else:
             from module.automation.input_handlers.simulator.simulator_control import (
                 SimulatorControl,
@@ -153,7 +152,7 @@ def init_game():
             # 启动时先清理旧连接
             stop_checker()
             SimulatorControl.clean_connect()
-            simulator = SimulatorControl(stop_checker=stop_checker)
+            SimulatorControl(stop_checker=stop_checker)
     auto.init_input()
     if cfg.simulator:
         stop_checker()
