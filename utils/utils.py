@@ -37,6 +37,10 @@ def get_timezone():
 
     local_offset = local_now.utcoffset()
     jst_offset = jst_now.utcoffset()
+    if local_offset is None or jst_offset is None:
+        log.error("无法获取时区偏移量，使用默认时区差 0")
+        cfg.set_value("timezone", 0.0)
+        return
     diff_hours = (jst_offset - local_offset).total_seconds() / 3600
     cfg.set_value("timezone", round(diff_hours, 2))
 
