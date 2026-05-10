@@ -699,3 +699,13 @@ assets:
   tags: []
   note: ''
   checksum: sha256:4b9bdbd00068f9395e07e4bbc3d0913560f5e6b842819fa49796332719765149
+- file: dark/share/mirror/road_to_mir/enter_mirror_confirm.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:1394a819fed551a64da07ee703fd5c40e131733a78362da006170a0d2d9187e7
+- file: dark/share/mirror/road_to_mir/level_confirm_assets.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:d2162917a9792d184b9fcea48609875b5db39fe9329f52d73e2a684f2f3940b2
