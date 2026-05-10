@@ -220,6 +220,7 @@ class Config(metaclass=SingletonMeta):
                     self._old_version_cfg_upgrade(saved_version, loaded_config)
                 # 使用更新后的配置初始化 Config 对象
                 self.config = ConfigModel(**loaded_config)
+                self._reset_session_only_config()
                 queue_in_loaded_config = loaded_config.get("teams_active_queue")
                 if queue_in_loaded_config is None:
                     normalized_queue = self._normalize_team_queue(self.migrate_legacy_team_queue())
@@ -468,6 +469,17 @@ class Config(metaclass=SingletonMeta):
             # 等待下一次
             self._writer_event.clear()
 
+    def _reset_session_only_config(self) -> None:
+        """确保会话级配置项不跨生命周期生效。
+
+        因 _save_config() 全量序列化 self.config，任何 cfg.set_value()
+        都会把此前通过 cfg.unsaved_set_value() 设置的 "仅本次" 值一起写盘。
+        此处启动加载时若 keep_after_completion 为 False，回退为默认值。
+        """
+        if not self.config.keep_after_completion:
+            self.config.after_completion_actions = []
+            self.config.after_completion_power_action = "none"
+
     def just_load_config(self, path: Optional[Path | str] = None) -> None:
         """仅加载配置文件，不保存"""
         path = path or self.config_path
@@ -476,6 +488,7 @@ class Config(metaclass=SingletonMeta):
                 loaded_config = self.yaml.load(file)
             if loaded_config:
                 self.config = ConfigModel(**loaded_config)
+                self._reset_session_only_config()
                 queue_in_loaded_config = loaded_config.get("teams_active_queue")
                 if queue_in_loaded_config is None:
                     normalized_queue = self._normalize_team_queue(self.migrate_legacy_team_queue())

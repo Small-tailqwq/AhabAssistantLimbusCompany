@@ -225,6 +225,7 @@ class Mirror:
 
     def road_to_mir(self):
         loop_count = 30
+        mirror_dungeons_threshold = 0.65
         auto.model = "clam"
         self.first_battle = True
         while True:
@@ -262,13 +263,13 @@ class Mirror:
             if auto.click_element("mirror/road_to_mir/enter_assets.png"):
                 sleep(0.5)
                 continue
-            if auto.click_element("home/mirror_dungeons_assets.png"):
+            if auto.click_element("home/mirror_dungeons_assets.png", threshold=mirror_dungeons_threshold):
                 continue
             if auto.find_element("home/inferno_bus_assets.png") and not auto.find_element(
-                "home/mirror_dungeons_assets.png"
+                "home/mirror_dungeons_assets.png", threshold=mirror_dungeons_threshold
             ):
                 sleep(1)
-                if not auto.find_element("home/mirror_dungeons_assets.png"):
+                if not auto.find_element("home/mirror_dungeons_assets.png", threshold=mirror_dungeons_threshold):
                     auto.click_element("home/window_assets.png")
                     continue
             if auto.find_element("base/renew_confirm_assets.png", model="clam") and auto.find_element(

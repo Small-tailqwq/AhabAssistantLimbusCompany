@@ -22,7 +22,7 @@ def get_day_of_week():
     day = now_time.isoweekday()  # isoweekday() 返回 1（周一）~7（周日）
     hour = now_time.hour  # 小时（0-23）
 
-    if hour < 6 and day == 1:  # 如果是凌晨0点到6点之间，且不是周一，则视为前一天 （修复周一凌晨判断传参为0的bug）
+    if hour < 6 and day == 1:  # 周一凌晨归到周日
         day = 7
     elif hour < 6:
         day -= 1
@@ -93,7 +93,7 @@ def calculate_the_teams():
         return "3_4"
     if day == 5 or day == 6:
         return "5_6"
-    if day == 7 or day == 8:
+    if day == 7:
         return "7"
 
 
@@ -141,7 +141,7 @@ def find_skill3(background, known_rgb, threshold=40, min_pixels=10):
     while cluster_centers:
         current = cluster_centers.pop()
         group = [c for c in cluster_centers if np.linalg.norm(current - c) <= 67 * comp]
-        cluster_centers = [c for c in cluster_centers if np.linalg.norm(current - c) > 66 * comp]
+        cluster_centers = [c for c in cluster_centers if np.linalg.norm(current - c) > 67 * comp]
         merged.append(np.mean([current] + group, axis=0))
 
     return merged
@@ -281,7 +281,7 @@ def run_as_user(command: list[str], timeout: int = 30):
         # /f: 强制创建；/rl limited: 确保以受限权限运行（非管理员）
         username = os.environ.get("USERNAME")
         create_cmd = (
-            f'schtasks /create /f /tn "{task_name}" /sc once /st 23:59 /ru "{username}" /tr "cmd.exe /c \'{bat_path}\'"'
+            f'schtasks /create /f /tn "{task_name}" /sc once /st 23:59 /ru "{username}" /tr "cmd.exe /c \\"{bat_path}\\""'
         )
         if run_cmd(create_cmd) is None:
             return False
