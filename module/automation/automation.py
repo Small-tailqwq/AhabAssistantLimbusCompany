@@ -370,6 +370,7 @@ class Automation(metaclass=SingletonMeta):
         check_gray=False,
         gray_saturation_threshold=15,
         gray_brightness_threshold=50,
+        log_result=True,
     ):
         """
         查找元素，并根据指定的查找类型执行不同的查找策略。
@@ -385,6 +386,7 @@ class Automation(metaclass=SingletonMeta):
             check_gray: 匹配后检查HSV饱和度/亮度，跳过灰色或过暗的不可点击按钮
             gray_saturation_threshold: 饱和度阈值，低于此值的匹配视为灰色按钮
             gray_brightness_threshold: 亮度阈值，低于此值的匹配视为过暗按钮
+            log_result: 是否输出日志（上游已不依赖此参数，仅兼容旧调用方）
         Returns:
             查找到的元素位置，或者在图像计数查找时返回计数。
         """
