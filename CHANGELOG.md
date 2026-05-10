@@ -2,6 +2,33 @@
 
 ## [Unreleased] — Canary
 
+## [1.5.0-canary.12] — 2026-05-11
+
+### 更新检测
+- fix: CI 上传 AALC.update_manifest.json 和 .sha256 到 release assets
+- fix: 无兼容更新包时不弹错误，直接显示已是最新版本
+- refactor: 统一版本号归一化实现（normalize_version_text）
+
+### 镜牢稳定性
+- fix: event_chance 在主路径中不递减导致多目标兜底永远无法触发
+- fix: 修复 Mumu 模拟器退出时序冲突导致连接断开 (fix #617)
+- fix: 重写商店刷新逻辑，新增自定义刷新上限与保留升级资金选项
+- fix: 补充暗色模式等级确认弹窗模板资产
+- fix: 修复镜牢编队队列状态归一化及编队删除/重启崩溃链
+- fix: onetime_mir_process 透传 userStopError 避免停止信号被吞
+- fix: 返回主界面收尾补上结算弹窗
+
+### 自动化稳定性
+- fix: 补回停止/生命周期接口、Logitech/OBS接线及回归测试
+- fix: find_element 加回 log_result 参数兼容金丝雀调用方
+- fix: get_mouse_position 加异常保护
+- fix: 连续作战最大次数为 0 时除零崩溃
+- fix: 会话级 after_completion 防泄漏 + 镜牢入口阈值 + 杂项修复
+
+### 其他
+- chore: 修正金丝雀发版技能 prerelease 描述错误
+- merge: 同步 upstream/main 各项修复（编队、时区、汉化、模型等）
+
 ## [1.5.0-canary.11] — 2026-05-05
 
 ### 更新系统
