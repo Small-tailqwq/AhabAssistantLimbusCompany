@@ -45,3 +45,5 @@ jobs:
           name: AALC_${{ inputs.version }}
           path: |
             dist/AALC_${{ inputs.version }}.7z
+            dist/AALC.update_manifest.json
+            dist/AALC_${{ inputs.version }}.7z.sha256

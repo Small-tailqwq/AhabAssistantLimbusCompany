@@ -127,9 +127,8 @@ class UpdateThread(QThread):
                 log.info("当前已是最新版本")
                 self.updateSignal.emit(UpdateStatus.SUCCESS)
         except RuntimeError as e:
-            self.error_msg = str(e)
-            log.error(f"检查更新失败:{e}")
-            self.updateSignal.emit(UpdateStatus.FAILURE)
+            log.info(f"未找到兼容更新包:{e}，当前已是最新版本")
+            self.updateSignal.emit(UpdateStatus.SUCCESS)
         except Exception:
             log.warning("GitHub API 检查失败，降级到 raw.githubusercontent.com")
             try:

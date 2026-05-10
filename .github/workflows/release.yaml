@@ -33,4 +33,3 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fail_on_unmatched_files: true
           prerelease: ${{ contains(github.ref_name, 'canary') }}
-
