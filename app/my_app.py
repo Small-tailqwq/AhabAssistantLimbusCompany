@@ -446,6 +446,14 @@ class MainWindow(FramelessWindow):
                 return
         if hasattr(self, "announcement_thread") and self.announcement_thread.isRunning():
             self.announcement_thread.wait(5000)
+            if self.announcement_thread.isRunning():
+                MessageBoxWarning(
+                    self.tr("退出超时"),
+                    self.tr("公告线程未能在 5 秒内结束，请稍后再试。"),
+                    self.window(),
+                ).exec()
+                e.ignore()
+                return
 
         return super().closeEvent(e)
 

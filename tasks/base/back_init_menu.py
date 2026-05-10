@@ -131,6 +131,12 @@ def back_init_menu():
         if auto.click_element("home/back_assets.png"):
             continue
 
+        # 战斗结算确认（需在投降逻辑之前，避免结算界面误匹配 setting 按钮）
+        if auto.click_element("base/battle_finish_confirm_assets.png"):
+            continue
+        if auto.click_element("battle/battle_finish_confirm_assets.png"):
+            continue
+
         # 在战斗中
         if auto.click_element("battle/setting_assets.png"):
             sleep(1)
@@ -140,11 +146,6 @@ def back_init_menu():
 
         # 周年活动弹出的窗口
         if auto.click_element("home/close_anniversary_event_assets.png"):
-            continue
-
-        if auto.click_element("base/battle_finish_confirm_assets.png"):
-            continue
-        if auto.click_element("battle/battle_finish_confirm_assets.png"):
             continue
 
         # 在刚进入游戏界面时
