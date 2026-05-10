@@ -19,6 +19,7 @@ from ..config import cfg
 from ..logger import log
 from ..my_error.my_error import userStopError
 from ..ocr import ocr
+from .human_kinematics import HumanKinematics
 from .input_handlers.input import AbstractInput
 from .screenshot import ScreenShot
 
@@ -197,12 +198,42 @@ class Automation(metaclass=SingletonMeta):
         返回:
         tuple: 经过计算后的点击位置坐标。
         """
-        # TODO:后续适配无需窗口设置模式
-        x, y = coordinates
         screenshot = np.array(self.screenshot)
-        if offset:
-            x = max(0, min(screenshot.shape[1], x + random.randint(-10, 10)))
-            y = max(0, min(screenshot.shape[0], y + random.randint(-10, 10)))
+        screen_width = int(screenshot.shape[1])
+        screen_height = int(screenshot.shape[0])
+        width = 24
+        height = 24
+        use_logitech_humanization = bool(
+            getattr(cfg, "lab_mouse_logitech", False) and getattr(cfg, "logitech_bionic_trajectory", True)
+        )
+
+        if len(coordinates) >= 4 and all(isinstance(value, (int, float)) for value in coordinates[:4]):
+            left, top, right, bottom = coordinates[:4]
+            x = (float(left) + float(right)) / 2
+            y = (float(top) + float(bottom)) / 2
+            width = max(abs(float(right) - float(left)), 6.0)
+            height = max(abs(float(bottom) - float(top)), 6.0)
+        else:
+            x, y = coordinates
+
+        if offset and use_logitech_humanization:
+            x, y = HumanKinematics.get_gaussian_click_point(
+                float(x),
+                float(y),
+                width,
+                height,
+                screen_width=screen_width,
+                screen_height=screen_height,
+            )
+        elif offset:
+            x = int(round(float(x))) + random.randint(-10, 10)
+            y = int(round(float(y))) + random.randint(-10, 10)
+        else:
+            x = int(round(float(x)))
+            y = int(round(float(y)))
+
+        x = max(0, min(screen_width - 1, x))
+        y = max(0, min(screen_height - 1, y))
         return x, y
 
     def mouse_action_with_pos(
@@ -238,7 +269,14 @@ class Automation(metaclass=SingletonMeta):
         if self.last_click_time == 0:
             self.last_click_time = time.time()
         if time.time() - self.last_click_time < interval:
-            time.sleep(interval)
+            if (
+                getattr(cfg, "lab_mouse_logitech", False)
+                and getattr(cfg, "logitech_bionic_trajectory", True)
+                and action == "click"
+            ):
+                HumanKinematics.human_sleep(interval, jitter=0.12, minimum=interval)
+            else:
+                time.sleep(interval)
             self.last_click_time = time.time()
 
         # 计算传入的位置
@@ -279,6 +317,7 @@ class Automation(metaclass=SingletonMeta):
         start_time = time.time()
         screenshot_interval_time = cfg.screenshot_interval if cfg.screenshot_interval else 0.85
         while True:
+            self.ensure_not_stopped()
             try:
                 if time.time() - self.last_screenshot_time < screenshot_interval_time:
                     wait_time = max(
@@ -354,6 +393,7 @@ class Automation(metaclass=SingletonMeta):
         # 如果不需要截图，则重试次数设置为1
         max_retries = 1 if not take_screenshot else max_retries
         for i in range(max_retries):
+            self.ensure_not_stopped()
             if take_screenshot:
                 # 截图并根据裁剪参数获取截图结果
                 while self.take_screenshot() is None:
