@@ -98,6 +98,8 @@ def onetime_mir_process(team_setting: TeamSetting, team_num: int):
             return True
         else:
             return False
+    except userStopError:
+        raise
     except Exception as e:
         log.exception(f"镜牢行动出错: {e}")
         return False
