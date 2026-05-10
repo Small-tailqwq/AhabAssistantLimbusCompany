@@ -15,12 +15,12 @@ Features:
 - Press Ctrl+C to exit
 """
 
-import hashlib
 import os
 import subprocess
 import sys
 import threading
 import time
+import hashlib
 
 # 解决 Windows DPI 缩放问题
 from ctypes import c_void_p, windll
@@ -126,21 +126,18 @@ class AALCReloader:
 
     def start_file_watcher(self):
         """Start watching for file changes"""
-        watch_paths = []
+        event_handler = FileChangeHandler(self)
         self.observer = Observer()
 
-        # Watch main directories
+        # Watch source directories. Runtime/user data files are filtered by
+        # FileChangeHandler before a restart is requested.
         watch_dirs = ["app", "module", "tasks", "utils", "i18n"]
         for dirname in watch_dirs:
             dir_path = Path.cwd() / dirname
             if dir_path.exists():
-                watch_paths.append(dir_path)
+                self.observer.schedule(event_handler, str(dir_path), recursive=True)
 
         # Watch root directory (non-recursive)
-        watch_paths.append(Path.cwd())
-        event_handler = FileChangeHandler(self, watch_paths)
-        for dir_path in watch_paths[:-1]:
-            self.observer.schedule(event_handler, str(dir_path), recursive=True)
         self.observer.schedule(event_handler, str(Path.cwd()), recursive=False)
 
         self.observer.start()
@@ -239,9 +236,6 @@ os.environ['AALC_DEV_MODE'] = '1'
         if temp_file.exists():
             temp_file.unlink()
 
-        if temp_file.exists():
-            temp_file.unlink()
-
         log.info("Cleanup complete")
         sys.exit(0)
 
@@ -249,81 +243,127 @@ os.environ['AALC_DEV_MODE'] = '1'
 class FileChangeHandler(FileSystemEventHandler):
     """Handle file system events"""
 
-    def __init__(self, reloader, watch_paths):
+    def __init__(self, reloader):
         self.reloader = reloader
-        self.file_signatures = {}
-        self.ignored_patterns = {
+        self.project_root = Path.cwd().resolve()
+        self.reload_suffixes = {".py"}
+        self.content_hashes = {}
+        self.ignored_names = {
             "__pycache__",
-            ".pyc",
             ".git",
             ".idea",
+            ".vscode",
+            ".ruff_cache",
             "venv",
+            ".venv",
             "env",
             ".egg-info",
             "__main_dev_temp__.py",
+            "config.yaml",
+            "config.yaml.bak",
+            "config.yaml.backup",
+            "config.yaml.old",
+            "theme_pack_list.yaml",
         }
-        self._build_initial_signatures(watch_paths)
+        self.ignored_suffixes = {".pyc", ".pyo"}
+        self.ignored_runtime_dirs = {
+            "build",
+            "dist",
+            "dist_release",
+            "logs",
+            "theme_pack_weight",
+        }
+        self._prime_content_hashes()
 
-    def should_ignore(self, path):
-        """Check if file should be ignored"""
-        path_str = str(path)
-        return any(pattern in path_str for pattern in self.ignored_patterns)
+    def _resolve_path(self, path):
+        """Resolve watchdog paths without failing on transient files."""
+        try:
+            return Path(path).resolve()
+        except OSError:
+            return Path(path).absolute()
 
     @staticmethod
-    def calculate_file_signature(path: Path):
-        if not path.exists() or path.suffix != ".py":
+    def _hash_file(file_path: Path):
+        try:
+            hasher = hashlib.sha256()
+            with file_path.open("rb") as file:
+                for chunk in iter(lambda: file.read(1024 * 1024), b""):
+                    hasher.update(chunk)
+            return hasher.hexdigest()
+        except OSError:
             return None
-        digest = hashlib.sha256(path.read_bytes()).hexdigest()
-        stat = path.stat()
-        return f"{stat.st_size}:{digest}"
 
-    def _build_initial_signatures(self, watch_paths):
-        for watch_path in watch_paths:
-            if watch_path.is_dir():
-                for py_file in watch_path.rglob("*.py"):
-                    if not self.should_ignore(py_file):
-                        self.file_signatures[str(py_file)] = self.calculate_file_signature(py_file)
-            elif watch_path.suffix == ".py" and not self.should_ignore(watch_path):
-                self.file_signatures[str(watch_path)] = self.calculate_file_signature(watch_path)
+    def _prime_content_hashes(self):
+        """Record current source file hashes before watching for changes."""
+        for file_path in self.project_root.rglob("*.py"):
+            if not self.should_reload_for_path(file_path):
+                continue
+            file_hash = self._hash_file(file_path)
+            if file_hash is not None:
+                self.content_hashes[self._resolve_path(file_path)] = file_hash
 
-    def _handle_python_change(self, src_path: str, change_type: str):
-        path = Path(src_path)
-        if self.should_ignore(path) or path.suffix != ".py":
+    def should_reload_for_path(self, path):
+        """Check if a file change should restart the development app."""
+        file_path = self._resolve_path(path)
+
+        try:
+            relative_path = file_path.relative_to(self.project_root)
+        except ValueError:
+            return False
+
+        if any(part in self.ignored_names for part in relative_path.parts):
+            return False
+        if any(part in self.ignored_runtime_dirs for part in relative_path.parts[:-1]):
+            return False
+        if file_path.suffix in self.ignored_suffixes:
+            return False
+
+        return file_path.suffix in self.reload_suffixes
+
+    def content_changed_for_path(self, path, event_name):
+        """Return True only when the source file content actually changed."""
+        file_path = self._resolve_path(path)
+
+        # Give editors that save by replacing files a short moment to settle.
+        time.sleep(0.2)
+
+        new_hash = self._hash_file(file_path)
+        old_hash = self.content_hashes.get(file_path)
+        if new_hash is None:
+            if old_hash is not None:
+                self.content_hashes.pop(file_path, None)
+                return True
+            return False
+
+        self.content_hashes[file_path] = new_hash
+        if old_hash is None:
+            return event_name == "created"
+        return old_hash != new_hash
+
+    def request_reload(self, path, event_name):
+        """Request an app restart for a qualifying source file change."""
+        if not self.should_reload_for_path(path):
+            return
+        if not self.content_changed_for_path(path, event_name):
             return
 
-        current_signature = self.calculate_file_signature(path)
-        previous_signature = self.file_signatures.get(str(path))
-
-        if current_signature is None:
-            self.file_signatures.pop(str(path), None)
-            return
-
-        if current_signature == previous_signature:
-            return
-
-        self.file_signatures[str(path)] = current_signature
-        rel_path = Path(os.path.relpath(path, Path.cwd()))
-        log.info(f"File {change_type}: {rel_path}")
+        rel_path = self._resolve_path(path).relative_to(self.project_root)
+        log.info(f"File {event_name}: {rel_path}")
         self.reloader.should_restart = True
 
     def on_modified(self, event):
         """Handle file modification"""
-        if event.is_directory or self.should_ignore(event.src_path):
+        if event.is_directory:
             return
 
-        self._handle_python_change(event.src_path, "changed")
+        self.request_reload(event.src_path, "changed")
 
     def on_created(self, event):
         """Handle file creation"""
         if event.is_directory:
             return
-        self._handle_python_change(event.src_path, "created")
 
-    def on_moved(self, event):
-        """Handle file rename or safe-write replacement"""
-        if event.is_directory:
-            return
-        self._handle_python_change(event.dest_path, "changed")
+        self.request_reload(event.src_path, "created")
 
 
 def main():
