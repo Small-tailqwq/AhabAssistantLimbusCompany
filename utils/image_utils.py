@@ -128,12 +128,17 @@ class ImageUtils:
 
     @staticmethod
     def existing_image_paths(image_path):
-        """返回当前有效路径中存在该图片的路径列表。"""
+        """返回当前有效路径中存在该图片的路径列表，优先 .webp 回退 .png。"""
+        webp_path = image_path
+        if image_path.endswith(".png"):
+            webp_path = image_path[:-4] + ".webp"
         paths = []
         for path in path_manager.pic_path:
-            img_path = os.path.join(f"./assets/images/{path}/{image_path}")
-            if os.path.exists(img_path):
-                paths.append(path)
+            for candidate in (webp_path, image_path):
+                img_path = os.path.join(f"./assets/images/{path}/{candidate}")
+                if os.path.exists(img_path):
+                    paths.append(path)
+                    break
         if path_manager.current_theme == "dark":
             dark_paths = [path for path in paths if path_manager.is_path_dark(path)]
             if dark_paths:

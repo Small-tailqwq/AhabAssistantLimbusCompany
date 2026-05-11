@@ -2,32 +2,81 @@
 
 ## [Unreleased] — Canary
 
+## [1.5.0-canary.13] — 2026-05-11
+
+### 修复
+- fix: 修复构建产物中因 PNG→WebP 转换导致图片无法识别的问题（`existing_image_paths` 补 .webp 回退）
+- fix: 重写 c12 更新日志，区分上游合并与金丝雀独有变更，移除重复条目
+
 ## [1.5.0-canary.12] — 2026-05-11
 
-### 更新检测
-- fix: CI 上传 AALC.update_manifest.json 和 .sha256 到 release assets
+### ⚠️ 注意
+本版本合并了大量上游 main 分支的提交。以下标注 `[upstream]` 的条目来自上游作者（luwh2000, KIYI671, lushuo, lus, raymond1233319），标注 `[canary]` 的为金丝雀独有修复。
+
+### 新功能 [upstream]
+- feat: 新增编队码功能（raymond1233319）
+- feat: 队伍配置与主题包配置导入导出（raymond1233319）
+- feat: 语言自动检测（lushuo）
+- feat: 文字识别也触发语言路径更新（lushuo）
+- feat: 恢复低渲染比例和低分辨率检测（lus）
+- feat: 添加 TextMatchResult 优化 OCR 结果处理（lushuo）
+- feat: 增加 hash 校验机制（lus）
+- feat: 模拟器选择饰品后增加等待时间（lus）
+- feat(log): 降低日志等级以减少信息噪音（KIYI671）
+
+### 镜牢修复 [upstream]
+- fix: 修复更新 UI 后的镜牢 assets 适配（luwh2000）
+- fix: 修正困难镜牢自动切换逻辑（luwh2000）
+- fix: 允许镜牢次数用尽后继续困牢（luwh2000）
+- fix: 饰品格子合成前合成标签被遮盖 gifts_fusion（luwh2000）
+- fix(mirror): 降低公式合成标签检测阈值（KIYI671）
+- fix: 主题包选择根据当前语言环境调整列表获取逻辑（lushuo）
+- fix(mumu): 修复 Mumu 控制台输出解析错误 fix #622（KIYI671）
+- fix: 移除自动更改语言和强制模拟器使用英文（lushuo）
+
+### 自动化和输入 [upstream]
+- perf(battle): 支持按战斗次数动态调整超时时间（KIYI671）
+- fix(luxcavation): 优化日常战斗关卡选择界面检测逻辑（KIYI671）
+- chore: 调整镜像副本适配参数（KIYI671）
+- i18n: 同步并更新英文翻译文件（KIYI671）
+- fix: main_dev 热重载忽略配置文件（lushuo）
+- fix: 修复文本描述（lushuo）
+- chore(script-task): 添加跳过合成脑啡肽的日志处理（KIYI671）
+- fix: 降低路径日志等级（lushuo）
+
+### 界面与配置 [upstream]
+- fix: 修复默认界面下错误识别为暗色图片（lus）
+- fix: 移除多余的邮件图标资源文件（lus）
+- fix: 移除 `mail_cn_assets`（lus）
+- fix: 修复时区配置错误，统一使用首尔时区，移除 timezone 配置项（KIYI671）
+- fix: 移除 config 中的语言配置项，改为从路径管理器获取（lus）
+- refactor: 重构编队码加载流程 team-formation，优化截图逻辑（KIYI671）
+- refactor: 同步队伍设置前统一调用 `_sync_team_setting_numbers`（KIYI671）
+- fix: 移除 `check_gray` 参数（KIYI671）
+- fix: 移除无用代码/未被使用的函数（lushuo）
+- chore: 更新编队码提示信息/移除冗余配置保存（KIYI671）
+
+### 代码重构 [upstream]
+- refactor: 优化语言识别与异常处理流程（lushuo）
+- refactor: 提取楼层识别逻辑到独立函数（lushuo）
+- refactor: 路径管理器重构 — 优化路径判断后的识图逻辑（lushuo）
+- refactor: 所有英文注释改为中文，优化导入语句顺序（raymond1233319）
+- refactor: 优化路径日志级别（lus）
+- doc: 移除 path-language-auto-update 文档（luyipao）
+
+
+### 金丝雀独有修复 [canary]
+- fix: CI 构建上传 `AALC.update_manifest.json` 和 `.sha256` 到 release assets
 - fix: 无兼容更新包时不弹错误，直接显示已是最新版本
 - refactor: 统一版本号归一化实现（normalize_version_text）
-
-### 镜牢稳定性
-- fix: event_chance 在主路径中不递减导致多目标兜底永远无法触发
-- fix: 修复 Mumu 模拟器退出时序冲突导致连接断开 (fix #617)
-- fix: 重写商店刷新逻辑，新增自定义刷新上限与保留升级资金选项
-- fix: 补充暗色模式等级确认弹窗模板资产
-- fix: 修复镜牢编队队列状态归一化及编队删除/重启崩溃链
-- fix: onetime_mir_process 透传 userStopError 避免停止信号被吞
-- fix: 返回主界面收尾补上结算弹窗
-
-### 自动化稳定性
-- fix: 补回停止/生命周期接口、Logitech/OBS接线及回归测试
-- fix: find_element 加回 log_result 参数兼容金丝雀调用方
-- fix: get_mouse_position 加异常保护
-- fix: 连续作战最大次数为 0 时除零崩溃
-- fix: 会话级 after_completion 防泄漏 + 镜牢入口阈值 + 杂项修复
-
-### 其他
+- fix: `onetime_mir_process` 透传 `userStopError` 避免停止信号被吞
+- fix: `find_element` 加回 `log_result` 参数兼容金丝雀调用方
+- fix: 补齐停止与 log_result 兼容并移除失效汉化开关
+- fix: `closeEvent` / `input_text` / `back_init_menu` 代码审阅修复
+- fix: 保留队伍配置中的游戏内编队编号
+- fix: 补录编队码与暗色镜牢资产元数据
+- chore: 模型吉祥物插件修复
 - chore: 修正金丝雀发版技能 prerelease 描述错误
-- merge: 同步 upstream/main 各项修复（编队、时区、汉化、模型等）
 
 ## [1.5.0-canary.11] — 2026-05-05
 
