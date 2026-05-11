@@ -6,6 +6,7 @@
 
 ### 修复
 - fix: 修复构建产物中因 PNG→WebP 转换导致图片无法识别的问题（`existing_image_paths` 补 .webp 回退）
+- fix: 修复纽本连战超时 — `onetime_thread_process` 未向 `battle.fight()` 传递 `combat_count`，导致连战超时始终为 15 分钟
 - fix: 重写 c12 更新日志，区分上游合并与金丝雀独有变更，移除重复条目
 
 ## [1.5.0-canary.12] — 2026-05-11
