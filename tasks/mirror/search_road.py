@@ -24,7 +24,7 @@ def _route_debug_log_result():
 
 
 def enter_mirror_road(direction=None, position=None):
-    if cfg.mirror_keyboard_navigation and not cfg.simulator:
+    if cfg.mirror_keyboard_navigation:
         log.debug(f"通过键盘按键寻路: {direction}")
         if direction == "U":
             auto.key_press("up")
@@ -56,7 +56,7 @@ def enter_mirror_road(direction=None, position=None):
 
 
 def confirm_current_mirror_node():
-    if cfg.mirror_keyboard_navigation and not cfg.simulator:
+    if cfg.mirror_keyboard_navigation:
         auto.key_press("enter")
         sleep(1.25)
         if auto.click_element(
