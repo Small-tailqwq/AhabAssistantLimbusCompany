@@ -49,7 +49,7 @@ def EXP_luxcavation(combat_count: int = 1):
             and auto.find_element("home/back_assets.png", model="normal")
             and not auto.find_element("luxcavation/exp_enter.png", threshold=0.85)
         ):
-            auto.click_element("home/back_assets.png")
+            auto.key_press("esc")
             continue
         if auto.find_element("luxcavation/exp_enter.png", threshold=0.85, take_screenshot=True):
             if level := auto.find_element("luxcavation/exp_enter.png", find_type="image_with_multiple_targets"):
@@ -128,7 +128,7 @@ def thread_luxcavation(combat_count: int = 1):
             and not auto.find_element("luxcavation/thread_enter_assets.png", threshold=0.78)
             and not auto.find_element("luxcavation/thread_consume.png", threshold=0.85)
         ):
-            auto.click_element("home/back_assets.png")
+            auto.key_press("esc")
             continue
         if auto.click_element("luxcavation/thread_enter_assets.png", threshold=0.78):
             sleep(0.5)
