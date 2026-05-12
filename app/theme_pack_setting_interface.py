@@ -31,6 +31,7 @@ from qfluentwidgets import (
 from qframelesswindow import FramelessDialog, StandardTitleBar
 from ruamel.yaml import YAML
 
+from app.language_manager import LanguageManager
 from app.base_tools import BaseSpinBox
 from app.card.messagebox_custom import BaseInfoBar, MessageBoxConfirm
 from app.language_manager import LanguageManager
