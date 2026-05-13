@@ -42,7 +42,7 @@ def EXP_luxcavation(combat_count: int = 1):
         # 自动截图
         if auto.take_screenshot() is None:
             continue
-        if auto.find_element("battle/teams_assets.png"):
+        if auto.find_element("teams/identify_assets.png"):
             break
         if (
             auto.find_element("home/first_prompt_assets.png", model="clam")
@@ -70,7 +70,7 @@ def EXP_luxcavation(combat_count: int = 1):
                         sleep(1)
                         auto.mouse_to_blank()
                         for _ in range(3):
-                            if auto.find_element("battle/teams_assets.png", take_screenshot=True) or auto.find_element(
+                            if auto.find_element("teams/identify_assets.png", take_screenshot=True) or auto.find_element(
                                 "home/first_prompt_assets.png",
                                 model="clam",
                                 take_screenshot=True,
@@ -120,7 +120,7 @@ def thread_luxcavation(combat_count: int = 1):
         # 自动截图
         if auto.take_screenshot() is None:
             continue
-        if auto.find_element("battle/teams_assets.png"):
+        if auto.find_element("teams/identify_assets.png"):
             break
         if (
             auto.find_element("home/first_prompt_assets.png", model="clam")
@@ -174,7 +174,7 @@ def thread_luxcavation(combat_count: int = 1):
                             auto.mouse_to_blank()
                             for _ in range(3):
                                 if auto.find_element(
-                                    "battle/teams_assets.png", take_screenshot=True
+                                    "teams/identify_assets.png", take_screenshot=True
                                 ) or auto.find_element(
                                     "home/first_prompt_assets.png",
                                     model="clam",
@@ -233,7 +233,7 @@ def thread_luxcavation(combat_count: int = 1):
                             auto.mouse_click(lv[0], lv[1])
                             sleep(1)
                             auto.mouse_to_blank()
-                            if auto.find_element("battle/teams_assets.png", take_screenshot=True):
+                            if auto.find_element("teams/identify_assets.png", take_screenshot=True):
                                 log.debug(f"纽本(滑动后)第 {lv_idx + 1} 关点击成功，已进入编队界面")
                                 success = True
                                 break
