@@ -58,6 +58,7 @@ uv run python .opencode/tools/mirror_analyzer.py <logs>  # 镜牢耗时分析（
 ### 禁止的操作
 
 - `git clean -fd` / `git clean`
+- `git rm`
 - `rm` / `rmdir` / `rd` / `erase` / `del`
 - `Remove-Item` / `ri`
 - 任何通过 `cmd /c`、`pwsh -c`、`python -c` 包装的删除
@@ -65,6 +66,14 @@ uv run python .opencode/tools/mirror_analyzer.py <logs>  # 镜牢耗时分析（
 - 代码中调用 `os.remove()`、`shutil.rmtree()` 等
 
 以上操作已被全局 `opencode.json` 的 permission 规则通过 `deny` 阻断。
+
+### git stash pop 冲突处理（最高风险场景）
+
+`git stash pop` 产生冲突时，LLM 最容易误删用户文件。**必须遵循**：
+
+1. **stash pop 冲突中的文件不是"需要清理的产物"，是用户的工作成果**。即使冲突标记为 "deleted by us"，也不代表应该删除（可能只是上游删了但你的本地修改要保留）。
+2. **不允许自行 `git rm`、`git checkout --theirs/ours` 或任何方式解决冲突**。必须用 `question` 工具向用户展示冲突详情，让用户决定保留哪个版本。
+3. 在用户回复前，正确的无害做法是 `git stash pop` 已失败但保留 stash，工作区状态已展示给用户，等待指示。
 
 ### 例外流程
 
@@ -77,6 +86,7 @@ uv run python .opencode/tools/mirror_analyzer.py <logs>  # 镜牢耗时分析（
 
 ### 原则
 
+- **stash pop 冲突 = 用户工作成果，决不容 LLM 自行裁决**
 - 需要删除 → 告知用户，让用户决定
 - 写入文件发现目标已存在 → 先问用户是否覆盖
 - 不慎执行了可能删除文件的操作 → 立即报告用户
