@@ -353,9 +353,9 @@ class Mirror:
             retry(skip_screenshot=True)
 
             if cfg.floor_3_exit and self.floor >= 4:
-                if auto.click_element("mirror/road_in_mir/towindow&forfeit_confirm_assets.png"):
+                if auto.click_element("mirror/road_in_mir/towindow&forfeit_confirm_assets.png", threshold=0.75):
                     break
-                if auto.click_element("mirror/road_in_mir/forfeit_assets.png"):
+                if auto.click_element("mirror/road_in_mir/forfeit_assets.png", threshold=0.7):
                     continue
                 if auto.click_element("mirror/road_in_mir/setting_assets.png"):
                     continue
@@ -1176,7 +1176,7 @@ class Mirror:
                     log.info("[重试调试] 匹配→主界面/驾驶盘，break")
                 sleep(0.5)
                 break
-            if auto.click_element("mirror/road_in_mir/towindow&forfeit_confirm_assets.png"):
+            if auto.click_element("mirror/road_in_mir/towindow&forfeit_confirm_assets.png", threshold=0.75):
                 if self._is_retry_debug_enabled():
                     log.info("[重试调试] 匹配→退回窗口(确认)，break")
                 break
@@ -1207,11 +1207,11 @@ class Mirror:
                     log.info("[重试调试] re_start 超时，调用 back_init_menu()")
                 back_init_menu()
                 return False
-            if auto.click_element("mirror/road_in_mir/towindow&forfeit_confirm_assets.png"):
+            if auto.click_element("mirror/road_in_mir/towindow&forfeit_confirm_assets.png", threshold=0.75):
                 if self._is_retry_debug_enabled():
                     log.info("[重试调试] 匹配→退回窗口(确认)，break 退出")
                 break
-            if auto.click_element("mirror/road_in_mir/forfeit_assets.png"):
+            if auto.click_element("mirror/road_in_mir/forfeit_assets.png", threshold=0.7):
                 if self._is_retry_debug_enabled():
                     log.info("[重试调试] 匹配→放弃，continue")
                 continue
