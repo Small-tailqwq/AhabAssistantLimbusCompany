@@ -81,7 +81,7 @@ def back_init_menu():
             restart_game()
             continue
 
-        if auto.click_element("mirror/road_in_mir/towindow&forfeit_confirm_assets.png"):
+        if auto.click_element("mirror/road_in_mir/towindow&forfeit_confirm_assets.png", threshold=0.75):
             if _is_retry_debug_enabled():
                 log.info("[重试调试] 匹配→退回窗口(确认)，continue")
             continue
@@ -90,9 +90,21 @@ def back_init_menu():
                 log.info("[重试调试] 匹配→退回窗口，continue")
             continue
         if auto.find_element("mirror/road_in_mir/legend_assets.png"):
+            # 先检查齿轮菜单是否已打开（菜单内按钮可见）
+            if auto.click_element("mirror/road_in_mir/to_window_assets.png", take_screenshot=True):
+                if _is_retry_debug_enabled():
+                    log.info("[重试调试] 匹配→legend，菜单已开→返回窗口")
+                continue
+            # 菜单未打开，点击齿轮打开它
             if _is_retry_debug_enabled():
                 log.info("[重试调试] 匹配→legend图例，点击齿轮")
             auto.click_element("mirror/road_in_mir/setting_assets.png")
+            sleep(0.5)
+            # 齿轮菜单已打开，尝试点击菜单内的返回窗口按钮
+            if auto.click_element("mirror/road_in_mir/to_window_assets.png", take_screenshot=True):
+                if _is_retry_debug_enabled():
+                    log.info("[重试调试] 齿轮→返回窗口")
+                continue
             continue
 
         if auto.find_element("mirror/road_in_mir/select_encounter_reward_card_assets.png"):
