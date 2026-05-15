@@ -1,10 +1,12 @@
 import platform
 import random
 from datetime import datetime
+from sys import exc_info
 from time import sleep, time
+from traceback import format_exception
 
 from playsound3 import playsound
-from PySide6.QtCore import QT_TRANSLATE_NOOP, QMutex, QThread
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QThread
 
 from app import mediator
 from app.windows_toast import TemplateToast, send_toast
@@ -420,6 +422,7 @@ def script_task() -> None | int:
     should_exit_aalc = False
     if platform.system() == "Windows":
         actions, power_action = get_after_completion_config()
+        log.info(f"结束后操作: actions={actions}, power_action={power_action}")
         try:
             should_exit_aalc = execute_after_completion(actions, power_action)
         except Exception:
@@ -441,15 +444,13 @@ class my_script_task(QThread):
     def __init__(self):
         # 初始化，构造函数
         super().__init__()
-        self.mutex = QMutex()
         self.exception = None
+        self.exc_traceback = ""
 
     def stop(self, reason: str = "用户主动终止程序"):
         auto.request_stop(reason)
 
     def run(self):
-        self.mutex.lock()
-
         try:
             self._run()
         except (
@@ -466,15 +467,18 @@ class my_script_task(QThread):
             withOutAdminError,
         ) as e:
             self.exception = e
+            if isinstance(e, userStopError):
+                log.info(str(e))
         except Exception as e:
             self.exception = e
-            log.exception("脚本线程执行失败")
+            log.error(f"出现错误: {e}")
+            self.exc_traceback = "".join(format_exception(*exc_info()))
         finally:
-            self.mutex.unlock()
-
-        auto.clear_stop_request()
-        disconnect_obs_capture()
-        mediator.script_finished.emit()
+            if self.exc_traceback:
+                log.error(self.exc_traceback)
+            auto.clear_stop_request()
+            disconnect_obs_capture()
+            mediator.script_finished.emit()
 
     def _run(self):
         keep_awake_enabled = bool(cfg.get_value("experimental_keep_screen_awake", False))

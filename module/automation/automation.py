@@ -439,14 +439,20 @@ class Automation(metaclass=SingletonMeta):
         在当前截图中查找多个目标图像的位置
         """
         try:
-            template = ImageUtils.load_image(target)
+            use_1440_base = ImageUtils.should_use_low_res_match_optimization()
+            template = ImageUtils.load_image(target, resize=not use_1440_base)
             if target.endswith("assets.png"):
                 bbox = ImageUtils.get_bbox(template)
                 template = ImageUtils.crop(template, bbox)
             if template is None:
                 raise ValueError("读取图片失败")
             screenshot = np.array(self.screenshot)
+            scale_to_1440 = 1.0
+            if use_1440_base:
+                screenshot, scale_to_1440 = ImageUtils.normalize_screenshot_for_1440_matching(screenshot)
             matches = ImageUtils.match_template_with_multiple_targets(screenshot, template, threshold)
+            if use_1440_base and matches:
+                matches = ImageUtils.restore_coordinates_from_1440_matching(matches, scale_to_1440)
             if len(matches) == 0:
                 log.debug(f"未找到任何目标图像{target}", stacklevel=additional_stack + 3)
                 return []
@@ -647,13 +653,13 @@ class Automation(metaclass=SingletonMeta):
         gc.collect()  # 强制垃圾回收，清理内存
         log.debug("图片缓存已清除", stacklevel=2)
 
-    def _load_template_for_path(self, target: str, target_path: str, cacheable: bool):
-        cache_key = (target, target_path)
+    def _load_template_for_path(self, target: str, target_path: str, cacheable: bool, resize: bool = True):
+        cache_key = (target, target_path, "resize" if resize else "noresize")
         if cacheable and cache_key in self.img_cache:
             cached = self.img_cache[cache_key]
             return cached["template"], cached["bbox"]
 
-        template = ImageUtils.load_from_specific_path(target, target_path)
+        template = ImageUtils.load_from_specific_path(target, target_path, resize=resize)
         if template is None:
             return None, None
         if target.endswith("assets.png"):
@@ -718,6 +724,7 @@ class Automation(metaclass=SingletonMeta):
         在当前截图中查找目标图像的位置
         """
         try:
+            use_1440_base = ImageUtils.should_use_low_res_match_optimization()
             if self.memory_protection:
                 memory = psutil.virtual_memory()
                 # memory.percent 直接返回当前已使用的百分比 (0.0 到 100.0)
@@ -736,18 +743,24 @@ class Automation(metaclass=SingletonMeta):
             if my_crop:
                 screenshot = ImageUtils.crop(screenshot, my_crop)
 
+            scale_to_1440 = 1.0
+            if use_1440_base:
+                screenshot, scale_to_1440 = ImageUtils.normalize_screenshot_for_1440_matching(screenshot)
+
             results = []
             for loaded_path in existing_paths:
-                template, bbox = self._load_template_for_path(target, loaded_path, cacheable)
+                template, bbox = self._load_template_for_path(target, loaded_path, cacheable, resize=not use_1440_base)
                 if template is None:
                     continue
                 center, matchVal = ImageUtils.match_template(screenshot, template, bbox, model)
+                if use_1440_base and center is not None:
+                    center = ImageUtils.restore_coordinates_from_1440_matching(center, scale_to_1440)
                 matched = self._is_valid_match(matchVal, threshold)
                 log.debug(
                     f"目标图片：{target.replace('./assets/images/', '')}, 路径: {loaded_path}, 相似度：{matchVal:.2f}, 目标位置：{center}",
                     stacklevel=additional_stack + 3,
                 )
-                if matched and check_gray and center is not None and hasattr(self, "screenshot_rgb"):
+                if matched and check_gray and center is not None and hasattr(self, "screenshot_rgb") and not use_1440_base:
                     h, w = template.shape[:2]
                     cx, cy = center
                     y1 = max(0, cy - h // 2)
