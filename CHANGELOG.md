@@ -2,6 +2,33 @@
 
 ## [Unreleased] — Canary
 
+## [1.5.0-canary.14] — 2026-05-16
+
+### 新功能
+- feat(mirror): 模拟器支持镜牢键盘寻路
+- feat(theme-pack): 新增讲解员与凤·皇主题包配置
+- feat: 优化窗口滚动体验
+
+### 修复
+- fix(mirror): 为 re_start 等流程的图片匹配补充阈值，适配低分辨率画面
+- fix(back_init_menu): 修复齿轮菜单无限切换导致无法返回主界面的问题
+- fix: 恢复 cd1156e merge 时被覆盖的改动
+- fix(automation): 优化主题切换逻辑，确保在匹配条件下正确设置主题
+- fix(luxcavation): 修复 back_assets 资产更新后在采光选关界面误触返回
+- fix(luxcavation): 纽本选关界面同样需要防御 back_assets 误触
+- fix(simulator): userStopError 被异常处理器吞掉导致递归爆炸
+- fix(simulator): 修复 MuMu 模拟器启动失败和无限递归问题
+
+### 重构
+- refactor(battle): 重构回合数识别逻辑，防止检测首回合功能无法正确使用
+- refactor(luxcavation): 用 ESC 按键替代 back_assets 图片点击关闭提示
+
+### 多语言
+- i18n: 完善界面多语言支持
+
+### 合并上游
+- Merge upstream/main — 引入 PR #649 等上游更新
+
 ## [1.5.0-canary.13] — 2026-05-11
 
 ### 修复
