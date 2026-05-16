@@ -880,6 +880,9 @@ class ThemeAwareTextBrowser(TextBrowser):
             path = name.path() or name.toString().split(":", 1)[1]
 
             image = QImage(path)
+            if image.isNull() and path.lower().endswith(".png"):
+                webp_path = path[:-4] + ".webp"
+                image = QImage(webp_path)
             if not image.isNull():
                 return self._dimImage(image) if isDarkTheme() else image
 
