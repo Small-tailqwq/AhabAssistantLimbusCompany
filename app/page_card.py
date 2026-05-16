@@ -10,8 +10,14 @@ from PySide6.QtGui import (
     QPainter,
     QTextDocument,
 )
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget, QFileDialog
-from qfluentwidgets import FluentIcon as FIF
+from PySide6.QtWidgets import (
+    QFileDialog,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QVBoxLayout,
+    QWidget,
+)
 from qfluentwidgets import (
     Action,
     InfoBar,
@@ -27,6 +33,7 @@ from qfluentwidgets import (
     qconfig,
     setCustomStyleSheet,
 )
+from qfluentwidgets import FluentIcon as FIF
 
 from app import *
 from app.base_combination import (
@@ -46,6 +53,33 @@ from module.config.team_import_export import apply_team_settings, import_team_se
 from module.logger import log
 
 from .markdown_it_imgdiv import imgdiv_plugin, render_div_close, render_div_open
+
+
+def _continuous_combat_batches(total_times: int, max_times: int) -> list[int]:
+    if total_times <= 0 or max_times <= 0:
+        return []
+    full, last = divmod(total_times, max_times)
+    batches = [max_times] * full
+    if last:
+        batches.append(last)
+    return batches
+
+
+def build_continuous_combat_preview(
+    exp_times: int,
+    thread_times: int,
+    max_times: int,
+    exp_label: str = "当前经验本连战：",
+    thread_label: str = "当前纽本连战：",
+) -> str:
+    lines = []
+    for label, total_times in ((exp_label, exp_times), (thread_label, thread_times)):
+        batches = _continuous_combat_batches(total_times, max_times)
+        if not batches:
+            continue
+        sequence = "->".join(str(batch) for batch in batches)
+        lines.extend((label, f"{total_times}={sequence}"))
+    return "\n".join(lines)
 
 
 class PageCard(QFrame):
@@ -210,11 +244,19 @@ class PageDailyTask(PageCard):
             QT_TRANSLATE_NOOP("CheckBoxWithComboBox", "使用连续作战"),
             None,
             "use_continuous_combat_select",
-            tips=QT_TRANSLATE_NOOP("BaseCheckBox", "勾选后将使用连续作战模式，设置的值为最大连续作战场次"),
+            tips=QT_TRANSLATE_NOOP("BaseCheckBox", "开启或关闭连续作战模式"),
+            label_text=QT_TRANSLATE_NOOP("CheckBoxWithComboBox", "最大连战次数"),
         )
-        self.coutinuous_combat.box.setFixedWidth(200)
         self.coutinuous_combat.combo_box.setFixedWidth(100)
         self.coutinuous_combat.add_items(coutinuous_times)
+        self.continuous_combat_preview = QLabel(self)
+        self.continuous_combat_preview.setWordWrap(True)
+        self.continuous_combat_preview.hide()
+        self.EXP_count.box.spin_box.valueChanged.connect(self.__update_continuous_combat_preview)
+        self.thread_count.box.spin_box.valueChanged.connect(self.__update_continuous_combat_preview)
+        self.coutinuous_combat.combo_box.combo_box.currentIndexChanged.connect(self.__update_continuous_combat_preview)
+        self.coutinuous_combat.box.check_box.toggled.connect(self.__update_continuous_combat_preview)
+        self.__update_continuous_combat_preview()
 
         self.targeted_teaming_EXP = BaseCheckBox(
             "targeted_teaming_EXP",
@@ -285,6 +327,7 @@ class PageDailyTask(PageCard):
         self.vbox_general.addWidget(self.thread_count)
         self.vbox_general.addWidget(self.team_select)
         self.vbox_general.addWidget(self.coutinuous_combat)
+        self.vbox_general.addWidget(self.continuous_combat_preview)
 
         self.vbox_advanced.addWidget(self.targeted_teaming_EXP)
         self.vbox_advanced.addWidget(self.EXP_day_1_2)
@@ -306,6 +349,7 @@ class PageDailyTask(PageCard):
         self.thread_count.retranslateUi()
         self.team_select.retranslateUi()
         self.coutinuous_combat.retranslateUi()
+        self.__update_continuous_combat_preview()
         self.targeted_teaming_EXP.retranslateUi()
         self.targeted_teaming_thread.retranslateUi()
 
@@ -319,6 +363,21 @@ class PageDailyTask(PageCard):
         self.EXP_day_7.retranslateUi()
 
         super().retranslateUi()
+
+    def __update_continuous_combat_preview(self, *_):
+        if not self.coutinuous_combat.box.check_box.isChecked():
+            self.continuous_combat_preview.hide()
+            return
+
+        preview = build_continuous_combat_preview(
+            int(self.EXP_count.box.spin_box.value()),
+            int(self.thread_count.box.spin_box.value()),
+            cfg.use_continuous_combat_select,
+            self.tr("当前经验本连战："),
+            self.tr("当前纽本连战："),
+        )
+        self.continuous_combat_preview.setText(preview)
+        self.continuous_combat_preview.setVisible(bool(preview))
 
 
 class PageGetPrize(PageCard):

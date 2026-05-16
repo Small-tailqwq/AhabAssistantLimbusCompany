@@ -171,20 +171,39 @@ class CheckBoxWithComboBox(QFrame):
         combo_box_name,
         combo_box_width=None,
         tips=None,
+        combo_box_tips=None,
+        label_text=None,
         parent=None,
     ):
         super().__init__(parent)
-        # self.setFixedHeight(80)
         self.additional_combo_box = None
-        self.hBoxLayout = QHBoxLayout(self)
+        self.combo_box_tips = combo_box_tips
+        self.label_text = label_text
         self.box_text = check_box_title
         self.box = BaseCheckBox(check_box_name, check_box_icon, check_box_title, parent=self, center=False, tips=tips)
         self.box.setFixedWidth(150)
         self.combo_box = BaseComboBox(combo_box_name, combo_box_width)
         self.combo_box.setFixedWidth(300)
-        self.hBoxLayout.addWidget(self.box, Qt.AlignLeft)
-        self.hBoxLayout.addWidget(self.combo_box)
-        self.hBoxLayout.setAlignment(Qt.AlignCenter)
+
+        if label_text:
+            self.label = QLabel(label_text)
+            self.label.setFont(QFont("Microsoft YaHei UI", 11))
+            if combo_box_tips:
+                self.label.setToolTip(combo_box_tips)
+                self.label.installEventFilter(ToolTipFilter(self.label, showDelay=0, position=ToolTipPosition.BOTTOM_LEFT))
+            row1 = QHBoxLayout()
+            row1.addWidget(self.box, 0, Qt.AlignLeft)
+            self.hBoxLayout = QHBoxLayout()
+            self.hBoxLayout.addWidget(self.label)
+            self.hBoxLayout.addWidget(self.combo_box)
+            mainLayout = QVBoxLayout(self)
+            mainLayout.addLayout(row1)
+            mainLayout.addLayout(self.hBoxLayout)
+        else:
+            self.hBoxLayout = QHBoxLayout(self)
+            self.hBoxLayout.addWidget(self.box, Qt.AlignLeft)
+            self.hBoxLayout.addWidget(self.combo_box)
+            self.hBoxLayout.setAlignment(Qt.AlignCenter)
 
     def add_combobox(self, config_name, combo_box_width=None):
         self.additional_combo_box = BaseComboBox(config_name, combo_box_width)
@@ -201,8 +220,14 @@ class CheckBoxWithComboBox(QFrame):
             pass
 
     def retranslateUi(self):
-        self.box.check_box.setText(self.tr(self.box_text))
+        self.box.retranslateUi()
+        if self.label_text:
+            self.label.setText(self.tr(self.label_text))
         self.combo_box.retranslateUi()
+        if self.combo_box_tips:
+            self.combo_box.setToolTip(self.tr(self.combo_box_tips))
+            if self.label_text:
+                self.label.setToolTip(self.tr(self.combo_box_tips))
         if self.additional_combo_box:
             self.additional_combo_box.retranslateUi()
 
@@ -222,6 +247,7 @@ class LabelWithComboBox(QFrame):
 
         self.text = label_text
         self.items = items
+        self.tips = tips
 
         if vbox:
             self.layout_ = QVBoxLayout(self)
@@ -249,6 +275,8 @@ class LabelWithComboBox(QFrame):
     def retranslateUi(self):
         self.label.label.setText(self.tr(self.text))
         self.combo_box.retranslateUi()
+        if self.tips:
+            self.setToolTip(self.tr(self.tips))
 
 
 class LabelWithSpinBox(QFrame):
@@ -1330,8 +1358,8 @@ class DailySettingCard(SwitchSettingCard):
         helper.register_daily_task(task_name, f"start --exit {self.config_name}", time.hour(), time.minute())
 
     def retranslateUi(self):
+        super().retranslateUi()
         self.button.setText(self.tr(self.button_text))
-        self.titleLabel.setText(self.tr(self.title))
         self.contentLabel.setText(self.tr(self.content))
 
 
