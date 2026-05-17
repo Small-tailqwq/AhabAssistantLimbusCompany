@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from qfluentwidgets import qconfig
 
 try:
     from markdown_it import MarkdownIt
@@ -36,6 +37,7 @@ from module.issue_manager import (
     find_metadata,
 )
 from module.logger import log
+from tasks.tools.ui_style import apply_tool_window_theme
 
 
 class _DropableTextEdit(QTextEdit):
@@ -214,7 +216,12 @@ class _MarkdownEditSidecar(QWidget):
         main_layout.addLayout(bottom_row)
 
         self._on_text_changed()
+        self._apply_theme_style()
+        qconfig.themeChanged.connect(self._apply_theme_style)
         self._position_next_to_parent()
+
+    def _apply_theme_style(self):
+        apply_tool_window_theme(self, "_MarkdownEditSidecar")
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -287,7 +294,14 @@ class IssueReplay(QWidget):
         self._position_snap_connector()
 
         self.setup_ui()
+        self._apply_theme_style()
         self._refresh_issue_list()
+        qconfig.themeChanged.connect(self._apply_theme_style)
+
+    def _apply_theme_style(self):
+        apply_tool_window_theme(self, "IssueReplay")
+        if self._notes_sidecar is not None:
+            self._notes_sidecar._apply_theme_style()
 
     def _position_snap_connector(self):
         cw = self._snap_connector.width()
@@ -492,10 +506,6 @@ class IssueReplay(QWidget):
         self.issue_notes_edit.setMinimumHeight(60)
         self.issue_notes_edit.setMaximumHeight(160)
         self.issue_notes_edit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        self.issue_notes_edit.setStyleSheet(
-            "QTextEdit { background-color: palette(base); border: 1px solid palette(mid);"
-            " border-radius: 4px; padding: 6px; }"
-        )
         self.issue_notes_edit.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.issue_notes_edit.customContextMenuRequested.connect(self._on_notes_context_menu)
         self.issue_notes_edit.hide()

@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from qfluentwidgets import qconfig
 
 from module.logger import log
 from tasks.tools.asset_library.model import AssetLibraryModel, _file_to_checksum
@@ -31,6 +32,7 @@ from tasks.tools.asset_library.widgets import (
     CategoryTree,
     VersionHistoryDialog,
 )
+from tasks.tools.ui_style import apply_tool_window_theme
 
 
 class AssetManager(QWidget):
@@ -52,8 +54,13 @@ class AssetManager(QWidget):
         self._debounce_timer.timeout.connect(self._flush_model)
 
         self._init_ui()
+        self._apply_theme_style()
         self._connect_signals()
         self._start_scan()
+        qconfig.themeChanged.connect(self._apply_theme_style)
+
+    def _apply_theme_style(self):
+        apply_tool_window_theme(self, "AssetManager")
 
     def _init_ui(self):
         main_layout = QVBoxLayout(self)
