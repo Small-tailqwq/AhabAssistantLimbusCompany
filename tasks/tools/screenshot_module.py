@@ -3,7 +3,6 @@ import time
 from PySide6.QtCore import QThread, Signal
 
 from module.automation import auto
-from module.game_and_screen import screen
 from module.logger import log
 
 
@@ -34,4 +33,3 @@ class ScreenshotGet(QThread):
         except Exception as e:
             log.error(f"截图错误: {str(e)}")
             return
-        screen.reset_win()
