@@ -17,23 +17,29 @@ class EventHandling:
         if best_option := auto.find_element("event/very_high.png"):
             auto.mouse_action_with_pos(best_option)
             self.change_mode = self.MAX_CHANGE
+            return True
         elif best_option := auto.find_element("event/high.png"):
             auto.mouse_action_with_pos(best_option)
             self.change_mode = self.MAX_CHANGE
+            return True
         elif best_option := auto.find_element("event/normal.png"):
             auto.mouse_action_with_pos(best_option)
             self.change_mode = self.MAX_CHANGE
+            return True
         elif best_option := auto.find_element("event/low.png"):
             auto.mouse_action_with_pos(best_option)
             self.change_mode = self.MAX_CHANGE
+            return True
         elif best_option := auto.find_element("event/very_low.png"):
             auto.mouse_action_with_pos(best_option)
             self.change_mode = self.MAX_CHANGE
+            return True
         else:
             if self.change_mode >= 0:
                 self.change_mode -= 1
+                return False
             else:
-                self.decision_event_handling_ocr()
+                return self.decision_event_handling_ocr()
 
     def decision_event_handling_ocr(self):
         now_time = time.time()
@@ -65,9 +71,11 @@ class EventHandling:
                 first_sinner[1],
             ]
             auto.mouse_click(target_sinner[0], target_sinner[1])
+            return True
         except Exception as e:
             msg = f"OCR识别事件成功率失败，错误信息：{e}"
             log.debug(msg)
+            return False
 
 
 def is_edit_distance_one(s1, s2):

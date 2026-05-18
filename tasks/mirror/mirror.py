@@ -1,6 +1,8 @@
+import os
 import random
 import re
 import time
+from datetime import datetime
 from time import sleep
 
 import cv2
@@ -32,7 +34,7 @@ from tasks.mirror.search_road import (
     search_road_farthest_distance,
 )
 from tasks.mirror.select_theme_pack import select_theme_pack
-from tasks.teams.team_formation import check_team, select_battle_team, team_formation, load_team_code_in_game
+from tasks.teams.team_formation import check_team, load_team_code_in_game, select_battle_team, team_formation
 from utils.image_utils import ImageUtils
 from utils.path_manager import path_manager
 
@@ -77,6 +79,20 @@ class Mirror:
     @staticmethod
     def _is_retry_debug_enabled():
         return bool(cfg.get_value("debug_mode", False) and cfg.get_value("debug_retry", False))
+
+    @staticmethod
+    def _is_mirror_event_debug_enabled():
+        return bool(cfg.get_value("debug_mode", False) and cfg.get_value("debug_mirror_event", False))
+
+    @staticmethod
+    def _event_debug_save(step_name):
+        if not Mirror._is_mirror_event_debug_enabled():
+            return
+        debug_dir = "logs/event_debug"
+        os.makedirs(debug_dir, exist_ok=True)
+        ts = datetime.now().strftime("%H%M%S_%f")[:13]
+        if auto.screenshot:
+            auto.screenshot.save(f"{debug_dir}/{ts}_{step_name}.png")
 
     def __init__(self, team_setting: TeamSetting, team_num: int):
         self.logger = log
@@ -154,6 +170,11 @@ class Mirror:
                 "event/perform_the_check_feature_assets.png",
             )
         )
+
+    @staticmethod
+    def _event_decision_progress_wait_timeout():
+        screenshot_interval = cfg.screenshot_interval if cfg.screenshot_interval else 0.85
+        return min(4.0, max(1.2, screenshot_interval * 3 + 0.4))
 
     def wake_event_selection(self, wake_times=None, reason="skip", stop_on_decision=True):
         if wake_times is None:
@@ -1073,7 +1094,7 @@ class Mirror:
         team_setting = cfg.config.teams.get(str(self.team_order))
         if team_setting and team_setting.use_team_code and team_setting.team_code:
             if not load_team_code_in_game(team_setting.team_code):
-                log.warning(f"编队码加载失败，继续使用当前队伍配置")
+                log.warning("编队码加载失败，继续使用当前队伍配置")
         loop_count = 30
         auto.model = "clam"
         while auto.find_element("mirror/road_to_mir/dreaming_star/coins_assets.png") is None:
@@ -1238,6 +1259,8 @@ class Mirror:
         loop_count = 30
         auto.model = "clam"
         event_chance = 15
+        decision_progress_wait_until = 0.0
+        decision_progress_wait_logged = False
         while True:
             # 自动截图
             if auto.take_screenshot() is None:
@@ -1319,15 +1342,43 @@ class Mirror:
             proceed_visible = auto.find_element("event/proceed_assets.png")
             commence_visible = auto.find_element("event/commence_assets.png")
             commence_battle_visible = auto.find_element("event/commence_battle_assets.png")
+            progress_visible = any((continue_visible, proceed_visible, commence_visible, commence_battle_visible))
+            progress_bbox = None
+            progress_text_visible = False
+            if decision_feature_visible and not progress_visible:
+                progress_bbox = ImageUtils.get_bbox(ImageUtils.load_image("event/continue_assets.png"))
+                progress_text_visible = auto.find_language_text(
+                    ["继续", "开始", "开始战斗"],
+                    ["continue", "proceed", "commence"],
+                    my_crop=progress_bbox,
+                )
+                progress_visible = bool(progress_text_visible)
+
+            now = time.time()
+            if progress_visible and decision_progress_wait_until:
+                decision_progress_wait_until = 0.0
+                decision_progress_wait_logged = False
+            elif decision_progress_wait_until and now >= decision_progress_wait_until:
+                decision_progress_wait_until = 0.0
+                decision_progress_wait_logged = False
+                log.debug("事件罪人选择等待推进超时，恢复罪人判定重试")
+            decision_progress_waiting = decision_progress_wait_until > 0
 
             # 某些随机事件在点击 continue 后会进入"应该让谁去呢"的罪人判定层，
             # 此时 skip 会灰掉，advantage_check 又可能误匹配，因此要优先按判定界面处理。
             if choice_screen_visible or decision_feature_visible:
-                if select_first_option_visible and not any((continue_visible, proceed_visible, commence_visible, commence_battle_visible)):
+                self._event_debug_save("event_branch")
+                if progress_text_visible and progress_bbox is not None:
+                    log.debug("事件判定层已识别到底部推进按钮文本，优先点击推进按钮")
+                    self._event_debug_save("progress_text_click")
+                    auto.mouse_click((progress_bbox[0] + progress_bbox[2]) // 2, (progress_bbox[1] + progress_bbox[3]) // 2)
+                    self.wake_event_after_progress("text_progress")
+                    continue
+                if select_first_option_visible and not progress_visible:
                     auto.click_element("event/select_first_option_assets.png", check_gray=True)
                     event_chance = max(0, event_chance - 1)
                     continue
-                if choice_screen_visible and not select_first_option_visible and not any((continue_visible, proceed_visible, commence_visible, commence_battle_visible)):
+                if choice_screen_visible and not select_first_option_visible and not progress_visible:
                     log.debug("首选项灰色不可点击，尝试多目标匹配寻找可用选项")
                     if all_options := auto.find_element(
                         "event/select_first_option_assets.png",
@@ -1353,7 +1404,12 @@ class Mirror:
                                     break
                         if clicked:
                             continue
-                if not any((continue_visible, proceed_visible, commence_visible, commence_battle_visible)):
+                if not progress_visible:
+                    if decision_progress_waiting:
+                        if not decision_progress_wait_logged:
+                            log.debug("已点击事件罪人，等待底部推进按钮稳定")
+                            decision_progress_wait_logged = True
+                        continue
                     if not self.event_decision_visible():
                         log.debug("识别到罪人选择预加载界面，先发送空格并点击空白唤醒头像与成功率")
                         self.wake_event_selection(wake_times=random.randint(3, 4), reason="decision_preload")
@@ -1362,12 +1418,27 @@ class Mirror:
                             sleep(0.55)
                         continue
                     log.debug("识别到事件罪人判定层，优先执行罪人判定逻辑")
-                    event_handling.decision_event_handling()
+                    self._event_debug_save("decision_enter_visible")
+                    if event_handling.decision_event_handling():
+                        wait_timeout = self._event_decision_progress_wait_timeout()
+                        decision_progress_wait_until = time.time() + wait_timeout
+                        decision_progress_wait_logged = False
+                        log.debug(f"已点击事件罪人，进入推进等待窗口 {wait_timeout:.2f}s")
                     continue
-                if decision_feature_visible:
+                if decision_feature_visible and not progress_visible:
                     log.debug("识别到事件罪人判定层，优先执行罪人判定逻辑")
-                    event_handling.decision_event_handling()
+                    self._event_debug_save("decision_enter_feature")
+                    if event_handling.decision_event_handling():
+                        wait_timeout = self._event_decision_progress_wait_timeout()
+                        decision_progress_wait_until = time.time() + wait_timeout
+                        decision_progress_wait_logged = False
+                        log.debug(f"已点击事件罪人，进入推进等待窗口 {wait_timeout:.2f}s")
                     continue
+            if decision_progress_waiting and not progress_visible:
+                if not decision_progress_wait_logged:
+                    log.debug("已点击事件罪人，等待底部推进按钮稳定")
+                    decision_progress_wait_logged = True
+                continue
             if auto.click_element("event/advantage_check.png"):
                 event_chance -= 1
                 continue
@@ -1379,18 +1450,33 @@ class Mirror:
             if choice_screen_visible and select_first_option_visible:
                 auto.click_element("event/select_first_option_assets.png", check_gray=True)
                 event_chance -= 1
-            if decision_feature_visible:
-                event_handling.decision_event_handling()
+            if decision_feature_visible and not progress_visible:
+                if decision_progress_waiting:
+                    if not decision_progress_wait_logged:
+                        log.debug("已点击事件罪人，等待底部推进按钮稳定")
+                        decision_progress_wait_logged = True
+                    continue
+                self._event_debug_save("decision_outer_fallback")
+                if event_handling.decision_event_handling():
+                    wait_timeout = self._event_decision_progress_wait_timeout()
+                    decision_progress_wait_until = time.time() + wait_timeout
+                    decision_progress_wait_logged = False
+                    log.debug(f"已点击事件罪人，进入推进等待窗口 {wait_timeout:.2f}s")
+                continue
             if continue_visible and auto.click_element("event/continue_assets.png"):
+                self._event_debug_save("progress_continue")
                 self.wake_event_after_progress("continue")
                 continue
             if proceed_visible and auto.click_element("event/proceed_assets.png"):
+                self._event_debug_save("progress_proceed")
                 self.wake_event_after_progress("proceed")
                 continue
             if commence_visible and auto.click_element("event/commence_assets.png"):
+                self._event_debug_save("progress_commence")
                 self.wake_event_after_progress("commence")
                 continue
             if commence_battle_visible and auto.click_element("event/commence_battle_assets.png"):
+                self._event_debug_save("progress_commence_battle")
                 self.wake_event_after_progress("commence_battle")
                 continue
 
