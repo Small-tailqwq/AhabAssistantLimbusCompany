@@ -42,26 +42,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Download attachments
-        run: |
-          mkdir -p /tmp/issue_assets
-          gh issue view ${{ steps.issue.outputs.number }} --json body -q .body | \
-            grep -oP 'https://github\.com/[^\s")>]+' | \
-            grep -E '/(files|assets)/' | sort -u | \
-            while IFS= read -r url; do
-              [ -z "$url" ] && continue
-              fname=$(basename "${url%%\?*}")
-              curl -fsSL --max-time 30 -o "/tmp/issue_assets/$fname" "$url" || true
-              case "${fname,,}" in
-                *.zip) unzip -qo "/tmp/issue_assets/$fname" -d /tmp/issue_assets/ && rm "/tmp/issue_assets/$fname" ;;
-              esac
-            done
-          ls -lh /tmp/issue_assets/ 2>/dev/null || echo "(no attachments)"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install opencode
+        run: curl -fsSL https://opencode.ai/install | bash
 
-      - name: Analyze issue
-        uses: anomalyco/opencode/github@latest
+      - name: Download attachments and analyze
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -90,25 +74,39 @@ jobs:
                 "gh issue*": "allow"
               }
             }
-        with:
-          model: opencode-go/deepseek-v4-flash
-          agent: triage
-          prompt: |
-            Analyze issue #${{ steps.issue.outputs.number }}.
-            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          mkdir -p /tmp/issue_assets
+          gh issue view ${{ steps.issue.outputs.number }} --json body -q .body | \
+            grep -oP 'https://github\.com/[^\s")>]+' | \
+            grep -E '/(files|assets)/' | sort -u | \
+            while IFS= read -r url; do
+              [ -z "$url" ] && continue
+              fname=$(basename "${url%%\?*}")
+              echo "Downloading: $fname"
+              curl -fsSL --max-time 30 -o "/tmp/issue_assets/$fname" "$url" || true
+              case "${fname,,}" in
+                *.zip) unzip -qo "/tmp/issue_assets/$fname" -d /tmp/issue_assets/ && rm "/tmp/issue_assets/$fname" ;;
+              esac
+            done
+          echo "=== Files in /tmp/issue_assets/ ==="
+          ls -lh /tmp/issue_assets/ 2>/dev/null || echo "(empty)"
 
-            PROJECT: Python desktop automation (PyQt5 + OpenCV + PaddleOCR) for Limbus Company.
+          opencode run -m opencode-go/deepseek-v4-flash --agent triage "Analyze issue #${{ steps.issue.outputs.number }}.
 
-            1. Read issue via: gh issue view ${{ steps.issue.outputs.number }}
-            2. If /tmp/issue_assets/ has files, read them (logs, screenshots).
-            3. Post ONE comment containing:
-               - Overview: 1-2 sentence problem summary
-               - Analysis: likely root cause (from logs/code if identifiable)
-               - Fix: suggested fix or workaround
-               - Missing: what additional info would help
-            4. Add exactly ONE label:
-               gh issue edit ${{ steps.issue.outputs.number }} --add-label bug
-               or: gh issue edit ${{ steps.issue.outputs.number }} --add-label enhancement
-            5. If evidence is insufficient, explicitly state what's missing.
+          Run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-            Do NOT: modify files, create branches/PRs, or ask questions.
+          PROJECT: Python desktop automation (PyQt5 + OpenCV + PaddleOCR) for Limbus Company.
+
+          1. Read issue body via: gh issue view ${{ steps.issue.outputs.number }}
+          2. Files under /tmp/issue_assets/ are attachment files (logs, screenshots). Read ALL of them.
+          3. Post ONE comment containing:
+             - Overview: 1-2 sentence problem summary
+             - Analysis: root cause analysis based on the logs (quote specific log lines)
+             - Fix: suggested fix or workaround
+             - Missing: what additional info would help
+          4. Add exactly ONE label:
+             gh issue edit ${{ steps.issue.outputs.number }} --add-label bug
+             or: gh issue edit ${{ steps.issue.outputs.number }} --add-label enhancement
+          5. If /tmp/issue_assets/ has log files, YOU MUST read and analyze them. Do NOT skip them.
+
+          Do NOT: modify files, create branches/PRs, or ask questions."
