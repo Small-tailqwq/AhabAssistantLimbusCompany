@@ -1,0 +1,92 @@
+name: PR Review
+
+on:
+  pull_request_target:
+    types: [opened, synchronize]
+  issue_comment:
+    types: [created]
+
+jobs:
+  review:
+    if: |
+      (github.event_name == 'pull_request_target') ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       startsWith(github.event.comment.body, '/review') &&
+       contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
+    runs-on: ubuntu-latest
+    concurrency:
+      group: pr-review-${{ github.repository }}-${{ github.event.pull_request.number || github.event.issue.number }}
+      cancel-in-progress: true
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Get PR number
+        id: pr
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request_target" ]; then
+            echo "number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+          else
+            echo "number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Run review
+        uses: anomalyco/opencode/github@latest
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENCODE_CONFIG_CONTENT: |
+            {
+              "provider": {
+                "opencode-go": {
+                  "name": "OpenCode Go",
+                  "npm": "@ai-sdk/openai-compatible",
+                  "options": {
+                    "baseURL": "https://opencode.ai/zen/go/v1",
+                    "apiKey": "{env:DEEPSEEK_API_KEY}"
+                  },
+                  "models": {
+                    "deepseek-v4-flash": {
+                      "name": "DeepSeek V4 Flash"
+                    }
+                  }
+                }
+              }
+            }
+          OPENCODE_PERMISSION: |
+            {
+              "bash": {
+                "*": "deny",
+                "gh*": "allow",
+                "gh pr review*": "deny"
+              }
+            }
+        with:
+          model: opencode-go/deepseek-v4-flash
+          agent: code-reviewer
+          prompt: |
+            Review PR #${{ steps.pr.outputs.number }}.
+
+            PROJECT: Python desktop automation (PyQt5 + OpenCV + PaddleOCR for Limbus Company game)
+            KEY DIRS: app/ (GUI), module/ (automation), tasks/ (task orchestration), utils/ (helpers)
+
+            1. Use gh to get the PR diff and changed files.
+            2. Check for: logic bugs, None/empty handling, resource leaks (file handles, OpenCV windows, OCR processes), PyQt5 thread safety (GUI updates MUST be in main thread), error swallowing, performance issues in image processing loops.
+            3. Post line-specific review comments using:
+               gh api --method POST -H "Accept: application/vnd.github+json" \
+                 "/repos/${{ github.repository }}/pulls/${{ steps.pr.outputs.number }}/comments" \
+                 -f "body=SEVERITY: ..." -f "commit_id=HEAD_SHA" \
+                 -f "path=path/to/file.py" -f "line=N" -f "side=RIGHT"
+               Get HEAD_SHA via: gh pr view ${{ steps.pr.outputs.number }} --json headRefOid -q .headRefOid
+
+            RULES:
+            - Suggestions are suggestions. The human decides.
+            - Write a comment instead of suggested fix when possible.
+            - Only comment on actual issues. If code is fine, comment "LGTM :+1:" only.
+            - DO NOT create branches, push code, submit formal reviews, or modify files.

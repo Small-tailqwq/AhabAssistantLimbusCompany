@@ -1,0 +1,114 @@
+name: Issue Analysis
+
+on:
+  issues:
+    types: [opened]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Issue number to analyze"
+        required: true
+        type: number
+
+jobs:
+  analyze:
+    if: |
+      (github.event_name == 'issues' && github.event.action == 'opened') ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' &&
+       startsWith(github.event.comment.body, '/analyze') &&
+       contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
+    runs-on: ubuntu-latest
+    concurrency:
+      group: issue-analyze-${{ github.repository }}-${{ github.event.issue.number || github.event.inputs.issue_number }}
+      cancel-in-progress: true
+    permissions:
+      id-token: write
+      contents: read
+      issues: write
+    steps:
+      - name: Resolve issue number
+        id: issue
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "number=${{ github.event.inputs.issue_number }}" >> $GITHUB_OUTPUT
+          else
+            echo "number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Download attachments
+        run: |
+          mkdir -p /tmp/issue_assets
+          gh issue view ${{ steps.issue.outputs.number }} --json body -q .body | \
+            grep -oP 'https://github\.com/[^\s")>]+' | \
+            grep -E '/(files|assets)/' | sort -u | \
+            while IFS= read -r url; do
+              [ -z "$url" ] && continue
+              fname=$(basename "${url%%\?*}")
+              curl -fsSL --max-time 30 -o "/tmp/issue_assets/$fname" "$url" || true
+              case "${fname,,}" in
+                *.zip) unzip -qo "/tmp/issue_assets/$fname" -d /tmp/issue_assets/ && rm "/tmp/issue_assets/$fname" ;;
+              esac
+            done
+          ls -lh /tmp/issue_assets/ 2>/dev/null || echo "(no attachments)"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Analyze issue
+        uses: anomalyco/opencode/github@latest
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENCODE_CONFIG_CONTENT: |
+            {
+              "provider": {
+                "opencode-go": {
+                  "name": "OpenCode Go",
+                  "npm": "@ai-sdk/openai-compatible",
+                  "options": {
+                    "baseURL": "https://opencode.ai/zen/go/v1",
+                    "apiKey": "{env:DEEPSEEK_API_KEY}"
+                  },
+                  "models": {
+                    "deepseek-v4-flash": {
+                      "name": "DeepSeek V4 Flash"
+                    }
+                  }
+                }
+              }
+            }
+          OPENCODE_PERMISSION: |
+            {
+              "bash": {
+                "*": "deny",
+                "gh issue*": "allow"
+              }
+            }
+        with:
+          model: opencode-go/deepseek-v4-flash
+          agent: triage
+          prompt: |
+            Analyze issue #${{ steps.issue.outputs.number }}.
+            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            PROJECT: Python desktop automation (PyQt5 + OpenCV + PaddleOCR) for Limbus Company.
+
+            1. Read issue via: gh issue view ${{ steps.issue.outputs.number }}
+            2. If /tmp/issue_assets/ has files, read them (logs, screenshots).
+            3. Post ONE comment containing:
+               - Overview: 1-2 sentence problem summary
+               - Analysis: likely root cause (from logs/code if identifiable)
+               - Fix: suggested fix or workaround
+               - Missing: what additional info would help
+            4. Add exactly ONE label:
+               gh issue edit ${{ steps.issue.outputs.number }} --add-label bug
+               or: gh issue edit ${{ steps.issue.outputs.number }} --add-label enhancement
+            5. If evidence is insufficient, explicitly state what's missing.
+
+            Do NOT: modify files, create branches/PRs, or ask questions.
