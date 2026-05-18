@@ -88,6 +88,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:5916ab77f32d0d48d9a54618786fa963908d5fd996a87fe63ef4458580e33f01
+  status: missing
 - file: default/share/enkephalin/enkephalin_now_bbox.png
   business_name: ''
   tags: []

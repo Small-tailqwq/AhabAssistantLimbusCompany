@@ -44,26 +44,31 @@ assets:
   tags: []
   note: ''
   checksum: sha256:67bdb289edb15e5dc022bf6117ba5352736ff84dc5021f0ca3d25efad26cc704
+  status: missing
 - file: default/share/teams/Faust_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:c8b43cd607b9d100b75053b76855b892643a9f93f4f2f3576f1f76d119702294
+  status: missing
 - file: default/share/teams/Gregor_assets.png
   business_name: 格里高尔
   tags: []
   note: ''
   checksum: sha256:8d54b71aa23cdbf3540c929bef2fd1790bdd3535a62f55030f7a381cb09f3b74
+  status: missing
 - file: default/share/teams/Heathcliff_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:61ff8c96cee2c24995509fd65597d49efcddb251084fd5b8e8124e625e9ecbf3
+  status: missing
 - file: default/share/teams/HongLu_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:28eaa964bfccff0e555b95dac1c01faa3c56583fe227b2d19f3cf740495b61e9
+  status: missing
 - file: default/share/teams/identify_assets.png
   business_name: ''
   tags: []
@@ -74,11 +79,13 @@ assets:
   tags: []
   note: ''
   checksum: sha256:1fefb8724610d0edc8fa36c5dc627914bf8ecf3ae516a19a507f38df48db5240
+  status: missing
 - file: default/share/teams/Meursault_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:0357ce2d19394d565ce985a58b79074dbf4a12c2c9392d2867fb00006c1167bb
+  status: missing
 - file: default/share/teams/none_sinner_assets.png
   business_name: ''
   tags: []
@@ -89,16 +96,19 @@ assets:
   tags: []
   note: ''
   checksum: sha256:cc8c04a90dc298f9df5ccb8e729c808e4b63ac6da1103a3654db459106759fad
+  status: missing
 - file: default/share/teams/Rodion_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:622c068afac329538d7f8f9581b23e15024d78f9e9db0c1c7a291ceb0914030f
+  status: missing
 - file: default/share/teams/Ryoshu_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:f76ca911e902ab8e7def185590f2885a7c27b52094af863703f4b57838e466ba
+  status: missing
 - file: default/share/teams/selected.png
   business_name: ''
   tags: []
@@ -109,16 +119,19 @@ assets:
   tags: []
   note: ''
   checksum: sha256:c3c6f993acc368a7b9e1106320d66ce9ef051e1f0b59a4288800da72b6aaa237
+  status: missing
 - file: default/share/teams/teams_bbox.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:434acc8a5ad2be17482f178ffc260704747c506c435ede34ab7cdf81dbbc628e
+  status: missing
 - file: default/share/teams/YiSang_assets.png
   business_name: 李箱
   tags: []
   note: ''
   checksum: sha256:97fd458d868b0e3f8fa335d5961b1eb077dcff463dba43132c33aa913c0551d0
+  status: missing
 - file: default/zh_cn/teams/clear_selection_assets.png
   business_name: ''
   tags: []

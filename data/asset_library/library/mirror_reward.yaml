@@ -44,6 +44,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:5eb4d9f41d8465fd9625ff796f2fdaa4b04eef36cac0ad8ea27097d99710078a
+  status: missing
 - file: default/share/mirror/claim_reward/battle_statistics_assets.png
   business_name: ''
   tags: []
@@ -84,6 +85,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:3abd9843627d36590b712f9b09cc77aaeb5cc615cabd3fbca367f0f9c109b3bf
+  status: missing
 - file: default/share/mirror/claim_reward/rewards_acquired_assets.png
   business_name: ''
   tags: []

@@ -4,6 +4,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:9c515d26ed7131ed6e38c18a21e5bde5f7cc78352dffcbff5afa5016e402733e
+  status: missing
 - file: dark/share/battle/give_up_assets.png
   business_name: ''
   tags: []
@@ -19,6 +20,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:38f4a322701371888ffbbd373839564450374da762bea3a655fc26fa2694f92b
+  status: missing
 - file: default/en/battle/chaim_to_battle_assets.png
   business_name: ''
   tags: []
@@ -44,11 +46,13 @@ assets:
   tags: []
   note: ''
   checksum: sha256:c2729e12187b5c12a15b9b1b4b28a1c568e8ee27e8b99e7d4ab827ca16a4ccc7
+  status: missing
 - file: default/en/battle/teams_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:8a9d6d4fff90e10ad83218d908ffec5536bcf682aed1f8e725780cdfa49f163d
+  status: missing
 - file: default/share/battle/battle_finish_confirm_assets.png
   business_name: ''
   tags: []
@@ -179,8 +183,10 @@ assets:
   tags: []
   note: ''
   checksum: sha256:0bf53e3f3f0aa24549a6b8ee8d60612447ba2914ae1e52ad4b8497ad546e0f87
+  status: missing
 - file: default/zh_cn/battle/teams_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:2b0c46b9d52f429a67db4d3f0e400ef5649b2af230503ba6ca5be7cbf8f0ba37
+  status: missing

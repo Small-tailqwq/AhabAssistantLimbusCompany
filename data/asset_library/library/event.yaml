@@ -69,6 +69,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:7e9c404037cec5fee709640ca870fe99ee86cda9892e06b52992d87b03ed211b
+  status: missing
 - file: default/share/event/perform_the_check_feature_assets.png
   business_name: ''
   tags: []

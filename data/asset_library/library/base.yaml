@@ -9,11 +9,13 @@ assets:
   tags: []
   note: ''
   checksum: sha256:084402197f0a790b9d8752bdec8365f615b2f335d3dea0776d5826f0e8e576ee
+  status: missing
 - file: default/en/base/defeat_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:bd17dd0c6c94c563019a013f6828ab98041bddfdc7d82a5c7796202d5edc19b8
+  status: missing
 - file: default/en/base/notification_close_assets.png
   business_name: ''
   tags: []
@@ -39,6 +41,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:277d2f860ba495e24bdfc0bcf44eb11128b78feecb3228e98a2fdc2e05054137
+  status: missing
 - file: default/share/base/battle_finish_confirm_assets.png
   business_name: ''
   tags: []
@@ -49,6 +52,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:db3d2e4f6471c139d06541211279acaf5964e45096b72bb94bdd28d3330b7cde
+  status: missing
 - file: default/share/base/clear_all_caches_assets.png
   business_name: ''
   tags: []
@@ -109,11 +113,13 @@ assets:
   tags: []
   note: ''
   checksum: sha256:2c650833055f3e81c22c3dbcc6cfaa8fb7ef160f2a9562adbc035f555c967f45
+  status: missing
 - file: default/zh_cn/base/defeat_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:f695206ed2ee5e512cd3b5f01f6741cc294b7cca5fe0e0778fb8816eeb231fdf
+  status: missing
 - file: default/zh_cn/base/notification_close_assets.png
   business_name: ''
   tags: []
@@ -140,3 +146,4 @@ assets:
   tags: []
   note: ''
   checksum: sha256:effe155a56bc7b4dbb016452236e584fb170caa834690f1afdb5e5bb1cc2602f
+  status: missing

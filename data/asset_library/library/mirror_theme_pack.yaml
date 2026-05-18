@@ -29,8 +29,10 @@ assets:
   tags: []
   note: ''
   checksum: sha256:505b0a58b3d3dee53e0b407369fc3d306d019a77fda0b283e857eb9153a8ea7a
+  status: missing
 - file: default/share/mirror/theme_pack/test/level_III_rewards_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:33112a81518f71fe6a22fb39ebecd2a1dfd87428b463f73384baf569a715e386
+  status: missing

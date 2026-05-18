@@ -49,6 +49,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:75b415cde1d5b57d298d86e45239f272333cc5211ba920a3e8e13de18882763d
+  status: missing
 - file: default/en/mirror/road_in_mir/refuse_gift_assets.png
   business_name: ''
   tags: []
@@ -344,51 +345,61 @@ assets:
   tags: []
   note: ''
   checksum: sha256:956ceaa90a665a2af9b67e4c4656b7ecdbc6adb9e4e6fc4b766765b386659409
+  status: missing
 - file: default/share/mirror/road_to_mir/dreaming_star/10_stars_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:eb344fc39a4e87e206009b19c83f517185a2ac9a3400dedc3858a32676ea051b
+  status: missing
 - file: default/share/mirror/road_to_mir/dreaming_star/20_stars_2_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:c89ba0f3068a4b2a1c5f3063046cf747df0c4a81a9ff9ee929835ea430d8e1cb
+  status: missing
 - file: default/share/mirror/road_to_mir/dreaming_star/20_stars_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:10b822b7ade907ce26a481bb18466c50a51934acb0f583d110fb7b72b87c2e13
+  status: missing
 - file: default/share/mirror/road_to_mir/dreaming_star/30_stars_2_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:d4755f3ab929bf836af9c0c2c48e82ccf8e74129bade807f7c0527df9abc87e9
+  status: missing
 - file: default/share/mirror/road_to_mir/dreaming_star/30_stars_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:d22944b2fd8cffbf849ee7db057fefb1073a12fc5238f11e6e1eae0c69dd4077
+  status: missing
 - file: default/share/mirror/road_to_mir/dreaming_star/40_stars_2_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:94ec40688399f28433a5c2e4a30daa0116fbdb401780534487dbcb0c1b9dfec3
+  status: missing
 - file: default/share/mirror/road_to_mir/dreaming_star/40_stars_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:6c426167c8da1b4073b10ca4d425db5bb52f6377ccb65e31d1f13cdf6751f5cf
+  status: missing
 - file: default/share/mirror/road_to_mir/dreaming_star/50_stars_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:118bd4d5047a80b2d91f7d19f9181b1928a5b40783e5b53a8d50ee0b4e89b3a7
+  status: missing
 - file: default/share/mirror/road_to_mir/dreaming_star/60_stars_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:c6910817fcf06238c239b4f9379094f9e3b755db5a873ac6cce6203f8b150401
+  status: missing
 - file: default/share/mirror/road_to_mir/dreaming_star/coins_assets.png
   business_name: ''
   tags: []
@@ -404,6 +415,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:1ab1bc5c9780d7d92188959637c1540fc638622e255b43b8b8d23c260e471093
+  status: missing
 - file: default/share/mirror/road_to_mir/dreaming_star/dreaming_star_enter_assets.png
   business_name: ''
   tags: []
@@ -434,6 +446,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:24866f519eb125d1d44f7ba95050fdd724e59b2051d34b3b7b0ed7c6e58146d3
+  status: missing
 - file: default/share/mirror/road_to_mir/select_init_gift/bleed_ego_gift_1.png
   business_name: ''
   tags: []
@@ -599,6 +612,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:0c1db70c3ab07d79b6fdc77d66c40465b6338d66eb7efaaffc6b7b5c8499bc80
+  status: missing
 - file: default/zh_cn/mirror/road_in_mir/refuse_gift_assets.png
   business_name: ''
   tags: []
@@ -614,6 +628,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:5cf0bbe603919a059d10f322454cb460f62624a7fbd9902931bd33e32e590538
+  status: missing
 - file: default/zh_cn/mirror/road_in_mir/select_event_effect_confirm.png
   business_name: ''
   tags: []

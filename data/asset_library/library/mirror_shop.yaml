@@ -14,6 +14,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:84ca4739c21a401a7b6e308ea8eaf37fe2f8aadb05b9d254e6e417f03a055968
+  status: missing
 - file: default/en/mirror/shop/fuse_ego_gift_assets.png
   business_name: ''
   tags: []
@@ -74,6 +75,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:25e9f876f9dfca8b0f641045eaa728d88f10bded8c91cc4bf9b3cf6aee1dfe55
+  status: missing
 - file: default/share/mirror/shop/enhance_and_fuse_and_sell_confirm_assets.png
   business_name: ''
   tags: []
@@ -89,16 +91,19 @@ assets:
   tags: []
   note: ''
   checksum: sha256:a535bfb94b152c4f0f041a181859a16dba4b27550860614f00263d4e565ac286
+  status: missing
 - file: default/share/mirror/shop/fuse_0%_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:7a04460bde7e5e09a4bc85146fe6ffc47a2877ad87facade8aa96fffa67e15ad
+  status: missing
 - file: default/share/mirror/shop/fuse_60%_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:7d66b764267bf1259ac52187684ab2a13bce3aecf440cc66c4d8151086d32809
+  status: missing
 - file: default/share/mirror/shop/fuse_90%_assets.png
   business_name: ''
   tags: []
@@ -109,6 +114,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:dbd2b4bce1c1e9fb648fe70411fdd55d266d96e4bcc5e2870a7b28f3d99cde2f
+  status: missing
 - file: default/share/mirror/shop/fuse_gift_assets.png
   business_name: ''
   tags: []
@@ -124,6 +130,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:376c25790cefc1bb0c62064213a18f7f84d2b7acbf52cfd6c011edb65250ee9e
+  status: missing
 - file: default/share/mirror/shop/fuse_label.png
   business_name: ''
   tags: []
@@ -134,6 +141,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:565393a1639cb035f49209a25da0ed72753ec28f7fc92138abeb4910bb904ab9
+  status: missing
 - file: default/share/mirror/shop/fuse_to_select_keyword_assets.png
   business_name: ''
   tags: []
@@ -239,6 +247,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:bf45a0959bdbdd982cb22c65ef93e692a3b8c968e0cbb07674b82a8fa5ab6c68
+  status: missing
 - file: default/share/mirror/shop/sort_button_assets.png
   business_name: ''
   tags: []
@@ -394,6 +403,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:44ce88d7d27a0d4ed16f8ae9058842b0ee99521f06e154a76411c67f0892f7be
+  status: missing
 - file: default/share/mirror/shop/enhance_gifts/sinking.png
   business_name: ''
   tags: []
@@ -804,6 +814,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:cb6e86586d76fba82ba1f323a9cf9f3e43b5bf964b241686a7cb5685a6e484d0
+  status: missing
 - file: default/zh_cn/mirror/shop/fuse_ego_gift_assets.png
   business_name: ''
   tags: []
