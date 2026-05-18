@@ -365,6 +365,16 @@ class SettingInterface(QWidget):
             "debug_shop",
             parent=self.logs_group,
         )
+        self.debug_mirror_event_card = SwitchSettingCard(
+            FIF.GLOBE,
+            QT_TRANSLATE_NOOP("SwitchSettingCard", "镜牢事件调试"),
+            QT_TRANSLATE_NOOP(
+                "SwitchSettingCard",
+                "在事件判定各关键节点保存截图到 logs/event_debug 目录",
+            ),
+            "debug_mirror_event",
+            parent=self.logs_group,
+        )
         self.open_logs_card = BasePrimaryPushSettingCard(
             QT_TRANSLATE_NOOP("BasePrimaryPushSettingCard", "日志"),
             FIF.FOLDER_ADD,
@@ -581,6 +591,7 @@ class SettingInterface(QWidget):
         self.logs_group.addSettingCard(self.debug_thread_dungeon_card)
         self.logs_group.addSettingCard(self.debug_retry_card)
         self.logs_group.addSettingCard(self.debug_shop_card)
+        self.logs_group.addSettingCard(self.debug_mirror_event_card)
         self.logs_group.addSettingCard(self.open_logs_card)
 
         self.about_group.addSettingCard(self.github_card)
@@ -715,19 +726,21 @@ class SettingInterface(QWidget):
         self.debug_thread_dungeon_card.setVisible(debug_enabled)
         self.debug_retry_card.setVisible(debug_enabled)
         self.debug_shop_card.setVisible(debug_enabled)
+        self.debug_mirror_event_card.setVisible(debug_enabled)
 
         self.logs_group.adjustSize()
         self.scroll_widget.adjustSize()
 
     def __onDebugModeChanged(self, is_checked: bool):
         if not is_checked:
-            for key in ["debug_mirror_route", "debug_thread_dungeon", "debug_retry", "debug_shop"]:
+            for key in ["debug_mirror_route", "debug_thread_dungeon", "debug_retry", "debug_shop", "debug_mirror_event"]:
                 if cfg.get_value(key, False):
                     cfg.set_value(key, False)
             self.debug_mirror_route_card.setValue(False)
             self.debug_thread_dungeon_card.setValue(False)
             self.debug_retry_card.setValue(False)
             self.debug_shop_card.setValue(False)
+            self.debug_mirror_event_card.setValue(False)
         self.__refreshDebugCardVisibility()
 
     def __refreshExperimentalCardContents(self):

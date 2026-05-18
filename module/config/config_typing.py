@@ -537,6 +537,9 @@ class ConfigModel(BaseModel):
     debug_shop: bool = False
     """商店调试：输出商店各操作的详细识别和点击日志"""
 
+    debug_mirror_event: bool = False
+    """镜牢事件调试：在事件判定各关键节点保存截图到 logs/event_debug"""
+
     experimental_keep_screen_awake: bool = False
     """运行期间阻止系统与显示器休眠，任务结束自动恢复"""
 
