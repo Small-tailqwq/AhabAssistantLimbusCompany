@@ -45,7 +45,81 @@ jobs:
       - name: Install opencode
         run: curl -fsSL https://opencode.ai/install | bash
 
-      - name: Download attachments and analyze
+      - name: Download attachments
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p /tmp/issue_assets
+          gh issue view ${{ steps.issue.outputs.number }} --json body -q .body | \
+            grep -oP 'https://github\.com/[^\s")>]+' | \
+            grep -E '/(files|assets)/' | sort -u | \
+            while IFS= read -r url; do
+              [ -z "$url" ] && continue
+              fname=$(basename "${url%%\?*}")
+              echo "Downloading: $fname"
+              curl -fsSL --max-time 30 -o "/tmp/issue_assets/$fname" "$url" || true
+              case "${fname,,}" in
+                *.zip) unzip -qo "/tmp/issue_assets/$fname" -d /tmp/issue_assets/ && rm "/tmp/issue_assets/$fname" ;;
+              esac
+            done
+          echo "=== Files in /tmp/issue_assets/ ==="
+          ls -lh /tmp/issue_assets/ 2>/dev/null || echo "(empty)"
+
+      - name: Build deterministic log reports
+        run: |
+          mkdir -p /tmp/issue_analysis
+          mapfile -d '' log_files < <(find /tmp/issue_assets -type f \( -iname "*.log" -o -iname "*.txt" \) -print0)
+
+          {
+            echo "Issue number: ${{ steps.issue.outputs.number }}"
+            echo "Run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo
+            echo "Detected log-like files: ${#log_files[@]}"
+          } > /tmp/issue_analysis/summary.txt
+
+          if [ ${#log_files[@]} -eq 0 ]; then
+            echo "No log-like files found under /tmp/issue_assets" | tee -a /tmp/issue_analysis/summary.txt
+            exit 0
+          fi
+
+          for file in "${log_files[@]}"; do
+            echo "Analyzing: $file"
+            echo "- $file" >> /tmp/issue_analysis/summary.txt
+
+            python .opencode/tools/log_analyzer.py "$file" || true
+
+            report_file="${file%.*}.report.txt"
+            if [ -f "$report_file" ]; then
+              cp "$report_file" "/tmp/issue_analysis/$(basename "$report_file")"
+            fi
+
+            version_tail=$(grep -oE 'V[0-9]+\.[0-9]+\.[0-9]+' "$file" | tail -n1 || true)
+            shop_hits=$(grep -c -E '开始执行 镜牢商店|结束执行 镜牢商店|mirror/shop/' "$file" || true)
+            team_hits=$(grep -c -E '开始执行 罪人编队|结束执行 罪人编队|team_formation\.py|none_sinner_assets' "$file" || true)
+            blank_hits=$(grep -c -E '点击（1，1）空白位置|镜牢道中识别次数剩余' "$file" || true)
+
+            {
+              echo "  latest_version_marker: ${version_tail:-N/A}"
+              echo "  shop_markers: ${shop_hits:-0}"
+              echo "  team_markers: ${team_hits:-0}"
+              echo "  blank_loop_markers: ${blank_hits:-0}"
+            } >> /tmp/issue_analysis/summary.txt
+          done
+
+          python .opencode/tools/mirror_analyzer.py "${log_files[@]}" > /tmp/issue_analysis/mirror_analysis.txt 2>&1 || true
+
+          echo "=== Files in /tmp/issue_analysis/ ==="
+          ls -lh /tmp/issue_analysis/
+
+      - name: Upload issue analysis artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-analysis-${{ steps.issue.outputs.number }}-${{ github.run_id }}
+          path: /tmp/issue_analysis/
+          if-no-files-found: ignore
+
+      - name: Run triage agent
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -75,38 +149,40 @@ jobs:
               }
             }
         run: |
-          mkdir -p /tmp/issue_assets
-          gh issue view ${{ steps.issue.outputs.number }} --json body -q .body | \
-            grep -oP 'https://github\.com/[^\s")>]+' | \
-            grep -E '/(files|assets)/' | sort -u | \
-            while IFS= read -r url; do
-              [ -z "$url" ] && continue
-              fname=$(basename "${url%%\?*}")
-              echo "Downloading: $fname"
-              curl -fsSL --max-time 30 -o "/tmp/issue_assets/$fname" "$url" || true
-              case "${fname,,}" in
-                *.zip) unzip -qo "/tmp/issue_assets/$fname" -d /tmp/issue_assets/ && rm "/tmp/issue_assets/$fname" ;;
-              esac
-            done
-          echo "=== Files in /tmp/issue_assets/ ==="
-          ls -lh /tmp/issue_assets/ 2>/dev/null || echo "(empty)"
-
           opencode run -m opencode-go/deepseek-v4-flash --agent triage "Analyze issue #${{ steps.issue.outputs.number }}.
 
           Run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
           PROJECT: Python desktop automation (PyQt5 + OpenCV + PaddleOCR) for Limbus Company.
 
+          Deterministic reports are in /tmp/issue_analysis/.
+          Attachments are in /tmp/issue_assets/.
+
+          Required workflow:
           1. Read issue body via: gh issue view ${{ steps.issue.outputs.number }}
-          2. Files under /tmp/issue_assets/ are attachment files (logs, screenshots). Read ALL of them.
-          3. Post ONE comment containing:
+          2. Read ALL files in /tmp/issue_analysis/ first, then read ALL files in /tmp/issue_assets/.
+          3. Segment the log timeline by timestamp. Do NOT generalize from a single segment.
+          4. Explicitly report marker coverage (found/not found) for:
+             - shop markers
+             - team formation markers
+             - blank-click loop markers
+          5. If evidence conflicts with issue text or previous comments, call out the contradiction explicitly.
+          6. If evidence is insufficient or contradictory, say insufficient evidence and lower confidence. Do not force a strong root cause.
+
+          Post ONE comment containing:
              - Overview: 1-2 sentence problem summary
-             - Analysis: root cause analysis based on the logs (quote specific log lines)
+             - Evidence coverage: runtime version (latest log occurrence) and marker results
+             - Analysis: timeline-segmented root cause analysis with quoted log lines
              - Fix: suggested fix or workaround
              - Missing: what additional info would help
-          4. Add exactly ONE label:
+             - Confidence: high/medium/low with brief rationale
+
+          Every non-trivial claim MUST cite concrete log lines.
+          Do NOT claim a stage is missing if related markers appear anywhere in provided logs.
+
+          7. Add exactly ONE label:
              gh issue edit ${{ steps.issue.outputs.number }} --add-label bug
              or: gh issue edit ${{ steps.issue.outputs.number }} --add-label enhancement
-          5. If /tmp/issue_assets/ has log files, YOU MUST read and analyze them. Do NOT skip them.
+          8. If /tmp/issue_assets/ has log files, YOU MUST read and analyze them. Do NOT skip them.
 
           Do NOT: modify files, create branches/PRs, or ask questions."
