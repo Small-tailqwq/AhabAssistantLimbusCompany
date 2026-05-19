@@ -1,15 +1,48 @@
 import argparse
+import hashlib
+import json
 import os
+import re
 import shutil
 import subprocess
+import sys
+from pathlib import Path
+
+# 将 venv bin 目录加入 PATH，确保 pyside6-lrelease 等工具可被发现
+_VENV_BIN = str(Path(sys.executable).parent)
+if _VENV_BIN not in os.environ.get("PATH", ""):
+    os.environ["PATH"] = f"{_VENV_BIN}{os.pathsep}{os.environ.get('PATH', '')}"
+
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 import PyInstaller.__main__
+from module.update.update_protocol import (
+    BOOTSTRAP_VERSION_PATH,
+    DEFAULT_PROTECTED_PATHS,
+    REMOTE_UPDATE_MANIFEST_ASSET,
+    UPDATE_MANIFEST_NAME,
+    build_update_manifest,
+    collect_managed_files,
+)
+
+
+def positive_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("bootstrap version must be >= 1")
+    return parsed
+
 
 # 读取版本号
 parser = argparse.ArgumentParser(description="Build AALC")
 parser.add_argument("--version", default="dev", help="AALC Version")
+parser.add_argument("--bridge-updater", action="store_true", help="Build legacy root-dir updater package")
+parser.add_argument("--bootstrap-version", type=positive_int, default=2, help="Bootstrap protocol version")
 args = parser.parse_args()
 version = args.version
+is_windows = sys.platform == "win32"
 
 # 清理旧的构建文件
 shutil.rmtree("./dist", ignore_errors=True)
