@@ -1,4 +1,5 @@
 import datetime
+import platform
 
 from PySide6.QtCore import QT_TRANSLATE_NOOP, QPoint, Qt, QUrl
 from PySide6.QtGui import QDesktopServices
@@ -520,6 +521,7 @@ class SettingInterface(QWidget):
         self.screenshot_benchmark_card.clicked.connect(self.__onScreenshotBenchmarkCardClicked)
         self.theme_pack_card.clicked.connect(self.__onThemePackCardClicked)
 
+        self.simulator_type_setting_card.valueChanged.connect(self.__onSimulatorTypeChanged)
         self.zoom_card.valueChanged.connect(self.__onZoomCardValueChanged)
         self.win_input_type_card.valueChanged.connect(self.__onWinInputTypeChanged)
         self.__onWinInputTypeChanged()
@@ -595,6 +597,26 @@ class SettingInterface(QWidget):
         self.win_input_type_card.content = content
         self.win_input_type_card.setContent(content)
         self.win_input_type_card.retranslateUi()
+
+    def __onSimulatorTypeChanged(self):
+        if platform.system() == "Darwin" and cfg.simulator_type == 0:
+            cfg.set_value("simulator_type", 10)
+            for i in range(self.simulator_type_setting_card.comboBox.count()):
+                if self.simulator_type_setting_card.comboBox.itemData(i) == 10:
+                    self.simulator_type_setting_card.comboBox.setCurrentIndex(i)
+                    break
+            BaseInfoBar.warning(
+                title=QT_TRANSLATE_NOOP("BaseInfoBar", "不支持的模拟器类型"),
+                content=QT_TRANSLATE_NOOP(
+                    "BaseInfoBar",
+                    "macOS 不支持 MuMu 模拟器专属模式，已自动切换到通用 ADB 模式",
+                ),
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.BOTTOM_RIGHT,
+                duration=8000,
+                parent=self,
+            )
 
     def __onZoomCardValueChanged(self):
         bar = BaseInfoBar.success(

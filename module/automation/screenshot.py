@@ -296,21 +296,66 @@ class ScreenShot:
         """
 
         try:
-            screen.handle.init_handle()
-            if screen.handle.hwnd == 0:
-                log.info("未找到游戏窗口，无法进行截图性能测试")
-                return False, 0.0
-            start_time = time.time()
-            for i in range(test_time):
-                ScreenShot.take_screenshot(gray=False)
-            end_time = time.time()
-            avg_time = (end_time - start_time) / test_time * 1000  # 转为毫秒
-            log.info(f"截图性能测试: {test_time}次截图平均耗时 {avg_time:.2f} ms")
-            return True, avg_time
+            if cfg.simulator:
+                if cfg.simulator_type == 10:
+                    from module.automation.input_handlers.simulator.simulator_control import (
+                        SimulatorControl,
+                    )
+
+                    if SimulatorControl.connection_device is not None:
+                        return ScreenShot._benchmark_loop(test_time)
+                    return ScreenShot._adb_direct_benchmark(test_time)
+                elif cfg.simulator_type == 0:
+                    from module.automation.input_handlers.simulator.mumu_control import (
+                        MumuControl,
+                    )
+
+                    if MumuControl.connection_device is None:
+                        log.info("未连接到MuMu模拟器，无法进行截图性能测试")
+                        return False, 0.0
+                    return ScreenShot._benchmark_loop(test_time)
+            else:
+                screen.handle.init_handle()
+                if screen.handle.hwnd == 0:
+                    log.info("未找到游戏窗口，无法进行截图性能测试")
+                    return False, 0.0
+                return ScreenShot._benchmark_loop(test_time)
         except Exception as e:
             log.info("截图性能测试失败")
             log.debug(f"截图性能测试报错: {e}")
             return False, 0.0
+
+    @staticmethod
+    def _benchmark_loop(test_time: int) -> tuple[bool, float]:
+        """通过 take_screenshot() 调度运行性能测试"""
+        start_time = time.time()
+        for _ in range(test_time):
+            ScreenShot.take_screenshot(gray=False)
+        end_time = time.time()
+        avg_time = (end_time - start_time) / test_time * 1000
+        log.info(f"截图性能测试: {test_time}次截图平均耗时 {avg_time:.2f} ms")
+        return True, avg_time
+
+    @staticmethod
+    def _adb_direct_benchmark(test_time: int) -> tuple[bool, float]:
+        """临时 ADB 直连截图测试（无需启动任务）"""
+        from adbutils import adb
+
+        port = f"127.0.0.1:{int(cfg.simulator_port)}"
+        msg = adb.connect(port)
+        if "connected" not in msg:
+            log.info(f"无法连接到ADB设备 {port}: {msg}")
+            return False, 0.0
+        device = adb.device(port)
+        start_time = time.time()
+        for _ in range(test_time):
+            data = device.shell(["screencap", "-p"], stream=False, encoding=None)
+            if len(data) < 500:
+                raise RuntimeError(f"screencap 返回异常: {data}")
+        end_time = time.time()
+        avg_time = (end_time - start_time) / test_time * 1000
+        log.info(f"截图性能测试(ADB直连): {test_time}次截图平均耗时 {avg_time:.2f} ms")
+        return True, avg_time
 
     @staticmethod
     def mumu_screenshot(gray: bool = True) -> Image.Image:
