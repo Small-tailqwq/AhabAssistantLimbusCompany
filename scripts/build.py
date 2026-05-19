@@ -233,7 +233,7 @@ else:
     # macOS: PyInstaller BUNDLE 将数据文件放入 Contents/Resources/，
     # 但 Python 模块在 Contents/MacOS/，某些包（如 rapidocr）通过
     # __file__ 相对路径查找数据文件，需将资源同步到 MacOS/ 目录。
-    resources_dir = dist_app_root / "Contents" / "Resources"
+    resources_dir = dist_app_root.parent / "Resources"
     macos_dir = dist_app_root / "Contents" / "MacOS"
     for data_dir in resources_dir.iterdir():
         if data_dir.is_dir():
