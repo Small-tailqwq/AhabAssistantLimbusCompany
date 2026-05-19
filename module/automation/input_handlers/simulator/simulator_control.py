@@ -388,7 +388,7 @@ class SimulatorControl(AbstractInput):
 
         self.simulator_control.ext_smooth_swipe(
             [(pos_x, pos_y), (pos_x_2, pos_y_2)],
-            duration=drag_time * 1000,
+            duration=drag_time * 1000 / 10,
             part=50,
             no_up=True,
         )
