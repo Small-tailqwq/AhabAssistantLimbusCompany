@@ -273,8 +273,8 @@ else:
         if src.is_dir():
             target = macos_dir / _pkg
             if not target.exists():
-                shutil.copytree(src, target, symlinks=False)
-                print(f"Synced resources: {_pkg} -> MacOS/")
+                shutil.copytree(data_dir, target, symlinks=False)
+                print(f"Linked resources: {data_dir.name} -> MacOS/")
 
     archive_base = os.path.join("dist", f"AALC_{version}_macos")
     archive_path = shutil.make_archive(archive_base, "zip", root_dir="./dist", base_dir="AALC.app")
@@ -292,12 +292,14 @@ if not is_windows:
         if "\"Apple Development:" in _line:
             _sign_id = _line.split('"')[1]
             break
-    subprocess.run(
+    _sign_result = subprocess.run(
         ["codesign", "--force", "--deep", "--sign", _sign_id, _app_bundle],
-        check=True,
-        capture_output=True,
+        capture_output=True, text=True,
     )
-    print(f"Signed .app bundle with: {_sign_id}")
+    if _sign_result.returncode != 0:
+        print(f"Warning: codesign failed (non-fatal): {_sign_result.stderr.strip()}")
+    else:
+        print(f"Signed .app bundle with: {_sign_id}")
 
     # 生成启动脚本 AALC.command（双击在终端运行，绕过 Gatekeeper）
     command_path = os.path.join("dist", "AALC.command")
