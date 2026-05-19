@@ -53,3 +53,4 @@ data/asset_library/recycle/
 data/asset_library/scan_cache.json
 data/asset_library/thumbnails/
 assets/app/fonts/chars.txt
+.DS_Store

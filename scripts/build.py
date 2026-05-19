@@ -8,6 +8,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+# 将 venv bin 目录加入 PATH，确保 pyside6-lrelease 等工具可被发现
+_VENV_BIN = str(Path(sys.executable).parent)
+if _VENV_BIN not in os.environ.get("PATH", ""):
+    os.environ["PATH"] = f"{_VENV_BIN}{os.pathsep}{os.environ.get('PATH', '')}"
+
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
