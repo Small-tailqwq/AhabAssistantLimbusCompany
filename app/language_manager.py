@@ -1,4 +1,5 @@
 import inspect
+import os
 
 from PySide6.QtCore import QT_TRANSLATE_NOOP, QLibraryInfo, QLocale, QTranslator
 from PySide6.QtWidgets import QApplication
@@ -82,13 +83,48 @@ class LanguageManager(metaclass=SingletonMeta):
 
         return lang
 
+    @staticmethod
+    def _normalize_locale(locale_str: str) -> str:
+        """将 macOS BCP-47 格式（zh-Hans-CN）转为项目内部代码（zh_cn）"""
+        s = locale_str.replace("-", "_").lower()
+        # zh_hans_cn → zh_cn, zh_hant_hk → zh_hk (falls back to zh search)
+        if s.startswith("zh_"):
+            parts = s.split("_")
+            if len(parts) >= 3:
+                return f"zh_{parts[-1]}"  # zh_hans_cn → zh_cn
+        # zh → zh_cn (default to simplified)
+        if s == "zh":
+            return "zh_cn"
+        return s
+
     def match_language(self) -> str:
         """在支持的语言中匹配最接近用户系统语言的语言"""
         user_lang = QLocale.system().name()  # 获取语言代码 示例: zh_CN
+
+        # macOS 终端或打包环境下 QLocale 可能返回 "C"，需改用 NSLocale
+        if user_lang in ("C", "C.UTF-8") or not user_lang:
+            import platform
+            if platform.system() == "Darwin":
+                try:
+                    import Cocoa
+                    prefs = Cocoa.NSLocale.preferredLanguages()
+                    if prefs and prefs[0]:
+                        user_lang = str(prefs[0])
+                        log.debug(f"通过 NSLocale 获取到用户语言: {user_lang}")
+                except Exception:
+                    pass
+            if user_lang in ("C", "C.UTF-8") or not user_lang:
+                user_lang = os.environ.get("LANG", "en")
+                user_lang = user_lang.split(".")[0]
+
         log.debug(f"检查到用户语言代码为: {user_lang}")
 
         if user_lang in SUPPORTED_LANG_CODE:
             return user_lang
+
+        norm = self._normalize_locale(user_lang)
+        if norm in SUPPORTED_LANG_CODE:
+            return norm
 
         main_lang = user_lang.split("_")[0]  # 截取主要语言代码
 
