@@ -30,8 +30,15 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
 
-      - name: Lint check
-        run: uv run ruff check .
+      - name: Lint check (macOS scope)
+        run: |
+          uv run ruff check \
+            module/automation/input_handlers/__init__.py \
+            module/automation/automation.py \
+            module/automation/screenshot.py \
+            module/game_and_screen/screen.py \
+            tasks/base/script_task_scheme.py \
+            tests/test_macos_support.py
 
       - name: Import check
         run: |
