@@ -253,3 +253,59 @@ def execute_after_completion(actions: Iterable[str], power_action: str) -> bool:
         log.exception("执行电源动作失败")
 
     return should_exit_aalc
+
+
+def request_macos_accessibility_permission():
+    """检测 macOS 辅助功能权限并引导用户授权。仅在 macOS 上有效。"""
+    import platform
+    import sys
+
+    if platform.system() != "Darwin":
+        return
+
+    try:
+        import ctypes
+
+        app_services = ctypes.cdll.LoadLibrary(
+            "/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices"
+        )
+        AXIsProcessTrusted = app_services.AXIsProcessTrusted
+        AXIsProcessTrusted.restype = ctypes.c_bool
+
+        if AXIsProcessTrusted():
+            return
+
+        import os
+
+        proc_name = os.path.basename(sys.executable) if hasattr(sys, "executable") else "AALC"
+        if proc_name == "python3":
+            proc_name = "Python"
+
+        from PySide6.QtWidgets import QMessageBox
+
+        msg = QMessageBox()
+        msg.setWindowTitle("辅助功能权限")
+        msg.setText("AALC 需要「辅助功能」权限才能监听全局快捷键。")
+        msg.setInformativeText(
+            "请前往 系统设置 → 隐私与安全性 → 辅助功能，\n"
+            f"在列表中找到「{proc_name}」或「Terminal」并勾选。\n\n"
+            "若列表中无此条目，点击 + 按钮手动添加：\n"
+            f"  {sys.executable}\n\n"
+            "添加后无需重启 AALC，快捷键即可生效。"
+        )
+        msg.setIcon(QMessageBox.Warning)
+        open_btn = msg.addButton("打开系统设置", QMessageBox.ActionRole)
+        msg.addButton("稍后设置", QMessageBox.RejectRole)
+        msg.exec()
+
+        if msg.clickedButton() == open_btn:
+            import subprocess
+
+            subprocess.run(
+                [
+                    "open",
+                    "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
+                ]
+            )
+    except Exception:
+        log.debug("macOS 辅助功能权限检测异常", exc_info=True)
