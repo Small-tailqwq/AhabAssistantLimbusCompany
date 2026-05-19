@@ -165,6 +165,13 @@ class SimulatorControl(AbstractInput):
                     if int(self.simulator_control.connection.max_x) > 1440:
                         self.simulator_bluestacks = True
 
+                    self._sync_detected_resolution(width, height)
+                else:
+                    log.warning(
+                        f"无法解析模拟器分辨率输出: {size_output!r}，"
+                        f"将使用配置中的分辨率 {cfg.set_win_size}p"
+                    )
+
                 SimulatorControl.connection_device = self
 
                 log.debug("连接成功，已将模拟器实例记录至 SimulatorControl.connection_device")
@@ -235,8 +242,6 @@ class SimulatorControl(AbstractInput):
         if self.simulator_device is None:
             self.get_simulator()
 
-        pos_x, pos_y = self._scale(x, y)
-
         msg = f"点击位置:({x},{y})"
         log.debug(msg)
         for i in range(times):
@@ -266,7 +271,7 @@ class SimulatorControl(AbstractInput):
         """占位"""
         return True
 
-    def mouse_click_blank(self, coordinate=(1, 1), times=1) -> bool:
+    def mouse_click_blank(self, coordinate=(1, 1), times=1, move_back=False) -> bool:
         """在空白位置点击鼠标
         Args:
             coordinate (tuple): 坐标元组 (x, y)
@@ -317,6 +322,28 @@ class SimulatorControl(AbstractInput):
         except Exception as e:
             log.error(f"输入文本失败：{e}")
 
+    def _sync_detected_resolution(self, width: int, height: int):
+        """将检测到的模拟器分辨率映射到 cfg.set_win_size 并同步配置。
+
+        adb shell wm size 返回物理屏幕分辨率，模拟器可能是竖屏物理显示
+        （如 1080x1920）但在横屏运行游戏。因此取 min(width, height)
+        作为横屏游戏的有效高度。
+        """
+        supported_heights = [720, 900, 1080, 1440, 1800, 2160]
+        effective_height = min(width, height)
+        nearest = min(supported_heights, key=lambda h: abs(h - effective_height))
+        if nearest != cfg.set_win_size:
+            from module.automation import auto
+
+            log.info(
+                f"自动检测模拟器分辨率 {width}x{height}，"
+                f"映射配置分辨率为 {nearest}p（原设置: {cfg.set_win_size}p）"
+            )
+            cfg.set_value("set_win_size", nearest)
+            auto.clear_img_cache()
+        else:
+            log.debug(f"模拟器分辨率 {width}x{height} 与配置分辨率 {nearest}p 一致")
+
     def _scale(self, x, y):
         pos_x = self.simulator_max_x - y
         pos_y = x
@@ -353,7 +380,7 @@ class SimulatorControl(AbstractInput):
 
         self.simulator_control.ext_smooth_swipe(
             [(pos_x, pos_y), (pos_x_2, pos_y_2)],
-            duration=drag_time * 1000 / 10,
+            duration=drag_time * 1000,
             part=50,
             no_up=True,
         )
@@ -389,6 +416,9 @@ class SimulatorControl(AbstractInput):
 
         position_conversion = []
         for pos in position:
-            position_conversion.append((self.simulator_max_x - pos[1], pos[0]))
+            if self.simulator_bluestacks:
+                position_conversion.append(pos)
+            else:
+                position_conversion.append((self.simulator_max_x - pos[1], pos[0]))
 
         self.simulator_control.swipe(position_conversion, duration=drag_time * 1000)
