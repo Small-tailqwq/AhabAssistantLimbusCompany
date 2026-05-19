@@ -27,6 +27,7 @@ class Mediator(QObject):
     hotkey_listener_stop_signal = Signal()
     hotkey_listener_start_signal = Signal()
     config_reloaded = Signal()  # 配置热切换后通知主窗口重建设置页面
+    simulator_mode_changed = Signal(bool)  # 模拟器模式开关变更
 
     # 单例实例（类变量）
     _instance = None

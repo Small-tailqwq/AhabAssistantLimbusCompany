@@ -150,6 +150,8 @@ class PageSetWindows(PageCard):
         self.__init_card()
         self.__init_layout()
         self.setObjectName("page_set_windows")
+        self.update_simulator_mode()
+        mediator.simulator_mode_changed.connect(self._on_simulator_mode_changed)
 
     def __init_card(self):
         self.win_size = LabelWithComboBox(
@@ -182,7 +184,7 @@ class PageSetWindows(PageCard):
             "mouse_down_duration",
             double=True,
             tips=QT_TRANSLATE_NOOP(
-                "LabelWithSpinBox", "仅在使用异步方法进行鼠标输入时生效，单位为秒，每次鼠标按下都会增加对应的延迟"
+                "LabelWithSpinBox", "仅在使用异步方法进行键鼠输入时生效，单位为秒，每次鼠标按下都会增加对应的延迟"
             ),
         )
         self.use_post_message = LabelWithComboBox(
@@ -201,6 +203,21 @@ class PageSetWindows(PageCard):
         self.vbox_advanced.addWidget(self.mouse_action_interval)
         self.vbox_advanced.addWidget(self.mouse_down_duration)
         self.vbox_advanced.addWidget(self.use_post_message)
+
+    def update_simulator_mode(self):
+        """根据模拟器模式更新窗口设置页面的可用性。
+
+        模拟器模式下:
+        - 分辨率下拉框禁用（自动检测，用户不可选择）
+        - 窗口位置、结束后恢复窗口隐藏（模拟器无需调整窗口位置）
+        """
+        is_simulator = cfg.simulator
+        self.win_size.setEnabled(not is_simulator)
+        self.win_position.setVisible(not is_simulator)
+        self.recovery_window.setVisible(not is_simulator)
+
+    def _on_simulator_mode_changed(self, is_checked: bool):
+        self.update_simulator_mode()
 
     def retranslateUi(self):
         self.win_size.retranslateUi()

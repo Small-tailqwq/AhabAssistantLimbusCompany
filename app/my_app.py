@@ -96,29 +96,20 @@ def _mac_rounded_icon(path: str) -> QIcon:
     if src.isNull():
         return QIcon(path)
     icon = QIcon()
-    # Each entry: (pixel_size, device_pixel_ratio)
-    # macOS interprets display size = pixel_size / dpr.
-    # Standard dock icon ≈ 64pt → provide 64px@1x (non-retina) and 128px@2x (retina).
-    for px_size, dpr in (
-        (16, 1.0),
-        (32, 1.0),
-        (64, 1.0),
-        (128, 2.0),
-    ):
-        if px_size > max(src.width(), src.height()):
+    for logical_size in (16, 32, 64, 128):
+        if logical_size > max(src.width(), src.height()):
             continue
-        px = QPixmap(px_size, px_size)
-        px.setDevicePixelRatio(dpr)
+        px = QPixmap(logical_size, logical_size)
         px.fill(Qt.transparent)
         p = QPainter(px)
         p.setRenderHint(QPainter.Antialiasing)
         clip = QPainterPath()
-        r = max(px_size * 0.15, 4)
-        clip.addRoundedRect(QRectF(0, 0, px_size, px_size), r, r)
+        r = max(logical_size * 0.15, 4)
+        clip.addRoundedRect(QRectF(0, 0, logical_size, logical_size), r, r)
         p.setClipPath(clip)
-        scaled = src.scaled(px_size, px_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        x = (px_size - scaled.width()) // 2
-        y = (px_size - scaled.height()) // 2
+        scaled = src.scaled(logical_size, logical_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        x = (logical_size - scaled.width()) // 2
+        y = (logical_size - scaled.height()) // 2
         p.drawPixmap(x, y, scaled)
         p.end()
         icon.addPixmap(px)
