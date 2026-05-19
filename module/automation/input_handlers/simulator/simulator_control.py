@@ -203,7 +203,7 @@ class SimulatorControl(AbstractInput):
             log.warning(f"意外截图: {data}")
         image = np.frombuffer(data, np.uint8)
         image = cv2.imdecode(image, cv2.IMREAD_COLOR)
-        return image
+        return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     def set_pause(self) -> None:
         """
