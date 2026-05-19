@@ -73,3 +73,16 @@ coll = COLLECT(
     upx_exclude=[],
     name="AALC",
 )
+
+if not is_windows:
+    app = BUNDLE(
+        coll,
+        name="AALC.app",
+        icon=None,
+        bundle_identifier="com.kiyi671.ahab-assistant-limbus-company",
+        info_plist={
+            "NSHighResolutionCapable": True,
+            "NSPrincipalClass": "NSApplication",
+            "NSAppleEventsUsageDescription": "",
+        },
+    )
