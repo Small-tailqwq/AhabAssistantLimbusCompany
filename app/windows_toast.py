@@ -46,11 +46,14 @@ except ImportError:
     from module.config import cfg
     from module.logger import log
 
+import platform
 import sys
-import winreg
 from enum import Enum
 from pathlib import Path
 from typing import Callable
+
+if platform.system() == "Windows":
+    import winreg
 
 from PySide6.QtWidgets import QApplication
 
@@ -78,6 +81,9 @@ class TemplateToast(Enum):
 
 def _register_hkey(appId: str = APPID, appName: str = APPNAME, iconPath: Path | None = None):
     """实际注册行为"""
+    if platform.system() != "Windows":
+        log.debug("跳过通知注册：当前平台不支持")
+        return
     winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
     keyPath = f"SOFTWARE\\Classes\\AppUserModelId\\{appId}"
     with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, keyPath) as masterKey:
@@ -109,6 +115,8 @@ def unregister_toast(appId: str = APPID):
 
 def _unregister_toast(appId: str):
     """实际注销行为"""
+    if platform.system() != "Windows":
+        return
     keyPath = "SOFTWARE\\Classes\\AppUserModelId\\"
     try:
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, keyPath) as uperKey:

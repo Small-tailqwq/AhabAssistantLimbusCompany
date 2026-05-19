@@ -5,11 +5,14 @@ utils.schedule_helper: 计划任务的帮助类的实现
 import datetime
 import getpass
 import os
+import platform
 import sys
-import winreg
 
-import win32com.client
-from pywintypes import com_error
+if platform.system() == "Windows":
+    import winreg
+
+    import win32com.client
+    from pywintypes import com_error
 
 from module.logger import log
 
@@ -21,10 +24,10 @@ class ScheduleHelper:
 
     def __init__(self):
         # 分离平台细节, 如果日后有跨平台需求能少写很多代码
-        if os.name == "nt":
+        if platform.system() == "Windows":
             self._impl = ScheduleHelper_Win32()
         else:
-            raise RuntimeError("未知平台")
+            raise RuntimeError("ScheduleHelper 仅在 Windows 上支持")
 
     def register_daily_task(self, task_name: str, cmd_line: str, h: int, m: int):
         """

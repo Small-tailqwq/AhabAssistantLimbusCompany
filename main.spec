@@ -1,5 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 from pathlib import Path
+import platform
 
 import rapidocr
 import sys
@@ -25,6 +26,9 @@ for v in yaml_paths:
         )
 
 add_data = list(set(yaml_add_data + onnx_add_data))
+
+is_windows = platform.system() == "Windows"
+app_icon = "./assets/logo/my_icon_256X256.ico" if is_windows else None
 
 a = Analysis(
     ["main.py"],
@@ -67,8 +71,8 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    uac_admin=True,
-    icon="./assets/logo/my_icon_256X256.ico",
+    uac_admin=is_windows,
+    icon=app_icon,
 )
 coll = COLLECT(
     exe,

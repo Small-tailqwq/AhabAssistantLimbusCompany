@@ -1,9 +1,6 @@
+import platform
 from time import sleep
 from typing import TYPE_CHECKING, Callable, overload
-
-import win32api
-import win32con
-import win32gui
 
 from app import mediator
 from module.config import cfg
@@ -12,6 +9,14 @@ from utils.singletonmeta import SingletonMeta
 
 if TYPE_CHECKING:
     from .game import Game
+
+_is_mac = platform.system() == "Darwin"
+_is_windows = platform.system() == "Windows"
+
+if _is_windows:
+    import win32api
+    import win32con
+    import win32gui
 
 
 class Handle:
@@ -22,7 +27,10 @@ class Handle:
 
     def init_handle(self, title: str = "LimbusCompany", class_name: str = "UnityWndClass") -> int:
         """获取窗口句柄"""
-        self._hwnd = win32gui.FindWindow(class_name, title)
+        if _is_windows:
+            self._hwnd = win32gui.FindWindow(class_name, title)
+        else:
+            self._hwnd = 0
         return self._hwnd
 
     @property
@@ -40,14 +48,14 @@ class Handle:
     @property
     def isMinimized(self) -> bool:
         """判断窗口是否最小化"""
-        if self.hwnd == 0:
+        if self.hwnd == 0 or not _is_windows:
             return False
         return bool(win32gui.IsIconic(self.hwnd))
 
     @property
     def isActive(self) -> bool:
         """判断窗口是否为活动窗口"""
-        if self.hwnd == 0:
+        if self.hwnd == 0 or not _is_windows:
             return False
         return self.hwnd == win32gui.GetForegroundWindow()
 
@@ -59,7 +67,7 @@ class Handle:
         client: bool
             是否获取客户区大小，默认为`False`
         """
-        if self.hwnd == 0:
+        if self.hwnd == 0 or not _is_windows:
             return (0, 0, 0, 0)
         if client:
             _, _, width, height = win32gui.GetClientRect(self.hwnd)
@@ -96,7 +104,7 @@ class Handle:
     @property
     def monitor_info(self) -> dict:
         """获取窗口所在显示器的信息"""
-        if self.hwnd == 0:
+        if self.hwnd == 0 or not _is_windows:
             return {
                 "Monitor": (0, 0, 0, 0),
                 "Work": (0, 0, 0, 0),
@@ -310,6 +318,10 @@ class Screen(metaclass=SingletonMeta):
     def set_win(self) -> None:
         """设置窗口大小与位置"""
 
+        if not _is_windows:
+            log.info("当前平台非 Windows，跳过窗口位置与尺寸设置")
+            return
+
         def _set_win():
             # 如果窗口最小化或不可见，先将其恢复
             if self.handle.isMinimized or (not self.handle.isActive and not cfg.background_click):
@@ -340,7 +352,8 @@ class Screen(metaclass=SingletonMeta):
 
     def reduce_miscontact(self, pos_style: str) -> None:
         """通过调整窗口置顶减少误触"""
-        # 获取适用于win32gui与win32con的窗口句柄
+        if not _is_windows:
+            return
         hwnd = self.handle.hwnd
 
         # 设置窗口始终置顶
@@ -382,6 +395,8 @@ class Screen(metaclass=SingletonMeta):
 
     def adjust_win_size(self, set_win_size: tuple[int, int] = (1920, 1080)) -> None:
         """调整窗口大小"""
+        if not _is_windows:
+            return
         hwnd = self.handle.hwnd
         client_width, client_height = set_win_size
 
@@ -417,7 +432,7 @@ class Screen(metaclass=SingletonMeta):
 
     def adjust_win_position(self, set_win_position: str = "free") -> None:
         """调整窗口位置"""
-        if set_win_position == "free":
+        if set_win_position == "free" or not _is_windows:
             return
         hwnd = self.handle.hwnd
         monitor_info = self.handle.monitor_info
@@ -445,6 +460,8 @@ class Screen(metaclass=SingletonMeta):
 
     def check_win_size(self, set_win_size: int) -> None:
         """检查窗口大小是否合适，若不合适则切换全屏再切换回窗口模式"""
+        if not _is_windows:
+            return
         try:
             screen_width, screen_height = self.handle.monitor_size(
                 not cfg.background_click  # 前台模式使用工作区大小
@@ -487,6 +504,8 @@ class Screen(metaclass=SingletonMeta):
 
         任务结束链路会传 activate=False，只恢复窗口样式，不重新抢占前台焦点。
         """
+        if not _is_windows:
+            return True
         try:
             hwnd = self.handle.hwnd
             log.debug(f"开始重置游戏窗口，activate={activate}")

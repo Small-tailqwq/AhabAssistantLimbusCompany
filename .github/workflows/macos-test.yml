@@ -1,0 +1,99 @@
+name: macOS Test
+
+on:
+  push:
+    branches: [feat/macos-support]
+  pull_request:
+    branches: [feat/macos-support]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: macos-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Setup UV for Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            **/uv.lock
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Lint check
+        run: uv run ruff check .
+
+      - name: Import check
+        run: |
+          uv run python -c "
+          import sys
+          errors = []
+
+          modules = [
+              'module.config',
+              'module.logger',
+              'module.ocr',
+              'utils.image_utils',
+              'utils.path_manager',
+              'utils.singletonmeta',
+              'module.automation.input_handlers',
+              'module.automation.input_handlers.simulator.simulator_control',
+              'module.my_error.my_error',
+              'module.after_completion_types',
+              'module.hotkey_listener',
+          ]
+
+          for mod_name in modules:
+              try:
+                  __import__(mod_name)
+                  print(f'OK: {mod_name}')
+              except Exception as e:
+                  errors.append((mod_name, str(e)))
+                  print(f'FAIL: {mod_name} -> {e}')
+
+          if errors:
+              print(f'\n{len(errors)} module(s) failed to import')
+              sys.exit(1)
+          else:
+              print('\nAll modules imported successfully')
+          "
+
+      - name: Verify platform detection
+        run: |
+          uv run python -c "
+          import sys
+          import platform
+          assert platform.system() == 'Darwin', f'Expected Darwin, got {platform.system()}'
+          print(f'Running on: {platform.system()} {platform.release()}')
+
+          from utils.utils import encrypt_string, decrypt_string
+          result = encrypt_string('test_credential')
+          print(f'Encryption on macOS (expected plaintext): {result}')
+
+          from module.game_and_screen.screen import Handle, Screen
+          h = Handle()
+          hwnd = h.init_handle()
+          print(f'Handle.init_handle() returned: {hwnd}')
+
+          mods = [m for m in sys.modules.keys() if 'win32' in m]
+          if mods:
+              print(f'WARNING: Windows modules loaded: {mods}')
+          else:
+              print('No Windows-only modules loaded (OK)')
+          "
+
+  package:
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      version: dev-macos
+      target_os: macos

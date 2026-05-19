@@ -15,32 +15,36 @@ Features:
 - Press Ctrl+C to exit
 """
 
+import hashlib
 import os
+import platform
 import subprocess
 import sys
 import threading
 import time
-import hashlib
-
-# 解决 Windows DPI 缩放问题
-from ctypes import c_void_p, windll
 from pathlib import Path
 
-try:
-    # 1. 尝试 Win10 1703+ 的最强方案 (Per Monitor V2)
-    # -4 对应 DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
-    windll.user32.SetProcessDpiAwarenessContext(c_void_p(-4))
-except (AttributeError, OSError):
+_is_mac = platform.system() == "Darwin"
+
+if not _is_mac:
+    # 解决 Windows DPI 缩放问题
+    from ctypes import c_void_p, windll
+
     try:
-        # 2. 尝试 Win8.1+ 的方案 (Per Monitor)
-        # 2 对应 PROCESS_PER_MONITOR_DPI_AWARE
-        windll.shcore.SetProcessDpiAwareness(2)
+        # 1. 尝试 Win10 1703+ 的最强方案 (Per Monitor V2)
+        # -4 对应 DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+        windll.user32.SetProcessDpiAwarenessContext(c_void_p(-4))
     except (AttributeError, OSError):
         try:
-            # 3. 最后的兜底方案 (Win7/Vista)
-            windll.user32.SetProcessDPIAware()
-        except Exception:
-            pass
+            # 2. 尝试 Win8.1+ 的方案 (Per Monitor)
+            # 2 对应 PROCESS_PER_MONITOR_DPI_AWARE
+            windll.shcore.SetProcessDpiAwareness(2)
+        except (AttributeError, OSError):
+            try:
+                # 3. 最后的兜底方案 (Win7/Vista)
+                windll.user32.SetProcessDPIAware()
+            except Exception:
+                pass
 
 from module.logger import log
 

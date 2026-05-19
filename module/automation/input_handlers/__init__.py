@@ -132,3 +132,35 @@ class AbstractInput:
 
     def key_press(self, key) -> None:
         raise InterruptedError(f"未实现的输入方法 {self.__class__.__name__}.key_press")
+
+
+class NoOpInput(AbstractInput):
+    """非 Windows 且非模拟器模式下的占位输入实现。"""
+
+    def mouse_click(self, x, y, times=1, move_back=False) -> bool:
+        return False
+
+    def mouse_click_blank(self, coordinate=(1, 1), times=1, move_back=False) -> bool:
+        return False
+
+    def mouse_drag(self, x, y, drag_time=0.1, dx=0, dy=0, move_back=True, drag_profile=None) -> None:
+        return None
+
+    def mouse_drag_down(self, x, y, reverse=1, move_back=True) -> None:
+        return None
+
+    def mouse_drag_link(self, position: list, drag_time=0.1, move_back=False, drag_profile=None) -> None:
+        return None
+
+    def mouse_scroll(self, direction: int = -3) -> bool:
+        return False
+
+    def mouse_to_blank(self, coordinate=(1, 1), move_back=False) -> None:
+        return None
+
+    def key_press(self, key) -> None:
+        return None
+
+    def input_text(self, text: str):
+        if text:
+            log.warning("当前平台不支持直接窗口输入，已忽略输入请求")

@@ -37,6 +37,7 @@ parser.add_argument("--bridge-updater", action="store_true", help="Build legacy 
 parser.add_argument("--bootstrap-version", type=positive_int, default=2, help="Bootstrap protocol version")
 args = parser.parse_args()
 version = args.version
+is_windows = sys.platform == "win32"
 
 # 清理旧的构建文件
 shutil.rmtree("./dist", ignore_errors=True)
@@ -49,15 +50,17 @@ PyInstaller.__main__.run(
     ]
 )
 
-PyInstaller.__main__.run(
-    [
-        "updater.spec",
-        "--noconfirm",
-    ]
-)
+if is_windows:
+    PyInstaller.__main__.run(
+        [
+            "updater.spec",
+            "--noconfirm",
+        ]
+    )
 
 # 移动更新程序到主程序目录
-shutil.move(os.path.join("dist", "AALC Updater.exe"), os.path.join("dist", "AALC"))
+if is_windows:
+    shutil.move(os.path.join("dist", "AALC Updater.exe"), os.path.join("dist", "AALC"))
 
 # 拷贝必要的文件到dist目录
 shutil.copy("README.md", os.path.join("dist", "AALC", "README.md"))
@@ -118,7 +121,7 @@ try:
 
         # 子集化
         font = TTFont(font_path)
-        cmap = font.getBestCmap()
+        cmap = font.getBestCmap() or {}
         to_keep = sorted(cp for cp in (ord(c) for c in chars) if cp in cmap)
         opts = Options()
         opts.layout_features = []
@@ -321,19 +324,26 @@ update_manifest_path.write_text(
 )
 shutil.copyfile(update_manifest_path, Path("dist") / REMOTE_UPDATE_MANIFEST_ASSET)
 
-# 压缩为7z文件
-if args.bridge_updater:
-    subprocess.run(["7z", "a", "-mx=7", f"AALC_{version}.7z", "AALC/*"], cwd="./dist")
+# 压缩构建产物
+if is_windows:
+    if args.bridge_updater:
+        subprocess.run(["7z", "a", "-mx=7", f"AALC_{version}.7z", "AALC/*"], cwd="./dist", check=True)
+    else:
+        subprocess.run(["7z", "a", "-mx=7", f"../AALC_{version}.7z", "./*"], cwd="./dist/AALC", check=True)
+    archive_path = os.path.join("dist", f"AALC_{version}.7z")
 else:
-    subprocess.run(["7z", "a", "-mx=7", f"../AALC_{version}.7z", "./*"], cwd="./dist/AALC")
+    if args.bridge_updater:
+        raise SystemExit("--bridge-updater is supported on Windows only")
+    archive_base = os.path.join("dist", f"AALC_{version}_macos")
+    archive_path = shutil.make_archive(archive_base, "zip", root_dir="./dist", base_dir="AALC")
+    print(f"Created archive: {archive_path}")
 
-# 生成SHA256哈希文件，供更新程序校验下载完整性
-archive_path = os.path.join("dist", f"AALC_{version}.7z")
+# 生成SHA256哈希文件，供校验下载完整性
 sha256 = hashlib.sha256()
-with open(archive_path, "rb") as f:
-    for chunk in iter(lambda: f.read(65536), b""):
+with open(archive_path, "rb") as archive_file:
+    for chunk in iter(lambda: archive_file.read(65536), b""):
         sha256.update(chunk)
 hash_path = f"{archive_path}.sha256"
-with open(hash_path, "w") as f:
-    f.write(sha256.hexdigest())
+with open(hash_path, "w") as hash_file:
+    hash_file.write(sha256.hexdigest())
 print(f"SHA256: {hash_path}")

@@ -1,16 +1,21 @@
+import platform
 import time
-from ctypes import windll
 
 import cv2
-import pyautogui
-import pywintypes
-import win32gui
-import win32ui
 from PIL import Image
 
 from module.config import cfg
 from module.game_and_screen import screen
 from module.logger import log
+
+_is_windows = platform.system() == "Windows"
+
+if _is_windows:
+    from ctypes import windll
+
+    import pywintypes
+    import win32gui
+    import win32ui
 
 
 class ScreenShot:
@@ -76,7 +81,8 @@ class ScreenShot:
         Returns:
             PIL.Image: 截图图像
         """
-        # 设置DPI感知，避免缩放影响
+        if not _is_windows:
+            raise RuntimeError("GDI 截图仅在 Windows 上支持")
         windll.user32.SetProcessDPIAware()
 
         # 获取屏幕尺寸
@@ -153,16 +159,10 @@ class ScreenShot:
         Returns:
             screenshot: 截取的屏幕截图。
         """
+        import pyautogui
 
-        """# 如果move参数为True，则尝试移动鼠标到屏幕左上角
-        if move:
-            try:
-                pyautogui.moveTo(1, 1)
-            except:
-                pass"""
-
-        # 设置进程的DPI感知，以确保截图在不同DPI设置下正确显示
-        windll.user32.SetProcessDPIAware()
+        if _is_windows:
+            windll.user32.SetProcessDPIAware()
         # 进行全屏截图
         screenshot_temp = pyautogui.screenshot()
         if gray:
@@ -182,6 +182,8 @@ class ScreenShot:
 
     @staticmethod
     def background_screenshot(gray: bool = True) -> Image.Image:
+        if not _is_windows:
+            raise RuntimeError("后台截图仅在 Windows 上支持")
         # 定义所有需要清理的句柄/对象，以便在任何地方发生异常时可以清理
         hwnd_dc = None
         mfc_dc = None

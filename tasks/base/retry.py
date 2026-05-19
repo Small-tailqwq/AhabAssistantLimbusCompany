@@ -4,7 +4,9 @@ import time
 from time import sleep
 
 import psutil
-import win32process
+
+if platform.system() == "Windows":
+    import win32process
 
 from module.automation import auto
 from module.config import cfg

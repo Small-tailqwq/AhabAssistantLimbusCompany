@@ -1,8 +1,7 @@
+import platform
 from datetime import datetime, timedelta
 from time import sleep
 
-import win32con
-import win32gui
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
@@ -81,17 +80,22 @@ class ProductionWork(QThread):
 
     def _set_win(self):
         try:
+            if platform.system() != "Windows":
+                return
+            import win32con
+            import win32gui
+
             from module.game_and_screen import screen
 
             hwnd = screen.handle.hwnd
             win32gui.SetWindowPos(
-                hwnd,  # 目标窗口句柄
-                win32con.HWND_NOTOPMOST,  # 关键参数：取消置顶
+                hwnd,
+                win32con.HWND_NOTOPMOST,
                 0,
                 0,
                 0,
-                0,  # 忽略位置和大小（保持原样）
-                win32con.SWP_NOMOVE | win32con.SWP_NOSIZE,  # 标志位：不移动、不调整大小
+                0,
+                win32con.SWP_NOMOVE | win32con.SWP_NOSIZE,
             )
         except Exception as e:
             self.error_occurred.emit(f"窗口设置错误: {str(e)}")

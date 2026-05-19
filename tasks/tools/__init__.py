@@ -10,7 +10,6 @@ from tasks.base.script_task_scheme import init_game
 from tasks.tools.asset_manager import AssetManager
 from tasks.tools.infinite_battle import InfiniteBattles
 from tasks.tools.issue_replay import IssueReplay
-from tasks.tools.production_module import ProductionModule
 from tasks.tools.screenshot_module import ScreenshotGet
 
 
@@ -41,6 +40,7 @@ class ToolManager:
                 if self.tool == "battle":
                     self.w = InfiniteBattles()
                 elif self.tool == "production":
+                    from tasks.tools.production_module import ProductionModule
                     self.w = ProductionModule()
                 elif self.tool == "screenshot":
                     self.w = ScreenshotGet()

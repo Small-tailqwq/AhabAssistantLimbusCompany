@@ -1,4 +1,6 @@
 import os
+import platform
+import subprocess
 import webbrowser
 from time import sleep, time
 
@@ -6,6 +8,8 @@ import psutil
 
 from module.config import cfg
 from utils.singletonmeta import SingletonMeta
+
+_is_mac = platform.system() == "Darwin"
 
 
 class Game(metaclass=SingletonMeta):
@@ -53,12 +57,14 @@ class Game(metaclass=SingletonMeta):
             self.game_path_exists = False
 
         try:
-            # 调用系统打开该 URL（会触发 Steam 启动游戏）
             webbrowser.open(self.game_url)
             self.log.info("使用steam命令启动游戏")
             sleep(5)
             if not self.check_game_alive() and self.game_path_exists:
-                os.startfile(self.game_path)
+                if _is_mac:
+                    subprocess.Popen(["open", self.game_path])
+                else:
+                    os.startfile(self.game_path)
                 self.log.info(f"游戏启动：{self.game_path}")
             return True
         except Exception as e:

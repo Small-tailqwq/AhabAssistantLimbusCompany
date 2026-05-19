@@ -127,6 +127,16 @@ def to_get_reward():
 def init_game():
     log.debug("初始化游戏")
     stop_checker = auto.ensure_not_stopped
+    is_windows = platform.system() == "Windows"
+    if not is_windows:
+        if not cfg.simulator:
+            message = "当前平台暂不支持直接窗口自动化，请启用模拟器模式"
+            log.error(message)
+            raise cannotOperateGameError(message)
+        if cfg.simulator_type == 0:
+            message = "当前平台暂不支持 MuMu 模拟器自动化，请切换到通用 adb 模拟器"
+            log.error(message)
+            raise cannotOperateGameError(message)
     if cfg.simulator:
         stop_checker()
         if cfg.simulator_type == 0:

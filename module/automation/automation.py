@@ -1,5 +1,6 @@
 import gc
 import math
+import platform
 import random
 import time
 from ast import List
@@ -20,8 +21,10 @@ from ..logger import log
 from ..my_error.my_error import userStopError
 from ..ocr import ocr
 from .human_kinematics import HumanKinematics
-from .input_handlers.input import AbstractInput
+from .input_handlers import AbstractInput, NoOpInput
 from .screenshot import ScreenShot
+
+_is_windows = platform.system() == "Windows"
 
 
 @dataclass(frozen=True)
@@ -79,7 +82,7 @@ class Automation(metaclass=SingletonMeta):
 
                 log.debug("使用基于PyMiniTouch的通用模拟器输入模块")
                 self.input_handler = SimulatorControl.connection_device
-        else:
+        elif _is_windows:
             input_type = cfg.win_input_type
             if getattr(cfg, "lab_mouse_logitech", False):
                 from .input_handlers.logitech import LogitechInput
@@ -101,10 +104,16 @@ class Automation(metaclass=SingletonMeta):
 
                 log.debug("使用基于窗口移动的后台点击模块")
                 self.input_handler = WindowMoveInput()
+        else:
+            log.warning("非 Windows 平台且未启用模拟器，使用 NoOpInput 占位输入处理器")
+            self.input_handler = NoOpInput()
         if self.input_handler is None:
-            from .input_handlers.input import BackgroundInput
+            if _is_windows:
+                from .input_handlers.input import BackgroundInput
 
-            self.input_handler = BackgroundInput()
+                self.input_handler = BackgroundInput()
+            else:
+                self.input_handler = NoOpInput()
         assert isinstance(self.input_handler, AbstractInput), "输入处理器必须是AbstractInput的实例"
         self.input_handler.stop_checker = self.ensure_not_stopped
         self.mouse_click = self.input_handler.mouse_click
@@ -344,17 +353,18 @@ class Automation(metaclass=SingletonMeta):
             time.sleep(1)
             if time.time() - start_time > 60:
                 log.error("截图超时，尝试重启游戏")
-                import os
+                if _is_windows:
+                    import os
 
-                import win32process
+                    import win32process
 
-                from module.game_and_screen import screen
+                    from module.game_and_screen import screen
 
-                try:
-                    _, pid = win32process.GetWindowThreadProcessId(screen.handle.hwnd)
-                    os.system(f"taskkill /F /PID {pid}")
-                except Exception:
-                    pass
+                    try:
+                        _, pid = win32process.GetWindowThreadProcessId(screen.handle.hwnd)
+                        os.system(f"taskkill /F /PID {pid}")
+                    except Exception:
+                        pass
                 from tasks.base.script_task_scheme import init_game
 
                 init_game()
