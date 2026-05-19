@@ -62,15 +62,21 @@ if is_windows:
 if is_windows:
     shutil.move(os.path.join("dist", "AALC Updater.exe"), os.path.join("dist", "AALC"))
 
+# macOS 使用 .app bundle 内部路径
+if is_windows:
+    dist_app_root = Path("dist") / "AALC"
+else:
+    dist_app_root = Path("dist") / "AALC.app" / "Contents" / "MacOS"
+
 # 拷贝必要的文件到dist目录
-shutil.copy("README.md", os.path.join("dist", "AALC", "README.md"))
-shutil.copy("LICENSE", os.path.join("dist", "AALC", "LICENSE"))
-shutil.copytree("assets", os.path.join("dist", "AALC", "assets"), dirs_exist_ok=True)
+shutil.copy("README.md", str(dist_app_root / "README.md"))
+shutil.copy("LICENSE", str(dist_app_root / "LICENSE"))
+shutil.copytree("assets", str(dist_app_root / "assets"), dirs_exist_ok=True)
 
 # 将 assets 中的 PNG 无损转换为 WebP（减小包体）
 try:
     from PIL import Image
-    assets_dist = os.path.join("dist", "AALC", "assets")
+    assets_dist = str(dist_app_root / "assets")
     png_saved = 0
     png_converted = 0
     for root, dirs, files in os.walk(assets_dist):
@@ -99,7 +105,7 @@ try:
     from fontTools.subset import Subsetter, Options
     from fontTools.ttLib import TTFont
 
-    font_path = os.path.join("dist", "AALC", "assets", "app", "fonts", "ChineseFont.ttf")
+    font_path = str(dist_app_root / "assets" / "app" / "fonts" / "ChineseFont.ttf")
     if os.path.exists(font_path):
         # 收集源码中使用的 CJK 字符
         chars = set()
@@ -138,165 +144,82 @@ except ImportError:
     print("Warning: fonttools not available, skipping font subsetting")
 
 # 生成翻译文件
-os.makedirs(os.path.join("dist", "AALC", "i18n"), exist_ok=True)
+i18n_dst = dist_app_root / "i18n"
+i18n_dst.mkdir(parents=True, exist_ok=True)
 for ts_file in os.listdir("./i18n"):
     if ts_file.endswith(".ts"):
         qm_path = os.path.join("./i18n", ts_file.replace(".ts", ".qm"))
         subprocess.run(["pyside6-lrelease", os.path.join("./i18n", ts_file), "-qm", qm_path])
         print(f"Generated: {qm_path}")
-        shutil.move(qm_path, os.path.join("dist", "AALC", "i18n", ts_file.replace(".ts", ".qm")))
+        shutil.move(qm_path, str(i18n_dst / ts_file.replace(".ts", ".qm")))
 
-# 注入版本号到./dist/AALC/assets/config/version.txt
-os.makedirs(os.path.join("dist", "AALC", "assets", "config"), exist_ok=True)
-with open(
-    os.path.join("dist", "AALC", "assets", "config", "version.txt"),
-    "w",
-    encoding="utf-8",
-) as f:
-    f.write(version)
-
-dist_app_root = Path("dist") / "AALC"
+# 注入版本号
+assets_config = dist_app_root / "assets" / "config"
+assets_config.mkdir(parents=True, exist_ok=True)
+(assets_config / "version.txt").write_text(version, encoding="utf-8")
 bootstrap_version_path = dist_app_root / Path(*BOOTSTRAP_VERSION_PATH.split("/"))
 bootstrap_version_path.write_text(str(args.bootstrap_version), encoding="utf-8")
 
-# 裁剪多余的文件
-bundled_internal_dir = os.path.join("dist", "AALC", "_internal")
-redundant_files = [
-    # qt6自带的翻译文件，体积较大且不需要
-    "PySide6/translations",
-    # QML相关，我们用的是QtWidgets并不需要
-    "PySide6/Qt6Qml.dll",
-    "PySide6/Qt6Quick.dll",
-    "PySide6/Qt6QmlModels.dll",
-    "PySide6/Qt6QmlWorkerScript.dll",
-    "PySide6/Qt6QmlMeta.dll",
-    # opengl相关，我们用的是QtWidgets并不需要
-    "PySide6/Qt6OpenGL.dll",
-    "PySide6/opengl32sw.dll",  # 软件渲染库，没GPU的机器才需要
-    # 其他不需要的Qt模块
-    "PySide6/Qt6Pdf.dll",  # pdf文件
-    "PySide6/Qt6Network.dll",  # 网络相关
-    "PySide6/QtNetwork.pyd",
-    # Qt Designer（设计器，运行时不需要）
-    "PySide6/Qt6Designer.dll",
-    "PySide6/Qt6DesignerComponents.dll",
-    # Qt 图表相关（AALC 不用）
-    "PySide6/Qt6Charts.dll",
-    "PySide6/Qt6ChartsQml.dll",
-    "PySide6/Qt6DataVisualization.dll",
-    "PySide6/Qt6DataVisualizationQml.dll",
-    "PySide6/Qt6Graphs.dll",
-    "PySide6/Qt6GraphsWidgets.dll",
-    # Qt 3D 全套（AALC 不用）
-    "PySide6/Qt63DCore.dll",
-    "PySide6/Qt63DRender.dll",
-    "PySide6/Qt63DInput.dll",
-    "PySide6/Qt63DLogic.dll",
-    "PySide6/Qt63DAnimation.dll",
-    "PySide6/Qt63DExtras.dll",
-    "PySide6/Qt63DQuick.dll",
-    "PySide6/Qt63DQuickExtras.dll",
-    "PySide6/Qt63DQuickInput.dll",
-    "PySide6/Qt63DQuickRender.dll",
-    "PySide6/Qt63DQuickScene2D.dll",
-    "PySide6/Qt63DQuickScene3D.dll",
-    "PySide6/Qt63DQuickAnimation.dll",
-    "PySide6/Qt6Quick3D.dll",
-    "PySide6/Qt6Quick3DAssetImport.dll",
-    "PySide6/Qt6Quick3DAssetUtils.dll",
-    "PySide6/Qt6Quick3DEffects.dll",
-    "PySide6/Qt6Quick3DGlslParser.dll",
-    "PySide6/Qt6Quick3DHelpers.dll",
-    "PySide6/Qt6Quick3DHelpersImpl.dll",
-    "PySide6/Qt6Quick3DIblBaker.dll",
-    "PySide6/Qt6Quick3DParticles.dll",
-    "PySide6/Qt6Quick3DParticleEffects.dll",
-    "PySide6/Qt6Quick3DRuntimeRender.dll",
-    "PySide6/Qt6Quick3DSpatialAudio.dll",
-    "PySide6/Qt6Quick3DUtils.dll",
-    "PySide6/Qt6Quick3DXr.dll",
-    # Qt 测试/帮助/文档（运行时不需要）
-    "PySide6/Qt6Test.dll",
-    "PySide6/Qt6Help.dll",
-    # Qt 位置/定位/传感器
-    "PySide6/Qt6Location.dll",
-    "PySide6/Qt6Positioning.dll",
-    "PySide6/Qt6PositioningQuick.dll",
-    "PySide6/Qt6Sensors.dll",
-    "PySide6/Qt6SensorsQuick.dll",
-    # Qt 串口/蓝牙/NFC
-    "PySide6/Qt6SerialBus.dll",
-    "PySide6/Qt6SerialPort.dll",
-    "PySide6/Qt6Bluetooth.dll",
-    "PySide6/Qt6Nfc.dll",
-    # Qt 虚拟键盘
-    "PySide6/Qt6VirtualKeyboard.dll",
-    "PySide6/Qt6VirtualKeyboardSettings.dll",
-    "PySide6/Qt6VirtualKeyboardQml.dll",
-    # Qt 语音合成
-    "PySide6/Qt6TextToSpeech.dll",
-    # Qt WebChannel / WebSockets
-    "PySide6/Qt6WebChannel.dll",
-    "PySide6/Qt6WebChannelQuick.dll",
-    "PySide6/Qt6WebSockets.dll",
-    # Qt 状态机
-    "PySide6/Qt6StateMachine.dll",
-    "PySide6/Qt6StateMachineQml.dll",
-    # Qt 数据库（AALC 不用）
-    "PySide6/Qt6Sql.dll",
-    "PySide6/plugins/sqldrivers/qsqlite.dll",
-    # Qt 其他不用的模块
-    "PySide6/Qt6Concurrent.dll",
-    "PySide6/Qt6Scxml.dll",
-    "PySide6/Qt6ScxmlQml.dll",
-    "PySide6/Qt6RemoteObjects.dll",
-    "PySide6/Qt6RemoteObjectsQml.dll",
-    "PySide6/Qt6UiTools.dll",
-    "PySide6/Qt6ShaderTools.dll",
-    # Qt Quick 相关剩余
-    "PySide6/Qt6QuickWidgets.dll",
-    "PySide6/Qt6QuickLayouts.dll",
-    "PySide6/Qt6QuickShapes.dll",
-    "PySide6/Qt6QuickTimeline.dll",
-    "PySide6/Qt6QuickTimelineBlendTrees.dll",
-    "PySide6/Qt6QuickParticles.dll",
-    "PySide6/Qt6QuickEffects.dll",
-    "PySide6/Qt6QuickTest.dll",
-    "PySide6/Qt6QuickVectorImage.dll",
-    "PySide6/Qt6QuickVectorImageGenerator.dll",
-    # Qt 打印支持
-    "PySide6/Qt6PrintSupport.dll",
-    # Qt 多媒体相关
-    "PySide6/Qt6Multimedia.dll",
-    "PySide6/Qt6MultimediaQuick.dll",
-    "PySide6/Qt6MultimediaWidgets.dll",
-    "PySide6/Qt6SpatialAudio.dll",
-    "PySide6/avcodec-61.dll",
-    "PySide6/avformat-61.dll",
-    "PySide6/avutil-59.dll",
-    "PySide6/swscale-8.dll",
-    "PySide6/swresample-5.dll",
-    "PySide6/ffmpegmediaplugin.dll",
-    "PySide6/windowsmediaplugin.dll",
-    # rapidocr自带的模型文件，我们只用PPV4模型，可以删掉V5的
-    "rapidocr/models/ch_PP-OCRv5_rec_mobile_infer.onnx",
-    "rapidocr/models/ch_PP-OCRv5_mobile_det.onnx",
-    # rapidocr用来可视化识别结果的字体，我们不用这个功能
-    "rapidocr/models/FZYTK.TTF",
-    # opencv的videoio插件，我们不需要
-    "cv2/opencv_videoio_ffmpeg4110_64.dll",
-    # PIL AVIF 支持（7.5MB），不需要
-    "PIL/_avif.cp313-win_amd64.pyd",
-]
-
-for rel_path in redundant_files:
-    abs_path = os.path.join(bundled_internal_dir, rel_path)
-    if os.path.isdir(abs_path):
-        shutil.rmtree(abs_path, ignore_errors=True)
-    elif os.path.isfile(abs_path):
-        os.remove(abs_path)
-    else:
-        print(f"Warning: {abs_path} not found.")
+if is_windows:
+    bundled_internal_dir = str(dist_app_root / "_internal")
+    redundant_files = [
+        "PySide6/translations",
+        "PySide6/Qt6Qml.dll", "PySide6/Qt6Quick.dll",
+        "PySide6/Qt6QmlModels.dll", "PySide6/Qt6QmlWorkerScript.dll", "PySide6/Qt6QmlMeta.dll",
+        "PySide6/Qt6OpenGL.dll", "PySide6/opengl32sw.dll",
+        "PySide6/Qt6Pdf.dll", "PySide6/Qt6Network.dll", "PySide6/QtNetwork.pyd",
+        "PySide6/Qt6Designer.dll", "PySide6/Qt6DesignerComponents.dll",
+        "PySide6/Qt6Charts.dll", "PySide6/Qt6ChartsQml.dll",
+        "PySide6/Qt6DataVisualization.dll", "PySide6/Qt6DataVisualizationQml.dll",
+        "PySide6/Qt6Graphs.dll", "PySide6/Qt6GraphsWidgets.dll",
+        "PySide6/Qt63DCore.dll", "PySide6/Qt63DRender.dll", "PySide6/Qt63DInput.dll",
+        "PySide6/Qt63DLogic.dll", "PySide6/Qt63DAnimation.dll", "PySide6/Qt63DExtras.dll",
+        "PySide6/Qt63DQuick.dll", "PySide6/Qt63DQuickExtras.dll", "PySide6/Qt63DQuickInput.dll",
+        "PySide6/Qt63DQuickRender.dll", "PySide6/Qt63DQuickScene2D.dll", "PySide6/Qt63DQuickScene3D.dll",
+        "PySide6/Qt63DQuickAnimation.dll",
+        "PySide6/Qt6Quick3D.dll", "PySide6/Qt6Quick3DAssetImport.dll", "PySide6/Qt6Quick3DAssetUtils.dll",
+        "PySide6/Qt6Quick3DEffects.dll", "PySide6/Qt6Quick3DGlslParser.dll",
+        "PySide6/Qt6Quick3DHelpers.dll", "PySide6/Qt6Quick3DHelpersImpl.dll",
+        "PySide6/Qt6Quick3DIblBaker.dll", "PySide6/Qt6Quick3DParticles.dll",
+        "PySide6/Qt6Quick3DParticleEffects.dll", "PySide6/Qt6Quick3DRuntimeRender.dll",
+        "PySide6/Qt6Quick3DSpatialAudio.dll", "PySide6/Qt6Quick3DUtils.dll", "PySide6/Qt6Quick3DXr.dll",
+        "PySide6/Qt6Test.dll", "PySide6/Qt6Help.dll",
+        "PySide6/Qt6Location.dll", "PySide6/Qt6Positioning.dll", "PySide6/Qt6PositioningQuick.dll",
+        "PySide6/Qt6Sensors.dll", "PySide6/Qt6SensorsQuick.dll",
+        "PySide6/Qt6SerialBus.dll", "PySide6/Qt6SerialPort.dll",
+        "PySide6/Qt6Bluetooth.dll", "PySide6/Qt6Nfc.dll",
+        "PySide6/Qt6VirtualKeyboard.dll", "PySide6/Qt6VirtualKeyboardSettings.dll", "PySide6/Qt6VirtualKeyboardQml.dll",
+        "PySide6/Qt6TextToSpeech.dll",
+        "PySide6/Qt6WebChannel.dll", "PySide6/Qt6WebChannelQuick.dll", "PySide6/Qt6WebSockets.dll",
+        "PySide6/Qt6StateMachine.dll", "PySide6/Qt6StateMachineQml.dll",
+        "PySide6/Qt6Sql.dll", "PySide6/plugins/sqldrivers/qsqlite.dll",
+        "PySide6/Qt6Concurrent.dll", "PySide6/Qt6Scxml.dll", "PySide6/Qt6ScxmlQml.dll",
+        "PySide6/Qt6RemoteObjects.dll", "PySide6/Qt6RemoteObjectsQml.dll",
+        "PySide6/Qt6UiTools.dll", "PySide6/Qt6ShaderTools.dll",
+        "PySide6/Qt6QuickWidgets.dll", "PySide6/Qt6QuickLayouts.dll", "PySide6/Qt6QuickShapes.dll",
+        "PySide6/Qt6QuickTimeline.dll", "PySide6/Qt6QuickTimelineBlendTrees.dll",
+        "PySide6/Qt6QuickParticles.dll", "PySide6/Qt6QuickEffects.dll",
+        "PySide6/Qt6QuickTest.dll", "PySide6/Qt6QuickVectorImage.dll", "PySide6/Qt6QuickVectorImageGenerator.dll",
+        "PySide6/Qt6PrintSupport.dll",
+        "PySide6/Qt6Multimedia.dll", "PySide6/Qt6MultimediaQuick.dll", "PySide6/Qt6MultimediaWidgets.dll",
+        "PySide6/Qt6SpatialAudio.dll",
+        "PySide6/avcodec-61.dll", "PySide6/avformat-61.dll", "PySide6/avutil-59.dll",
+        "PySide6/swscale-8.dll", "PySide6/swresample-5.dll",
+        "PySide6/ffmpegmediaplugin.dll", "PySide6/windowsmediaplugin.dll",
+        "rapidocr/models/ch_PP-OCRv5_rec_mobile_infer.onnx",
+        "rapidocr/models/ch_PP-OCRv5_mobile_det.onnx",
+        "rapidocr/models/FZYTK.TTF",
+        "cv2/opencv_videoio_ffmpeg4110_64.dll",
+        "PIL/_avif.cp313-win_amd64.pyd",
+    ]
+    for rel_path in redundant_files:
+        abs_path = os.path.join(bundled_internal_dir, rel_path)
+        if os.path.isdir(abs_path):
+            shutil.rmtree(abs_path, ignore_errors=True)
+        elif os.path.isfile(abs_path):
+            os.remove(abs_path)
+        else:
+            print(f"Warning: {abs_path} not found.")
 
 managed_files = collect_managed_files(dist_app_root, DEFAULT_PROTECTED_PATHS)
 managed_files_text = "\n".join(managed_files)
@@ -335,8 +258,44 @@ else:
     if args.bridge_updater:
         raise SystemExit("--bridge-updater is supported on Windows only")
     archive_base = os.path.join("dist", f"AALC_{version}_macos")
-    archive_path = shutil.make_archive(archive_base, "zip", root_dir="./dist", base_dir="AALC")
+    archive_path = shutil.make_archive(archive_base, "zip", root_dir="./dist", base_dir="AALC.app")
     print(f"Created archive: {archive_path}")
+
+# macOS: 添加文件后重新签名 .app bundle
+if not is_windows:
+    _app_bundle = str(dist_app_root.parent.parent)
+    _cert = subprocess.run(
+        ["security", "find-identity", "-v", "-p", "basic"],
+        capture_output=True, text=True,
+    )
+    _sign_id = "-"
+    for _line in _cert.stdout.splitlines():
+        if "\"Apple Development:" in _line:
+            _sign_id = _line.split('"')[1]
+            break
+    subprocess.run(
+        ["codesign", "--force", "--deep", "--sign", _sign_id, _app_bundle],
+        check=True,
+        capture_output=True,
+    )
+    print(f"Signed .app bundle with: {_sign_id}")
+
+    # 生成启动脚本 AALC.command（双击在终端运行，绕过 Gatekeeper）
+    command_path = os.path.join("dist", "AALC.command")
+    with open(command_path, "w") as f:
+        f.write(
+            '#!/bin/bash\n'
+            'cd "$(dirname "$0")/AALC.app/Contents/MacOS"\n'
+            './AALC\n'
+        )
+    os.chmod(command_path, 0o755)
+    print(f"Created launch script: {command_path}")
+
+    # 首次使用提示
+    print("\n===== macOS 启动说明 =====")
+    print("双击 dist/AALC.command 启动（会打开终端窗口）")
+    print("或右键 dist/AALC.app → 打开（首次需在弹窗中确认）")
+    print("或终端执行: open dist/AALC.app/Contents/MacOS/AALC")
 
 # 生成SHA256哈希文件，供校验下载完整性
 sha256 = hashlib.sha256()
