@@ -39,9 +39,9 @@ class Config(metaclass=SingletonMeta):
         # 加载默认配置
         self.config = ConfigModel()
         # 获取用户的配置文件路径
-        self.config_path = Path(config_path)
+        self.config_path = Path(config_path).resolve()
         # 保存含有注释的yaml文件的路径
-        self.example_path = Path(example_path)
+        self.example_path = Path(example_path).resolve()
 
         # 加载实际配置，此方法会根据实际配置覆盖默认配置
         self._load_config()
@@ -222,9 +222,11 @@ class Config(metaclass=SingletonMeta):
         # 拷贝快照后在锁外写盘，避免长时间持锁
         with self._lock:
             snapshot = self.config.model_dump()
-        example_yaml = self._load_default_config()
-        # 从快照更新到yaml对象，保持注释不变
-        example_yaml.update(snapshot)
+        try:
+            example_yaml = self._load_default_config()
+            example_yaml.update(snapshot)
+        except (FileNotFoundError, SystemExit):
+            example_yaml = snapshot
 
         with open(self.config_path, "w", encoding="utf-8") as file:
             self.yaml.dump(example_yaml, file)
