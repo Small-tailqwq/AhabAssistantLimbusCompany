@@ -184,6 +184,8 @@ class AssetGridWidget(QListWidget):
             dirpath = os.path.dirname(os.path.abspath(abspath))
             if sys.platform == "win32":
                 os.startfile(dirpath)
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", dirpath])
             else:
                 subprocess.Popen(["xdg-open", dirpath])
 

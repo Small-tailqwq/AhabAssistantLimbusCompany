@@ -719,8 +719,16 @@ class SettingInterface(QWidget):
 
     def __onOpenLogsCardClicked(self):
         import os
+        import platform
+        import subprocess
 
-        os.startfile(os.path.abspath("./logs"))
+        log_dir = os.path.abspath("./logs")
+        if platform.system() == "Darwin":
+            subprocess.run(["open", log_dir])
+        elif platform.system() == "Windows":
+            os.startfile(log_dir)
+        else:
+            subprocess.run(["xdg-open", log_dir], check=False)
 
     def __refreshDebugCardVisibility(self):
         debug_enabled = bool(cfg.get_value("debug_mode", False))
