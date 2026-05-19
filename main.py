@@ -4,6 +4,12 @@ import socket
 import sys
 import threading
 
+# 在导入任何模块之前设置工作目录，确保相对路径（如 ./assets/、./config.yaml）正确解析
+if getattr(sys, "frozen", False):
+    os.chdir(os.path.dirname(sys.executable))
+else:
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
 _is_mac = platform.system() == "Darwin"
 
 if _is_mac:
@@ -51,11 +57,6 @@ else:
 from app.language_manager import LanguageManager
 from app.my_app import MainWindow, _mac_rounded_icon
 from module.config import cfg
-
-# 将当前工作目录设置为程序所在的目录，确保无论从哪里执行，其工作目录都正确设置为程序本身的位置，避免路径错误。
-os.chdir(
-    os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(os.path.abspath(__file__))
-)
 
 # 获取管理员权限 (Windows only)
 if not _is_mac:

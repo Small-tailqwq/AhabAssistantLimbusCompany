@@ -148,12 +148,13 @@ class Logger(metaclass=SingletonMeta):
             console_handler.setFormatter(console_formatter)
             console_handler.setLevel(logging.DEBUG)
 
-            # 创建日志目录
-            os.makedirs("./logs", exist_ok=True)
+            # 创建日志目录（使用 bundle 根目录而非 CWD，避免从 Finder 启动时 CWD 为 /）
+            _log_base = Path(sys._MEIPASS if hasattr(sys, "_MEIPASS") else ".").resolve()
+            os.makedirs(_log_base / "logs", exist_ok=True)
 
             # debug日志文件，按文件大小切割
             debug_file_handler = SettingConcurrentRotatingFileHandler(
-                "./logs/debugLog.log",
+                str(_log_base / "logs" / "debugLog.log"),
                 maxBytes=5 * 1024 * 1024,  # 每份 5 MB
                 backupCount=10,  # 最多保留 10 份
                 encoding="utf-8",

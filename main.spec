@@ -28,7 +28,7 @@ for v in yaml_paths:
 add_data = list(set(yaml_add_data + onnx_add_data))
 
 is_windows = platform.system() == "Windows"
-app_icon = "./assets/logo/my_icon_256X256.ico" if is_windows else "./assets/logo/my_icon.icns"
+app_icon = "./assets/logo/my_icon_256X256.ico" if is_windows else "./assets/logo/canary.icns"
 
 a = Analysis(
     ["main.py"],
@@ -89,7 +89,7 @@ if not is_windows:
     app = BUNDLE(
         coll,
         name="AALC.app",
-        icon="./assets/logo/my_icon.icns",
+        icon="./assets/logo/canary.icns",
         bundle_identifier="com.kiyi671.ahab-assistant-limbus-company",
         info_plist={
             "NSHighResolutionCapable": True,
