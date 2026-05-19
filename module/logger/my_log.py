@@ -19,11 +19,18 @@ from utils.singletonmeta import SingletonMeta
 class TranslationFormatter(colorlog.ColoredFormatter):
     """自定义日志格式化器，用于日志消息国际化"""
 
-    project_root = Path(sys._MEIPASS) if hasattr(sys, "_MEIPASS") else Path.cwd()
+    project_root = (
+        Path(sys._MEIPASS).resolve()
+        if hasattr(sys, "_MEIPASS")
+        else Path.cwd().resolve()
+    )
 
     def format(self, record):
         record.msg = QApplication.translate("Logger", str(record.msg))
-        record.pathname = os.path.relpath(record.pathname, self.project_root)
+        try:
+            record.pathname = os.path.relpath(record.pathname, self.project_root)
+        except (ValueError, OSError):
+            pass
 
         return super().format(record)
 
