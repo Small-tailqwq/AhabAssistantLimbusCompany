@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
 from module.automation import auto
 from module.config import cfg
 from module.game_and_screen import screen
-from module.hotkey_listener import ExactGlobalHotKeys
+from module.hotkey_listener import ExactGlobalHotKeys as _KeyListener
 from module.logger import log
 from tasks.battle.battle import Battle
 from utils.path_manager import path_manager
@@ -95,17 +95,22 @@ class InfiniteBattles(QWidget):
 
         # 启动快捷键监听
         try:
-            self.listener = ExactGlobalHotKeys(
+            self.listener = _KeyListener(
                 {
                     cfg.shutdown_hotkey: self._on_stop_shortcut,
                 }
             )
+            self.listener.start()
         except ValueError:
             log.error("快捷键监听启动失败，请确认设置的快捷键格式有效")
             self.listener = None
+        except Exception:
+            log.warning("全局快捷键初始化失败（macOS 需在 系统设置→隐私与安全性→辅助功能 中授权此应用）")
+            self.listener = None
 
-        if self.listener:
-            self.listener.start()
+        from module.system_actions import request_macos_accessibility_permission
+
+        request_macos_accessibility_permission()
 
     def setup_ui(self):
         """配置窗口的基本属性和界面元素。"""

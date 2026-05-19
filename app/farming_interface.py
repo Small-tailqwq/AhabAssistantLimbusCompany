@@ -386,6 +386,9 @@ class FarmingInterface(QWidget):
         except ValueError:
             self.listener = None
             log.error("快捷键监听启动失败，请确认设置的快捷键格式有效")
+        except Exception:
+            self.listener = None
+            log.warning("全局快捷键初始化失败（macOS 需在 系统设置→隐私与安全性→辅助功能 中授权此应用）")
 
     def my_stop_shortcut(self):
         mediator.link_start.emit()
