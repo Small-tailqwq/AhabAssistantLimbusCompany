@@ -292,6 +292,10 @@ class ImageUtils:
         template = cv2.resize(template_img, None, fx=2, fy=2, interpolation=cv2.INTER_LINEAR)
         target = cv2.resize(target_img, None, fx=2, fy=2, interpolation=cv2.INTER_LINEAR)
 
+        # 确保数组内存连续（PIL→numpy 转换可能出现非连续视图）
+        template = np.ascontiguousarray(template)
+        target = np.ascontiguousarray(target)
+
         # 使用ORB特征检测器
         orb = cv2.ORB_create(nfeatures=1000, scaleFactor=1.2, edgeThreshold=10)
 
