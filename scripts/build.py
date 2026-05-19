@@ -260,15 +260,16 @@ else:
 
     # macOS: PyInstaller BUNDLE 将数据文件放入 Contents/Resources/，
     # 但 Python 模块在 Contents/MacOS/，某些包（如 rapidocr）通过
-    # __file__ 相对路径查找数据文件，需将资源同步到 MacOS/ 目录。
+    # __file__ 相对路径查找数据文件，需将特定资源同步到 MacOS/ 目录。
     resources_dir = dist_app_root.parent / "Resources"
-    macos_dir = dist_app_root / "Contents" / "MacOS"
-    for data_dir in resources_dir.iterdir():
-        if data_dir.is_dir():
-            target = macos_dir / data_dir.name
+    macos_dir = dist_app_root
+    for _pkg in ("rapidocr",):
+        src = resources_dir / _pkg
+        if src.is_dir():
+            target = macos_dir / _pkg
             if not target.exists():
-                shutil.copytree(data_dir, target, symlinks=False)
-                print(f"Linked resources: {data_dir.name} -> MacOS/")
+                shutil.copytree(src, target, symlinks=False)
+                print(f"Synced resources: {_pkg} -> MacOS/")
 
     archive_base = os.path.join("dist", f"AALC_{version}_macos")
     archive_path = shutil.make_archive(archive_base, "zip", root_dir="./dist", base_dir="AALC.app")
