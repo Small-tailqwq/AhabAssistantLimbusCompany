@@ -9,11 +9,12 @@ from PySide6.QtCore import (
     QEvent,
     QLocale,
     QRect,
+    QRectF,
     Qt,
     QThread,
     QTimer,
 )
-from PySide6.QtGui import QAction, QCursor, QIcon
+from PySide6.QtGui import QAction, QCursor, QIcon, QPainter, QPainterPath, QPixmap, QRegion
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -87,6 +88,43 @@ class TrayRoundMenu(RoundMenu):
             super().mouseReleaseEvent(e)
 
 
+def _mac_rounded_icon(path: str) -> QIcon:
+    """Load an icon and round its corners for macOS Dock appearance."""
+    if sys.platform != "darwin":
+        return QIcon(path)
+    src = QPixmap(path)
+    if src.isNull():
+        return QIcon(path)
+    icon = QIcon()
+    # Each entry: (pixel_size, device_pixel_ratio)
+    # macOS interprets display size = pixel_size / dpr.
+    # Standard dock icon ≈ 64pt → provide 64px@1x (non-retina) and 128px@2x (retina).
+    for px_size, dpr in (
+        (16, 1.0),
+        (32, 1.0),
+        (64, 1.0),
+        (128, 2.0),
+    ):
+        if px_size > max(src.width(), src.height()):
+            continue
+        px = QPixmap(px_size, px_size)
+        px.setDevicePixelRatio(dpr)
+        px.fill(Qt.transparent)
+        p = QPainter(px)
+        p.setRenderHint(QPainter.Antialiasing)
+        clip = QPainterPath()
+        r = max(px_size * 0.15, 4)
+        clip.addRoundedRect(QRectF(0, 0, px_size, px_size), r, r)
+        p.setClipPath(clip)
+        scaled = src.scaled(px_size, px_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        x = (px_size - scaled.width()) // 2
+        y = (px_size - scaled.height()) // 2
+        p.drawPixmap(x, y, scaled)
+        p.end()
+        icon.addPixmap(px)
+    return icon
+
+
 # 使用无框窗口
 class MainWindow(FramelessWindow):
     def __init__(self, argv: list[str]):
@@ -96,7 +134,7 @@ class MainWindow(FramelessWindow):
         apply_font_config()
 
         self.setTitleBar(StandardTitleBar(self))
-        self.setWindowIcon(QIcon("./assets/logo/canary.ico"))
+        self.setWindowIcon(_mac_rounded_icon("./assets/logo/canary.png"))
         self.setWindowTitle(f"Ahab Assistant Limbus Company - {cfg.version}")
         self.setObjectName("MainWindow")
         setThemeColor("#9c080b")
@@ -184,6 +222,8 @@ class MainWindow(FramelessWindow):
 
         self.connect_mediator()
 
+        self._apply_mac_rounded_corners()
+
         self.show()
 
         # 开发模式下不检查更新
@@ -233,7 +273,7 @@ class MainWindow(FramelessWindow):
     def init_system_tray(self):
         self.tray_menu = None
         self.tray_icon = QSystemTrayIcon(self)
-        self.tray_icon.setIcon(QIcon("./assets/logo/canary.ico"))
+        self.tray_icon.setIcon(_mac_rounded_icon("./assets/logo/canary.png"))
         self.tray_icon.activated.connect(self.on_tray_icon_activated)
         self.tray_icon.show()
 
@@ -380,7 +420,12 @@ class MainWindow(FramelessWindow):
         mainWindow_style = get_main_window_style(is_dark)
         titleBar_style = get_title_bar_style(is_dark)
 
-        self.setStyleSheet(f"MainWindow {{ background-color: {mainWindow_style['bg_color']}; }}")
+        if sys.platform == "darwin":
+            self.setStyleSheet(
+                f"MainWindow {{ background-color: {mainWindow_style['bg_color']}; border-radius: 10px; }}"
+            )
+        else:
+            self.setStyleSheet(f"MainWindow {{ background-color: {mainWindow_style['bg_color']}; }}")
         self.titleBar.titleLabel.setStyleSheet(
             f"QLabel {{ background: transparent; font-size: 13px; padding: 0 4px; color: {titleBar_style['text_color']}; }}"
         )
@@ -390,6 +435,17 @@ class MainWindow(FramelessWindow):
             btn.setPressedColor(titleBar_style["btn_color"])
         if not is_dark:
             self.titleBar.closeBtn.setHoverColor(Qt.white)
+
+    def _apply_mac_rounded_corners(self):
+        if sys.platform != "darwin":
+            return
+        path = QPainterPath()
+        path.addRoundedRect(QRectF(self.rect()), 10, 10)
+        self.setMask(QRegion(path.toFillPolygon().toPolygon()))
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._apply_mac_rounded_corners()
 
     def closeEvent(self, e):
         # 保存窗口位置

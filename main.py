@@ -6,7 +6,29 @@ import threading
 
 _is_mac = platform.system() == "Darwin"
 
-if not _is_mac:
+if _is_mac:
+    # macOS: 修复 qframelesswindow 标准窗口按钮为 None 时的崩溃
+    # 使用 _MacFramelessWindowBase__nsWindow 绕过 Python 名称改写
+    _NSWIN = "_MacFramelessWindowBase__nsWindow"
+    try:
+        import Cocoa as _Cocoa
+        import qframelesswindow.mac as _qfw_mac
+        def _patched_set_visible(self, isVisible):
+            self._isSystemButtonVisible = isVisible
+            _nswin = object.__getattribute__(self, _NSWIN)
+            _nswin.setShowsToolbarButton_(isVisible)
+            isHidden = not isVisible
+            for _btn_type in (_Cocoa.NSWindowCloseButton, _Cocoa.NSWindowZoomButton,
+                              _Cocoa.NSWindowMiniaturizeButton):
+                _btn = _nswin.standardWindowButton_(_btn_type)
+                if _btn is not None:
+                    _btn.setHidden_(isHidden)
+            if isVisible:
+                self._updateSystemButtonRect()
+        _qfw_mac.MacFramelessWindowBase.setSystemTitleBarButtonVisible = _patched_set_visible
+    except ImportError:
+        pass
+else:
     # 解决 Windows DPI 缩放问题
     from ctypes import c_void_p, windll
 
@@ -27,7 +49,7 @@ if not _is_mac:
                 pass
 
 from app.language_manager import LanguageManager
-from app.my_app import MainWindow
+from app.my_app import MainWindow, _mac_rounded_icon
 from module.config import cfg
 
 # 将当前工作目录设置为程序所在的目录，确保无论从哪里执行，其工作目录都正确设置为程序本身的位置，避免路径错误。
@@ -47,7 +69,6 @@ if not _is_mac:
             sys.exit(1)
 
 from PySide6.QtCore import QObject, Qt, QTimer, Signal
-from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
@@ -104,7 +125,7 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
     app.setAttribute(Qt.AA_DontCreateNativeWidgetSiblings)
-    app.setWindowIcon(QIcon("./assets/logo/canary.ico"))
+    app.setWindowIcon(_mac_rounded_icon("./assets/logo/canary.png"))
 
     # 创建主窗口
     ui = MainWindow(sys.argv)
