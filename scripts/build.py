@@ -267,13 +267,18 @@ else:
     # 但 Python 模块在 Contents/MacOS/，某些包（如 rapidocr）通过
     # __file__ 相对路径查找数据文件，需将资源同步到 MacOS/ 目录。
     resources_dir = dist_app_root.parent / "Resources"
-    macos_dir = dist_app_root / "Contents" / "MacOS"
-    for data_dir in resources_dir.iterdir():
-        if data_dir.is_dir():
-            target = macos_dir / data_dir.name
-            if not target.exists():
-                shutil.copytree(data_dir, target, symlinks=True)
-                print(f"Linked resources: {data_dir.name} -> MacOS/")
+    macos_dir = dist_app_root
+    frameworks_dir = dist_app_root.parent / "Frameworks"
+    for _pkg in ("rapidocr", "certifi"):
+        src = resources_dir / _pkg
+        if not src.is_dir():
+            continue
+        for target in (macos_dir / _pkg, frameworks_dir / _pkg):
+            if target.is_dir() and any(target.iterdir()):
+                print(f"Skipped {_pkg} -> Contents/{target.relative_to(dist_app_root.parent)} (already exists)")
+                continue
+            shutil.copytree(src, target, symlinks=False)
+            print(f"Synced resources: {_pkg} -> Contents/{target.relative_to(dist_app_root.parent)}")
 
     archive_base = os.path.join("dist", f"AALC_{version}_macos")
     archive_path = shutil.make_archive(archive_base, "zip", root_dir="./dist", base_dir="AALC.app")
