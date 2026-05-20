@@ -37,6 +37,7 @@ from app.base_combination import (
 from app.card.messagebox_custom import BaseInfoBar
 from app.common.ui_config import get_setting_interface_qss
 from app.language_manager import SUPPORTED_LANG_NAME, LanguageManager
+from app import mediator
 from app.theme_pack_setting_interface import ThemePackSettingDialog
 from app.widget.setting_nav import SettingNav
 from module.config import cfg, theme_list
@@ -527,6 +528,7 @@ class SettingInterface(QWidget):
         self.__onWinInputTypeChanged()
         self.autostart_card.switchButton.checkedChanged.connect(self.__onAutostartCardChanged)
         self.theme_card.valueChanged.connect(self.__onThemeCardChanged)
+        self.simulator_setting_card.switchButton.checkedChanged.connect(self.__onSimulatorModeChanged)
 
         self.github_card.clicked.connect(self.__openUrl("https://github.com/KIYI671/AhabAssistantLimbusCompany"))
         self.discord_group_card.clicked.connect(self.__openUrl("https://discord.gg/vUAw98cEVe"))
@@ -702,3 +704,6 @@ class SettingInterface(QWidget):
             setTheme(Theme.LIGHT)
         elif theme_mode == "DARK":
             setTheme(Theme.DARK)
+
+    def __onSimulatorModeChanged(self, is_checked: bool):
+        mediator.simulator_mode_changed.emit(is_checked)

@@ -25,6 +25,7 @@ class Mediator(QObject):
     mirror_bar_kill_signal = Signal()
     hotkey_listener_stop_signal = Signal()
     hotkey_listener_start_signal = Signal()
+    simulator_mode_changed = Signal(bool)  # 模拟器模式开关变更
 
     # 单例实例（类变量）
     _instance = None

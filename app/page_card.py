@@ -113,6 +113,8 @@ class PageSetWindows(PageCard):
         self.__init_card()
         self.__init_layout()
         self.setObjectName("page_set_windows")
+        self.update_simulator_mode()
+        mediator.simulator_mode_changed.connect(self._on_simulator_mode_changed)
 
     def __init_card(self):
         self.win_size = LabelWithComboBox(
@@ -175,6 +177,15 @@ class PageSetWindows(PageCard):
         self.use_post_message.retranslateUi()
 
         super().retranslateUi()
+
+    def update_simulator_mode(self):
+        is_simulator = cfg.simulator
+        self.win_size.setEnabled(not is_simulator)
+        self.win_position.setVisible(not is_simulator)
+        self.recovery_window.setVisible(not is_simulator)
+
+    def _on_simulator_mode_changed(self, is_checked: bool):
+        self.update_simulator_mode()
 
 
 class PageDailyTask(PageCard):
