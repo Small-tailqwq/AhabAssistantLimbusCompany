@@ -4,36 +4,20 @@ on:
   pull_request:
     branches:
       - main
-    paths: # 仅源码/依赖/构建配置变更才触发 CI
-      - "app/**/*.py"
-      - "tasks/**/*.py"
-      - "module/**/*.py"
-      - "utils/**/*.py"
-      - "scripts/*.py"
-      - "uv.lock"
-      - "pyproject.toml"
-      - "requirements.txt"
-      - "main.spec"
-      - "updater.spec"
-      - "scripts/build.py"
   push:
     branches:
       - main
-    paths: # 仅源码/依赖/构建配置变更才触发 CI
-      - "app/**/*.py"
-      - "tasks/**/*.py"
-      - "module/**/*.py"
-      - "utils/**/*.py"
-      - "scripts/*.py"
-      - "uv.lock"
-      - "pyproject.toml"
-      - "requirements.txt"
-      - "main.spec"
-      - "updater.spec"
-      - "scripts/build.py"
+      - 1.4.13-mactest
 
 jobs:
-  build:
+  build-windows:
     uses: ./.github/workflows/reusable-build.yml
     with:
       version: ${{ github.sha }}
+      target_os: windows
+
+  build-macos:
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      version: ${{ github.sha }}
+      target_os: macos
