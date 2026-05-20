@@ -269,9 +269,12 @@ def Daily_task_wrapper(get_reward=None):
 
 
 def Buy_enkephalin():
+    times = cfg.set_lunacy_to_enkephalin
+    if times == 0:
+        return
     auto.ensure_not_stopped()
     back_init_menu()
-    lunacy_to_enkephalin(times=cfg.set_lunacy_to_enkephalin)
+    lunacy_to_enkephalin(times=times)
 
 
 def Mirror_task():

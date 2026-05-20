@@ -1,4 +1,4 @@
-from time import sleep
+from time import monotonic, sleep
 from typing import TYPE_CHECKING, Callable, overload
 
 import win32api
@@ -19,17 +19,39 @@ class Handle:
 
     _hwnd: int = 0
     _transparent = False
+    _last_title: str = "LimbusCompany"
+    _last_class_name: str = "UnityWndClass"
+    _last_no_hwnd_log_time: float = 0.0
+    _last_invalid_hwnd_log_time: float = 0.0
 
     def init_handle(self, title: str = "LimbusCompany", class_name: str = "UnityWndClass") -> int:
         """获取窗口句柄"""
+        self._last_title = title
+        self._last_class_name = class_name
         self._hwnd = win32gui.FindWindow(class_name, title)
         return self._hwnd
 
     @property
     def hwnd(self) -> int:
         """获取窗口句柄"""
+        now = monotonic()
         if self._hwnd == 0:
-            log.warning("窗口未初始化", stacklevel=3)
+            if now - self._last_no_hwnd_log_time >= 1:
+                log.warning("窗口未初始化", stacklevel=3)
+                self._last_no_hwnd_log_time = now
+        elif not win32gui.IsWindow(self._hwnd):
+            should_log_invalid = now - self._last_invalid_hwnd_log_time >= 1
+            if should_log_invalid:
+                log.warning("窗口句柄无效，可能窗口已关闭，重新获取", stacklevel=3)
+                self._last_invalid_hwnd_log_time = now
+            self.init_handle(self._last_title, self._last_class_name)
+            if win32gui.IsWindow(self._hwnd):
+                if should_log_invalid:
+                    log.info("重新获取窗口句柄成功", stacklevel=3)
+            else:
+                if should_log_invalid:
+                    log.error("重新获取窗口句柄失败", stacklevel=3)
+                self._hwnd = 0
         return self._hwnd
 
     @property

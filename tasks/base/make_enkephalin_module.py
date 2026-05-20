@@ -82,7 +82,7 @@ def get_current_enkephalin():
 
 
 @begin_and_finish_time_log(task_name="体力换饼", calculate_time=False)
-def make_enkephalin_module(cancel=True, skip=True, close_when_disabled=True):
+def make_enkephalin_module(cancel=True, skip=True, close_when_disabled=True, *, task_name: str = "体力换饼"):
     """体力换饼的模块
     Args:
         cancel (bool): 是否点击取消按钮 (即关闭换体界面)
@@ -95,12 +95,20 @@ def make_enkephalin_module(cancel=True, skip=True, close_when_disabled=True):
     start_time = time.time()
     last_log_time = None
     first_popup_warning = True
+    # Windows 后台输入在该界面的模板匹配稳定性较差，使用更宽松阈值避免反复回点入口
+    use_lunacy_threshold = 0.8 if cfg.simulator else 0.45
+    all_in_threshold = 0.8 if cfg.simulator else 0.5
+    popup_marker_threshold = 0.7 if cfg.simulator else 0.55
+    open_panel_click_cooldown = 0.5 if cfg.simulator else 1.2
+    last_open_panel_click_time = 0.0
 
     while True:
         now_time = time.time()
+        if auto.get_restore_time() is not None:
+            start_time = max(start_time, auto.get_restore_time())
         if 60 > now_time - start_time > 20 and int(now_time - start_time) % 10 == 0:
             if last_log_time is None or now_time - last_log_time > 5:
-                msg = f"已尝试狂气换体超过{int(now_time - start_time)}秒，如果非电脑硬件配置不足，请确认是否执行了正确的语言配置"
+                msg = f"已尝试{task_name}超过{int(now_time - start_time)}秒，如果非电脑硬件配置不足，请确认是否执行了正确的语言配置"
                 log.warning(msg)
                 last_log_time = now_time
         if now_time - start_time > 60:
@@ -109,14 +117,16 @@ def make_enkephalin_module(cancel=True, skip=True, close_when_disabled=True):
             if first_popup_warning and (last_log_time is None or now_time - last_log_time > 5):
                 # only do it once
                 first_popup_warning = False
-                log.warning("已尝试狂气换体超过1分钟，脚本将停止运行，请先检查语言配置，或检查电脑配置是否支持")
+                log.warning(f"已尝试{task_name}超过1分钟，脚本将停止运行，请先检查语言配置，或检查电脑配置是否支持")
                 mediator.link_start.emit()
-                message = "脚本卡死在狂气换体，请检查语言配置，或检查电脑配置是否支持"
+                message = f"脚本卡死在{task_name}，请检查语言配置，或检查电脑配置是否支持"
                 mediator.warning.emit(message)
         # 自动截图
         if auto.take_screenshot() is None:
             continue
-        auto.mouse_to_blank()
+        # Windows 后台输入下，持续把鼠标移到(1,1)会给用户造成“左上角狂点”的观感，且对后台点击无帮助
+        if cfg.simulator or cfg.win_input_type != "background":
+            auto.mouse_to_blank()
         if auto.find_element("base/update_close_assets.png", model="clam") and auto.find_element(
             "home/drive_assets.png", model="normal"
         ):
@@ -135,11 +145,28 @@ def make_enkephalin_module(cancel=True, skip=True, close_when_disabled=True):
             back_init_menu()
             start_time = time.time()
             continue
-        if auto.find_element("enkephalin/use_lunacy_assets.png") is None:
-            if auto.click_element("home/enkephalin_box_assets.png", threshold=0.75):
-                sleep(0.5)
+        panel_visible = bool(
+            auto.find_element("enkephalin/use_lunacy_assets.png", threshold=use_lunacy_threshold)
+            or auto.find_element("enkephalin/enkephalin_cancel_assets.png", threshold=popup_marker_threshold)
+            or auto.find_element("enkephalin/all_in_disabled_assets.png", threshold=popup_marker_threshold)
+            or auto.find_element("enkephalin/all_in_assets.png", threshold=all_in_threshold)
+        )
+        if not panel_visible:
+            if now_time - last_open_panel_click_time >= open_panel_click_cooldown and auto.click_element(
+                "home/enkephalin_box_assets.png",
+                threshold=0.75,
+                offset=False,
+            ):
+                last_open_panel_click_time = now_time
+                sleep(0.8 if not cfg.simulator else 0.5)
             continue
-        if auto.click_element("enkephalin/all_in_assets.png", check_gray=True, gray_saturation_threshold=15, gray_brightness_threshold=65):
+        if auto.click_element(
+            "enkephalin/all_in_assets.png",
+            threshold=all_in_threshold,
+            check_gray=True,
+            gray_saturation_threshold=15,
+            gray_brightness_threshold=65,
+        ):
             sleep(0.2)
             if auto.take_screenshot() is None:
                 continue
@@ -148,15 +175,11 @@ def make_enkephalin_module(cancel=True, skip=True, close_when_disabled=True):
                 auto.click_element("enkephalin/enkephalin_cancel_assets.png")
             return True
         return handle_disabled_module_exchange(cancel, close_when_disabled=close_when_disabled)
-        if auto.take_screenshot() is None:
-            continue
-        log.debug("未识别到脑啡肽模块兑换按钮状态，等待界面稳定后重试")
-        sleep(0.5)
 
 
 @begin_and_finish_time_log(task_name="狂气换体", calculate_time=False)
 def lunacy_to_enkephalin(times=0):
-    make_enkephalin_module(cancel=False, skip=False, close_when_disabled=False)
+    make_enkephalin_module(cancel=False, skip=False, close_when_disabled=False, task_name="狂气换体")
     auto.click_element("enkephalin/use_lunacy_assets.png")
     sleep(0.5)
     Grandet = False

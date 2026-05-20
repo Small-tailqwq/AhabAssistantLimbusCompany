@@ -8,6 +8,7 @@ import win32process
 
 from module.automation import auto
 from module.config import cfg
+from module.game_and_screen import screen
 from module.logger import log
 from utils.utils import check_game_running
 
@@ -29,26 +30,29 @@ def kill_game():
             SimulatorControl.connection_device.close_current_app()
         return
     if platform.system() == "Windows":
-        from module.game_and_screen import screen
-
         _, pid = win32process.GetWindowThreadProcessId(screen.handle.hwnd)
         os.system(f"taskkill /F /PID {pid}")
     sleep(10)
+    wait_start = time.time()
     while True:
-        kill = False
+        game_running = False
         for proc in psutil.process_iter(["name"]):
             try:
                 # 获取进程的可执行文件名（如 "notepad.exe"）
                 proc_name = proc.info["name"]
-                # 精确匹配进程名（区分大小写，取决于系统）
-                if cfg.game_process_name not in proc_name:
-                    kill = True
+                # 仅当遍历后找不到任何游戏进程时，才认为游戏已退出
+                if proc_name and cfg.game_process_name.lower() in proc_name.lower():
+                    game_running = True
                     break
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 # 忽略已终止、无权限或僵尸进程
                 continue
-        if kill:
+        if not game_running:
             break
+        if time.time() - wait_start > 30:
+            log.warning("等待游戏进程退出超时(30s)，继续后续流程")
+            break
+        sleep(1)
 
 
 def check_times(start_time, timeout=90, logs=True):
@@ -83,13 +87,20 @@ def retry(skip_screenshot=False):
     _last_retry_time = now
 
     start_time = now
+    saved_hwnd = screen.handle.hwnd
     while True:
+        current_hwnd = screen.handle.hwnd
+        if current_hwnd != saved_hwnd:
+            # 窗口句柄发生变化时重置卡死计时，避免误判后触发不必要重启
+            saved_hwnd = current_hwnd
+            start_time = time.time()
         if auto.get_restore_time() is not None:
             start_time = max(start_time, auto.get_restore_time())
         if check_times(start_time):
             return False
-        if auto.take_screenshot() is None:
-            continue
+        if not skip_screenshot or auto.screenshot is None:
+            if auto.take_screenshot() is None:
+                continue
         if auto.find_element("base/connecting_assets.png"):
             continue
         if position := auto.find_element("base/retry_countdown.png"):
