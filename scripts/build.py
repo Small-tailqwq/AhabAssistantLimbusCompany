@@ -273,10 +273,14 @@ else:
     frameworks_dir = dist_app_root.parent / "Frameworks"
     for _pkg in ("rapidocr", "certifi"):
         src = resources_dir / _pkg
-        if src.is_dir():
-            for target in (macos_dir / _pkg, frameworks_dir / _pkg):
-                shutil.copytree(src, target, dirs_exist_ok=True, symlinks=False)
-                print(f"Synced resources: {_pkg} -> Contents/{target.relative_to(dist_app_root.parent)}")
+        if not src.is_dir():
+            continue
+        for target in (macos_dir / _pkg, frameworks_dir / _pkg):
+            if target.is_dir() and any(target.iterdir()):
+                print(f"Skipped {_pkg} -> Contents/{target.relative_to(dist_app_root.parent)} (already exists)")
+                continue
+            shutil.copytree(src, target, symlinks=False)
+            print(f"Synced resources: {_pkg} -> Contents/{target.relative_to(dist_app_root.parent)}")
 
     archive_base = os.path.join("dist", f"AALC_{version}_macos")
     archive_path = shutil.make_archive(archive_base, "zip", root_dir="./dist", base_dir="AALC.app")
