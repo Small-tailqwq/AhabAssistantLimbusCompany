@@ -328,6 +328,8 @@ class Screen(metaclass=SingletonMeta):
 
     def reduce_miscontact(self, pos_style: str) -> None:
         """通过调整窗口置顶减少误触"""
+        if win32gui is None:
+            return
         # 获取适用于win32gui与win32con的窗口句柄
         hwnd = self.handle.hwnd
 
@@ -370,6 +372,8 @@ class Screen(metaclass=SingletonMeta):
 
     def adjust_win_size(self, set_win_size: tuple[int, int] = (1920, 1080)) -> None:
         """调整窗口大小"""
+        if win32gui is None:
+            return
         hwnd = self.handle.hwnd
         client_width, client_height = set_win_size
 
@@ -405,7 +409,7 @@ class Screen(metaclass=SingletonMeta):
 
     def adjust_win_position(self, set_win_position: str = "free") -> None:
         """调整窗口位置"""
-        if set_win_position == "free":
+        if win32gui is None or set_win_position == "free":
             return
         hwnd = self.handle.hwnd
         monitor_info = self.handle.monitor_info
@@ -475,6 +479,8 @@ class Screen(metaclass=SingletonMeta):
 
         任务结束链路会传 activate=False，只恢复窗口样式，不重新抢占前台焦点。
         """
+        if win32gui is None:
+            return False
         try:
             hwnd = self.handle.hwnd
             log.debug(f"开始重置游戏窗口，activate={activate}")

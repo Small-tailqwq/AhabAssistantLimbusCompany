@@ -199,6 +199,7 @@ class MNTConnection(object):
 
         # build connection
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client.settimeout(10.0)
         client.connect((self._DEFAULT_HOST, self.port))
         self.client = client
 

@@ -77,7 +77,9 @@ class BattleWorker(QThread):
 
             if not self.background_click:
                 cfg.set_value("background_click", True)
-            screen.set_win()
+            import sys as _sys
+            if _sys.platform != "darwin":
+                screen.set_win()
         except Exception as e:
             self.error_occurred.emit(f"窗口设置错误: {str(e)}")
 
@@ -108,9 +110,7 @@ class InfiniteBattles(QWidget):
             log.warning("全局快捷键初始化失败（macOS 需在 系统设置→隐私与安全性→辅助功能 中授权此应用）")
             self.listener = None
 
-        from module.system_actions import request_macos_accessibility_permission
 
-        request_macos_accessibility_permission()
 
     def setup_ui(self):
         """配置窗口的基本属性和界面元素。"""
@@ -199,15 +199,18 @@ class InfiniteBattles(QWidget):
             if self.worker.background_click is False:
                 cfg.set_value("background_click", False)
             self.worker.stop()
-            self.worker.wait(1000)  # 等待1秒
-            if self.worker.isRunning():
-                self.worker.terminate()
-                self.worker.wait(1000)
+            if not self.worker.wait(15000):  # 等待最多15秒 (socket 超时10s + 余量)
+                log.warning("战斗线程未能在15秒内正常结束，跳过强制终止以避免ADB连接残留")
             self.defense_box.setDisabled(False)
             self.defense_on_turn1_box.setDisabled(False)
             self.not_choose_event_box.setDisabled(False)
             screen.reset_win()
             auto.clear_img_cache()
+            if cfg.simulator:
+                from module.automation.input_handlers.simulator.simulator_control import (
+                    SimulatorControl,
+                )
+                SimulatorControl.clean_connect()
 
     def toggle_battle(self):
         """切换战斗状态"""
@@ -248,6 +251,11 @@ class InfiniteBattles(QWidget):
                 screen.reset_win()
                 auto.clear_img_cache()
                 self.listener.stop()
+            if cfg.simulator:
+                from module.automation.input_handlers.simulator.simulator_control import (
+                    SimulatorControl,
+                )
+                SimulatorControl.clean_connect()
         except Exception:
             # 忽略清理异常，避免影响关闭
             pass
