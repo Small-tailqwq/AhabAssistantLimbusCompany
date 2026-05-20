@@ -198,13 +198,38 @@ class SimulatorControl(AbstractInput):
 
     def screenshot(self):
         import struct
+        import subprocess
 
-        data = self.simulator_device.shell(["screencap"], stream=False, encoding=None)
-        if len(data) < 500:
-            log.warning(f"意外截图: {data}")
-        w, h = struct.unpack_from("<II", data)
-        pixels = np.frombuffer(data, dtype=np.uint8, offset=8, count=w * h * 4)
+        adb = self._adb_binary()
+        raw = subprocess.check_output([adb, "-s", self.simulator_port, "shell", "screencap"])
+        if len(raw) < 500:
+            log.warning(f"意外截图: {raw}")
+        w, h = struct.unpack_from("<II", raw)
+        pixels = np.frombuffer(raw, dtype=np.uint8, offset=8, count=w * h * 4)
         return pixels.reshape((h, w, 4))[:, :, :3]
+
+    _adb_path = None
+
+    @classmethod
+    def _adb_binary(cls):
+        if cls._adb_path is not None:
+            return cls._adb_path
+        import os
+        import shutil
+
+        candidates = [
+            shutil.which("adb"),
+            "/Applications/MuMuPlayer.app/Contents/MacOS/MuMuEmulator.app/Contents/MacOS/tools/adb",
+            os.path.expanduser("~/Library/Android/sdk/platform-tools/adb"),
+            "/opt/homebrew/bin/adb",
+        ]
+        for c in candidates:
+            if c and os.path.isfile(c):
+                cls._adb_path = c
+                return c
+        from adbutils import adb_path  # may raise if not found
+        cls._adb_path = adb_path()
+        return cls._adb_path
 
     def set_pause(self) -> None:
         """

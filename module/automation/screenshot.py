@@ -347,25 +347,43 @@ class ScreenShot:
     @staticmethod
     def _adb_direct_benchmark(test_time: int) -> tuple[bool, float]:
         """临时 ADB 直连截图测试（无需启动任务）"""
-        from adbutils import adb
+        import subprocess
 
+        adb = ScreenShot._adbb()
         port = f"127.0.0.1:{int(cfg.simulator_port)}"
-        msg = adb.connect(port)
-        if "connected" not in msg:
-            log.info(f"无法连接到ADB设备 {port}: {msg}")
-            return False, 0.0
-        device = adb.device(port)
         start_time = time.time()
         for _ in range(test_time):
-            data = device.shell(["screencap"], stream=False, encoding=None)
-            if len(data) < 500:
-                raise RuntimeError(f"screencap 返回异常: {data}")
-            w, h = struct.unpack_from("<II", data)
-            assert len(data) >= w * h * 4 + 8
+            raw = subprocess.check_output([adb, "-s", port, "shell", "screencap"])
+            if len(raw) < 500:
+                raise RuntimeError(f"screencap 返回异常: {raw}")
+            w, h = struct.unpack_from("<II", raw)
+            assert len(raw) >= w * h * 4 + 8
         end_time = time.time()
         avg_time = (end_time - start_time) / test_time * 1000
         log.info(f"截图性能测试(ADB直连): {test_time}次截图平均耗时 {avg_time:.2f} ms")
         return True, avg_time
+
+    _adb_bin = None
+
+    @staticmethod
+    def _adbb():
+        if ScreenShot._adb_bin is not None:
+            return ScreenShot._adb_bin
+        import os
+        import shutil
+        candidates = [
+            shutil.which("adb"),
+            "/Applications/MuMuPlayer.app/Contents/MacOS/MuMuEmulator.app/Contents/MacOS/tools/adb",
+            os.path.expanduser("~/Library/Android/sdk/platform-tools/adb"),
+            "/opt/homebrew/bin/adb",
+        ]
+        for c in candidates:
+            if c and os.path.isfile(c):
+                ScreenShot._adb_bin = c
+                return c
+        from adbutils import adb_path
+        ScreenShot._adb_bin = adb_path()
+        return ScreenShot._adb_bin
 
     @staticmethod
     def mumu_screenshot(gray: bool = True) -> Image.Image:
