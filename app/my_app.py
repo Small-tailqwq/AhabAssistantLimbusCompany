@@ -13,7 +13,7 @@ from PySide6.QtCore import (
     QThread,
     QTimer,
 )
-from PySide6.QtGui import QAction, QCursor, QIcon
+from PySide6.QtGui import QAction, QCursor, QIcon, QPainter, QPainterPath, QPixmap, QRectF
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -90,6 +90,34 @@ class TrayRoundMenu(RoundMenu):
 
 
 # 使用无框窗口
+def _mac_rounded_icon(path: str) -> QIcon:
+    """Load an icon and round its corners for macOS Dock appearance."""
+    if sys.platform != "darwin":
+        return QIcon(path)
+    src = QPixmap(path)
+    if src.isNull():
+        return QIcon(path)
+    icon = QIcon()
+    for logical_size in (16, 32, 64, 128):
+        if logical_size > max(src.width(), src.height()):
+            continue
+        px = QPixmap(logical_size, logical_size)
+        px.fill(Qt.transparent)
+        p = QPainter(px)
+        p.setRenderHint(QPainter.Antialiasing)
+        clip = QPainterPath()
+        r = max(logical_size * 0.15, 4)
+        clip.addRoundedRect(QRectF(0, 0, logical_size, logical_size), r, r)
+        p.setClipPath(clip)
+        scaled = src.scaled(logical_size, logical_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        x = (logical_size - scaled.width()) // 2
+        y = (logical_size - scaled.height()) // 2
+        p.drawPixmap(x, y, scaled)
+        p.end()
+        icon.addPixmap(px)
+    return icon
+
+
 class MainWindow(FramelessWindow):
     def __init__(self, argv: list[str]):
         super().__init__()
@@ -98,7 +126,7 @@ class MainWindow(FramelessWindow):
         apply_font_config()
 
         self.setTitleBar(StandardTitleBar(self))
-        self.setWindowIcon(QIcon("./assets/logo/my_icon_256X256.ico"))
+        self.setWindowIcon(_mac_rounded_icon("./assets/logo/my_icon_256X256.ico"))
         self.setWindowTitle(f"Ahab Assistant Limbus Company - {cfg.version}")
         self.setObjectName("MainWindow")
         setThemeColor("#9c080b")
