@@ -150,7 +150,11 @@ class MainWindow(FramelessWindow):
         self.progress_ring = ProgressRing(self)
         self.progress_ring.hide()
 
-        self.resize(1080, 600)
+        _screen_geo = self.screen().availableGeometry()
+        _ratio = 0.65
+        _new_w = min(1080, max(800, int(_screen_geo.width() * _ratio)))
+        _new_h = min(600, max(450, int(_screen_geo.height() * _ratio)))
+        self.resize(_new_w, _new_h)
         # 恢复窗口位置
         saved_x = cfg.get_value("window_position_x", None)
         saved_y = cfg.get_value("window_position_y", None)
