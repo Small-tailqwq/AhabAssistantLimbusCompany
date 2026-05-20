@@ -346,7 +346,7 @@ class ConfigModel(BaseModel):
     simulator_type: int = 0
     """0:mumu, 10:其他"""
 
-    simulator_port: int = 0
+    simulator_port: int = 16384
     """端口"""
 
     mumu_instance_number: int = -1

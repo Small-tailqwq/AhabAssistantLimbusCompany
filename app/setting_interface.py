@@ -175,15 +175,23 @@ class SettingInterface(QWidget):
             "simulator",
             parent=self.simulator_setting_group,
         )
+        _is_mac = platform.system() == "Darwin"
+        simulator_type_texts = (
+            {
+                QT_TRANSLATE_NOOP("ComboBoxSettingCard", "其他模拟器"): 10,
+            }
+            if _is_mac
+            else {
+                QT_TRANSLATE_NOOP("ComboBoxSettingCard", "MuMu模拟器(推荐)"): 0,
+                QT_TRANSLATE_NOOP("ComboBoxSettingCard", "其他模拟器"): 10,
+            }
+        )
         self.simulator_type_setting_card = ComboBoxSettingCard(
             "simulator_type",
             FIF.APPLICATION,
             QT_TRANSLATE_NOOP("ComboBoxSettingCard", "模拟器连接配置"),
             QT_TRANSLATE_NOOP("ComboBoxSettingCard", "选择使用的模拟器"),
-            texts={
-                QT_TRANSLATE_NOOP("ComboBoxSettingCard", "MuMu模拟器(推荐)"): 0,
-                QT_TRANSLATE_NOOP("ComboBoxSettingCard", "其他模拟器"): 10,
-            },
+            texts=simulator_type_texts,
             parent=self.simulator_setting_group,
         )
         self.simulator_port_chance_card = PushSettingCardChance(
@@ -195,15 +203,18 @@ class SettingInterface(QWidget):
             content="",
             parent=self.simulator_setting_group,
         )
-        self.start_emulator_timeout_chance_card = PushSettingCardChance(
-            QT_TRANSLATE_NOOP("PushSettingCardChance", "修改"),
-            FIF.TRAIN,
-            QT_TRANSLATE_NOOP("PushSettingCardChance", "仅限MUMU模拟器——启动模拟器超时时间(秒)"),
-            config_name="start_emulator_timeout",
-            max_value=3600,
-            content="",
-            parent=self.simulator_setting_group,
-        )
+        if _is_mac and cfg.simulator_type == 0:
+            cfg.set_value("simulator_type", 10)
+        if not _is_mac:
+            self.start_emulator_timeout_chance_card = PushSettingCardChance(
+                QT_TRANSLATE_NOOP("PushSettingCardChance", "修改"),
+                FIF.TRAIN,
+                QT_TRANSLATE_NOOP("PushSettingCardChance", "仅限MUMU模拟器——启动模拟器超时时间(秒)"),
+                config_name="start_emulator_timeout",
+                max_value=3600,
+                content="",
+                parent=self.simulator_setting_group,
+            )
 
         self.game_path_group = BaseSettingCardGroup(
             QT_TRANSLATE_NOOP("BaseSettingCardGroup", "启动游戏"), self.scroll_widget
@@ -430,7 +441,8 @@ class SettingInterface(QWidget):
         self.simulator_setting_group.addSettingCard(self.simulator_setting_card)
         self.simulator_setting_group.addSettingCard(self.simulator_type_setting_card)
         self.simulator_setting_group.addSettingCard(self.simulator_port_chance_card)
-        self.simulator_setting_group.addSettingCard(self.start_emulator_timeout_chance_card)
+        if hasattr(self, "start_emulator_timeout_chance_card"):
+            self.simulator_setting_group.addSettingCard(self.start_emulator_timeout_chance_card)
 
         self.game_path_group.addSettingCard(self.game_path_card)
         self.game_path_group.addSettingCard(self.autostart_card)
@@ -680,7 +692,8 @@ class SettingInterface(QWidget):
         self.simulator_setting_card.retranslateUi()
         self.simulator_type_setting_card.retranslateUi()
         self.simulator_port_chance_card.retranslateUi()
-        self.start_emulator_timeout_chance_card.retranslateUi()
+        if hasattr(self, "start_emulator_timeout_chance_card"):
+            self.start_emulator_timeout_chance_card.retranslateUi()
         self.game_path_card.retranslateUi()
         self.game_path_group.retranslateUi()
         self.autodaily_group.retranslateUi()
