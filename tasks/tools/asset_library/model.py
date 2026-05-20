@@ -222,6 +222,8 @@ class AssetLibraryModel:
         existing_files: dict[str, dict] = {}
         for cat in _CATEGORY_YAMLS:
             for asset in self._load_yaml(cat):
+                if asset.get("status") == "archived":
+                    continue
                 existing_files[asset["file"]] = asset
 
         found = set()
@@ -302,10 +304,16 @@ class AssetLibraryModel:
                 assets = self._load_yaml(cat)
                 found_cat = False
                 for asset in assets:
-                    if asset.get("file") == file_path:
+                    if asset.get("file") == file_path and asset.get("status") != "archived":
                         old = item["old"]
                         old["status"] = "archived"
-                        assets.append(old)
+                        if not any(
+                            a.get("file") == old["file"]
+                            and a.get("status") == "archived"
+                            and a.get("checksum") == old.get("checksum")
+                            for a in assets
+                        ):
+                            assets.append(old)
                         asset["checksum"] = item["new_checksum"]
                         self._dirty.add(cat)
                         found_cat = True
@@ -323,7 +331,24 @@ class AssetLibraryModel:
                 uc_assets.append(asset)
             self._dirty.add("uncategorized")
 
+        for cat in self._dirty:
+            self._dedup_archived(cat)
+
         self.flush_dirty()
+
+    def _dedup_archived(self, category: str) -> None:
+        assets = self._load_yaml(category)
+        seen: set[tuple[str, str]] = set()
+        keep: list[int] = []
+        for i, asset in enumerate(assets):
+            if asset.get("status") == "archived":
+                key = (asset["file"], asset.get("checksum", ""))
+                if key in seen:
+                    continue
+                seen.add(key)
+            keep.append(i)
+        if len(keep) != len(assets):
+            self._assets_cache[category] = [assets[i] for i in keep]
 
     # --- Cache ---
 
