@@ -11,9 +11,12 @@ uv run python .\main_dev.py                              # 开发运行（热重
 uv run python .\main_dev.py --no-reload                  # 开发运行（无热重载）
 uv run ruff check .                                      # Lint
 uv run python -m py_compile path\to\file.py              # 语法检查
+uv run python -m unittest discover -s tests -p "test_*.py" -v  # 运行 tests/ 自动化回归
 uv run python .\scripts\build.py --version dev           # 构建
 uv run python .\scripts\translation_files_build.py       # 刷新 ts 源
 uv run python .\scripts\translation_files_compile.py     # 编译 ts → qm
+uv run python .\scripts\check_i18n.py --update           # i18n 完整性检查（与 CI 一致）
+uv run python .\scripts\export-requirements-from-uv-lock.py  # 从 uv.lock 刷新 requirements.txt
 
 ## 日志分析工具
 uv run python .opencode/tools/log_analyzer.py <log>      # 日志压缩报告
@@ -25,7 +28,8 @@ uv run python .opencode/tools/mirror_analyzer.py <logs>  # 镜牢耗时分析（
 ## 项目现实
 
 - Windows-only 桌面自动化，Python 3.12+，`uv` 管理
-- 无自动化测试套件；`test/` 下是手动脚本，依赖真实游戏/OBS/模拟器
+- `tests/` 下有 `unittest` 自动化用例；统一入口见上方 `unittest discover` 命令
+- `test/` 下仍是手动脚本，依赖真实游戏/OBS/模拟器
 - `ruff` 已配置；遗留模块已有预存警告（通配符导入、裸 `except`），功能开发中不做无关清理
 
 ## 更新发布约束
