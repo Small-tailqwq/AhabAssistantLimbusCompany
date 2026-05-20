@@ -24,9 +24,80 @@ uv run python .opencode/tools/mirror_analyzer.py <logs>  # 镜牢耗时分析（
 
 ## 项目现实
 
-- Windows-only 桌面自动化，Python 3.12+，`uv` 管理
+- Windows 桌面自动化（主）+ macOS 兼容，Python 3.12+，`uv` 管理
 - 无自动化测试套件；`test/` 下是手动脚本，依赖真实游戏/OBS/模拟器
 - `ruff` 已配置；遗留模块已有预存警告（通配符导入、裸 `except`），功能开发中不做无关清理
+
+## macOS 构建与开发注意事项
+
+### macOS 构建只在 CI 上验证，本地不可行
+
+- 本项目 macOS 构建依赖 GitHub Actions `macos-latest` runner，本地 Mac 无法复现 CI 构建（PyInstaller 版本、macOS SDK 版本、Python 构建环境均不同）
+- **本地测试通过不代表 CI 能通过**，反之亦然。每次修改必须等待 CI 构建产物验证
+
+### PyInstaller BUNDLE 的 .app 内部布局（血的教训）
+
+macOS 上 PyInstaller 用 `BUNDLE` 而非 `COLLECT` 模式，目录结构完全不同：
+
+```
+AALC.app/Contents/
+├── MacOS/              ← 可执行文件 + sys._MEIPASS 指向这里
+├── Resources/          ← a.datas 的实际位置（rapidocr 的 yaml/onnx 等）
+├── Frameworks/         ← base_library.zip + .so 扩展（__file__ 指向这里）
+├── Info.plist
+└── _CodeSignature/
+```
+
+**核心矛盾**：`rapidocr` 和 `certifi` 通过 `Path(__file__).resolve().parent.parent / "data.yaml"` 定位数据文件。但 frozen 模式下 `__file__` 合成路径指向 `Contents/Frameworks/<pkg>/`，而数据文件实际在 `Contents/Resources/<pkg>/`。`Frameworks/` 下只有 PyInstaller 创建的空目录壳。
+
+### 运行时修复方案（已验证通过）
+
+不依赖构建时 sync（已经被证明不可靠），而是改在 `main.py` 中、import rapidocr 前把数据从 Resources 复制到 Frameworks：
+
+```python
+if getattr(sys, "frozen", False) and _is_mac:
+    _resources_dir = os.path.join(os.path.dirname(os.path.dirname(sys.executable)), "Resources")
+    _frameworks_dir = os.path.join(os.path.dirname(os.path.dirname(sys.executable)), "Frameworks")
+    for _pkg in ("rapidocr", "certifi"):
+        _src = os.path.join(_resources_dir, _pkg)
+        _dst = os.path.join(_frameworks_dir, _pkg)
+        if os.path.isdir(_src) and os.path.isdir(_frameworks_dir):
+            ...
+```
+
+### 构建时 sync 不可行（已趟的坑）
+
+在 `build.py` 中做 post-build `shutil.copytree()` 有 3 个致命问题：
+
+1. **路径算错**：`dist_app_root.parent.parent / "Frameworks"` = `AALC.app/Frameworks`（漏了 `Contents/`）。正确：`dist_app_root.parent / "Frameworks"`。
+2. **BUNDLE hardlink 冲突**：PyInstaller BUNDLE 在某些 PyInstaller/macOS 版本上会将 `Resources/<pkg>/file.yaml` 和 `Frameworks/<pkg>/file.yaml` 创建为相同 inode 的硬链接。`shutil.copytree()` 检测到源和目标同一文件报错 `are the same file`。
+3. **zip 打包丢失 hardlink**：硬链接在 zip 压缩后丢失，导致从 CI 下载的 zip 中 `Frameworks/` 下又变回空目录。但 `any(iterdir())` 在 CI 上检测到硬链接文件跳过了 sync，最终产物没有数据。
+
+### CI 构建验证流程
+
+```bash
+# 1. 对比 SHA256 确认下载的是最新构建
+shasum -a 256 AALC_dev-macos_macos.zip
+# 2. 检查 zip 中 Frameworks 目录是否包含数据文件
+unzip -l AALC_dev-macos_macos.zip | grep "Frameworks/rapidocr/"
+# 3. 解压后检查目录结构
+ls AALC.app/Contents/Frameworks/rapidocr/
+# 4. 直接命令行启动 app 观察日志（不要双击）
+./AALC.app/Contents/MacOS/AALC
+```
+
+### 模块级代码不能有运行时错误
+
+`main.py` 中的 macOS 路径修复是**顶层代码**（不在函数内），在 import 链到达 rapidocr 之前执行。任何 `NameError`、`ImportError`、语法错误都会在模块加载时就崩溃，不经过任何 try/except。
+
+之前因 `os.path.isdir(_frameworks)` 少写 `_dir` 后缀导致 `NameError`，CI 构建在本地纯 Python 模拟中无法发现，因为独立脚本没有这个变量名拼写问题。**必须实际运行 frozen app 才能发现这类错误**。
+
+### macOS 特有模块导入问题
+
+- `pyautogui` 在 macOS CI 上会触发 `SyntaxWarning`（非致命）
+- `win32` 模块在 macOS 上不存在，frozen 环境中 `ctypes.windll` 会崩溃——`main.py` 中通过 `if not _is_mac:` 保护
+- `darkdetect` 依赖 `AppKit.framework` 的 ctypes 导入，PyInstaller 只能按 basename 匹配
+- `msvcrt` 在 macOS 上不存在，`ctypes` 导入时 warning（非致命）
 
 ## 更新发布约束
 
