@@ -6,10 +6,14 @@ on:
       version:
         required: true
         type: string
+      target_os:
+        required: false
+        type: string
+        default: windows
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ${{ inputs.target_os == 'macos' && 'macos-latest' || 'windows-latest' }}
     steps:
       # 签出代码
       - name: Checkout
@@ -27,6 +31,12 @@ jobs:
       - name: Install dependencies
         run: |
           uv sync --frozen
+
+      # 排除构建目录免受 Windows Defender 干扰（否则可能损坏 PyInstaller 生成的 DLL）
+      - name: Exclude build dir from Windows Defender
+        if: ${{ inputs.target_os == 'windows' }}
+        run: |
+          Add-MpPreference -ExclusionPath "$env:GITHUB_WORKSPACE" -ErrorAction SilentlyContinue
       
       # 构建并打包程序
       - name: build & bundle
@@ -37,6 +47,10 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@main
         with:
-          name: AALC_${{ inputs.version }}
+          name: AALC_${{ inputs.version }}_${{ inputs.target_os }}
           path: |
             dist/AALC_${{ inputs.version }}.7z
+            dist/AALC_${{ inputs.version }}_macos.zip
+            dist/AALC.update_manifest.json
+            dist/AALC_${{ inputs.version }}.7z.sha256
+            dist/AALC_${{ inputs.version }}_macos.zip.sha256

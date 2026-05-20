@@ -4,15 +4,33 @@ on:
   pull_request:
     branches:
       - main
-    paths-ignore: # 文档更新不必触发 CI
-      - "**.md"
-      - "readme/**"
+    paths: # 仅源码/依赖/构建配置变更才触发 CI
+      - "app/**/*.py"
+      - "tasks/**/*.py"
+      - "module/**/*.py"
+      - "utils/**/*.py"
+      - "scripts/*.py"
+      - "uv.lock"
+      - "pyproject.toml"
+      - "requirements.txt"
+      - "main.spec"
+      - "updater.spec"
+      - "scripts/build.py"
   push:
     branches:
       - main
-    paths-ignore: # 文档更新不必触发 CI
-      - "**.md"
-      - "readme/**"
+    paths: # 仅源码/依赖/构建配置变更才触发 CI
+      - "app/**/*.py"
+      - "tasks/**/*.py"
+      - "module/**/*.py"
+      - "utils/**/*.py"
+      - "scripts/*.py"
+      - "uv.lock"
+      - "pyproject.toml"
+      - "requirements.txt"
+      - "main.spec"
+      - "updater.spec"
+      - "scripts/build.py"
 
 jobs:
   build:
