@@ -270,13 +270,13 @@ else:
     # 需将 Resources/ 中的数据同步到 Frameworks/ 和 MacOS/。
     resources_dir = dist_app_root.parent / "Resources"
     macos_dir = dist_app_root
-    frameworks_dir = dist_app_root.parent.parent / "Frameworks"
+    frameworks_dir = dist_app_root.parent / "Frameworks"
     for _pkg in ("rapidocr", "certifi"):
         src = resources_dir / _pkg
         if src.is_dir():
             for target in (macos_dir / _pkg, frameworks_dir / _pkg):
                 shutil.copytree(src, target, dirs_exist_ok=True, symlinks=False)
-                print(f"Synced resources: {_pkg} -> {target.relative_to(dist_app_root.parent.parent)}")
+                print(f"Synced resources: {_pkg} -> Contents/{target.relative_to(dist_app_root.parent)}")
 
     archive_base = os.path.join("dist", f"AALC_{version}_macos")
     archive_path = shutil.make_archive(archive_base, "zip", root_dir="./dist", base_dir="AALC.app")
