@@ -731,8 +731,14 @@ class SettingInterface(QWidget):
         import os
         import platform
         import subprocess
+        import sys
 
-        log_dir = os.path.abspath("./logs")
+        if hasattr(sys, "_MEIPASS"):
+            log_dir = os.path.join(sys._MEIPASS, "logs")
+        else:
+            log_dir = os.path.abspath("./logs")
+        if not os.path.isdir(log_dir):
+            os.makedirs(log_dir, exist_ok=True)
         if platform.system() == "Darwin":
             subprocess.run(["open", log_dir])
         elif platform.system() == "Windows":
@@ -744,8 +750,12 @@ class SettingInterface(QWidget):
         import os
         import platform
         import subprocess
+        import sys
 
-        app_dir = os.path.abspath(".")
+        if getattr(sys, "frozen", False):
+            app_dir = os.path.dirname(sys.executable)
+        else:
+            app_dir = os.path.abspath(".")
         if platform.system() == "Darwin":
             subprocess.run(["open", app_dir])
         elif platform.system() == "Windows":
