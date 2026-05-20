@@ -6,11 +6,42 @@ import threading
 # 解决 Windows DPI 缩放问题
 from ctypes import c_void_p, windll
 
-try:
-    # 1. 尝试 Win10 1703+ 的最强方案 (Per Monitor V2)
-    # -4 对应 DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
-    windll.user32.SetProcessDpiAwarenessContext(c_void_p(-4))
-except (AttributeError, OSError):
+_is_mac = platform.system() == "Darwin"
+
+if getattr(sys, "frozen", False) and _is_mac:
+    _macos_dir = os.path.dirname(sys.executable)
+    _contents_dir = os.path.dirname(_macos_dir)
+    _frameworks_dir = os.path.join(_contents_dir, "Frameworks")
+    _resources_dir = os.path.join(_contents_dir, "Resources")
+    for _pkg in ("rapidocr", "certifi"):
+        _src = os.path.join(_resources_dir, _pkg)
+        _dst = os.path.join(_frameworks_dir, _pkg)
+        if os.path.isdir(_src) and os.path.isdir(_frameworks_dir):
+            _need_sync = False
+            try:
+                _need_sync = not any(
+                    os.path.isfile(os.path.join(_dst, f))
+                    for f in os.listdir(_dst)
+                )
+            except OSError:
+                _need_sync = True
+            if _need_sync:
+                try:
+                    import shutil
+                    if os.path.isdir(_dst):
+                        shutil.rmtree(_dst, ignore_errors=True)
+                        try:
+                            os.rmdir(_dst)
+                        except OSError:
+                            pass
+                    shutil.copytree(_src, _dst, symlinks=False)
+                except Exception:
+                    pass
+
+if _is_mac:
+    # macOS: 修复 qframelesswindow 标准窗口按钮为 None 时的崩溃
+    # 使用 _MacFramelessWindowBase__nsWindow 绕过 Python 名称改写
+    _NSWIN = "_MacFramelessWindowBase__nsWindow"
     try:
         # 2. 尝试 Win8.1+ 的方案 (Per Monitor)
         # 2 对应 PROCESS_PER_MONITOR_DPI_AWARE
