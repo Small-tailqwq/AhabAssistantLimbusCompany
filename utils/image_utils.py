@@ -406,6 +406,12 @@ class ImageUtils:
         kp1, des1 = orb.detectAndCompute(template, None)
         kp2, des2 = orb.detectAndCompute(target, None)
 
+        # FLANN 要求描述符数组内存连续（某些 OpenCV 构建的 ORB 输出可能不连续）
+        if des1 is None or des2 is None:
+            return False, 0
+        des1 = np.ascontiguousarray(des1)
+        des2 = np.ascontiguousarray(des2)
+
         # 使用FLANN匹配器
         FLANN_INDEX_LSH = 6
         index_params = dict(algorithm=FLANN_INDEX_LSH, table_number=6, key_size=12, multi_probe_level=1)
