@@ -415,8 +415,8 @@ def identify_nodes(bus_x):
         # 找到当前目标的最大类别置信度及其对应的类别索引
         (minScore, maxScore, minClassLoc, (x, maxClassIndex)) = cv2.minMaxLoc(classes_scores)
 
-        # 若最大置信度超过阈值（0.15），则保留该检测结果
-        if maxScore >= 0.15:
+        # 若最大置信度超过阈值（0.25），则保留该检测结果
+        if maxScore >= 0.25:
             # 计算边界框的左上角坐标和宽高（YOLO 输出为中心点坐标 + 宽高，需转换）
             box = [
                 outputs[0][i][0] - (0.5 * outputs[0][i][2]),  # 左上角 x = 中心点 x - 半宽
@@ -649,7 +649,7 @@ def identify_road(bus_x, min_length=160, merge_distance=230):
             continue
 
         # 组成子列表并添加到节点总列表
-        segment_list.append([class_name, center, segment.get("merged_from", 1)])
+        segment_list.append([class_name, center])
 
     # 返回结构化数据
     return segment_list
