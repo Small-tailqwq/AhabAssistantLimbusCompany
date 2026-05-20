@@ -6,10 +6,13 @@ import datetime
 import getpass
 import os
 import sys
-import winreg
 
-import win32com.client
-from pywintypes import com_error
+try:
+    import winreg
+    import win32com.client  # noqa: F401
+    from pywintypes import com_error  # noqa: F401
+except ImportError:
+    winreg = None
 
 from module.logger import log
 

@@ -41,7 +41,10 @@ from app import mediator
 from app.theme_pack_setting_interface import ThemePackSettingDialog
 from app.widget.setting_nav import SettingNav
 from module.config import cfg, theme_list
-from utils.schedule_helper import ScheduleHelper
+try:
+    from utils.schedule_helper import ScheduleHelper
+except ImportError:
+    ScheduleHelper = None
 
 
 class SettingInterface(QWidget):
@@ -633,6 +636,8 @@ class SettingInterface(QWidget):
 
     def __onAutostartCardChanged(self, checked: bool):
         TASK_NAME = "AALC Autostart"
+        if ScheduleHelper is None:
+            return
         helper = ScheduleHelper()
         if checked:
             helper.register_onstart_task(TASK_NAME, "")
