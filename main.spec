@@ -1,4 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
+import platform
 from pathlib import Path
 
 import rapidocr

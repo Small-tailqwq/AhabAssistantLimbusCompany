@@ -7,7 +7,6 @@ from playsound3 import playsound
 from PySide6.QtCore import QT_TRANSLATE_NOOP, QMutex, QThread
 
 from app import mediator
-from app.windows_toast import TemplateToast, send_toast
 from module.automation import auto
 from module.config import TeamSetting, cfg
 from module.decorator.decorator import begin_and_finish_time_log
@@ -382,11 +381,15 @@ def script_task() -> None | int:
     minutes, seconds = divmod(secends, 60)
     hours, minutes = divmod(minutes, 60)
     run_time = f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
-    send_toast(
-        "AALC 运行结束",
-        ["所有任务已完成", run_time],
-        template=TemplateToast.NormalTemplate,
-    )
+    try:
+        from app.windows_toast import TemplateToast, send_toast
+        send_toast(
+            "AALC 运行结束",
+            ["所有任务已完成", run_time],
+            template=TemplateToast.NormalTemplate,
+        )
+    except ImportError:
+        pass
     if cfg.resonate_with_Ahab:
         Resonate_with_Ahab()
 
