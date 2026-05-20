@@ -383,6 +383,12 @@ class SettingInterface(QWidget):
             QT_TRANSLATE_NOOP("BasePrimaryPushSettingCard", "打开日志文件夹"),
             parent=self.logs_group,
         )
+        self.open_app_dir_card = BasePrimaryPushSettingCard(
+            QT_TRANSLATE_NOOP("BasePrimaryPushSettingCard", "数据目录"),
+            FIF.FOLDER_ADD,
+            QT_TRANSLATE_NOOP("BasePrimaryPushSettingCard", "打开程序目录(配置/日志等)"),
+            parent=self.logs_group,
+        )
 
         self.about_group = BaseSettingCardGroup(QT_TRANSLATE_NOOP("BaseSettingCardGroup", "关于"), self.scroll_widget)
         self.github_card = BasePrimaryPushSettingCard(
@@ -595,6 +601,7 @@ class SettingInterface(QWidget):
         self.logs_group.addSettingCard(self.debug_shop_card)
         self.logs_group.addSettingCard(self.debug_mirror_event_card)
         self.logs_group.addSettingCard(self.open_logs_card)
+        self.logs_group.addSettingCard(self.open_app_dir_card)
 
         self.about_group.addSettingCard(self.github_card)
         self.about_group.addSettingCard(self.discord_group_card)
@@ -678,6 +685,7 @@ class SettingInterface(QWidget):
     def __connect_signal(self):
         self.game_path_card.clicked.connect(self.__onGamePathCardClicked)
         self.open_logs_card.clicked.connect(self.__onOpenLogsCardClicked)
+        self.open_app_dir_card.clicked.connect(self.__onOpenAppDirCardClicked)
         self.screenshot_benchmark_card.clicked.connect(self.__onScreenshotBenchmarkCardClicked)
         self.theme_pack_card.clicked.connect(self.__onThemePackCardClicked)
 
@@ -731,6 +739,19 @@ class SettingInterface(QWidget):
             os.startfile(log_dir)
         else:
             subprocess.run(["xdg-open", log_dir], check=False)
+
+    def __onOpenAppDirCardClicked(self):
+        import os
+        import platform
+        import subprocess
+
+        app_dir = os.path.abspath(".")
+        if platform.system() == "Darwin":
+            subprocess.run(["open", app_dir])
+        elif platform.system() == "Windows":
+            os.startfile(app_dir)
+        else:
+            subprocess.run(["xdg-open", app_dir], check=False)
 
     def __refreshDebugCardVisibility(self):
         debug_enabled = bool(cfg.get_value("debug_mode", False))
@@ -956,6 +977,7 @@ class SettingInterface(QWidget):
         self.version_card.retranslateUi()
         self.system_proxy_card.retranslateUi()
         self.open_logs_card.retranslateUi()
+        self.open_app_dir_card.retranslateUi()
         self.github_card.retranslateUi()
         self.discord_group_card.retranslateUi()
         self.feedback_card.retranslateUi()

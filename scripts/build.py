@@ -79,15 +79,19 @@ shutil.copy("LICENSE", str(dist_app_root / "LICENSE"))
 shutil.copytree("assets", str(dist_app_root / "assets"), dirs_exist_ok=True)
 
 # 将 assets 中的 PNG 无损转换为 WebP（减小包体）
+# skip assets/app/ PNGs (UI icons needed by Qt in original format)
 try:
     from PIL import Image
     assets_dist = str(dist_app_root / "assets")
     png_saved = 0
     png_converted = 0
+    _app_dir = os.path.join(assets_dist, "app")
     for root, dirs, files in os.walk(assets_dist):
         for f in files:
             if f.lower().endswith(".png"):
                 png_path = os.path.join(root, f)
+                if os.path.commonpath([png_path, _app_dir]) == _app_dir:
+                    continue
                 webp_path = os.path.splitext(png_path)[0] + ".webp"
                 before = os.path.getsize(png_path)
                 with Image.open(png_path) as img:
