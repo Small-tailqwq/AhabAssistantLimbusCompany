@@ -30,7 +30,7 @@ jobs:
       # 安装依赖
       - name: Install dependencies
         run: |
-          uv sync --frozen
+          uv sync
 
       # 排除构建目录免受 Windows Defender 干扰（否则可能损坏 PyInstaller 生成的 DLL）
       - name: Exclude build dir from Windows Defender
@@ -51,6 +51,5 @@ jobs:
           path: |
             dist/AALC_${{ inputs.version }}.7z
             dist/AALC_${{ inputs.version }}_macos.zip
-            dist/AALC.update_manifest.json
             dist/AALC_${{ inputs.version }}.7z.sha256
             dist/AALC_${{ inputs.version }}_macos.zip.sha256
