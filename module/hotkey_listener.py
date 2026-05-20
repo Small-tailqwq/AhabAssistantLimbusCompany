@@ -1,16 +1,23 @@
 from __future__ import annotations
 
+import signal
+import sys
 from collections.abc import Callable
 
 from pynput import keyboard
 
+# macOS 上 pynput 原生回调抛出异常会导致 SIGTRAP 崩溃，设置信号处理器兜底
+if sys.platform == "darwin":
+    signal.signal(signal.SIGTRAP, signal.SIG_IGN)
+
 _MODIFIER_KEYS = {
     keyboard.Key.alt,
     keyboard.Key.alt_gr,
-    keyboard.Key.cmd,
+    keyboard.Key.cmd if sys.platform == "darwin" else None,
     keyboard.Key.ctrl,
     keyboard.Key.shift,
 }
+_MODIFIER_KEYS.discard(None)
 
 
 class _ExactHotKey:
@@ -54,20 +61,26 @@ class ExactGlobalHotKeys(keyboard.Listener):
         self.daemon = True
 
     def _on_press(self, key, injected=False):
-        if injected:
-            return
+        try:
+            if injected:
+                return
 
-        canonical_key = self.canonical(key)
-        self._pressed_keys.add(canonical_key)
-        pressed_modifiers = {key for key in self._pressed_keys if key in _MODIFIER_KEYS}
-        for hotkey in self._hotkeys:
-            hotkey.press(canonical_key, pressed_modifiers)
+            canonical_key = self.canonical(key)
+            self._pressed_keys.add(canonical_key)
+            pressed_modifiers = {key for key in self._pressed_keys if key in _MODIFIER_KEYS}
+            for hotkey in self._hotkeys:
+                hotkey.press(canonical_key, pressed_modifiers)
+        except Exception:
+            pass
 
     def _on_release(self, key, injected=False):
-        if injected:
-            return
+        try:
+            if injected:
+                return
 
-        canonical_key = self.canonical(key)
-        for hotkey in self._hotkeys:
-            hotkey.release(canonical_key)
-        self._pressed_keys.discard(canonical_key)
+            canonical_key = self.canonical(key)
+            for hotkey in self._hotkeys:
+                hotkey.release(canonical_key)
+            self._pressed_keys.discard(canonical_key)
+        except Exception:
+            pass
