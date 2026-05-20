@@ -201,7 +201,10 @@ class SimulatorControl(AbstractInput):
         import subprocess
 
         adb = self._adb_binary()
-        raw = subprocess.check_output([adb, "-s", self.simulator_port, "shell", "screencap"])
+        if adb is not None:
+            raw = subprocess.check_output([adb, "-s", self.simulator_port, "shell", "screencap"])
+        else:
+            raw = self.simulator_device.shell(["screencap"], stream=False, encoding=None)
         if len(raw) < 500:
             log.warning(f"意外截图: {raw}")
         w, h = struct.unpack_from("<II", raw)
@@ -227,9 +230,14 @@ class SimulatorControl(AbstractInput):
             if c and os.path.isfile(c):
                 cls._adb_path = c
                 return c
-        from adbutils import adb_path  # may raise if not found
-        cls._adb_path = adb_path()
-        return cls._adb_path
+        try:
+            from adbutils import adb_path
+            cls._adb_path = adb_path()
+            return cls._adb_path
+        except Exception:
+            log.warning("未能找到 adb 二进制，截图将降级至 adbutils 传输（较慢）")
+            cls._adb_path = None
+            return None
 
     def set_pause(self) -> None:
         """

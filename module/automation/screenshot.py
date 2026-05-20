@@ -350,7 +350,17 @@ class ScreenShot:
         import subprocess
 
         adb = ScreenShot._adbb()
+        if adb is None:
+            log.info("未找到 adb 二进制，跳过截图性能测试")
+            return False, 0.0
+
         port = f"127.0.0.1:{int(cfg.simulator_port)}"
+        try:
+            subprocess.check_output([adb, "-s", port, "shell", "echo", "ready"], timeout=5)
+        except Exception:
+            log.info(f"无法连接到ADB设备 {port}，跳过截图性能测试")
+            return False, 0.0
+
         start_time = time.time()
         for _ in range(test_time):
             raw = subprocess.check_output([adb, "-s", port, "shell", "screencap"])
@@ -381,9 +391,13 @@ class ScreenShot:
             if c and os.path.isfile(c):
                 ScreenShot._adb_bin = c
                 return c
-        from adbutils import adb_path
-        ScreenShot._adb_bin = adb_path()
-        return ScreenShot._adb_bin
+        try:
+            from adbutils import adb_path
+            ScreenShot._adb_bin = adb_path()
+            return ScreenShot._adb_bin
+        except Exception:
+            ScreenShot._adb_bin = None
+            return None
 
     @staticmethod
     def mumu_screenshot(gray: bool = True) -> Image.Image:

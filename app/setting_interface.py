@@ -548,8 +548,14 @@ class SettingInterface(QWidget):
 
     def __onOpenLogsCardClicked(self):
         import os
+        import platform
+        import subprocess
 
-        os.startfile(os.path.abspath("./logs"))
+        path = os.path.abspath("./logs")
+        if platform.system() == "Darwin":
+            subprocess.run(["open", path], check=False)
+        else:
+            os.startfile(path)
 
     def __onScreenshotBenchmarkCardClicked(self):
         from module.automation.screenshot import ScreenShot
