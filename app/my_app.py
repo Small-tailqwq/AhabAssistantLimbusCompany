@@ -13,7 +13,8 @@ from PySide6.QtCore import (
     QThread,
     QTimer,
 )
-from PySide6.QtGui import QAction, QCursor, QIcon, QPainter, QPainterPath, QPixmap, QRectF
+from PySide6.QtCore import QRectF
+from PySide6.QtGui import QAction, QCursor, QIcon, QPainter, QPainterPath, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
