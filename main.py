@@ -20,7 +20,7 @@ if getattr(sys, "frozen", False) and _is_mac:
     for _pkg in ("rapidocr", "certifi"):
         _src = os.path.join(_resources_dir, _pkg)
         _dst = os.path.join(_frameworks_dir, _pkg)
-        if os.path.isdir(_src) and os.path.isdir(_frameworks):
+        if os.path.isdir(_src) and os.path.isdir(_frameworks_dir):
             _need_sync = False
             try:
                 _need_sync = not any(
