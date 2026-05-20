@@ -1,5 +1,6 @@
 import base64
 import datetime
+import sys
 from typing import Callable
 
 import pyperclip
@@ -1474,9 +1475,15 @@ class HotketInputCard(MessageBox):
     def _parse_key_name(self, key_name: str) -> list[str]:
         self.key_name = key_name
         keys = key_name.split("+")
+        is_mac = sys.platform == "darwin"
         for index, key in enumerate(keys):
             if len(key) > 2:
-                keys[index] = key.replace("<", "").replace(">", "")
+                clean = key.replace("<", "").replace(">", "")
+                if is_mac:
+                    mac_map = {"ctrl": "⌘ Cmd", "alt": "⌥ Option", "shift": "⇧ Shift"}
+                    keys[index] = mac_map.get(clean, clean)
+                else:
+                    keys[index] = clean
         return keys
 
     def fresh_key_display(self, key_name: str):
@@ -1488,13 +1495,22 @@ class HotketInputCard(MessageBox):
         key = arg__1.key()
         modifiers = arg__1.modifiers()
         key_parts = []
+        is_mac = sys.platform == "darwin"
 
-        if modifiers & Qt.ControlModifier:
-            key_parts.append("<ctrl>")
-        if modifiers & Qt.AltModifier:
-            key_parts.append("<alt>")
-        if modifiers & Qt.ShiftModifier:
-            key_parts.append("<shift>")
+        if is_mac:
+            if modifiers & Qt.MetaModifier:
+                key_parts.append("<ctrl>")
+            if modifiers & Qt.AltModifier:
+                key_parts.append("<alt>")
+            if modifiers & Qt.ShiftModifier:
+                key_parts.append("<shift>")
+        else:
+            if modifiers & Qt.ControlModifier:
+                key_parts.append("<ctrl>")
+            if modifiers & Qt.AltModifier:
+                key_parts.append("<alt>")
+            if modifiers & Qt.ShiftModifier:
+                key_parts.append("<shift>")
 
         key_name = QKeySequence(key).toString().lower()
         if key_name in self.SHIFT_KEYS:

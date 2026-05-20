@@ -51,7 +51,13 @@ class _ExactHotKey:
 class ExactGlobalHotKeys(keyboard.Listener):
     def __init__(self, hotkeys: dict[str, Callable[[], None]], *args, **kwargs):
         self._pressed_keys: set[keyboard.Key | keyboard.KeyCode] = set()
-        self._hotkeys = [_ExactHotKey(keyboard.HotKey.parse(hotkey), callback) for hotkey, callback in hotkeys.items()]
+        # macOS: 将配置中的 <ctrl>（由 Cmd 键映射而来）替换为 <cmd> 才能被 pynput 正确监听
+        mapped = {}
+        for hotkey, callback in hotkeys.items():
+            if sys.platform == "darwin":
+                hotkey = hotkey.replace("<ctrl>", "<cmd>")
+            mapped[hotkey] = callback
+        self._hotkeys = [_ExactHotKey(keyboard.HotKey.parse(hotkey), callback) for hotkey, callback in mapped.items()]
         super().__init__(
             on_press=self._on_press,
             on_release=self._on_release,
