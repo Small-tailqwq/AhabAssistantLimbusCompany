@@ -1,8 +1,6 @@
 import argparse
 import hashlib
-import json
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -18,28 +16,11 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import PyInstaller.__main__
-from module.update.update_protocol import (
-    BOOTSTRAP_VERSION_PATH,
-    DEFAULT_PROTECTED_PATHS,
-    REMOTE_UPDATE_MANIFEST_ASSET,
-    UPDATE_MANIFEST_NAME,
-    build_update_manifest,
-    collect_managed_files,
-)
-
-
-def positive_int(value: str) -> int:
-    parsed = int(value)
-    if parsed < 1:
-        raise argparse.ArgumentTypeError("bootstrap version must be >= 1")
-    return parsed
 
 
 # 读取版本号
 parser = argparse.ArgumentParser(description="Build AALC")
 parser.add_argument("--version", default="dev", help="AALC Version")
-parser.add_argument("--bridge-updater", action="store_true", help="Build legacy root-dir updater package")
-parser.add_argument("--bootstrap-version", type=positive_int, default=2, help="Bootstrap protocol version")
 args = parser.parse_args()
 version = args.version
 is_windows = sys.platform == "win32"
@@ -55,18 +36,6 @@ PyInstaller.__main__.run(
     ]
 )
 
-if is_windows:
-    PyInstaller.__main__.run(
-        [
-            "updater.spec",
-            "--noconfirm",
-        ]
-    )
-
-# 移动更新程序到主程序目录
-if is_windows:
-    shutil.move(os.path.join("dist", "AALC Updater.exe"), os.path.join("dist", "AALC"))
-
 # macOS 使用 .app bundle 内部路径
 if is_windows:
     dist_app_root = Path("dist") / "AALC"
@@ -77,76 +46,6 @@ else:
 shutil.copy("README.md", str(dist_app_root / "README.md"))
 shutil.copy("LICENSE", str(dist_app_root / "LICENSE"))
 shutil.copytree("assets", str(dist_app_root / "assets"), dirs_exist_ok=True)
-
-# 将 assets 中的 PNG 无损转换为 WebP（减小包体）
-try:
-    from PIL import Image
-    assets_dist = str(dist_app_root / "assets")
-    png_saved = 0
-    png_converted = 0
-    for root, dirs, files in os.walk(assets_dist):
-        for f in files:
-            if f.lower().endswith(".png"):
-                png_path = os.path.join(root, f)
-                webp_path = os.path.splitext(png_path)[0] + ".webp"
-                before = os.path.getsize(png_path)
-                with Image.open(png_path) as img:
-                    if img.mode in ("RGBA", "LA", "PA"):
-                        img.save(webp_path, "WEBP", lossless=True)
-                    else:
-                        img = img.convert("RGB")
-                        img.save(webp_path, "WEBP", lossless=True)
-                after = os.path.getsize(webp_path)
-                png_saved += before - after
-                png_converted += 1
-                os.remove(png_path)
-    if png_converted:
-        print(f"PNG->WebP converted {png_converted} files, saved {png_saved / 1_000_000:.1f} MB")
-except ImportError:
-    print("Warning: Pillow not available, skipping PNG->WebP conversion")
-
-# 字体子集化：扫描源码中的 CJK 字符，裁剪 dist 中的字体
-try:
-    from fontTools.subset import Subsetter, Options
-    from fontTools.ttLib import TTFont
-
-    font_path = str(dist_app_root / "assets" / "app" / "fonts" / "ChineseFont.ttf")
-    if os.path.exists(font_path):
-        # 收集源码中使用的 CJK 字符
-        chars = set()
-        cjk_re = re.compile(r"[\u4e00-\u9fff\u3400-\u4dbf\u3000-\u303f\uff00-\uffef\u2000-\u206f]")
-        for root, dirs, files in os.walk("."):
-            dirs[:] = [d for d in dirs if d not in (".venv", "dist", "build", ".git", "__pycache__")]
-            for f in files:
-                if f.endswith((".py", ".ts", ".yaml", ".yml", ".qss", ".css")):
-                    try:
-                        with open(os.path.join(root, f), encoding="utf-8") as fh:
-                            chars.update(cjk_re.findall(fh.read()))
-                    except Exception:
-                        pass
-
-        # 添加常用标点符号
-        for cp in range(0x0020, 0x007F):
-            chars.add(chr(cp))
-        chars.update("：，！？；（）＾～…—·「」『』【】《》〈〉、。：")
-
-        # 子集化
-        font = TTFont(font_path)
-        cmap = font.getBestCmap() or {}
-        to_keep = sorted(cp for cp in (ord(c) for c in chars) if cp in cmap)
-        opts = Options()
-        opts.layout_features = []
-        opts.notdef_glyph = True
-        opts.glyph_names = True
-        subsetter = Subsetter(options=opts)
-        subsetter.populate(unicodes=to_keep)
-        subsetter.subset(font)
-        font.save(font_path)
-        print(f"Font subsetted: {len(to_keep)} glyphs, {os.path.getsize(font_path) / 1_000_000:.1f} MB")
-    else:
-        print("Warning: ChineseFont.ttf not found, skipping font subsetting")
-except ImportError:
-    print("Warning: fonttools not available, skipping font subsetting")
 
 # 生成翻译文件
 i18n_dst = dist_app_root / "i18n"
@@ -162,9 +61,8 @@ for ts_file in os.listdir("./i18n"):
 assets_config = dist_app_root / "assets" / "config"
 assets_config.mkdir(parents=True, exist_ok=True)
 (assets_config / "version.txt").write_text(version, encoding="utf-8")
-bootstrap_version_path = dist_app_root / Path(*BOOTSTRAP_VERSION_PATH.split("/"))
-bootstrap_version_path.write_text(str(args.bootstrap_version), encoding="utf-8")
 
+# Windows 清理冗余 Qt 文件，减小包体
 if is_windows:
     bundled_internal_dir = str(dist_app_root / "_internal")
     redundant_files = [
@@ -226,48 +124,15 @@ if is_windows:
         else:
             print(f"Warning: {abs_path} not found.")
 
-managed_files = collect_managed_files(dist_app_root, DEFAULT_PROTECTED_PATHS)
-managed_files_text = "\n".join(managed_files)
-if managed_files_text:
-    managed_files_text += "\n"
-
-managed_files_path = dist_app_root / "managed_files.txt"
-managed_files_path.write_text(managed_files_text, encoding="utf-8")
-managed_files_sha256 = hashlib.sha256(managed_files_text.encode("utf-8")).hexdigest()
-
-package_layout = "root_dir" if args.bridge_updater else "flat"
-update_manifest = build_update_manifest(
-    version=version,
-    bootstrap_version=args.bootstrap_version,
-    package_layout=package_layout,
-    cleanup_mode="manifest",
-    min_source_version_for_cleanup="0",
-    managed_files_sha256=managed_files_sha256,
-    protected_paths=DEFAULT_PROTECTED_PATHS,
-)
-update_manifest_path = dist_app_root / UPDATE_MANIFEST_NAME
-update_manifest_path.write_text(
-    json.dumps(update_manifest, ensure_ascii=True, indent=2) + "\n",
-    encoding="utf-8",
-)
-shutil.copyfile(update_manifest_path, Path("dist") / REMOTE_UPDATE_MANIFEST_ASSET)
-
 # 压缩构建产物
 if is_windows:
-    if args.bridge_updater:
-        subprocess.run(["7z", "a", "-mx=7", f"AALC_{version}.7z", "AALC/*"], cwd="./dist", check=True)
-    else:
-        subprocess.run(["7z", "a", "-mx=7", f"../AALC_{version}.7z", "./*"], cwd="./dist/AALC", check=True)
+    subprocess.run(["7z", "a", "-mx=7", f"../AALC_{version}.7z", "./*"], cwd="./dist/AALC", check=True)
     archive_path = os.path.join("dist", f"AALC_{version}.7z")
 else:
-    if args.bridge_updater:
-        raise SystemExit("--bridge-updater is supported on Windows only")
-
     # macOS: PyInstaller BUNDLE 将 a.datas 放入 Contents/Resources/，
     # 但 frozen 模式下 __file__ 解析到 Contents/Frameworks/，数据文件不在那里。
     # 运行时由 main.py 中的路径修复逻辑处理（从 MacOS/ 复制到 Frameworks/），
     # 构建阶段不再做 post-build sync，避免硬链接和 zip 打包的兼容性问题。
-
     archive_base = os.path.join("dist", f"AALC_{version}_macos")
     archive_path = shutil.make_archive(archive_base, "zip", root_dir="./dist", base_dir="AALC.app")
     print(f"Created archive: {archive_path}")
@@ -304,7 +169,6 @@ if not is_windows:
     os.chmod(command_path, 0o755)
     print(f"Created launch script: {command_path}")
 
-    # 首次使用提示
     print("\n===== macOS 启动说明 =====")
     print("双击 dist/AALC.command 启动（会打开终端窗口）")
     print("或右键 dist/AALC.app → 打开（首次需在弹窗中确认）")
