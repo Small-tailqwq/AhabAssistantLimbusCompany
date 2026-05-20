@@ -2,7 +2,6 @@ import random
 import re
 from time import sleep, time
 
-import cv2
 import numpy as np
 from adbutils import adb
 from adbutils.errors import AdbError
@@ -198,12 +197,14 @@ class SimulatorControl(AbstractInput):
         raise RuntimeError("无法连接到模拟器设备，原因未知")
 
     def screenshot(self):
-        data = self.simulator_device.shell(["screencap", "-p"], stream=False, encoding=None)
+        import struct
+
+        data = self.simulator_device.shell(["screencap"], stream=False, encoding=None)
         if len(data) < 500:
             log.warning(f"意外截图: {data}")
-        image = np.frombuffer(data, np.uint8)
-        image = cv2.imdecode(image, cv2.IMREAD_COLOR)
-        return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        w, h = struct.unpack_from("<II", data)
+        pixels = np.frombuffer(data, dtype=np.uint8, offset=8, count=w * h * 4)
+        return pixels.reshape((h, w, 4))[:, :, :3]
 
     def set_pause(self) -> None:
         """
