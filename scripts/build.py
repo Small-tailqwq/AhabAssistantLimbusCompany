@@ -264,19 +264,9 @@ else:
         raise SystemExit("--bridge-updater is supported on Windows only")
 
     # macOS: PyInstaller BUNDLE 将 a.datas 放入 Contents/Resources/，
-    # 但 Python 模块在 Contents/MacOS/ 和 Contents/Frameworks/。
-    # 某些包（如 rapidocr）通过 __file__ 相对路径查找数据文件，
-    # __file__ 解析到 Contents/Frameworks/，但数据文件在那只有空目录。
-    # 需将 Resources/ 中的数据同步到 Frameworks/ 和 MacOS/。
-    resources_dir = dist_app_root.parent / "Resources"
-    macos_dir = dist_app_root
-    frameworks_dir = dist_app_root.parent.parent / "Frameworks"
-    for _pkg in ("rapidocr", "certifi"):
-        src = resources_dir / _pkg
-        if src.is_dir():
-            for target in (macos_dir / _pkg, frameworks_dir / _pkg):
-                shutil.copytree(src, target, dirs_exist_ok=True, symlinks=False)
-                print(f"Synced resources: {_pkg} -> {target.relative_to(dist_app_root.parent.parent)}")
+    # 但 frozen 模式下 __file__ 解析到 Contents/Frameworks/，数据文件不在那里。
+    # 运行时由 main.py 中的路径修复逻辑处理（从 MacOS/ 复制到 Frameworks/），
+    # 构建阶段不再做 post-build sync，避免硬链接和 zip 打包的兼容性问题。
 
     archive_base = os.path.join("dist", f"AALC_{version}_macos")
     archive_path = shutil.make_archive(archive_base, "zip", root_dir="./dist", base_dir="AALC.app")

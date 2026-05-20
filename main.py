@@ -12,11 +12,10 @@ if getattr(sys, "frozen", False) and _is_mac:
     _macos_dir = os.path.dirname(sys.executable)
     _contents_dir = os.path.dirname(_macos_dir)
     _frameworks_dir = os.path.join(_contents_dir, "Frameworks")
-    _resources_dir = os.path.join(_contents_dir, "Resources")
     for _pkg in ("rapidocr", "certifi"):
-        _src = os.path.join(_resources_dir, _pkg)
+        _src = os.path.join(_macos_dir, _pkg)
         _dst = os.path.join(_frameworks_dir, _pkg)
-        if os.path.isdir(_src) and os.path.isdir(_frameworks_dir):
+        if os.path.isdir(_src) and os.path.isdir(_frameworks):
             _need_sync = False
             try:
                 _need_sync = not any(
