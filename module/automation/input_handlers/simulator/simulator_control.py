@@ -202,7 +202,7 @@ class SimulatorControl(AbstractInput):
 
         adb = self._adb_binary()
         if adb is not None:
-            raw = subprocess.check_output([adb, "-s", self.simulator_port, "shell", "screencap"])
+            raw = subprocess.check_output([adb, "-s", self.simulator_port, "shell", "screencap"], timeout=10)
         else:
             raw = self.simulator_device.shell(["screencap"], stream=False, encoding=None)
         if len(raw) < 500:

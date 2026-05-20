@@ -356,22 +356,22 @@ class ScreenShot:
 
         port = f"127.0.0.1:{int(cfg.simulator_port)}"
         try:
-            subprocess.check_output([adb, "-s", port, "shell", "echo", "ready"], timeout=5)
+            subprocess.check_output([adb, "connect", port], timeout=5)
         except Exception:
-            log.info(f"无法连接到ADB设备 {port}，跳过截图性能测试")
+            log.info(f"无法连接 ADB 设备 {port}，跳过截图性能测试")
             return False, 0.0
 
         start_time = time.time()
         for _ in range(test_time):
-            result = subprocess.run([adb, "-s", port, "shell", "screencap"], capture_output=True, timeout=10)
-            if result.returncode != 0 or len(result.stdout) < 500:
-                log.debug(f"screencap 不可用（returncode={result.returncode}），跳过截图性能测试")
-                return False, 0.0
-            w, h = struct.unpack_from("<II", result.stdout)
-            assert len(result.stdout) >= w * h * 4 + 8
+            raw = subprocess.check_output([adb, "-s", port, "shell", "screencap"], timeout=10)
+            if len(raw) < 500:
+                raise RuntimeError(f"screencap 返回异常: {raw}")
+            w, h = struct.unpack_from("<II", raw)
+            assert len(raw) >= w * h * 4 + 8
         end_time = time.time()
         avg_time = (end_time - start_time) / test_time * 1000
         log.info(f"截图性能测试(ADB直连): {test_time}次截图平均耗时 {avg_time:.2f} ms")
+        subprocess.run([adb, "disconnect", port], capture_output=True)
         return True, avg_time
 
     _adb_bin = None
