@@ -4,7 +4,12 @@ import time
 from time import sleep
 
 import psutil
-import win32process
+import sys
+
+try:
+    import win32process
+except ImportError:
+    win32process = None
 
 from module.automation import auto
 from module.config import cfg
