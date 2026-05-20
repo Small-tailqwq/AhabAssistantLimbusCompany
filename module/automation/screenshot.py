@@ -1,11 +1,18 @@
 import time
-from ctypes import windll
+
+try:
+    from ctypes import windll
+    import pywintypes
+    import win32gui
+    import win32ui
+except ImportError:
+    windll = None
+    pywintypes = None
+    win32gui = None
+    win32ui = None
 
 import cv2
 import pyautogui
-import pywintypes
-import win32gui
-import win32ui
 from PIL import Image
 
 from module.config import cfg

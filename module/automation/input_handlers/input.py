@@ -4,10 +4,17 @@ from typing import overload
 
 import pyautogui
 import pyperclip
-import win32api
-import win32con
-import win32gui
-from pywintypes import error as PyWinTypesError
+
+try:
+    import win32api
+    import win32con
+    import win32gui
+    from pywintypes import error as PyWinTypesError
+except ImportError:
+    win32api = None
+    win32con = None
+    win32gui = None
+    PyWinTypesError = type("_PyWinTypesError", (Exception,), {})
 
 from module.config import cfg
 from utils.singletonmeta import SingletonMeta
@@ -53,17 +60,17 @@ key_list = {
     "7": 0x37,
     "8": 0x38,
     "9": 0x39,
-    "enter": win32con.VK_RETURN,
-    "esc": win32con.VK_ESCAPE,
-    "space": win32con.VK_SPACE,
-    "tab": win32con.VK_TAB,
-    "shift": win32con.VK_SHIFT,
-    "ctrl": win32con.VK_CONTROL,
-    "alt": win32con.VK_MENU,
-    "up": win32con.VK_UP,
-    "down": win32con.VK_DOWN,
-    "left": win32con.VK_LEFT,
-    "right": win32con.VK_RIGHT,
+    "enter": None if win32con is None else win32con.VK_RETURN,
+    "esc": None if win32con is None else win32con.VK_ESCAPE,
+    "space": None if win32con is None else win32con.VK_SPACE,
+    "tab": None if win32con is None else win32con.VK_TAB,
+    "shift": None if win32con is None else win32con.VK_SHIFT,
+    "ctrl": None if win32con is None else win32con.VK_CONTROL,
+    "alt": None if win32con is None else win32con.VK_MENU,
+    "up": None if win32con is None else win32con.VK_UP,
+    "down": None if win32con is None else win32con.VK_DOWN,
+    "left": None if win32con is None else win32con.VK_LEFT,
+    "right": None if win32con is None else win32con.VK_RIGHT,
 }
 
 

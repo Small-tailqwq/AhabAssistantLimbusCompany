@@ -1,9 +1,14 @@
 from time import sleep
 from typing import TYPE_CHECKING, overload
 
-import win32api
-import win32con
-import win32gui
+try:
+    import win32api
+    import win32con
+    import win32gui
+except ImportError:
+    win32api = None
+    win32con = None
+    win32gui = None
 
 from app import mediator
 from module.config import cfg
