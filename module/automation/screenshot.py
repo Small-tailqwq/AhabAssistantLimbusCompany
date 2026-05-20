@@ -13,6 +13,7 @@ except ImportError:
 
 import cv2
 import pyautogui
+import struct
 from PIL import Image
 
 from module.config import cfg
@@ -356,9 +357,11 @@ class ScreenShot:
         device = adb.device(port)
         start_time = time.time()
         for _ in range(test_time):
-            data = device.shell(["screencap", "-p"], stream=False, encoding=None)
+            data = device.shell(["screencap"], stream=False, encoding=None)
             if len(data) < 500:
                 raise RuntimeError(f"screencap 返回异常: {data}")
+            w, h = struct.unpack_from("<II", data)
+            assert len(data) >= w * h * 4 + 8
         end_time = time.time()
         avg_time = (end_time - start_time) / test_time * 1000
         log.info(f"截图性能测试(ADB直连): {test_time}次截图平均耗时 {avg_time:.2f} ms")
