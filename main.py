@@ -1,10 +1,14 @@
 import os
+import platform
 import socket
 import sys
 import threading
 
-# 解决 Windows DPI 缩放问题
-from ctypes import c_void_p, windll
+# 在导入任何模块之前设置工作目录，确保相对路径（如 ./assets/、./config.yaml）正确解析
+if getattr(sys, "frozen", False):
+    os.chdir(os.path.dirname(sys.executable))
+else:
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 _is_mac = platform.system() == "Darwin"
 
@@ -12,10 +16,11 @@ if getattr(sys, "frozen", False) and _is_mac:
     _macos_dir = os.path.dirname(sys.executable)
     _contents_dir = os.path.dirname(_macos_dir)
     _frameworks_dir = os.path.join(_contents_dir, "Frameworks")
+    _resources_dir = os.path.join(_contents_dir, "Resources")
     for _pkg in ("rapidocr", "certifi"):
-        _src = os.path.join(_macos_dir, _pkg)
+        _src = os.path.join(_resources_dir, _pkg)
         _dst = os.path.join(_frameworks_dir, _pkg)
-        if os.path.isdir(_src) and os.path.isdir(_frameworks):
+        if os.path.isdir(_src) and os.path.isdir(_frameworks_dir):
             _need_sync = False
             try:
                 _need_sync = not any(
@@ -42,27 +47,49 @@ if _is_mac:
     # 使用 _MacFramelessWindowBase__nsWindow 绕过 Python 名称改写
     _NSWIN = "_MacFramelessWindowBase__nsWindow"
     try:
-        # 2. 尝试 Win8.1+ 的方案 (Per Monitor)
-        # 2 对应 PROCESS_PER_MONITOR_DPI_AWARE
-        windll.shcore.SetProcessDpiAwareness(2)
+        import Cocoa as _Cocoa
+        import qframelesswindow.mac as _qfw_mac
+        def _patched_set_visible(self, isVisible):
+            self._isSystemButtonVisible = isVisible
+            _nswin = object.__getattribute__(self, _NSWIN)
+            _nswin.setShowsToolbarButton_(isVisible)
+            isHidden = not isVisible
+            for _btn_type in (_Cocoa.NSWindowCloseButton, _Cocoa.NSWindowZoomButton,
+                              _Cocoa.NSWindowMiniaturizeButton):
+                _btn = _nswin.standardWindowButton_(_btn_type)
+                if _btn is not None:
+                    _btn.setHidden_(isHidden)
+            if isVisible:
+                self._updateSystemButtonRect()
+        _qfw_mac.MacFramelessWindowBase.setSystemTitleBarButtonVisible = _patched_set_visible
+    except ImportError:
+        pass
+else:
+    # 解决 Windows DPI 缩放问题
+    from ctypes import c_void_p, windll
+
+    try:
+        # 1. 尝试 Win10 1703+ 的最强方案 (Per Monitor V2)
+        # -4 对应 DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+        windll.user32.SetProcessDpiAwarenessContext(c_void_p(-4))
     except (AttributeError, OSError):
         try:
-            # 3. 最后的兜底方案 (Win7/Vista)
-            windll.user32.SetProcessDPIAware()
-        except Exception:
-            pass
+            # 2. 尝试 Win8.1+ 的方案 (Per Monitor)
+            # 2 对应 PROCESS_PER_MONITOR_DPI_AWARE
+            windll.shcore.SetProcessDpiAwareness(2)
+        except (AttributeError, OSError):
+            try:
+                # 3. 最后的兜底方案 (Win7/Vista)
+                windll.user32.SetProcessDPIAware()
+            except Exception:
+                pass
 
 from app.language_manager import LanguageManager
-from app.my_app import MainWindow
+from app.my_app import MainWindow, _mac_rounded_icon
 from module.config import cfg
 
-# 将当前工作目录设置为程序所在的目录，确保无论从哪里执行，其工作目录都正确设置为程序本身的位置，避免路径错误。
-os.chdir(
-    os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(os.path.abspath(__file__))
-)
-
-# 获取管理员权限（仅 Windows）
-if sys.platform == "win32":
+# 获取管理员权限 (Windows only)
+if not _is_mac:
     import pyuac
 
     if not pyuac.isUserAdmin():
@@ -129,6 +156,7 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
     app.setAttribute(Qt.AA_DontCreateNativeWidgetSiblings)
+    app.setWindowIcon(_mac_rounded_icon("./assets/logo/canary.png"))
 
     # 创建主窗口
     ui = MainWindow(sys.argv)
