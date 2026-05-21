@@ -13,6 +13,21 @@ def back_init_menu():
     loop_count = 30
     auto.model = "clam"
     while True:
+        loop_count -= 1
+        if loop_count < 20:
+            auto.model = "normal"
+        if loop_count < 10:
+            auto.model = "aggressive"
+        if loop_count < 0:
+            from tasks.base.retry import kill_game, restart_game
+
+            log.error("无法返回主界面，尝试重启游戏")
+            kill_game()
+            restart_game()
+            loop_count = 30
+            auto.model = "clam"
+            sleep(1)
+            continue
         if cfg.simulator:
             if cfg.simulator_type == 0:
                 from module.automation.input_handlers.simulator.mumu_control import (
@@ -114,16 +129,3 @@ def back_init_menu():
 
         auto.mouse_click_blank()
         auto.key_press("esc")
-
-        loop_count -= 1
-        if loop_count < 20:
-            auto.model = "normal"
-        if loop_count < 10:
-            auto.model = "aggressive"
-        if loop_count < 0:
-            from tasks.base.retry import kill_game, restart_game
-
-            log.error("无法返回主界面，尝试重启游戏")
-            kill_game()
-            restart_game()
-            back_init_menu()
