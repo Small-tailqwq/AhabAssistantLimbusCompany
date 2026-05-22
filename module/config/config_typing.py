@@ -207,11 +207,8 @@ class ConfigModel(BaseModel):
     # 解决金丝雀新增的字段导致的兼容性问题，允许出现未定义的字段
     model_config = {"extra": "allow"}
 
-    config_version: int = 1775826004
+    config_version: int = 1779444115
     """配置文件版本号（时间戳）"""
-
-    save_count: int = 0
-    """保存次数"""
 
     game_title_name: str = "LimbusCompany"
     """游戏窗口标题"""
