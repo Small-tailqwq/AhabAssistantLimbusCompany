@@ -1,5 +1,6 @@
 import atexit
 import copy
+import re
 import sys
 import threading
 from pathlib import Path
@@ -202,47 +203,96 @@ class Config(metaclass=SingletonMeta):
             self.example_path = Path(example_path)
         try:
             with open(example_path, "r", encoding="utf-8") as file:
-                return self.yaml.load(file) or {}
+                loaded = self.yaml.load(file)
+                return loaded or {}
         except FileNotFoundError:
-            sys.exit("默认配置文件未找到")
+            log.error(f"默认配置文件 {example_path} 未找到，使用空配置")
+            return {}
+        except Exception:
+            log.warning(f"默认配置文件 {example_path} 读取失败，使用空配置")
+            return {}
+
+    @staticmethod
+    def _parse_backup_timestamp(filename: str) -> float:
+        """从备份文件名解析时间戳，解析失败返回 0"""
+        m = re.search(r"config_(\d{8})_(\d{6})\.yaml", filename)
+        if m:
+            try:
+                from datetime import datetime as _dt
+                return _dt.strptime(f"{m.group(1)}_{m.group(2)}", "%Y%m%d_%H%M%S").timestamp()
+            except ValueError:
+                return 0.0
+        return 0.0
+
+    def _get_sorted_backups(self) -> list[Path]:
+        """按文件名时间戳降序排列备份文件"""
+        if not self.backup_path.exists():
+            return []
+        files = [f for f in self.backup_path.iterdir() if f.is_file() and f.suffix == ".yaml"]
+        files.sort(key=lambda f: self._parse_backup_timestamp(f.name), reverse=True)
+        return files
+
+    def _repair_config(self, config: dict) -> int:
+        """检测并修复已知的配置损坏模式，返回修复计数"""
+        repairs = 0
+
+        teams = config.get("teams")
+        if isinstance(teams, dict):
+            for k, v in list(teams.items()):
+                if v is None:
+                    teams[k] = TeamSetting().model_dump()
+                    log.warning(f"自动修复: 队伍 {k} 配置为空，已重置为默认值")
+                    repairs += 1
+
+        gp = config.get("game_path", "")
+        if isinstance(gp, str) and "(x86" in gp and "(x86)" not in gp:
+            config["game_path"] = gp.replace("(x86", "(x86)")
+            log.warning("自动修复: game_path 括号缺失")
+            repairs += 1
+
+        for key, val in list(config.items()):
+            if isinstance(val, str) and re.search(r'\.{3,}$', val):
+                log.warning(f"配置项 {key} 可能被截断: {val[:50]}...")
+
+        return repairs
 
     def _load_config(self, path: str | Path | None = None) -> None:
         """加载用户配置文件，如未找到则保存默认配置"""
         if isinstance(path, str):
             path = Path(path)
         path = path or self.config_path
-        try:
-            if not path.exists():
-                self._save_config()
-                return
-            with open(path, "r", encoding="utf-8") as file:
-                loaded_config: dict = self.yaml.load(file)
-                if loaded_config is None:
-                    log.error("读取到的设置文件为空, 请确认是否因为罕见情况丢失了数据")
-                    if self.backup_path.exists():
-                        backup_files = [f for f in self.backup_path.iterdir() if f.is_file() and f.suffix == ".yaml"]
-                    else:
-                        backup_files = []
-                    if backup_files:
-                        backup_files.sort(key=lambda f: f.stat().st_birthtime, reverse=True)
-                        with open(backup_files[0], "r", encoding="utf-8") as backup_file:
-                            loaded_config = self.yaml.load(backup_file) or {}
-                        if loaded_config:
-                            log.info(f"已从最新的备份文件 {backup_files[0].name} 恢复配置")
-                        else:
-                            log.error(
-                                f"最新的备份文件 {backup_files[0].name} 无法读取到有效配置，请自行通过 {self.backup_path.name} 文件夹下其他文件恢复数据"
-                            )
-                            loaded_config = ConfigModel().model_dump()
-                    else:
-                        loaded_config = ConfigModel().model_dump()
+
+        # 构建恢复链：[ (文件路径, 描述), ..., (None, "默认配置") ]
+        load_targets: list[tuple[Path | None, str]] = [(path, "主配置文件")]
+        backup_files = self._get_sorted_backups()
+        load_targets.extend((bf, f"备份文件 {bf.name}") for bf in backup_files)
+        load_targets.append((None, "默认配置"))
+
+        self._load_result = {"status": "ok", "message": ""}
+
+        for attempt_path, label in load_targets:
+            try:
+                if attempt_path is None:
+                    loaded_config = ConfigModel().model_dump()
+                    self._load_result = {"status": "default", "message": "所有配置文件损坏，已重置为默认配置"}
+                else:
+                    if not attempt_path.exists():
+                        continue
+                    with open(attempt_path, "r", encoding="utf-8") as file:
+                        loaded_config: dict = self.yaml.load(file)
+                    if loaded_config is None:
+                        continue
+
+                # 自动修复已知损坏模式
+                repairs = self._repair_config(loaded_config)
+
                 if not isinstance(loaded_config.get("config_version", 0), int):
                     raise TypeError("配置文件版本号不是 int 类型")
                 if loaded_config.get("config_version", 0) < self.config.config_version:
                     saved_version = loaded_config.get("config_version", 0)
                     loaded_config["config_version"] = self.config.config_version
                     self._old_version_cfg_upgrade(saved_version, loaded_config)
-                # 使用更新后的配置初始化 Config 对象
+
                 self.config = ConfigModel(**loaded_config)
                 self._reset_session_only_config()
                 queue_in_loaded_config = loaded_config.get("teams_active_queue")
@@ -251,29 +301,38 @@ class Config(metaclass=SingletonMeta):
                 else:
                     normalized_queue = self._normalize_team_queue(queue_in_loaded_config)
                 self._sync_legacy_team_state(normalized_queue)
-                # 成功加载后保存当前文件为备份
+
+                if attempt_path != path and attempt_path is not None:
+                    self._load_result = {"status": "recovered", "message": f"配置已从 {label} 恢复"}
+                    log.warning(f"配置从 {label} 恢复，已自动写回主配置文件")
+                if repairs > 0:
+                    self._load_result = {"status": "repaired", "message": f"配置已自动修复 {repairs} 处损坏"}
+
                 self.backup_config()
                 self._save_config()
-        except FileNotFoundError:
-            self._save_config()
-        except (ValidationError, ValueError, TypeError) as e:
-            if path == self.config_path:
-                log.error("配置文件数据非法, 尝试使用备份文件恢复配置")
-                if self.backup_path.exists():
-                    backup_files = [f for f in self.backup_path.iterdir() if f.is_file() and f.suffix == ".yaml"]
-                    if not backup_files:
-                        log.error("备份目录下没有可用的备份文件，无法恢复配置")
-                        raise
-                    backup_files.sort(key=lambda f: f.stat().st_birthtime, reverse=True)
-                    self._load_config(backup_files[0])
-                else:
-                    log.error("备份目录不存在，无法恢复配置")
-                    raise
-            else:
-                log.error(f"配置文件 {path} 数据非法，错误信息：{e}", exc_info=True)
-                raise
-        except Exception as e:
-            log.error(f"配置文件{path}加载错误: {e}", exc_info=True)
+                return
+
+            except (ValidationError, ValueError, TypeError) as e:
+                log.warning(f"{label} 数据非法: {e}")
+                continue
+            except Exception as e:
+                log.warning(f"{label} 加载失败: {e}")
+                continue
+
+        log.error("所有配置文件和备份均无法加载，使用空默认配置")
+        self.config = ConfigModel()
+        self._load_result = {"status": "fatal", "message": "所有配置文件损坏，无法自动恢复"}
+
+    def _atomic_yaml_write(self, path: Path, data) -> None:
+        """原子 YAML 写入：临时文件 → replace，崩溃不截断"""
+        tmp = path.with_suffix(".yaml.tmp")
+        try:
+            with open(tmp, "w", encoding="utf-8") as f:
+                self.yaml.dump(data, f)
+            tmp.replace(path)
+        except BaseException:
+            if tmp.exists():
+                tmp.unlink()
             raise
 
     def _save_config(self) -> None:
@@ -285,8 +344,7 @@ class Config(metaclass=SingletonMeta):
         # 从快照更新到yaml对象，保持注释不变
         example_yaml.update(snapshot)
 
-        with open(self.config_path, "w", encoding="utf-8") as file:
-            self.yaml.dump(example_yaml, file)
+        self._atomic_yaml_write(self.config_path, example_yaml)
 
     def get_value(self, key: str, default: Any = None, *, config_obj: Optional[BaseModel] = None) -> Any:
         """获取配置项的值, 如果是可变对象，则返回其指针"""
@@ -505,11 +563,20 @@ class Config(metaclass=SingletonMeta):
 
     def just_load_config(self, path: Optional[Path | str] = None) -> None:
         """仅加载配置文件，不保存"""
-        path = path or self.config_path
-        try:
-            with open(path, "r", encoding="utf-8") as file:
-                loaded_config = self.yaml.load(file)
-            if loaded_config:
+        path = Path(path) if isinstance(path, str) else (path or self.config_path)
+        load_targets: list[Path | None] = [path, *self._get_sorted_backups(), None]
+        for attempt in load_targets:
+            try:
+                if attempt is None:
+                    self.config = ConfigModel()
+                    return
+                if not attempt.exists():
+                    continue
+                with open(attempt, "r", encoding="utf-8") as file:
+                    loaded_config = self.yaml.load(file)
+                if not loaded_config:
+                    continue
+                repairs = self._repair_config(loaded_config)
                 self.config = ConfigModel(**loaded_config)
                 self._reset_session_only_config()
                 queue_in_loaded_config = loaded_config.get("teams_active_queue")
@@ -518,10 +585,15 @@ class Config(metaclass=SingletonMeta):
                 else:
                     normalized_queue = self._normalize_team_queue(queue_in_loaded_config)
                 self._sync_legacy_team_state(normalized_queue)
-        except FileNotFoundError:
-            self._schedule_save()
-        except Exception as e:
-            sys.exit(f"配置文件{path}加载错误: {e}")
+                if attempt != path:
+                    log.warning(f"just_load_config: 从备份 {attempt.name} 恢复（原文件 {path} 不可读）")
+                if repairs > 0:
+                    log.warning(f"just_load_config: 自动修复 {repairs} 处配置损坏")
+                return
+            except Exception:
+                continue
+        log.error(f"just_load_config: 所有来源均加载失败，使用默认配置 (path={path})")
+        self.config = ConfigModel()
 
     def unsaved_set_value(
         self, key: str, value: Any, *, config_obj: Optional[BaseModel | dict] = None, stacklevel: int = 2
@@ -552,31 +624,29 @@ class Config(metaclass=SingletonMeta):
             log.debug(f"{key} change to: {value}", stacklevel=stacklevel)  # 增加设置修改的信息
 
     def backup_config(self) -> None:
-        """备份当前配置到备份目录"""
+        """备份当前配置到备份目录（每天最多一份，保留最近10份）"""
         if not self.backup_path.exists():
             self.backup_path.mkdir(parents=True, exist_ok=True)
-        now_time = localtime(time())
-        files = [f for f in self.backup_path.iterdir() if f.is_file() and f.suffix == ".yaml"]
-        if files:
-            files.sort(key=lambda f: f.stat().st_birthtime)
-            # 确保上次保存的文件日期不同于今天，避免重复备份
-            latest_time = localtime(files[-1].stat().st_birthtime)
-            if latest_time.tm_mday != now_time.tm_mday:
-                backup_file = self.backup_path / f"config_{strftime('%Y%m%d_%H%M%S', now_time)}.yaml"
-                with open(backup_file, "w", encoding="utf-8") as f:
-                    self.yaml.dump(self.config.model_dump(), f)
-            # 删除旧备份文件，保留最近的10个
-            while len(files) > 10:
-                try:
-                    files[0].unlink()
-                    files.pop(0)
-                except Exception as e:
-                    log.error(f"删除旧备份文件 {files[0]} 失败: {e}")
-                    break
-        else:
-            backup_file = self.backup_path / f"config_{strftime('%Y%m%d_%H%M%S', now_time)}.yaml"
-            with open(backup_file, "w", encoding="utf-8") as f:
-                self.yaml.dump(self.config.model_dump(), f)
+        now = strftime("%Y%m%d_%H%M%S", localtime(time()))
+        today_prefix = now[:8]
+        files = sorted(self.backup_path.glob("config_*.yaml"), reverse=True)
+
+        # 检查今天是否已有备份
+        if files and files[0].stem.startswith(f"config_{today_prefix}"):
+            return
+
+        backup_file = self.backup_path / f"config_{now}.yaml"
+        self._atomic_yaml_write(backup_file, self.config.model_dump())
+
+        # 保留最近10份
+        all_files = sorted(self.backup_path.glob("config_*.yaml"))
+        while len(all_files) > 10:
+            try:
+                all_files[0].unlink()
+                all_files.pop(0)
+            except Exception as e:
+                log.error(f"删除旧备份文件 {all_files[0]} 失败: {e}")
+                break
 
     def unsaved_del_key(self, key: str, *, config_obj: Optional[BaseModel | dict] = None) -> None:
         """仅删除配置项 不保存"""
@@ -741,19 +811,26 @@ class Theme_pack_list(metaclass=SingletonMeta):
         """加载默认配置信息"""
         try:
             with open(example_path, "r", encoding="utf-8") as file:
-                return self.yaml.load(file) or {}
+                loaded = self.yaml.load(file)
+                return loaded or {}
         except FileNotFoundError:
-            sys.exit("默认主题包配置文件未找到")
+            log.error(f"默认主题包配置文件 {example_path} 未找到")
+            return {}
+        except Exception as e:
+            log.error(f"默认主题包配置文件 {example_path} 加载失败: {e}")
+            return {}
 
     def load_config(self, path: str):
         """纯加载函数：从 path 读取并返回配置内容"""
         try:
             with open(path, "r", encoding="utf-8") as file:
-                return self.yaml.load(file) or {}
+                loaded = self.yaml.load(file)
+                return loaded or {}
         except FileNotFoundError:
             return None
         except Exception as e:
-            sys.exit(f"配置文件{path}加载错误: {e}")
+            log.error(f"配置文件{path}加载错误: {e}")
+            return None
 
     def _update_config(self, config: dict, new_config: dict) -> None:
         """更新配置信息"""
@@ -772,12 +849,17 @@ class Theme_pack_list(metaclass=SingletonMeta):
     def save_config(self, path, config_data):
         """保存配置到指定路径，config_data是要保存的配置内容，path是保存路径"""
         config_data = self.config if config_data is None else config_data
-
-        # 确保父目录存在,如果不存在则自动创建
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
-
-        with open(path, "w", encoding="utf-8") as file:
-            self.yaml.dump(config_data, file)
+        dest = Path(path)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        tmp = dest.with_suffix(".yaml.tmp")
+        try:
+            with open(tmp, "w", encoding="utf-8") as file:
+                self.yaml.dump(config_data, file)
+            tmp.replace(dest)
+        except BaseException:
+            if tmp.exists():
+                tmp.unlink()
+            raise
 
     def get_value(self, key, default=None):
         """获取配置项的值，如果是可变对象，则返回其拷贝"""
