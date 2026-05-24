@@ -37,7 +37,8 @@ class Handle:
         now = monotonic()
         if self._hwnd == 0:
             if now - self._last_no_hwnd_log_time >= 1:
-                log.warning("窗口未初始化", stacklevel=3)
+                if not getattr(cfg, "simulator", False):
+                    log.warning("窗口未初始化", stacklevel=3)
                 self._last_no_hwnd_log_time = now
         elif not win32gui.IsWindow(self._hwnd):
             should_log_invalid = now - self._last_invalid_hwnd_log_time >= 1
