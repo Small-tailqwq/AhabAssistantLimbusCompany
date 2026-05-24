@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from math import ceil
 from time import sleep
 
 from PIL import Image
@@ -107,6 +108,20 @@ def _extract_money_from_ocr_texts(texts):
             return int(normalized)
 
     return None
+
+
+def _wait_for_keyword_refresh_confirm_to_clear(timeout_seconds=2.2, poll_interval=0.25):
+    """等待关键词刷新确认弹窗消失，避免因为检测过快导致误判。"""
+    poll_interval = max(float(poll_interval), 0.05)
+    timeout_seconds = max(float(timeout_seconds), poll_interval)
+    max_checks = max(1, int(ceil(timeout_seconds / poll_interval)))
+
+    for index in range(max_checks):
+        if auto.find_element("mirror/shop/refresh_keyword_confirm_assets.png", take_screenshot=True) is None:
+            return True
+        if index < max_checks - 1:
+            sleep(poll_interval)
+    return False
 
 
 def _retry_money_ocr_with_scaled_crop(money_bbox, scale=2):
@@ -416,25 +431,22 @@ class Shop:
                             take_screenshot=True,
                         )
                         sleep(0.5)
-                        auto.click_element("mirror/shop/refresh_keyword_confirm_assets.png")
-                        for _ in range(3):
-                            if auto.find_element(
-                                "mirror/shop/refresh_keyword_confirm_assets.png",
-                                take_screenshot=True,
-                            ):
+                        auto.click_element("mirror/shop/refresh_keyword_confirm_assets.png", take_screenshot=True)
+                        if not _wait_for_keyword_refresh_confirm_to_clear():
+                            for _ in range(2):
                                 log.warning("关键词刷新确认未生效，重试中")
-                                sleep(0.5)
+                                sleep(0.4)
                                 auto.click_element(
                                     f"mirror/shop/keyword/keyword_{self.system}.png",
                                     take_screenshot=True,
                                 )
-                                sleep(0.5)
+                                sleep(0.4)
                                 auto.click_element(
                                     "mirror/shop/refresh_keyword_confirm_assets.png",
                                     take_screenshot=True,
                                 )
-                            else:
-                                break
+                                if _wait_for_keyword_refresh_confirm_to_clear():
+                                    break
                         keyword_refresh_count += 1
                         auto.mouse_click_blank()
                         sleep(3)
@@ -1439,6 +1451,7 @@ class Shop:
         fuse = False
         enhance = False
         skill = False
+        shop_exit_success = False
         try:
             while True:
                 # 忽略楼层商店的情况
@@ -1533,6 +1546,7 @@ class Shop:
                 if retry() is False:
                     raise self.RestartGame()
                 if auto.find_element("mirror/road_in_mir/legend_assets.png"):
+                    shop_exit_success = True
                     break
                 if auto.click_element("mirror/shop/leave_shop_confirm_assets.png"):
                     _shop_debug_save("leave_shop_confirm_clicked")
@@ -1542,9 +1556,10 @@ class Shop:
                     continue
                 if auto.click_element("mirror/shop/heal_sinner/heal_sinner_return_assets.png"):
                     continue
+            return shop_exit_success
         except self.RestartGame:
             log.error("执行商店操作期间出现错误，尝试重启游戏")
-            return
+            return False
 
     def _get_cost(self, in_heal=False) -> int:
         """获取当前剩余的经费"""

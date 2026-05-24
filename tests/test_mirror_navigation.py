@@ -1,4 +1,5 @@
 import unittest
+from typing import Any, cast
 from unittest.mock import patch
 
 import tasks.mirror.mirror as mirror_module
@@ -109,6 +110,37 @@ class _EventProgressTextAuto:
         raise _StopAfterCommence
 
 
+class _MirrorShopExitAuto:
+    def __init__(self, legend_visible):
+        self.legend_visible = legend_visible
+
+    def take_screenshot(self):
+        return object()
+
+    def find_element(self, target, *_, **__):
+        if target == "mirror/road_in_mir/legend_assets.png":
+            return self.legend_visible
+        return False
+
+
+class _ShopStub:
+    def __init__(self, result):
+        self.result = result
+        self.called_with_floor = None
+
+    def in_shop(self, floor):
+        self.called_with_floor = floor
+        return self.result
+
+
+class _MirrorMapStub:
+    def __init__(self):
+        self.cache_calls = 0
+
+    def cache_post_shop_boss_route(self):
+        self.cache_calls += 1
+
+
 class TestMirrorNavigation(unittest.TestCase):
     def test_road_to_mir_clicks_low_confidence_mirror_dungeons_before_window_fallback(self):
         auto = _DriveScreenAuto()
@@ -159,6 +191,34 @@ class TestMirrorNavigation(unittest.TestCase):
                 mirror.event_handling()
 
         self.assertIn(("ocr", 60, 70), auto.clicked)
+
+    def test_in_shop_writes_post_shop_cache_when_shop_exits_successfully(self):
+        mirror = cast(Any, mirror_module.Mirror.__new__(mirror_module.Mirror))
+        shop_stub = _ShopStub(result=True)
+        map_stub = _MirrorMapStub()
+        mirror.floor = 5
+        mirror.shop = shop_stub
+        mirror.mirror_map = map_stub
+
+        with patch.object(mirror_module, "auto", _MirrorShopExitAuto(legend_visible=False)):
+            mirror.in_shop()
+
+        self.assertEqual(shop_stub.called_with_floor, 5)
+        self.assertEqual(map_stub.cache_calls, 1)
+
+    def test_in_shop_skips_post_shop_cache_when_shop_exit_failed(self):
+        mirror = cast(Any, mirror_module.Mirror.__new__(mirror_module.Mirror))
+        shop_stub = _ShopStub(result=False)
+        map_stub = _MirrorMapStub()
+        mirror.floor = 4
+        mirror.shop = shop_stub
+        mirror.mirror_map = map_stub
+
+        with patch.object(mirror_module, "auto", _MirrorShopExitAuto(legend_visible=True)):
+            mirror.in_shop()
+
+        self.assertEqual(shop_stub.called_with_floor, 4)
+        self.assertEqual(map_stub.cache_calls, 0)
 
 
 if __name__ == "__main__":
