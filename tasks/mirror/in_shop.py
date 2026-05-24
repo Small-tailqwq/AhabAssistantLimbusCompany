@@ -63,6 +63,35 @@ _MONEY_OCR_TRANSLATION = str.maketrans(
 )
 
 
+# E.G.O 饰品升级扫描区域（相对坐标，基于 1080p/2k 样本校准）
+_ENHANCE_SCAN_REGION_REL = {
+    "left": 0.5151,
+    "top": 0.3380,
+    "right": 0.8844,
+    "bottom": 0.7130,
+}
+
+
+def _filter_enhance_gift_scan_points(points, screen_size):
+    if not points or not screen_size:
+        return points
+
+    width, height = screen_size
+    if not width or not height:
+        return points
+
+    left = int(round(_ENHANCE_SCAN_REGION_REL["left"] * width))
+    top = int(round(_ENHANCE_SCAN_REGION_REL["top"] * height))
+    right = int(round(_ENHANCE_SCAN_REGION_REL["right"] * width))
+    bottom = int(round(_ENHANCE_SCAN_REGION_REL["bottom"] * height))
+
+    return [
+        point
+        for point in points
+        if left <= int(point[0]) <= right and top <= int(point[1]) <= bottom
+    ]
+
+
 def _extract_money_from_ocr_texts(texts):
     if not texts:
         return None
@@ -1191,6 +1220,11 @@ class Shop:
                 find_type="image_with_multiple_targets",
             ):
                 gifts = sorted(gifts, key=lambda x: (x[1], x[0]))
+                raw_count = len(gifts)
+                screen_size = auto.screenshot.size if auto.screenshot is not None else None
+                gifts = _filter_enhance_gift_scan_points(gifts, screen_size)
+                if len(gifts) != raw_count:
+                    log.debug(f"升级扫描区域过滤：{raw_count} -> {len(gifts)}")
                 for gift in gifts:
                     if check_enhanced(gift) is False:
                         auto.mouse_click(gift[0], gift[1])
