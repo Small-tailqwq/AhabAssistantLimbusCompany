@@ -224,11 +224,22 @@ class Config(metaclass=SingletonMeta):
                 return 0.0
         return 0.0
 
+    def _get_backup_path(self) -> Path:
+        """获取备份目录路径，兼容测试场景下未完整初始化的 Config 实例。"""
+        backup_path = self.__dict__.get("backup_path")
+        if isinstance(backup_path, str):
+            backup_path = Path(backup_path)
+        elif not isinstance(backup_path, Path):
+            backup_path = Path("config_backup")
+        self.__dict__["backup_path"] = backup_path
+        return backup_path
+
     def _get_sorted_backups(self) -> list[Path]:
         """按文件名时间戳降序排列备份文件"""
-        if not self.backup_path.exists():
+        backup_path = self._get_backup_path()
+        if not backup_path.exists():
             return []
-        files = [f for f in self.backup_path.iterdir() if f.is_file() and f.suffix == ".yaml"]
+        files = [f for f in backup_path.iterdir() if f.is_file() and f.suffix == ".yaml"]
         files.sort(key=lambda f: self._parse_backup_timestamp(f.name), reverse=True)
         return files
 
@@ -563,7 +574,10 @@ class Config(metaclass=SingletonMeta):
 
     def just_load_config(self, path: Optional[Path | str] = None) -> None:
         """仅加载配置文件，不保存"""
-        path = Path(path) if isinstance(path, str) else (path or self.config_path)
+        default_path = self.__dict__.get("config_path", Path("config.yaml"))
+        if isinstance(default_path, str):
+            default_path = Path(default_path)
+        path = Path(path) if isinstance(path, str) else (path or default_path)
         load_targets: list[Path | None] = [path, *self._get_sorted_backups(), None]
         for attempt in load_targets:
             try:
@@ -625,21 +639,22 @@ class Config(metaclass=SingletonMeta):
 
     def backup_config(self) -> None:
         """备份当前配置到备份目录（每天最多一份，保留最近10份）"""
-        if not self.backup_path.exists():
-            self.backup_path.mkdir(parents=True, exist_ok=True)
+        backup_path = self._get_backup_path()
+        if not backup_path.exists():
+            backup_path.mkdir(parents=True, exist_ok=True)
         now = strftime("%Y%m%d_%H%M%S", localtime(time()))
         today_prefix = now[:8]
-        files = sorted(self.backup_path.glob("config_*.yaml"), reverse=True)
+        files = sorted(backup_path.glob("config_*.yaml"), reverse=True)
 
         # 检查今天是否已有备份
         if files and files[0].stem.startswith(f"config_{today_prefix}"):
             return
 
-        backup_file = self.backup_path / f"config_{now}.yaml"
+        backup_file = backup_path / f"config_{now}.yaml"
         self._atomic_yaml_write(backup_file, self.config.model_dump())
 
         # 保留最近10份
-        all_files = sorted(self.backup_path.glob("config_*.yaml"))
+        all_files = sorted(backup_path.glob("config_*.yaml"))
         while len(all_files) > 10:
             try:
                 all_files[0].unlink()
