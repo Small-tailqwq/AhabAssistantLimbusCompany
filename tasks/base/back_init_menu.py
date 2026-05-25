@@ -43,10 +43,6 @@ def back_init_menu():
 
                 if SimulatorControl.connection_device.check_game_alive() is False:
                     SimulatorControl.connection_device.start_game()
-        # 自动截图
-        if auto.take_screenshot() is None:
-            continue
-
         if retry() is False:
             return False
 
