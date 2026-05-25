@@ -16,6 +16,8 @@ metadata:
 
 **commit 必须纯净**：待贡献的 commit 中每一行改动都必须是该 bugfix 的一部分。混入无关文件（如预暂存的工作区改动、其他分支的调试日志）会导致 cherry-pick 污染上游历史。
 
+**绝不贡献测试文件**：`tests/`、`test/` 下的文件属于本仓库的本地位测试产物，上游有独立的测试体系。贡献时即使源 commit 包含测试文件，也必须排除。
+
 ### 前置条件
 
 - 你明确告诉我**需要贡献的 commit hash**（一个或多个）
@@ -31,6 +33,7 @@ git show <commit-hash>                             # 逐行审查全部变更
 
 逐一检查每个 commit：
 - **是否包含非此 bugfix 的文件？** 如果混入了其他预暂存或不相关的改动（如调试日志、`opencode/` 技能文件等），必须先拆分 commit：
+- **是否包含测试文件（`tests/`、`test/`）？** 测试文件是本地验证产物，绝不贡献到上游。如有则必须在 cherry-pick 时排除。
   ```ps1
   git reset --soft HEAD~1                           # 拆包
   git reset HEAD <无关文件>                          # 排除无关文件
@@ -91,7 +94,7 @@ git diff upstream/main...HEAD                      # 逐行审查全部变更
 - ❌ 没有 `config.yaml` 的改动（用户配置文件，上游不追踪）
 - ❌ 没有金丝雀品牌相关改动（`canary` 图片、README 金丝雀标题、tagline 等）
 - ❌ 没有 `.opencode/` 下的任何文件
-- ❌ 没有 `issues/`、`logs/`、`test/` 本地产物
+- ❌ 没有 `issues/`、`logs/`、`test/`、`tests/` 本地产物
 - ❌ 没有 `CHANGELOG.md` 改动（上游有自己的 changelog）
 - ❌ 没有 `version.txt`、`config.example.yaml` 等配置文件的无关改动
 - ❌ 没有在 cherry-pick 中用 `--theirs` 排除过的无关文件残留

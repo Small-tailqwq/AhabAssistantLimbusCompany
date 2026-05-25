@@ -371,7 +371,7 @@ class Mirror:
             if auto.take_screenshot() is None:
                 continue
 
-            retry(skip_screenshot=True)
+            retry()
 
             if cfg.floor_3_exit and self.floor >= 4:
                 if auto.click_element("mirror/road_in_mir/towindow&forfeit_confirm_assets.png", threshold=0.75):
@@ -453,7 +453,7 @@ class Mirror:
                     "mirror/claim_reward/complete_mirror_100%_assets.png"
                 ):
                     break
-                retry(skip_screenshot=True)
+                retry()
                 if self.get_floor_num:
                     self.get_which_floor()
 

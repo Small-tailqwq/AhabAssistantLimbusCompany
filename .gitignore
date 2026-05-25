@@ -7,6 +7,8 @@
 .idea
 .claude
 .env
+.atomcode/
+entities.json
 
 # 构建文件
 build
@@ -20,6 +22,7 @@ dist_release
 !3rdparty/PaddleOCR-json_v1.4.1/*.dll
 build.bat
 config.yaml*
+config_backup/
 theme_pack_list.yaml
 logs
 pythonlogs

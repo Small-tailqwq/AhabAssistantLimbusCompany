@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AALC 日志可视化</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #0d1117; --surface: #161b22; --border: #30363d;
+  --text: #e6edf3; --text-dim: #8b949e; --text-muted: #6e7681;
+  --debug: #8b949e; --info: #58a6ff; --warn: #d29922; --error: #f85149;
+  --hover: #1c2128; --accent: #2f81f7;
+}
+body {
+  font-family: -apple-system, 'Segoe UI', 'Noto Sans SC', sans-serif;
+  background: var(--bg); color: var(--text); font-size: 13px; line-height: 1.5;
+  overflow-x: hidden;
+}
+/* ── Header ── */
+.header {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 12px 16px;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.header h1 { font-size: 16px; font-weight: 600; white-space: nowrap; }
+.header label { color: var(--text-dim); font-size: 12px; }
+.btn {
+  background: #21262d; border: 1px solid var(--border); color: var(--text);
+  padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;
+  transition: .15s;
+}
+.btn:hover { background: #30363d; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn-primary:hover { filter: brightness(1.15); }
+.btn-sm { padding: 2px 8px; font-size: 11px; }
+/* ── Stats ── */
+.stats-bar {
+  display: flex; gap: 8px; padding: 8px 16px;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  flex-wrap: wrap; align-items: center;
+}
+.stat { display: flex; align-items: center; gap: 4px; font-size: 12px; }
+.stat-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.stat-val { font-weight: 600; margin-right: 2px; }
+/* ── Filters ── */
+.filter-bar {
+  display: flex; gap: 8px; padding: 8px 16px;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  flex-wrap: wrap; align-items: center;
+}
+.filter-bar input, .filter-bar select {
+  background: #0d1117; border: 1px solid var(--border); color: var(--text);
+  padding: 4px 8px; border-radius: 6px; font-size: 12px;
+}
+.filter-bar input::placeholder { color: var(--text-muted); }
+.level-toggle {
+  display: flex; gap: 4px; align-items: center;
+  cursor: pointer; font-size: 12px; padding: 2px 6px;
+  border-radius: 4px; border: 1px solid transparent; user-select: none;
+}
+.level-toggle:hover { background: var(--hover); }
+.level-toggle input { display: none; }
+.level-toggle.active { border-color: var(--border); }
+/* ── Log table ── */
+.log-container { max-height: calc(100vh - 160px); overflow-y: auto; }
+.log-table { width: 100%; border-collapse: collapse; }
+.log-table tr { border-bottom: 1px solid var(--border); }
+.log-table tr:hover { background: var(--hover); }
+.log-table td { padding: 3px 8px; vertical-align: top; font-size: 12px; }
+.td-ts { color: var(--text-dim); white-space: nowrap; width: 140px; font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 11px; }
+.td-level { width: 60px; }
+.td-module { width: 110px; color: var(--text-dim); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.td-msg { word-break: break-all; }
+.level-badge {
+  display: inline-block; padding: 0 6px; border-radius: 3px;
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+}
+.level-DEBUG { background: #161b22; color: var(--debug); }
+.level-INFO { background: #0c2d6b; color: var(--info); }
+.level-WARNING { background: #3d2e00; color: var(--warn); }
+.level-ERROR { background: #490202; color: var(--error); }
+.module-badge {
+  display: inline-block; padding: 0 4px; border-radius: 3px;
+  background: #161b22; font-size: 11px; color: var(--text-dim);
+}
+/* ── Asset inline ── */
+.asset-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: #1c2128; border: 1px solid var(--border);
+  border-radius: 4px; padding: 1px 6px 1px 3px;
+  cursor: pointer; font-size: 12px; margin: 1px 2px;
+  transition: .15s;
+}
+.asset-chip:hover {
+  background: #21262d; border-color: var(--accent); z-index: 10;
+}
+.asset-chip .sim {
+  display: inline-block; padding: 0 3px; border-radius: 2px;
+  font-size: 10px; font-weight: 600; min-width: 28px; text-align: center;
+}
+.asset-chip .sim-high { color: #3fb950; }
+.asset-chip .sim-mid { color: #d29922; }
+.asset-chip .sim-low { color: #f85149; }
+.asset-thumb {
+  width: 24px; height: 24px; object-fit: contain;
+  border-radius: 2px; background: #0d1117;
+  image-rendering: pixelated;
+}
+/* ── Image popover ── */
+.img-popover {
+  display: none;
+  position: fixed; z-index: 1000;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.6);
+  max-width: 400px;
+}
+.img-popover.show { display: block; }
+.img-popover img {
+  max-width: 360px; max-height: 300px; display: block;
+  image-rendering: pixelated;
+}
+.img-popover .pop-title {
+  font-size: 12px; font-weight: 600; margin-bottom: 4px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.img-popover .pop-key { color: var(--text-dim); font-size: 11px; }
+/* ── Click badge ── */
+.click-badge {
+  display: inline-block; padding: 1px 5px; border-radius: 3px;
+  background: #1c2128; color: var(--info); font-size: 11px;
+  font-family: monospace; margin: 1px 2px;
+}
+/* ── Phase grouping ── */
+.phase-header {
+  background: var(--surface); color: var(--accent); font-weight: 600;
+  font-size: 13px; padding: 6px 12px;
+  border-top: 2px solid var(--accent); border-bottom: 1px solid var(--border);
+  cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+}
+.phase-header:hover { background: var(--hover); }
+.phase-count { color: var(--text-dim); font-size: 11px; font-weight: 400; }
+/* ── Loading ── */
+.loading {
+  display: flex; justify-content: center; align-items: center;
+  padding: 48px; color: var(--text-dim);
+}
+.spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top: 2px solid var(--accent); border-radius: 50%; animation: spin .8s linear infinite; margin-right: 12px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty { text-align: center; padding: 48px; color: var(--text-dim); }
+/* ── File selector ── */
+.file-select { min-width: 240px; }
+.file-select optgroup { color: var(--text-dim); }
+.file-info { color: var(--text-muted); font-size: 11px; }
+/* ── Timeline mini bar ── */
+.timeline-bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; flex: 1; min-width: 60px; max-width: 200px; }
+.timeline-bar span { flex: 1; }
+.tl-DEBUG { background: var(--debug); }
+.tl-INFO { background: var(--info); }
+.tl-WARNING { background: var(--warn); }
+.tl-ERROR { background: var(--error); }
+/* ── Mens ── */
+.menu-group { display: flex; gap: 4px; align-items: center; }
+.hidden { display: none !important; }
+pre.msg-raw { display: none; margin: 4px 0; padding: 4px 8px; background: #0d1117; border-radius: 4px; font-size: 11px; overflow-x: auto; max-height: 200px; color: var(--text-dim); }
+.toggle-raw { cursor: pointer; color: var(--text-muted); font-size: 10px; }
+.toggle-raw:hover { color: var(--accent); }
+@media (max-width: 768px) {
+  .td-ts { width: 90px; }
+  .td-module { width: 70px; }
+  .header { flex-direction: column; align-items: stretch; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📋 AALC 日志</h1>
+  <select class="file-select btn" id="fileSelect"><option value="">— 加载日志 —</option></select>
+  <button class="btn" id="btnReload" title="重新加载当前文件">↻</button>
+  <label class="file-info" id="fileInfo"></label>
+  <span style="flex:1"></span>
+  <button class="btn btn-sm" id="btnGroupToggle" title="按模块分组">📁 分组</button>
+  <button class="btn btn-sm" id="btnRawToggle" title="显示/隐藏原始行">📄 原文</button>
+  <button class="btn btn-sm" id="btnScrollBottom">⬇ 底部</button>
+</div>
+
+<div class="stats-bar" id="statsBar"></div>
+
+<div class="filter-bar" id="filterBar">
+  <label class="level-toggle active" data-level="DEBUG"><input type="checkbox" checked><span class="stat-dot" style="background:var(--debug)"></span> DEBUG</label>
+  <label class="level-toggle active" data-level="INFO"><input type="checkbox" checked><span class="stat-dot" style="background:var(--info)"></span> INFO</label>
+  <label class="level-toggle active" data-level="WARNING"><input type="checkbox" checked><span class="stat-dot" style="background:var(--warn)"></span> WARNING</label>
+  <label class="level-toggle active" data-level="ERROR"><input type="checkbox" checked><span class="stat-dot" style="background:var(--error)"></span> ERROR</label>
+  <input type="text" id="searchInput" placeholder="🔍 搜索..." style="flex:1;min-width:120px">
+  <input type="text" id="moduleFilter" placeholder="📦 模块过滤..." style="width:120px">
+</div>
+
+<div class="log-container" id="logContainer">
+  <div class="loading"><div class="spinner"></div><span>选择一个日志文件开始分析</span></div>
+</div>
+
+<div class="img-popover" id="imgPopover">
+  <div class="pop-title"><span id="popTitle"></span><span class="pop-key" id="popKey"></span></div>
+  <img id="popImg" src="" alt="">
+</div>
+
+<script>
+// ── State ──
+let allEntries = [];
+let allStats = null;
+let grouped = false;
+let showRaw = false;
+let currentFile = '';
+
+// ── Init ──
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadFileList();
+  // Try preload from server
+  try {
+    const r = await fetch('/api/log?file=' + encodeURIComponent(await getPreloadPath()));
+    if (r.ok) loadFile({ target: { value: await getPreloadPath() } });
+  } catch(e) {}
+  setupEvents();
+});
+
+async function getPreloadPath() {
+  try {
+    const r = await fetch('/preload.json');
+    if (r.ok) { const d = await r.json(); return d.log; }
+  } catch(e) {}
+  return '';
+}
+
+async function loadFileList() {
+  try {
+    const r = await fetch('/api/files');
+    const files = await r.json();
+    const sel = document.getElementById('fileSelect');
+    sel.innerHTML = '<option value="">— 加载日志 —</option>';
+    const groups = {};
+    for (const f of files) {
+      const g = f.dir || '日志';
+      if (!groups[g]) groups[g] = [];
+      groups[g].push(f);
+    }
+    for (const [g, items] of Object.entries(groups)) {
+      const optg = document.createElement('optgroup');
+      optg.label = g;
+      for (const f of items) {
+        const o = document.createElement('option');
+        o.value = f.path;
+        o.textContent = `${f.name} (${(f.size/1024).toFixed(0)}KB)`;
+        optg.appendChild(o);
+      }
+      sel.appendChild(optg);
+    }
+  } catch(e) {
+    console.error('file list error', e);
+  }
+}
+
+// ── Load log ──
+async function loadLog(filepath) {
+  document.getElementById('logContainer').innerHTML = '<div class="loading"><div class="spinner"></div><span>解析中...</span></div>';
+
+  try {
+    const r = await fetch('/api/log?file=' + encodeURIComponent(filepath));
+    const data = await r.json();
+    if (data.error) {
+      document.getElementById('logContainer').innerHTML = `<div class="empty">❌ ${data.error}</div>`;
+      return;
+    }
+    allEntries = data.entries;
+    allStats = data.stats;
+    currentFile = filepath;
+    document.getElementById('fileInfo').textContent = `${data.file} · ${data.total} 行`;
+    render();
+  } catch(e) {
+    document.getElementById('logContainer').innerHTML = `<div class="empty">❌ ${e.message}</div>`;
+  }
+}
+
+// ── Render ──
+function render() {
+  const levels = {};
+  document.querySelectorAll('.level-toggle').forEach(el => {
+    if (el.querySelector('input').checked) levels[el.dataset.level] = true;
+  });
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const modFilter = document.getElementById('moduleFilter').value.toLowerCase();
+
+  let filtered = allEntries.filter(e => {
+    if (!levels[e.level]) return false;
+    if (search) {
+      const match = e.msg.toLowerCase().includes(search) ||
+                    e.images.some(im => im.key.includes(search) || im.name.includes(search)) ||
+                    e.module_short.toLowerCase().includes(search);
+      if (!match) return false;
+    }
+    if (modFilter && !e.module_short.toLowerCase().includes(modFilter)) return false;
+    return true;
+  });
+
+  // Stats
+  let statsHtml = '';
+  const total = filtered.length;
+  const cnt = {};
+  for (const e of filtered) { cnt[e.level] = (cnt[e.level] || 0) + 1; }
+  statsHtml += `<span class="stat"><span style="font-weight:600">${total}</span> 行</span>`;
+  for (const lv of ['DEBUG','INFO','WARNING','ERROR']) {
+    if (cnt[lv]) {
+      statsHtml += `<span class="stat"><span class="stat-dot" style="background:var(--${lv.toLowerCase()})"></span><span class="stat-val">${cnt[lv]}</span></span>`;
+    }
+  }
+  // timeline mini bar
+  if (total > 0 && allEntries) {
+    const buckets = 30;
+    const step = Math.max(1, Math.floor(filtered.length / buckets));
+    let bar = '<span class="timeline-bar">';
+    for (let i = 0; i < filtered.length; i += step) {
+      const e = filtered[Math.min(i, filtered.length-1)];
+      bar += `<span class="tl-${e.level}"></span>`;
+    }
+    bar += '</span>';
+    statsHtml += bar;
+  }
+  document.getElementById('statsBar').innerHTML = statsHtml;
+
+  // Build table
+  let html = '<table class="log-table">';
+  if (grouped) {
+    html += renderGrouped(filtered);
+  } else {
+    for (const e of filtered) {
+      html += renderRow(e);
+    }
+  }
+  html += '</table>';
+
+  if (filtered.length === 0) {
+    html = '<div class="empty">🔍 没有匹配的日志行</div>';
+  }
+
+  document.getElementById('logContainer').innerHTML = html;
+  setupRowEvents();
+}
+
+function renderRow(e) {
+  const msg = renderMsg(e);
+  const imgs = e.images.length ? e.images.map(renderAssetChip).join('') : '';
+  const clicks = e.clicks.length ? e.clicks.map(c => `<span class="click-badge">🖱(${fmtN(c.x)},${fmtN(c.y)})</span>`).join('') : '';
+  const rawClass = showRaw ? '' : ' hidden';
+  return `<tr>
+    <td class="td-ts">${esc(e.ts)}</td>
+    <td class="td-level"><span class="level-badge level-${e.level}">${e.level}</span></td>
+    <td class="td-module"><span class="module-badge">${esc(e.module_short)}</span></td>
+    <td class="td-msg">${msg} ${imgs} ${clicks}<pre class="msg-raw${rawClass}">${esc(e.msg)}</pre></td>
+  </tr>`;
+}
+
+function renderGrouped(entries) {
+  const groups = {};
+  for (const e of entries) {
+    const key = e.module_short || '其他';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(e);
+  }
+  let html = '';
+  for (const [mod, items] of Object.entries(groups)) {
+    html += `<tr class="phase-header"><td colspan="4">📁 ${esc(mod)} <span class="phase-count">${items.length} 行</span></td></tr>`;
+    for (const e of items) {
+      html += renderRow(e);
+    }
+  }
+  return html;
+}
+
+function renderMsg(e) {
+  let msg = e.msg;
+  // Replace image patterns with shorter markers
+  msg = msg.replace(/目标图片：([\w/\\-]+\.png),\s*路径:\s*[\w/]+,\s*相似度：([\d.]+),\s*目标位置：\([^)]+\)/g, (m, key, sim) => {
+    const hn = getHumanName(key);
+    return `🖼${hn}[${sim}]`;
+  });
+  // Replace click patterns
+  msg = msg.replace(/点击位置:\(([\d.]+),\s*([\d.]+)\)/g, (m, x, y) => `🖱(${fmtN(x)},${fmtN(y)})`);
+  // Shorten specific log markers
+  msg = msg.replace(/开始执行/g, '▶');
+  msg = msg.replace(/结束执行/g, '■');
+  msg = msg.replace(/\.\.\\\.\.\\/g, '');
+  msg = msg.replace(/目标图片：/g, '🖼');
+  msg = msg.replace(/相似度：/g, '');
+  return esc(msg);
+}
+
+let _cacheBuster = Date.now();
+function assetUrl(key) { return `/api/asset/${key}?_=${_cacheBuster}`; }
+function renderAssetChip(im) {
+  const simClass = im.similarity >= 0.7 ? 'sim-high' : im.similarity >= 0.35 ? 'sim-mid' : 'sim-low';
+  const imgTag = im.path ? `<img class="asset-thumb" src="${assetUrl(im.key)}" onerror="this.style.display='none'" title="${esc(im.key)}">` : '';
+  const simTag = im.similarity != null ? `<span class="sim ${simClass}">${im.similarity.toFixed(2)}</span>` : '';
+  return `<span class="asset-chip" data-key="${esc(im.key)}" data-name="${esc(im.name)}">${imgTag}${simTag}${esc(im.name)}</span>`;
+}
+
+// ── Human name (client-side fallback) ──
+const SYSTEM_NAMES_JS = {
+  "burn": "🔥烧伤", "bleed": "🩸流血", "tremor": "📳震颤",
+  "rupture": "💥破裂", "poise": "🌊呼吸", "sinking": "🌑沉沦",
+  "charge": "⚡充能", "slash": "⚔斩击", "pierce": "🏹贯穿", "blunt": "🔨打击",
+};
+function getHumanName(key) {
+  const known = {
+    "mirror/shop/power_up_assets.png": "⭐升级",
+    "mirror/shop/power_up_confirm_assets.png": "✅升级确认",
+    "mirror/shop/purchase_assets.png": "🛒购买",
+    "mirror/shop/shop_coins_assets.png": "🪙商店硬币",
+    "mirror/shop/refresh_assets.png": "🔄刷新",
+    "mirror/shop/refresh_keyword_assets.png": "🔑关键词刷新",
+    "mirror/shop/refresh_keyword_confirm_assets.png": "✅刷新确认",
+    "mirror/shop/fuse_gift_assets.png": "🔬合成",
+    "mirror/shop/fuse_ego_gift_assets.png": "🔬合成EGO",
+    "mirror/shop/fuse_90%_assets.png": "90%概率",
+    "mirror/shop/enhance_gifts_assets.png": "⬆升级页",
+    "mirror/shop/sort_button_assets.png": "🔽排序",
+    "mirror/shop/leave_assets.png": "🚪离开",
+    "mirror/shop/return_assets.png": "🔙返回",
+    "mirror/road_in_mir/ego_gift_get_confirm_assets.png": "✅EGO确认",
+    "mirror/road_in_mir/legend_assets.png": "🗺图例",
+    "mirror/road_in_mir/enter_assets.png": "🚪进入",
+    "battle/pause_assets.png": "⏸暂停",
+    "battle/view_status_assets.png": "👁状态",
+    "battle/dead_all.png": "💀全灭",
+    "battle/dead.png": "💀死亡",
+    "battle/in_mirror_assets.png": "🪞镜牢中",
+    "battle/win_rate_card.png": "📊胜率",
+    "base/connecting_assets.png": "🔄连接",
+    "base/retry_countdown.png": "⏳倒计时",
+    "base/retry.png": "🔄重试",
+    "base/waiting_assets.png": "⏳等待",
+    "base/try_again.png": "↻再试",
+    "base/clear_all_caches_assets.png": "🧹清缓存",
+    "base/only_option_assets.png": "唯一选项",
+    "event/skip_assets.png": "⏭跳过",
+    "event/continue_assets.png": "▶继续",
+    "teams/identify_assets.png": "🔍识别队伍",
+  };
+  if (known[key]) return known[key];
+  const fn = key.split('/').pop();
+  for (const [en, cn] of Object.entries(SYSTEM_NAMES_JS)) {
+    if (fn.startsWith(`shop_${en}`)) return `${cn}饰品`;
+    if (fn.startsWith(`big_${en}`)) return `${cn}大饰品`;
+    if (fn.startsWith(`keyword_${en}`)) return `${cn}关键词`;
+    if (fn === `${en}_level_IV.png`) return `${cn}四级`;
+  }
+  return fn.replace(/_assets|\.png|_/g, '').replace(/_/g, ' ');
+}
+
+// ── Helpers ──
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function fmtN(n) { const v = parseFloat(n); return Number.isInteger(v) ? v : v.toFixed(0); }
+
+// ── Events ──
+function setupEvents() {
+  document.getElementById('fileSelect').addEventListener('change', function() {
+    if (this.value) loadLog(this.value);
+  });
+  document.getElementById('btnReload').addEventListener('click', () => {
+    if (currentFile) loadLog(currentFile);
+  });
+  document.querySelectorAll('.level-toggle').forEach(el => {
+    el.addEventListener('click', function(e) {
+      if (e.target.tagName === 'INPUT') return;
+      const cb = this.querySelector('input');
+      cb.checked = !cb.checked;
+      this.classList.toggle('active');
+      if (allEntries.length) render();
+    });
+    el.querySelector('input').addEventListener('change', function() {
+      this.closest('.level-toggle').classList.toggle('active');
+      if (allEntries.length) render();
+    });
+  });
+  document.getElementById('searchInput').addEventListener('input', () => { if (allEntries.length) render(); });
+  document.getElementById('moduleFilter').addEventListener('input', () => { if (allEntries.length) render(); });
+  document.getElementById('btnGroupToggle').addEventListener('click', function() {
+    grouped = !grouped;
+    this.textContent = grouped ? '📂 取消分组' : '📁 分组';
+    if (allEntries.length) render();
+  });
+  document.getElementById('btnRawToggle').addEventListener('click', function() {
+    showRaw = !showRaw;
+    this.textContent = showRaw ? '📄 隐藏原文' : '📄 原文';
+    document.querySelectorAll('.msg-raw').forEach(el => el.classList.toggle('hidden'));
+  });
+  document.getElementById('btnScrollBottom').addEventListener('click', () => {
+    const c = document.getElementById('logContainer');
+    c.scrollTop = c.scrollHeight;
+  });
+}
+
+function setupRowEvents() {
+  // Asset chip click → image popover
+  document.querySelectorAll('.asset-chip').forEach(el => {
+    el.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const key = this.dataset.key;
+      const name = this.dataset.name;
+      showPopover(this, key, name);
+    });
+  });
+  // Click anywhere to dismiss
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.img-popover') && !e.target.closest('.asset-chip')) {
+      document.getElementById('imgPopover').classList.remove('show');
+    }
+  });
+}
+
+function showPopover(refEl, key, name) {
+  const pop = document.getElementById('imgPopover');
+  document.getElementById('popTitle').textContent = name;
+  document.getElementById('popKey').textContent = key;
+  document.getElementById('popImg').src = '/api/asset/' + key + '?_=' + Date.now();
+  pop.classList.add('show');
+
+  const rect = refEl.getBoundingClientRect();
+  const popRect = pop.getBoundingClientRect();
+  let left = rect.left;
+  let top = rect.bottom + 4;
+  // Keep in viewport
+  if (left + popRect.width > window.innerWidth - 8) {
+    left = window.innerWidth - popRect.width - 8;
+  }
+  if (top + popRect.height > window.innerHeight - 8) {
+    top = rect.top - popRect.height - 4;
+  }
+  if (left < 8) left = 8;
+  if (top < 8) top = 8;
+  pop.style.left = left + 'px';
+  pop.style.top = top + 'px';
+}
+</script>
+</body>
+</html>

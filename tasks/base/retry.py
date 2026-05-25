@@ -74,11 +74,10 @@ _last_retry_time = 0.0
 _RETRY_THROTTLE_SECONDS = 5.0
 
 
-def retry(skip_screenshot=False):
-    """重试连接
+def retry():
+    """重试连接。
 
-    Args:
-        skip_screenshot: 为 True 时跳过内部截图，复用调用者已有的截图
+    为保证稳定性，retry 内循环始终刷新截图，避免复用旧帧导致误判。
     """
     global _last_retry_time
     now = time.time()
@@ -98,9 +97,8 @@ def retry(skip_screenshot=False):
             start_time = max(start_time, auto.get_restore_time())
         if check_times(start_time):
             return False
-        if not skip_screenshot or auto.screenshot is None:
-            if auto.take_screenshot() is None:
-                continue
+        if auto.take_screenshot() is None:
+            continue
         if auto.find_element("base/connecting_assets.png"):
             continue
         if position := auto.find_element("base/retry_countdown.png"):
