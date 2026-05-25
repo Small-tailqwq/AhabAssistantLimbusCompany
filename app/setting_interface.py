@@ -330,7 +330,7 @@ class SettingInterface(QWidget):
             QT_TRANSLATE_NOOP("SwitchSettingCard", "镜牢寻路调试"),
             QT_TRANSLATE_NOOP(
                 "SwitchSettingCard",
-                "记录镜牢寻路额外日志，并在 logs/route_map_debug 下保存调试截图和元数据",
+                "记录镜牢寻路额外日志，并保存调试截图和元数据到 logs/route_map_debug 目录",
             ),
             "debug_mirror_route",
             parent=self.logs_group,
@@ -340,7 +340,7 @@ class SettingInterface(QWidget):
             QT_TRANSLATE_NOOP("SwitchSettingCard", "纽本调试"),
             QT_TRANSLATE_NOOP(
                 "SwitchSettingCard",
-                "记录纽本匹配过程的截图到 logs/thread_dungeon_debug 目录",
+                "在纽本运行时保存匹配过程截图到 logs/thread_dungeon_debug 目录",
             ),
             "debug_thread_dungeon",
             parent=self.logs_group,
@@ -360,7 +360,7 @@ class SettingInterface(QWidget):
             QT_TRANSLATE_NOOP("SwitchSettingCard", "商店调试"),
             QT_TRANSLATE_NOOP(
                 "SwitchSettingCard",
-                "输出商店各操作的详细识别和点击日志，保存调试截图",
+                "记录商店各操作的详细识别和点击日志，并保存调试截图到 logs/shop_debug 目录",
             ),
             "debug_shop",
             parent=self.logs_group,
@@ -370,7 +370,7 @@ class SettingInterface(QWidget):
             QT_TRANSLATE_NOOP("SwitchSettingCard", "镜牢事件调试"),
             QT_TRANSLATE_NOOP(
                 "SwitchSettingCard",
-                "在事件判定各关键节点保存截图到 logs/event_debug 目录",
+                "在镜牢事件判定各关键节点保存截图到 logs/event_debug 目录",
             ),
             "debug_mirror_event",
             parent=self.logs_group,

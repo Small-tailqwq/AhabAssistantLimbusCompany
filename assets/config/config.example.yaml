@@ -77,6 +77,8 @@ debug_mode: False # 调试模式总开关；关闭时应同步关闭所有子调
 debug_mirror_route: False # 镜牢寻路调试：输出额外日志并保存路线图调试截图
 debug_thread_dungeon: False # 纽本调试：保存纽本流程截图到 logs/thread_dungeon_debug
 debug_retry: False # 重试调试：在尝试退出、重启镜牢时输出识别情况的日志断点
+debug_shop: False # 商店调试：保存商店流程截图到 logs/shop_debug
+debug_mirror_event: False # 镜牢事件调试：保存事件分支流程截图到 logs/event_debug
 experimental_keep_screen_awake: False # 运行期间阻止系统与显示器休眠，任务结束自动恢复
 # 模拟器设置
 simulator: False # 是否使用模拟器
