@@ -72,14 +72,16 @@ def check_times(start_time, timeout=90, logs=True):
 
 
 def retry():
-    """重试连接"""
+    """重试连接。
+
+    为保证稳定性，retry 内循环始终刷新截图，避免复用旧帧导致误判。
+    """
     start_time = time.time()
     while True:
         if auto.get_restore_time() is not None:
             start_time = max(start_time, auto.get_restore_time())
         if check_times(start_time):
             return False
-        # 自动截图
         if auto.take_screenshot() is None:
             continue
         if auto.find_element("base/connecting_assets.png"):
