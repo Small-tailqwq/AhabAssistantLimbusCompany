@@ -3,6 +3,7 @@ import copy
 import re
 import sys
 import threading
+from datetime import datetime
 from pathlib import Path
 from time import localtime, strftime, time
 from typing import Any, Optional
@@ -218,8 +219,7 @@ class Config(metaclass=SingletonMeta):
         m = re.search(r"config_(\d{8})_(\d{6})\.yaml", filename)
         if m:
             try:
-                from datetime import datetime as _dt
-                return _dt.strptime(f"{m.group(1)}_{m.group(2)}", "%Y%m%d_%H%M%S").timestamp()
+                return datetime.strptime(f"{m.group(1)}_{m.group(2)}", "%Y%m%d_%H%M%S").timestamp()
             except ValueError:
                 return 0.0
         return 0.0
@@ -279,13 +279,11 @@ class Config(metaclass=SingletonMeta):
         load_targets.extend((bf, f"备份文件 {bf.name}") for bf in backup_files)
         load_targets.append((None, "默认配置"))
 
-        self._load_result = {"status": "ok", "message": ""}
-
         for attempt_path, label in load_targets:
             try:
                 if attempt_path is None:
                     loaded_config = ConfigModel().model_dump()
-                    self._load_result = {"status": "default", "message": "所有配置文件损坏，已重置为默认配置"}
+                    log.error("所有配置文件和备份均无法加载，已重置为默认配置")
                 else:
                     if not attempt_path.exists():
                         continue
@@ -314,10 +312,9 @@ class Config(metaclass=SingletonMeta):
                 self._sync_legacy_team_state(normalized_queue)
 
                 if attempt_path != path and attempt_path is not None:
-                    self._load_result = {"status": "recovered", "message": f"配置已从 {label} 恢复"}
                     log.warning(f"配置从 {label} 恢复，已自动写回主配置文件")
                 if repairs > 0:
-                    self._load_result = {"status": "repaired", "message": f"配置已自动修复 {repairs} 处损坏"}
+                    log.warning(f"配置已自动修复 {repairs} 处损坏")
 
                 self.backup_config()
                 self._save_config()
@@ -329,10 +326,6 @@ class Config(metaclass=SingletonMeta):
             except Exception as e:
                 log.warning(f"{label} 加载失败: {e}")
                 continue
-
-        log.error("所有配置文件和备份均无法加载，使用空默认配置")
-        self.config = ConfigModel()
-        self._load_result = {"status": "fatal", "message": "所有配置文件损坏，无法自动恢复"}
 
     def _atomic_yaml_write(self, path: Path, data) -> None:
         """原子 YAML 写入：临时文件 → replace，崩溃不截断"""
@@ -582,6 +575,7 @@ class Config(metaclass=SingletonMeta):
         for attempt in load_targets:
             try:
                 if attempt is None:
+                    log.error(f"just_load_config: 所有来源均加载失败，使用默认配置 (path={path})")
                     self.config = ConfigModel()
                     return
                 if not attempt.exists():
@@ -606,8 +600,6 @@ class Config(metaclass=SingletonMeta):
                 return
             except Exception:
                 continue
-        log.error(f"just_load_config: 所有来源均加载失败，使用默认配置 (path={path})")
-        self.config = ConfigModel()
 
     def unsaved_set_value(
         self, key: str, value: Any, *, config_obj: Optional[BaseModel | dict] = None, stacklevel: int = 2
