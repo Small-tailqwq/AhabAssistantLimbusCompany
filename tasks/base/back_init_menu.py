@@ -12,10 +12,19 @@ def _is_retry_debug_enabled():
     return bool(cfg.get_value("debug_mode", False) and cfg.get_value("debug_retry", False))
 
 
+def _screenshot_fingerprint():
+    if auto.screenshot is None:
+        return None
+    raw = auto.screenshot.tobytes()
+    return hash(raw[: min(len(raw), 1024)])
+
+
 @begin_and_finish_time_log(task_name="返回主界面")
 def back_init_menu(*, allow_restart: bool = True):
     loop_count = 30
     auto.model = "clam"
+    _last_fingerprint = None
+    _stale_count = 0
     while True:
         auto.ensure_not_stopped()
         loop_count -= 1
@@ -54,6 +63,18 @@ def back_init_menu(*, allow_restart: bool = True):
                     SimulatorControl.connection_device.start_game()
         if retry() is False:
             return False
+
+        # 截屏冻结检测：连续 3 轮相同画面则跳过（不点击），防止 Mumu 显存刷新延迟导致的无限误触
+        fingerprint = _screenshot_fingerprint()
+        if fingerprint == _last_fingerprint:
+            _stale_count += 1
+            if _stale_count >= 3:
+                log.warning(f"检测到截屏冻结（连续 {_stale_count} 轮画面不变），跳过本轮")
+                sleep(0.5)
+                continue
+        else:
+            _stale_count = 0
+        _last_fingerprint = fingerprint
 
         if auto.click_element("home/window_assets.png") and auto.find_element("home/mail_assets.png", model="normal"):
             return True

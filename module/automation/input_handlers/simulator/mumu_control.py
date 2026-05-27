@@ -773,41 +773,59 @@ class MumuControl(AbstractInput):
                 auto.clear_img_cache()
                 log.debug(f"自动将AALC识别的分辨率适配模拟器设置: {self.width} x {self.height}")
 
-    def screenshot(self, timeout=0.15):
+    def screenshot(self, timeout=None):
         """
         Returns:
-            np.ndarray: Image array in RGBA color space
-                Note that image is upside down
+            np.ndarray: Image array in RGB color space
         """
-        if self.connect_id == 0:
-            self.connect()
 
-        if self.height == 0:
-            self.get_resolution()
+        retry_times = 3
+        for trial in range(retry_times):
+            if self.connect_id == 0:
+                self.connect()
 
-        width_ptr = ctypes.pointer(ctypes.c_int(self.width))
-        height_ptr = ctypes.pointer(ctypes.c_int(self.height))
-        length = self.width * self.height * 4
-        pixels_pointer = ctypes.pointer((ctypes.c_ubyte * length)())
+            if self.height == 0:
+                self.get_resolution()
 
-        ret = self.ev_run_sync(
-            self.lib.nemu_capture_display,
-            self.connect_id,
-            self.display_id,
-            length,
-            width_ptr,
-            height_ptr,
-            pixels_pointer,
-            timeout=timeout,
-        )
-        if ret > 0:
-            raise NemuIpcError("nemu_capture_display failed during screenshot()")
+            # 动态超时：默认 0.3s，每次重试翻倍
+            trial_timeout = timeout if timeout is not None else 0.3 * (2 ** trial)
 
-        # image = np.ctypeslib.as_array(pixels_pointer, shape=(self.height, self.width, 4))
-        image = np.ctypeslib.as_array(pixels_pointer.contents).reshape((self.height, self.width, 4))
-        image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGB)
-        cv2.flip(image, 0, dst=image)
-        return image
+            width_ptr = ctypes.pointer(ctypes.c_int(self.width))
+            height_ptr = ctypes.pointer(ctypes.c_int(self.height))
+            length = self.width * self.height * 4
+            pixels_pointer = ctypes.pointer((ctypes.c_ubyte * length)())
+
+            try:
+                ret = self.ev_run_sync(
+                    self.lib.nemu_capture_display,
+                    self.connect_id,
+                    self.display_id,
+                    length,
+                    width_ptr,
+                    height_ptr,
+                    pixels_pointer,
+                    timeout=trial_timeout,
+                )
+            except NemuIpcError:
+                if trial < retry_times - 1:
+                    log.warning(f"截图失败，尝试重连后重试 ({trial + 1}/{retry_times})")
+                    self.disconnect()
+                    self.connect()
+                    continue
+                raise
+
+            if ret > 0:
+                if trial < retry_times - 1:
+                    log.warning(f"nemu_capture_display 返回 {ret}，尝试重试 ({trial + 1}/{retry_times})")
+                    continue
+                raise NemuIpcError("nemu_capture_display failed during screenshot()")
+
+            image = np.ctypeslib.as_array(pixels_pointer.contents).reshape((self.height, self.width, 4))
+            image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGB)
+            cv2.flip(image, 0, dst=image)
+            return image
+
+        raise NemuIpcError("screenshot() exhausted all retries")
 
     def down(self, x, y):
         """
