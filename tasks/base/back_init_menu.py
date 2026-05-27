@@ -128,7 +128,7 @@ def back_init_menu(*, allow_restart: bool = True):
             continue
 
         # 左上角有后退键
-        if auto.click_element("home/back_assets.png"):
+        if auto.click_element("home/back_assets_v2.png", model="normal", threshold=0.6):
             continue
 
         # 战斗结算确认（需在投降逻辑之前，避免结算界面误匹配 setting 按钮）
