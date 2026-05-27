@@ -64,11 +64,11 @@ def back_init_menu(*, allow_restart: bool = True):
         if retry() is False:
             return False
 
-        # 截屏冻结检测：连续 3 轮相同画面则跳过（不点击），防止 Mumu 显存刷新延迟导致的无限误触
+        # 截屏冻结检测：连续 2 轮相同画面则跳过（不点击），防止 Mumu 显存刷新延迟导致的无限误触
         fingerprint = _screenshot_fingerprint()
         if fingerprint == _last_fingerprint:
             _stale_count += 1
-            if _stale_count >= 3:
+            if _stale_count >= 2:
                 log.warning(f"检测到截屏冻结（连续 {_stale_count} 轮画面不变），跳过本轮")
                 sleep(0.5)
                 continue
