@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Match Viewer</title>
+<style>
+:root {
+  --bg: #1a1a2e;
+  --surface: #16213e;
+  --surface2: #0f3460;
+  --text: #e0e0e0;
+  --text2: #a0a0a0;
+  --accent: #e94560;
+  --green: #4caf84;
+  --border: #2a3a5e;
+  --radius: 6px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg); color: var(--text); height: 100vh; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.topbar {
+  display: flex; align-items: center; gap: 12px; padding: 8px 16px;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.topbar select, .topbar button, .topbar input[type=range] {
+  background: var(--surface2); color: var(--text); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 4px 10px; font-size: 13px;
+}
+.topbar button { cursor: pointer; }
+.topbar button:hover { background: var(--accent); }
+.topbar button.primary { background: var(--accent); border-color: var(--accent); }
+.main { display: flex; flex: 1; overflow: hidden; }
+.panel { display: flex; flex-direction: column; }
+.panel-left {
+  width: 340px; min-width: 280px; background: var(--surface);
+  border-right: 1px solid var(--border); overflow: hidden;
+}
+.panel-right { flex: 1; position: relative; overflow: hidden; }
+.dropzone {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; border: 3px dashed var(--border);
+  color: var(--text2); font-size: 16px; cursor: pointer; transition: border-color 0.2s;
+}
+.dropzone.drag-over { border-color: var(--accent); color: var(--accent); }
+.canvas-wrap { position: absolute; inset: 0; overflow: hidden; }
+.canvas-wrap canvas { position: absolute; }
+.asset-search { padding: 8px; }
+.asset-search input {
+  width: 100%; background: var(--surface2); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 10px; font-size: 13px;
+}
+.cat-tree { flex: 1; overflow-y: auto; padding: 0 8px 8px; }
+.cat-group { margin-bottom: 4px; }
+.cat-header {
+  display: flex; align-items: center; padding: 6px 4px; cursor: pointer;
+  font-size: 13px; font-weight: 600; color: var(--text2); user-select: none;
+}
+.cat-header:hover { color: var(--text); }
+.cat-header .arrow { margin-right: 4px; font-size: 10px; transition: transform 0.15s; display: inline-block; width: 12px; }
+.cat-header .arrow.open { transform: rotate(90deg); }
+.cat-items { padding-left: 12px; }
+.cat-items.collapsed { display: none; }
+.asset-item {
+  display: flex; align-items: center; gap: 6px; padding: 4px 6px;
+  border-radius: var(--radius); cursor: default; font-size: 12px;
+}
+.asset-item:hover { background: var(--surface2); }
+.asset-item input[type=checkbox] { accent-color: var(--accent); cursor: pointer; }
+.asset-item .eye-btn {
+  cursor: pointer; opacity: 0.5; font-size: 14px; user-select: none;
+  padding: 0 2px;
+}
+.asset-item .eye-btn.visible { opacity: 1; color: var(--accent); }
+.asset-item .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.asset-item .thumb { width: 32px; height: 32px; object-fit: contain; border-radius: 3px; background: var(--bg); }
+.controls {
+  padding: 8px 12px; border-top: 1px solid var(--border); background: var(--surface);
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+}
+.controls button {
+  background: var(--surface2); color: var(--text); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 3px 8px; font-size: 11px; cursor: pointer;
+}
+.controls button:hover { background: var(--accent); }
+.model-tabs { display: flex; gap: 2px; }
+.model-tab {
+  padding: 4px 12px; font-size: 12px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text); cursor: pointer; border-radius: var(--radius);
+  user-select: none;
+}
+.model-tab.active { background: var(--accent); border-color: var(--accent); }
+.status { padding: 4px 16px; font-size: 12px; color: var(--text2); background: var(--surface); border-top: 1px solid var(--border); }
+label.cb-label { font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 4px; cursor: pointer; }
+label.cb-label input { accent-color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span style="font-weight:600;color:var(--accent);white-space:nowrap">Match Viewer</span>
+  <select id="themeSelect"><option value="default">亮色</option><option value="dark">暗色</option></select>
+  <select id="langSelect"><option value="en">英文</option><option value="zh_cn">中文</option></select>
+  <input type="range" id="thresholdSlider" min="0" max="100" value="80" style="width:120px" title="匹配阈值">
+  <span id="thresholdLabel" style="min-width:40px;font-size:13px">0.80</span>
+  <div class="model-tabs" id="modelTabs">
+    <span class="model-tab active" data-model="clam">clam</span>
+    <span class="model-tab" data-model="normal">normal</span>
+    <span class="model-tab" data-model="aggressive">aggressive</span>
+  </div>
+  <label class="cb-label"><input type="checkbox" id="lowResToggle"> 低分辨率优化</label>
+  <button class="primary" id="runMatchBtn">运行匹配</button>
+  <button id="clearBtn">清除截图</button>
+</div>
+<div class="main">
+  <div class="panel panel-left">
+    <div class="asset-search"><input type="text" id="assetSearch" placeholder="搜索资产..."></div>
+    <div class="cat-tree" id="catTree"></div>
+    <div class="controls">
+      <button id="selectAllBtn">全选</button>
+      <button id="deselectAllBtn">全不选</button>
+      <button id="showAllBtn">全部显示</button>
+      <button id="hideAllBtn">全部隐藏</button>
+    </div>
+  </div>
+  <div class="panel panel-right" id="viewerPanel">
+    <div class="dropzone" id="dropzone">
+      <div style="font-size:48px;margin-bottom:16px">&#x1F4F7;</div>
+      <div>拖放截图到此处，或点击选择文件</div>
+      <div style="font-size:12px;margin-top:8px">也支持 Ctrl+V 粘贴</div>
+      <input type="file" id="fileInput" accept="image/*" style="display:none">
+    </div>
+    <div class="canvas-wrap" id="canvasWrap" style="display:none">
+      <canvas id="overlayCanvas"></canvas>
+    </div>
+  </div>
+</div>
+<div class="status" id="statusBar">就绪 — 等待截图上传</div>
+
+<script>
+const API = '';
+const state = {
+  winSize: 720,
+  assets: [],
+  selected: new Set(),
+  visible: new Set(),
+  matchResults: null,
+  currentModel: 'clam',
+  threshold: 0.8,
+  screenshotImg: null,
+  scale: 1, offsetX: 0, offsetY: 0,
+};
+let catData = {};
+let collapsedCats = new Set();
+
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const canvasWrap = document.getElementById('canvasWrap');
+const overlayCanvas = document.getElementById('overlayCanvas');
+const ctx = overlayCanvas.getContext('2d');
+const statusBar = document.getElementById('statusBar');
+const thresholdSlider = document.getElementById('thresholdSlider');
+const thresholdLabel = document.getElementById('thresholdLabel');
+const catTree = document.getElementById('catTree');
+const assetSearch = document.getElementById('assetSearch');
+
+async function loadCategories() {
+  const theme = document.getElementById('themeSelect').value;
+  const lang = document.getElementById('langSelect').value;
+  try {
+    const r = await fetch(`${API}/api/categories?theme=${theme}&lang=${lang}&win_size=${state.winSize}`);
+    const data = await r.json();
+    catData = data.categories || {};
+    state.winSize = data.win_size;
+    flattenAssets();
+    renderCatTree();
+  } catch (e) {
+    console.error('Failed to load categories:', e);
+  }
+}
+
+function flattenAssets() {
+  state.assets = [];
+  for (const [cat, items] of Object.entries(catData)) {
+    for (const item of items) {
+      state.assets.push({...item, category: cat});
+    }
+  }
+}
+
+function renderCatTree() {
+  catTree.innerHTML = '';
+  const search = assetSearch.value.toLowerCase();
+  for (const [cat, items] of Object.entries(catData)) {
+    const filtered = items.filter(a => a.key.toLowerCase().includes(search));
+    if (filtered.length === 0) continue;
+    const group = document.createElement('div');
+    group.className = 'cat-group';
+    const isCollapsed = collapsedCats.has(cat);
+    const header = document.createElement('div');
+    header.className = 'cat-header';
+    header.innerHTML = `<span class="arrow${isCollapsed ? '' : ' open'}">▶</span> ${cat} (${filtered.length})`;
+    header.onclick = () => {
+      if (collapsedCats.has(cat)) collapsedCats.delete(cat);
+      else collapsedCats.add(cat);
+      renderCatTree();
+    };
+    group.appendChild(header);
+    const itemsDiv = document.createElement('div');
+    itemsDiv.className = 'cat-items' + (isCollapsed ? ' collapsed' : '');
+    for (const item of filtered) {
+      const row = document.createElement('div');
+      row.className = 'asset-item';
+
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = state.selected.has(item.key);
+      cb.onchange = () => {
+        if (cb.checked) state.selected.add(item.key);
+        else state.selected.delete(item.key);
+      };
+
+      const thumb = document.createElement('img');
+      thumb.className = 'thumb';
+      thumb.src = `${API}/api/asset-image?key=${encodeURIComponent(item.key)}&path=${encodeURIComponent(item.path)}&bbox=1&win_size=${state.winSize}`;
+      thumb.onerror = () => { thumb.style.display = 'none'; };
+      thumb.alt = '';
+
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = item.key.split('/').pop().replace('_assets.png', '');
+      name.title = item.key;
+
+      const eye = document.createElement('span');
+      eye.className = 'eye-btn' + (state.visible.has(item.key) ? ' visible' : '');
+      eye.textContent = '👁';
+      eye.title = '切换截图显示';
+      eye.onclick = (e) => {
+        e.stopPropagation();
+        if (state.visible.has(item.key)) state.visible.delete(item.key);
+        else state.visible.add(item.key);
+        eye.className = 'eye-btn' + (state.visible.has(item.key) ? ' visible' : '');
+        if (state.matchResults) drawScreenshot();
+      };
+
+      row.appendChild(cb);
+      row.appendChild(thumb);
+      row.appendChild(name);
+      row.appendChild(eye);
+      itemsDiv.appendChild(row);
+    }
+    group.appendChild(itemsDiv);
+    catTree.appendChild(group);
+  }
+}
+
+assetSearch.addEventListener('input', renderCatTree);
+document.getElementById('themeSelect').addEventListener('change', () => { state.selected.clear(); state.visible.clear(); loadCategories(); });
+document.getElementById('langSelect').addEventListener('change', () => { state.selected.clear(); state.visible.clear(); loadCategories(); });
+document.getElementById('selectAllBtn').onclick = () => { for (const a of state.assets) state.selected.add(a.key); renderCatTree(); };
+document.getElementById('deselectAllBtn').onclick = () => { state.selected.clear(); renderCatTree(); };
+document.getElementById('showAllBtn').onclick = () => { for (const a of state.assets) state.visible.add(a.key); renderCatTree(); if (state.matchResults) drawScreenshot(); };
+document.getElementById('hideAllBtn').onclick = () => { state.visible.clear(); renderCatTree(); if (state.matchResults) drawScreenshot(); };
+
+dropzone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', (e) => { if (e.target.files[0]) loadScreenshot(e.target.files[0]); });
+dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+dropzone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropzone.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) loadScreenshot(e.dataTransfer.files[0]);
+});
+document.addEventListener('paste', (e) => {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      loadScreenshot(item.getAsFile());
+      break;
+    }
+  }
+});
+
+function loadScreenshot(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      state.screenshotImg = img;
+      state.winSize = img.naturalHeight;
+      state.matchResults = null;
+      state.visible.clear();
+      dropzone.style.display = 'none';
+      canvasWrap.style.display = 'block';
+      state.scale = 1; state.offsetX = 0; state.offsetY = 0;
+      resizeCanvas();
+      drawScreenshot();
+      loadCategories();
+      statusBar.textContent = `截图已加载 — ${img.naturalWidth}x${img.naturalHeight} (win_size=${state.winSize})`;
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearScreenshot() {
+  state.screenshotImg = null;
+  state.matchResults = null;
+  state.visible.clear();
+  dropzone.style.display = 'flex';
+  canvasWrap.style.display = 'none';
+  renderCatTree();
+  statusBar.textContent = '就绪 — 等待截图上传';
+}
+document.getElementById('clearBtn').onclick = clearScreenshot;
+
+function resizeCanvas() {
+  const wrap = canvasWrap;
+  overlayCanvas.width = wrap.clientWidth;
+  overlayCanvas.height = wrap.clientHeight;
+  drawScreenshot();
+}
+
+function drawScreenshot() {
+  ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+  const img = state.screenshotImg;
+  if (!img) return;
+  const drawW = img.naturalWidth * state.scale;
+  const drawH = img.naturalHeight * state.scale;
+  const baseX = (overlayCanvas.width - drawW) / 2 + state.offsetX;
+  const baseY = (overlayCanvas.height - drawH) / 2 + state.offsetY;
+  ctx.drawImage(img, baseX, baseY, drawW, drawH);
+  if (state.matchResults) drawOverlay(baseX, baseY, drawW, drawH);
+}
+
+function drawOverlay(baseX, baseY, drawW, drawH) {
+  if (!state.matchResults || !state.screenshotImg) return;
+  const img = state.screenshotImg;
+  const scaleX = drawW / img.naturalWidth;
+  const scaleY = drawH / img.naturalHeight;
+
+  for (const result of state.matchResults.results) {
+    if (!state.visible.has(result.key)) continue;
+    const modelData = result[state.currentModel];
+    if (!modelData || !modelData.center || modelData.matchVal === null) continue;
+
+    const [cx, cy] = modelData.center;
+    const [tw, th] = result.template_size;
+    if (!tw || !th) continue;
+
+    const x = baseX + cx * scaleX - (tw * scaleX) / 2;
+    const y = baseY + cy * scaleY - (th * scaleY) / 2;
+    const w = tw * scaleX;
+    const h = th * scaleY;
+    const passed = modelData.matchVal >= state.threshold;
+
+    if (modelData.search_bbox) {
+      const [sx1, sy1, sx2, sy2] = modelData.search_bbox;
+      const sbx = baseX + sx1 * scaleX;
+      const sby = baseY + sy1 * scaleY;
+      const sbw = (sx2 - sx1) * scaleX;
+      const sbh = (sy2 - sy1) * scaleY;
+      ctx.strokeStyle = 'rgba(100,149,237,0.4)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.strokeRect(sbx, sby, sbw, sbh);
+      ctx.setLineDash([]);
+    }
+
+    ctx.strokeStyle = passed ? '#4caf84' : '#e94560';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, w, h);
+
+    const shortName = result.key.split('/').pop().replace('_assets.png', '');
+    const label = `${shortName} ${modelData.matchVal.toFixed(2)}`;
+    ctx.font = '11px monospace';
+    const textMetrics = ctx.measureText(label);
+    const textW = textMetrics.width + 6;
+    const textH = 16;
+    const labelY = y - textH > 0 ? y - textH : y;
+    ctx.fillStyle = passed ? 'rgba(76,175,132,0.85)' : 'rgba(233,69,96,0.85)';
+    ctx.fillRect(x, labelY, textW, textH);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(label, x + 3, labelY + 12);
+  }
+}
+
+overlayCanvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? 0.9 : 1.1;
+  state.scale = Math.max(0.1, Math.min(5, state.scale * delta));
+  drawScreenshot();
+});
+
+let isDragging = false, dragStartX = 0, dragStartY = 0;
+overlayCanvas.addEventListener('mousedown', (e) => {
+  isDragging = true;
+  dragStartX = e.clientX - state.offsetX;
+  dragStartY = e.clientY - state.offsetY;
+});
+window.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  state.offsetX = e.clientX - dragStartX;
+  state.offsetY = e.clientY - dragStartY;
+  drawScreenshot();
+});
+window.addEventListener('mouseup', () => { isDragging = false; });
+window.addEventListener('resize', resizeCanvas);
+
+document.querySelectorAll('.model-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.model-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    state.currentModel = tab.dataset.model;
+    drawScreenshot();
+  });
+});
+
+thresholdSlider.addEventListener('input', () => {
+  state.threshold = thresholdSlider.value / 100;
+  thresholdLabel.textContent = state.threshold.toFixed(2);
+  drawScreenshot();
+});
+
+document.getElementById('runMatchBtn').addEventListener('click', runMatch);
+
+async function runMatch() {
+  if (!state.screenshotImg) { alert('请先加载截图'); return; }
+  const selectedAssets = state.assets.filter(a => state.selected.has(a.key));
+  if (selectedAssets.length === 0) { alert('请至少选择一个资产'); return; }
+
+  statusBar.textContent = '正在匹配...';
+
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = state.screenshotImg.naturalWidth;
+  tempCanvas.height = state.screenshotImg.naturalHeight;
+  tempCanvas.getContext('2d').drawImage(state.screenshotImg, 0, 0);
+  const b64 = tempCanvas.toDataURL('image/png');
+
+  const lowRes = document.getElementById('lowResToggle').checked;
+  const reqBody = {
+    screenshot: b64,
+    assets: selectedAssets.map(a => ({key: a.key, path: a.path})),
+    low_res_mode: lowRes,
+    models: ['clam', 'normal', 'aggressive'],
+    win_size: state.winSize,
+  };
+
+  try {
+    const r = await fetch(`${API}/api/match`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(reqBody),
+    });
+    state.matchResults = await r.json();
+    for (const result of state.matchResults.results) {
+      state.visible.add(result.key);
+    }
+    statusBar.textContent = `匹配完成 — ${state.matchResults.results.length} 资产, ${state.matchResults.models.length} 模型`;
+    drawScreenshot();
+  } catch (e) {
+    statusBar.textContent = '匹配失败: ' + e.message;
+  }
+}
+
+loadCategories();
+</script>
+</body>
+</html>

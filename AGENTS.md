@@ -23,6 +23,7 @@ uv run python .opencode/tools/log_analyzer.py <log>      # 日志压缩报告
 uv run python .opencode/tools/mirror_analyzer.py <logs>  # 镜牢耗时分析（支持多文件）
 uv run python .opencode/tools/log_viewer.py              # 日志可视化 Web 面板（自动打开 http://localhost:9812）
 uv run python .opencode/tools/log_viewer.py -l issues/25/original.log  # 直接加载特定日志
+uv run python .opencode/tools/match_viewer.py              # 图片匹配诊断工具（自动打开 http://localhost:9813）
 
 ## 调试脚本存档
 `debug_tools/` 收录可复用的调试/验证脚本（镜像匹配、区域提取、多分辨率评估等），非 CI 集成。
