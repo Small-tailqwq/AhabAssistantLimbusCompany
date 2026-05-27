@@ -858,6 +858,7 @@ class MumuControl(AbstractInput):
             raise NemuIpcError("nemu_input_event_key_up failed")
 
     def key_press(self, key):
+        log.debug(f"按下按键: {key}")
         self.key_down(usual_key_code[key])
         time.sleep(0.015)
         self.key_up(usual_key_code[key])

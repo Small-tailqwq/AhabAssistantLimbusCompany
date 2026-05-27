@@ -303,6 +303,7 @@ class SimulatorControl(AbstractInput):
         Args:
             key (str): 按键名称
         """
+        log.debug(f"按下按键: {key}")
         if self.simulator_device is None:
             self.get_simulator()
         try:

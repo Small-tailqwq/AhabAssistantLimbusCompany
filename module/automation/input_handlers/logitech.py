@@ -572,6 +572,7 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
             raise
 
     def key_press(self, key):
+        log.debug(f"按下按键: {key}")
         self._ensure_input_focus()
         self.key_down(key)
         HumanKinematics.human_sleep(0.018, jitter=0.35, minimum=0.012, maximum=0.045)

@@ -246,6 +246,7 @@ class Input(WinAbstractInput, metaclass=SingletonMeta):
             self.mouse_move(current_mouse_position)
 
     def key_press(self, key):
+        log.debug(f"按下按键: {key}")
         self.set_active()
         return pyautogui.press(key)
 
