@@ -92,7 +92,7 @@ class MatchViewerHandler(SimpleHTTPRequestHandler):
             full_dir = base_dir / subdir
             if not full_dir.exists():
                 continue
-            for png_file in sorted(full_dir.rglob("*assets.png")):
+            for png_file in sorted(full_dir.rglob("*.png")):
                 rel = str(png_file.relative_to(full_dir))
                 category = str(Path(rel).parent).replace("\\", "/") or "root"
                 key = f"{category}/{png_file.name}" if category != "root" else png_file.name
@@ -231,25 +231,18 @@ class MatchViewerHandler(SimpleHTTPRequestHandler):
                 if full_img is None:
                     continue
 
-                bbox = None
-                template = None
-                if key.endswith("assets.png"):
-                    bbox_1440 = ImageUtils.get_bbox(full_img)
+                bbox_1440 = ImageUtils.get_bbox(full_img)
+                template = ImageUtils.crop(full_img, bbox_1440)
+                if template is not None:
                     if use_1440_base:
                         bbox = bbox_1440
                     else:
                         bbox = tuple(int(v * scale_from_1440) for v in bbox_1440)
-                    template = ImageUtils.crop(full_img, bbox_1440)
-                    if template is not None and not use_1440_base:
                         new_w = int(template.shape[1] * scale_from_1440)
                         new_h = int(template.shape[0] * scale_from_1440)
                         if new_w > 0 and new_h > 0:
                             template = cv2.resize(template, (new_w, new_h), interpolation=cv2.INTER_AREA)
-                    if template is not None and len(template.shape) == 3 and template.shape[2] >= 3:
-                        template = cv2.cvtColor(template[:, :, :3], cv2.COLOR_RGB2GRAY)
-                else:
-                    template = ImageUtils.load_from_specific_path(key, path_str, resize=not use_1440_base)
-                    if template is not None and len(template.shape) == 3 and template.shape[2] >= 3:
+                    if len(template.shape) == 3 and template.shape[2] >= 3:
                         template = cv2.cvtColor(template[:, :, :3], cv2.COLOR_RGB2GRAY)
 
                 if template is None:
