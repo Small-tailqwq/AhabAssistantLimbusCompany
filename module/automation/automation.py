@@ -327,6 +327,12 @@ class Automation(metaclass=SingletonMeta):
                         0,
                     )
                     time.sleep(wait_time)
+                if self.last_click_time > 0 and time.time() - self.last_click_time < screenshot_interval_time:
+                    wait_time = max(
+                        screenshot_interval_time - (time.time() - self.last_click_time),
+                        0,
+                    )
+                    time.sleep(wait_time)
 
                 color_result = ScreenShot.take_screenshot(gray=False)
                 if color_result:
