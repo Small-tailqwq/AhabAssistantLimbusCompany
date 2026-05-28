@@ -1,7 +1,10 @@
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 
+import module.automation.input_handlers.input as input_module
 from module.automation.input_handlers import AbstractInput
-from module.automation.input_handlers.input import WINDOWS_KEY_CODES, WinAbstractInput
+from module.automation.input_handlers.input import WINDOWS_KEY_CODES, BackgroundInput, WinAbstractInput, WindowMoveInput
 from module.automation.input_handlers.keys import (
     UnsupportedKeyError,
     normalize_key,
@@ -94,6 +97,31 @@ class InputKeyContractTest(unittest.TestCase):
                 self.assertTrue(key_down_lparam & extended_flag)
                 self.assertTrue(key_up_lparam & extended_flag)
                 self.assertEqual(key_up_lparam & key_up_flags, key_up_flags)
+
+    def test_windows_lparam_masks_extended_scan_prefix(self):
+        with patch.object(input_module.win32api, "MapVirtualKey", return_value=0xE01D):
+            lparam = WinAbstractInput._make_key_lparam(WINDOWS_KEY_CODES["delete"])
+
+        self.assertEqual(lparam, 0x011D0001)
+
+    def test_windows_message_wparam_normalizes_right_side_modifiers(self):
+        fake_screen = SimpleNamespace(handle=SimpleNamespace(hwnd=123))
+
+        for input_cls, backend_key, expected_wparam in (
+            (BackgroundInput, input_module.win32con.VK_RCONTROL, input_module.win32con.VK_CONTROL),
+            (WindowMoveInput, input_module.win32con.VK_RMENU, input_module.win32con.VK_MENU),
+        ):
+            with self.subTest(input_cls=input_cls.__name__, backend_key=backend_key):
+                input_handler = object.__new__(input_cls)
+                input_handler.use_post_message = True
+
+                with patch.object(input_module, "screen", fake_screen), patch.object(
+                    input_module.win32api,
+                    "PostMessage",
+                ) as post_message:
+                    input_cls._key_down_impl(input_handler, backend_key)
+
+                self.assertEqual(post_message.call_args.args[2], expected_wparam)
 
     def test_android_backend_maps_insert_key(self):
         self.assertEqual(resolve_backend_key("insert", ANDROID_KEYEVENT_CODES, "android_keyevent"), 124)
