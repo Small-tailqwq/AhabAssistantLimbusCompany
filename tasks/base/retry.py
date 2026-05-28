@@ -70,22 +70,12 @@ def check_times(start_time, timeout=90, logs=True):
         return False
 
 
-_last_retry_time = 0.0
-_RETRY_THROTTLE_SECONDS = 5.0
-
-
 def retry():
     """重试连接。
 
     为保证稳定性，retry 内循环始终刷新截图，避免复用旧帧导致误判。
     """
-    global _last_retry_time
-    now = time.time()
-    if now - _last_retry_time < _RETRY_THROTTLE_SECONDS:
-        return None
-    _last_retry_time = now
-
-    start_time = now
+    start_time = time.time()
     saved_hwnd = screen.handle.hwnd
     while True:
         current_hwnd = screen.handle.hwnd
