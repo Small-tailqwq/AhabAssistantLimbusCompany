@@ -5,35 +5,57 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Match Viewer</title>
 <style>
+/* ── AALC Unified Design System ── */
 :root {
-  --bg: #1a1a2e;
-  --surface: #16213e;
-  --surface2: #0f3460;
-  --text: #e0e0e0;
-  --text2: #a0a0a0;
-  --accent: #e94560;
-  --green: #4caf84;
-  --border: #2a3a5e;
+  --bg: #0f1218;
+  --surface: #161b22;
+  --surface-2: #1c2333;
+  --text: #e6edf3;
+  --text-dim: #8b949e;
+  --text-muted: #484f58;
+  --border: #21262d;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --green: #3fb950;
+  --red: #f85149;
+  --yellow: #d29922;
   --radius: 6px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+  --font-mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', ui-monospace, monospace;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font);
   background: var(--bg); color: var(--text); height: 100vh; overflow: hidden;
-  display: flex; flex-direction: column;
+  display: flex; flex-direction: column; font-size: 13px; line-height: 1.5;
 }
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+/* ── Buttons ── */
+.btn {
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+  padding: 4px 12px; border-radius: var(--radius); cursor: pointer; font-size: 12px;
+  font-family: var(--font); transition: background 0.15s, border-color 0.15s;
+}
+.btn:hover { background: #2d333b; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-sm { padding: 2px 8px; font-size: 11px; }
+/* ── Topbar ── */
 .topbar {
-  display: flex; align-items: center; gap: 12px; padding: 8px 16px;
+  display: flex; align-items: center; gap: 10px; padding: 8px 16px;
   background: var(--surface); border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
 }
-.topbar select, .topbar button, .topbar input[type=range] {
-  background: var(--surface2); color: var(--text); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 4px 10px; font-size: 13px;
+.topbar select, .topbar input[type=range] {
+  background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 4px 10px; font-size: 12px;
 }
-.topbar button { cursor: pointer; }
-.topbar button:hover { background: var(--accent); }
-.topbar button.primary { background: var(--accent); border-color: var(--accent); }
+.topbar select:focus, .topbar input:focus { outline: none; border-color: var(--accent); }
+.topbar .title { font-weight: 600; color: var(--accent); white-space: nowrap; font-size: 14px; }
 .main { display: flex; flex: 1; overflow: hidden; }
 .panel { display: flex; flex-direction: column; }
 .panel-left {
@@ -43,24 +65,29 @@ body {
 .panel-right { flex: 1; position: relative; overflow: hidden; }
 .dropzone {
   position: absolute; inset: 0; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; border: 3px dashed var(--border);
-  color: var(--text2); font-size: 16px; cursor: pointer; transition: border-color 0.2s;
+  align-items: center; justify-content: center; border: 2px dashed var(--border);
+  color: var(--text-dim); font-size: 15px; cursor: pointer; transition: border-color 0.2s;
+  border-radius: 8px; margin: 8px;
 }
 .dropzone.drag-over { border-color: var(--accent); color: var(--accent); }
 .canvas-wrap { position: absolute; inset: 0; overflow: hidden; }
 .canvas-wrap canvas { position: absolute; }
+/* ── Asset tree ── */
 .asset-search { padding: 8px; }
 .asset-search input {
-  width: 100%; background: var(--surface2); color: var(--text);
-  border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 10px; font-size: 13px;
+  width: 100%; background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 10px; font-size: 12px;
 }
+.asset-search input::placeholder { color: var(--text-muted); }
+.asset-search input:focus { outline: none; border-color: var(--accent); }
 .cat-tree { flex: 1; overflow-y: auto; padding: 0 8px 8px; }
 .cat-group { margin-bottom: 4px; }
 .cat-header {
   display: flex; align-items: center; padding: 6px 4px; cursor: pointer;
-  font-size: 13px; font-weight: 600; color: var(--text2); user-select: none;
+  font-size: 12px; font-weight: 600; color: var(--text-dim); user-select: none;
+  border-radius: var(--radius);
 }
-.cat-header:hover { color: var(--text); }
+.cat-header:hover { color: var(--text); background: var(--surface-2); }
 .cat-header .arrow { margin-right: 4px; font-size: 10px; transition: transform 0.15s; display: inline-block; width: 12px; }
 .cat-header .arrow.open { transform: rotate(90deg); }
 .cat-items { padding-left: 12px; }
@@ -69,11 +96,11 @@ body {
   display: flex; align-items: center; gap: 6px; padding: 4px 6px;
   border-radius: var(--radius); cursor: default; font-size: 12px;
 }
-.asset-item:hover { background: var(--surface2); }
+.asset-item:hover { background: var(--surface-2); }
 .asset-item input[type=checkbox] { accent-color: var(--accent); cursor: pointer; }
 .asset-item .eye-btn {
-  cursor: pointer; opacity: 0.5; font-size: 14px; user-select: none;
-  padding: 0 2px;
+  cursor: pointer; opacity: 0.4; font-size: 13px; user-select: none;
+  padding: 0 2px; transition: opacity 0.15s;
 }
 .asset-item .eye-btn.visible { opacity: 1; color: var(--accent); }
 .asset-item .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -82,48 +109,51 @@ body {
   padding: 8px 12px; border-top: 1px solid var(--border); background: var(--surface);
   display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
 }
-.controls button {
-  background: var(--surface2); color: var(--text); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 3px 8px; font-size: 11px; cursor: pointer;
-}
-.controls button:hover { background: var(--accent); }
+/* ── Model tabs ── */
 .model-tabs { display: flex; gap: 2px; }
 .model-tab {
   padding: 4px 12px; font-size: 12px; border: 1px solid var(--border);
-  background: var(--surface2); color: var(--text); cursor: pointer; border-radius: var(--radius);
-  user-select: none;
+  background: var(--surface-2); color: var(--text-dim); cursor: pointer;
+  border-radius: var(--radius); user-select: none; transition: all 0.15s;
 }
-.model-tab.active { background: var(--accent); border-color: var(--accent); }
-.status { padding: 4px 16px; font-size: 12px; color: var(--text2); background: var(--surface); border-top: 1px solid var(--border); }
-label.cb-label { font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 4px; cursor: pointer; }
+.model-tab:hover { color: var(--text); background: #2d333b; }
+.model-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+/* ── Status bar ── */
+.status {
+  padding: 4px 16px; font-size: 12px; color: var(--text-dim);
+  background: var(--surface); border-top: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 11px;
+}
+/* ── Checkbox label ── */
+label.cb-label { font-size: 12px; color: var(--text-dim); display: flex; align-items: center; gap: 4px; cursor: pointer; }
 label.cb-label input { accent-color: var(--accent); }
 </style>
 </head>
 <body>
 <div class="topbar">
-  <span style="font-weight:600;color:var(--accent);white-space:nowrap">Match Viewer</span>
+  <span class="title">Match Viewer</span>
   <select id="themeSelect"><option value="default">亮色</option><option value="dark">暗色</option></select>
   <select id="langSelect"><option value="en">英文</option><option value="zh_cn">中文</option></select>
   <input type="range" id="thresholdSlider" min="0" max="100" value="80" style="width:120px" title="匹配阈值">
-  <span id="thresholdLabel" style="min-width:40px;font-size:13px">0.80</span>
+  <span id="thresholdLabel" style="min-width:40px;font-size:12px;font-family:var(--font-mono)">0.80</span>
   <div class="model-tabs" id="modelTabs">
     <span class="model-tab active" data-model="clam">clam</span>
     <span class="model-tab" data-model="normal">normal</span>
     <span class="model-tab" data-model="aggressive">aggressive</span>
   </div>
   <label class="cb-label"><input type="checkbox" id="lowResToggle"> 低分辨率优化</label>
-  <button class="primary" id="runMatchBtn">运行匹配</button>
-  <button id="clearBtn">清除截图</button>
+  <button class="btn btn-primary" id="runMatchBtn">运行匹配</button>
+  <button class="btn" id="clearBtn">清除截图</button>
 </div>
 <div class="main">
   <div class="panel panel-left">
     <div class="asset-search"><input type="text" id="assetSearch" placeholder="搜索资产..."></div>
     <div class="cat-tree" id="catTree"></div>
     <div class="controls">
-      <button id="selectAllBtn">全选</button>
-      <button id="deselectAllBtn">全不选</button>
-      <button id="showAllBtn">全部显示</button>
-      <button id="hideAllBtn">全部隐藏</button>
+      <button class="btn btn-sm" id="selectAllBtn">全选</button>
+      <button class="btn btn-sm" id="deselectAllBtn">全不选</button>
+      <button class="btn btn-sm" id="showAllBtn">全部显示</button>
+      <button class="btn btn-sm" id="hideAllBtn">全部隐藏</button>
     </div>
   </div>
   <div class="panel panel-right" id="viewerPanel">
@@ -364,14 +394,14 @@ function drawOverlay(baseX, baseY, drawW, drawH) {
       const sby = baseY + sy1 * scaleY;
       const sbw = (sx2 - sx1) * scaleX;
       const sbh = (sy2 - sy1) * scaleY;
-      ctx.strokeStyle = 'rgba(100,149,237,0.4)';
+      ctx.strokeStyle = 'rgba(59,130,246,0.4)';
       ctx.lineWidth = 1;
       ctx.setLineDash([4, 4]);
       ctx.strokeRect(sbx, sby, sbw, sbh);
       ctx.setLineDash([]);
     }
 
-    ctx.strokeStyle = passed ? '#4caf84' : '#e94560';
+    ctx.strokeStyle = passed ? '#3fb950' : '#f85149';
     ctx.lineWidth = 2;
     ctx.strokeRect(x, y, w, h);
 
@@ -382,7 +412,7 @@ function drawOverlay(baseX, baseY, drawW, drawH) {
     const textW = textMetrics.width + 6;
     const textH = 16;
     const labelY = y - textH > 0 ? y - textH : y;
-    ctx.fillStyle = passed ? 'rgba(76,175,132,0.85)' : 'rgba(233,69,96,0.85)';
+    ctx.fillStyle = passed ? 'rgba(63,185,80,0.85)' : 'rgba(248,81,73,0.85)';
     ctx.fillRect(x, labelY, textW, textH);
     ctx.fillStyle = '#fff';
     ctx.fillText(label, x + 3, labelY + 12);
