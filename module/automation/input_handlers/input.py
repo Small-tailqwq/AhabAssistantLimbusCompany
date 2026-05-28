@@ -3,10 +3,10 @@ from time import sleep, time
 from typing import overload
 
 import pyautogui
+import pyperclip
 import win32api
 import win32con
 import win32gui
-import pyperclip
 from pywintypes import error as PyWinTypesError
 
 from module.config import cfg
@@ -15,8 +15,9 @@ from utils.singletonmeta import SingletonMeta
 from ...game_and_screen import screen
 from ...logger import log
 from . import AbstractInput
+from .keys import CANONICAL_KEYS
 
-key_list = {
+WINDOWS_KEY_CODES = {
     "a": 0x41,
     "b": 0x42,
     "c": 0x43,
@@ -64,7 +65,20 @@ key_list = {
     "down": win32con.VK_DOWN,
     "left": win32con.VK_LEFT,
     "right": win32con.VK_RIGHT,
+    "backspace": win32con.VK_BACK,
+    "delete": win32con.VK_DELETE,
+    "pageup": win32con.VK_PRIOR,
+    "pagedown": win32con.VK_NEXT,
+    "home": win32con.VK_HOME,
+    "end": win32con.VK_END,
+    "insert": win32con.VK_INSERT,
+    "lwindows": win32con.VK_LWIN,
+    "rwindows": win32con.VK_RWIN,
 }
+
+PYAUTOGUI_KEY_NAMES = {key: key for key in CANONICAL_KEYS}
+PYAUTOGUI_KEY_NAMES["lwindows"] = "winleft"
+PYAUTOGUI_KEY_NAMES["rwindows"] = "winright"
 
 
 class WinAbstractInput(AbstractInput):
@@ -78,6 +92,14 @@ class WinAbstractInput(AbstractInput):
         super().__init__()
         self.use_post_message = cfg.config.use_post_message
 
+    KEY_BACKEND = "windows"
+    KEY_CODES = WINDOWS_KEY_CODES
+
+    def _before_key_input(self, key: str) -> None:
+        set_active = getattr(self, "set_active", None)
+        if callable(set_active):
+            set_active()
+
     def get_mouse_position(self) -> tuple[int, int]:
         """获取鼠标当前位置
 
@@ -89,6 +111,28 @@ class WinAbstractInput(AbstractInput):
         except PyWinTypesError:
             log.debug("获取鼠标位置失败（可能锁屏），返回 (0, 0)")
             return (0, 0)
+
+    @staticmethod
+    def _make_key_lparam(vk: int, key_up: bool = False) -> int:
+        """构造 WM_KEYDOWN/UP 的正确 lParam
+
+        Unity 6+ 校验 lParam 中的 scan code 和 extended flag，
+        固定 0x00000001 会被丢弃。
+        """
+        scan = win32api.MapVirtualKey(vk, 0)
+        extended = vk in {
+            win32con.VK_UP, win32con.VK_DOWN, win32con.VK_LEFT, win32con.VK_RIGHT,
+            win32con.VK_HOME, win32con.VK_END, win32con.VK_PRIOR, win32con.VK_NEXT,
+            win32con.VK_INSERT, win32con.VK_DELETE,
+            win32con.VK_RCONTROL, win32con.VK_RMENU,
+            win32con.VK_LWIN, win32con.VK_RWIN,
+        }
+        lparam = 1 | (scan << 16)
+        if extended:
+            lparam |= 1 << 24
+        if key_up:
+            lparam |= (1 << 30) | (1 << 31)
+        return lparam
 
     def input_text(self, text: str):
         """将 `text` 通过 WM_CHAR 消息逐字符输入目标窗口。
@@ -114,6 +158,9 @@ class WinAbstractInput(AbstractInput):
 
 class Input(WinAbstractInput, metaclass=SingletonMeta):
     """基于 `pyautogui` 的输入类, 仅支持前台操作"""
+
+    KEY_BACKEND = "pyautogui"
+    KEY_CODES = PYAUTOGUI_KEY_NAMES
 
     # 禁用pyautogui的失败安全特性，防止意外中断
     pyautogui.FAILSAFE = False
@@ -245,10 +292,11 @@ class Input(WinAbstractInput, metaclass=SingletonMeta):
         if move_back and current_mouse_position:
             self.mouse_move(current_mouse_position)
 
-    def key_press(self, key):
-        log.debug(f"按下按键: {key}")
-        self.set_active()
-        return pyautogui.press(key)
+    def _key_down_impl(self, backend_key: str):
+        pyautogui.keyDown(backend_key)
+
+    def _key_up_impl(self, backend_key: str):
+        pyautogui.keyUp(backend_key)
 
     def set_active(self):
         """将游戏窗口设置为输入焦点以让 Unity 接受输入事件"""
@@ -518,38 +566,31 @@ class BackgroundInput(WinAbstractInput, metaclass=SingletonMeta):
         else:
             self._mouse_move_to(rect[0] + x, rect[1] + y, duration=duration)
 
-    def key_down(self, key: str):
+    def _key_down_impl(self, backend_key: int):
         """键盘按键按下
         Args:
-            key (str): 按键名称
+            backend_key (int): Windows virtual-key code
         """
         hwnd = screen.handle.hwnd
-        lparam = 0x00000001  # 重复次数为1
+        vk = int(backend_key)
+        lparam = self._make_key_lparam(vk, key_up=False)
         if self.use_post_message:
-            win32api.PostMessage(hwnd, win32con.WM_KEYDOWN, key_list[key.lower()], lparam)
+            win32api.PostMessage(hwnd, win32con.WM_KEYDOWN, vk, lparam)
         else:
-            win32api.SendMessage(hwnd, win32con.WM_KEYDOWN, key_list[key.lower()], lparam)
+            win32api.SendMessage(hwnd, win32con.WM_KEYDOWN, vk, lparam)
 
-    def key_up(self, key: str):
+    def _key_up_impl(self, backend_key: int):
         """键盘按键抬起
         Args:
-            key (str): 按键名称
+            backend_key (int): Windows virtual-key code
         """
         hwnd = screen.handle.hwnd
-        lparam = 0xC0000001  # 转换状态为1（按键释放）
+        vk = int(backend_key)
+        lparam = self._make_key_lparam(vk, key_up=True)
         if self.use_post_message:
-            win32api.PostMessage(hwnd, win32con.WM_KEYUP, key_list[key.lower()], lparam)
+            win32api.PostMessage(hwnd, win32con.WM_KEYUP, vk, lparam)
         else:
-            win32api.SendMessage(hwnd, win32con.WM_KEYUP, key_list[key.lower()], lparam)
-
-    def key_press(self, key):
-        """一次键盘按键操作
-        Args:
-            key (str): 按键名称
-        """
-        self.set_active()
-        self.key_down(key)
-        self.key_up(key)
+            win32api.SendMessage(hwnd, win32con.WM_KEYUP, vk, lparam)
 
     def mouse_move(self, coordinate=(1, 1)) -> None:
         """鼠标移动到指定坐标
@@ -746,38 +787,31 @@ class WindowMoveInput(WinAbstractInput, metaclass=SingletonMeta):
         else:
             log.error("未初始化hwnd")
 
-    def key_down(self, key: str):
+    def _key_down_impl(self, backend_key: int):
         """键盘按键按下
         Args:
-            key (str): 按键名称
+            backend_key (int): Windows virtual-key code
         """
         hwnd = screen.handle.hwnd
-        lparam = 0x00000001  # 重复次数为1
+        vk = int(backend_key)
+        lparam = self._make_key_lparam(vk, key_up=False)
         if self.use_post_message:
-            win32api.PostMessage(hwnd, win32con.WM_KEYDOWN, key_list[key.lower()], lparam)
+            win32api.PostMessage(hwnd, win32con.WM_KEYDOWN, vk, lparam)
         else:
-            win32api.SendMessage(hwnd, win32con.WM_KEYDOWN, key_list[key.lower()], lparam)
+            win32api.SendMessage(hwnd, win32con.WM_KEYDOWN, vk, lparam)
 
-    def key_up(self, key: str):
+    def _key_up_impl(self, backend_key: int):
         """键盘按键抬起
         Args:
-            key (str): 按键名称
+            backend_key (int): Windows virtual-key code
         """
         hwnd = screen.handle.hwnd
-        lparam = 0xC0000001  # 转换状态为1（按键释放）
+        vk = int(backend_key)
+        lparam = self._make_key_lparam(vk, key_up=True)
         if self.use_post_message:
-            win32api.PostMessage(hwnd, win32con.WM_KEYUP, key_list[key.lower()], lparam)
+            win32api.PostMessage(hwnd, win32con.WM_KEYUP, vk, lparam)
         else:
-            win32api.SendMessage(hwnd, win32con.WM_KEYUP, key_list[key.lower()], lparam)
-
-    def key_press(self, key):
-        """一次键盘按键操作
-        Args:
-            key (str): 按键名称
-        """
-        self.set_active()
-        self.key_down(key)
-        self.key_up(key)
+            win32api.SendMessage(hwnd, win32con.WM_KEYUP, vk, lparam)
 
     def mouse_down(self, x, y):
         """鼠标左键按下

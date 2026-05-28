@@ -21,7 +21,7 @@ from utils.utils import run_as_user
 from .. import AbstractInput
 from . import insert_swipe
 
-usual_key_code = {
+MUMU_IPC_KEY_CODES = {
     "q": 16,
     "w": 17,
     "e": 18,
@@ -69,6 +69,13 @@ usual_key_code = {
     "shift": 42,
     "ctrl": 29,
     "alt": 56,
+    "backspace": 14,
+    "delete": 111,
+    "pageup": 104,
+    "pagedown": 109,
+    "home": 102,
+    "end": 107,
+    "insert": 110,
 }
 
 
@@ -211,6 +218,8 @@ class CaptureNemuIpc(CaptureStd):
 
 class MumuControl(AbstractInput):
     connection_device = None
+    KEY_BACKEND = "mumu_ipc"
+    KEY_CODES = MUMU_IPC_KEY_CODES
 
     @staticmethod
     def clean_connect():
@@ -854,7 +863,7 @@ class MumuControl(AbstractInput):
         if ret > 0:
             raise NemuIpcError("nemu_input_event_touch_up failed")
 
-    def key_down(self, key_code):
+    def _key_down_impl(self, key_code: int):
         if self.connect_id == 0:
             self.connect()
 
@@ -867,19 +876,13 @@ class MumuControl(AbstractInput):
         if ret > 0:
             raise NemuIpcError("nemu_input_event_key_down failed")
 
-    def key_up(self, key_code):
+    def _key_up_impl(self, key_code: int):
         if self.connect_id == 0:
             self.connect()
 
         ret = self.ev_run_sync(self.lib.nemu_input_event_key_up, self.connect_id, self.display_id, key_code)
         if ret > 0:
             raise NemuIpcError("nemu_input_event_key_up failed")
-
-    def key_press(self, key):
-        log.debug(f"按下按键: {key}")
-        self.key_down(usual_key_code[key])
-        time.sleep(0.015)
-        self.key_up(usual_key_code[key])
 
     def input_text(self, text: str):
         """将提供的 `text` 直接发送到 MuMu 原生输入接口。"""

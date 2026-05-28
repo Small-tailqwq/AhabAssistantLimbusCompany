@@ -22,26 +22,22 @@ from utils.singletonmeta import SingletonMeta
 from ...game_and_screen import screen
 from ..human_kinematics import HumanKinematics
 from .input import WinAbstractInput
+from .keys import CANONICAL_KEYS
 
 BUTTON_RELEASED = 0
 BUTTON_LEFT = 1
 BUTTON_RIGHT = 2
 BUTTON_MIDDLE = 4
 
-KEY_NAME_ALIASES = {
-    "return": "enter",
-    "control": "ctrl",
-    "back_space": "backspace",
-    "del": "delete",
-    "page_up": "pageup",
-    "page_down": "pagedown",
-    "lwin": "lwindows",
-    "rwin": "rwindows_",
-}
+LOGITECH_KEY_NAMES = {key: key for key in CANONICAL_KEYS}
+LOGITECH_KEY_NAMES["rwindows"] = "rwindows_"
 
 
 class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
     """基于可编译罗技驱动 DLL 的硬件级键鼠输入类。"""
+
+    KEY_BACKEND = "logitech"
+    KEY_CODES = LOGITECH_KEY_NAMES
 
     def __init__(self):
         super().__init__()
@@ -169,11 +165,6 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
             pass
         finally:
             self._driver_ready = False
-
-    @staticmethod
-    def _normalize_key_name(key: str) -> str:
-        normalized = str(key).strip().lower()
-        return KEY_NAME_ALIASES.get(normalized, normalized)
 
     @staticmethod
     def _clamp_relative_delta(value: int, limit: int = 100) -> int:
@@ -553,30 +544,26 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
     def set_active(self):
         self._ensure_input_focus()
 
-    def key_down(self, key: str):
+    def _key_down_impl(self, backend_key: str):
         self._ensure_driver_ready()
-        normalized_key = self._normalize_key_name(key)
         try:
-            self.press_key_func(normalized_key.encode("utf-8"))
+            self.press_key_func(str(backend_key).encode("utf-8"))
         except Exception as e:
-            log.error(f"新罗技驱动键盘按下异常: {normalized_key}, {e}")
+            log.error(f"新罗技驱动键盘按下异常: {backend_key}, {e}")
             raise
 
-    def key_up(self, key: str):
+    def _key_up_impl(self, backend_key: str):
         self._ensure_driver_ready()
-        normalized_key = self._normalize_key_name(key)
         try:
-            self.release_key_func(normalized_key.encode("utf-8"))
+            self.release_key_func(str(backend_key).encode("utf-8"))
         except Exception as e:
-            log.error(f"新罗技驱动键盘抬起异常: {normalized_key}, {e}")
+            log.error(f"新罗技驱动键盘抬起异常: {backend_key}, {e}")
             raise
 
-    def key_press(self, key):
-        log.debug(f"按下按键: {key}")
-        self._ensure_input_focus()
-        self.key_down(key)
+    def _key_press_impl(self, backend_key: str):
+        self._key_down_impl(backend_key)
         HumanKinematics.human_sleep(0.018, jitter=0.35, minimum=0.012, maximum=0.045)
-        self.key_up(key)
+        self._key_up_impl(backend_key)
 
     def input_text(self, text: str):
         """将 `text` 粘贴到当前前台游戏窗口。"""
