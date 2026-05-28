@@ -1,6 +1,9 @@
+from collections.abc import Mapping
 from time import sleep, time
 
 from module.logger import log
+
+from .keys import KeyCode, UnsupportedKeyError, normalize_key, resolve_backend_key
 
 
 class AbstractInput:
@@ -12,6 +15,15 @@ class AbstractInput:
     def __init__(self) -> None:
         self.is_pause: bool = False
         self.restore_time: float | None = None
+
+    KEY_BACKEND = "abstract"
+    KEY_CODES: Mapping[str, KeyCode] | None = None
+    KEY_PRESS_DURATION = 0.015
+
+    def check_stop_requested(self) -> None:
+        stop_checker = getattr(self, "stop_checker", None)
+        if callable(stop_checker):
+            stop_checker()
 
     def set_pause(self) -> None:
         """
@@ -124,5 +136,54 @@ class AbstractInput:
         """
         raise InterruptedError(f"未实现的输入方法 {self.__class__.__name__}.mouse_to_blank")
 
-    def key_press(self, key) -> None:
-        raise InterruptedError(f"未实现的输入方法 {self.__class__.__name__}.key_press")
+    def _resolve_backend_key(self, key: str) -> KeyCode:
+        if self.KEY_CODES is None:
+            return key
+        return resolve_backend_key(key, self.KEY_CODES, self.KEY_BACKEND)
+
+    def _before_key_input(self, key: str) -> None:
+        return
+
+    def _key_down_impl(self, backend_key: KeyCode) -> None:
+        raise InterruptedError(f"未实现的输入方法 {self.__class__.__name__}._key_down_impl")
+
+    def _key_up_impl(self, backend_key: KeyCode) -> None:
+        raise InterruptedError(f"未实现的输入方法 {self.__class__.__name__}._key_up_impl")
+
+    def _key_press_impl(self, backend_key: KeyCode) -> None:
+        self._key_down_impl(backend_key)
+        sleep(self.KEY_PRESS_DURATION)
+        self._key_up_impl(backend_key)
+
+    def key_down(self, key: str) -> None:
+        try:
+            canonical_key = normalize_key(key)
+            backend_key = self._resolve_backend_key(canonical_key)
+        except UnsupportedKeyError as e:
+            log.error(str(e))
+            raise
+        log.debug(f"按键按下: {canonical_key}")
+        self._before_key_input(canonical_key)
+        self._key_down_impl(backend_key)
+
+    def key_up(self, key: str) -> None:
+        try:
+            canonical_key = normalize_key(key)
+            backend_key = self._resolve_backend_key(canonical_key)
+        except UnsupportedKeyError as e:
+            log.error(str(e))
+            raise
+        log.debug(f"按键抬起: {canonical_key}")
+        self._before_key_input(canonical_key)
+        self._key_up_impl(backend_key)
+
+    def key_press(self, key: str) -> None:
+        try:
+            canonical_key = normalize_key(key)
+            backend_key = self._resolve_backend_key(canonical_key)
+        except UnsupportedKeyError as e:
+            log.error(str(e))
+            raise
+        log.debug(f"按下按键: {canonical_key}")
+        self._before_key_input(canonical_key)
+        self._key_press_impl(backend_key)

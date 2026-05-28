@@ -12,7 +12,7 @@ from module.logger import log
 from .. import AbstractInput
 from .pyminitouch import MNTDevice
 
-key_list = {
+ANDROID_KEYEVENT_CODES = {
     "a": 29,
     "b": 30,
     "c": 31,
@@ -60,11 +60,20 @@ key_list = {
     "shift": 59,
     "ctrl": 113,
     "alt": 57,
+    "backspace": 67,
+    "delete": 112,
+    "pageup": 92,
+    "pagedown": 93,
+    "home": 122,
+    "end": 123,
+    "insert": 124,
 }
 
 
 class SimulatorControl(AbstractInput):
     connection_device = None
+    KEY_BACKEND = "android_keyevent"
+    KEY_CODES = ANDROID_KEYEVENT_CODES
 
     @staticmethod
     def clean_connect():
@@ -329,15 +338,21 @@ class SimulatorControl(AbstractInput):
         """占位"""
         return
 
-    def key_press(self, key: str):
+    def _key_down_impl(self, key_code: int):
+        raise InterruptedError("通用 ADB 输入不支持拆分 key_down/key_up，请使用 key_press")
+
+    def _key_up_impl(self, key_code: int):
+        raise InterruptedError("通用 ADB 输入不支持拆分 key_down/key_up，请使用 key_press")
+
+    def _key_press_impl(self, key_code: int):
         """模拟键盘输入文本
         Args:
-            key (str): 按键名称
+            key_code (int): Android keyevent code
         """
         if self.simulator_device is None:
             self.get_simulator()
         try:
-            cmd = f"input keyevent {key_list[key]}"
+            cmd = f"input keyevent {int(key_code)}"
             self.simulator_device.shell(cmd)
         except Exception as e:
             log.error(f"输入失败：{e}")
