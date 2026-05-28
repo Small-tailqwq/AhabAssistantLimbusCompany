@@ -80,6 +80,32 @@ PYAUTOGUI_KEY_NAMES = {key: key for key in CANONICAL_KEYS}
 PYAUTOGUI_KEY_NAMES["lwindows"] = "winleft"
 PYAUTOGUI_KEY_NAMES["rwindows"] = "winright"
 
+EXTENDED_KEY_VKS = frozenset(
+    {
+        win32con.VK_UP,
+        win32con.VK_DOWN,
+        win32con.VK_LEFT,
+        win32con.VK_RIGHT,
+        win32con.VK_HOME,
+        win32con.VK_END,
+        win32con.VK_PRIOR,
+        win32con.VK_NEXT,
+        win32con.VK_INSERT,
+        win32con.VK_DELETE,
+        win32con.VK_RCONTROL,
+        win32con.VK_RMENU,
+        win32con.VK_LWIN,
+        win32con.VK_RWIN,
+    }
+)
+
+MESSAGE_KEY_WPARAMS = {
+    win32con.VK_LCONTROL: win32con.VK_CONTROL,
+    win32con.VK_RCONTROL: win32con.VK_CONTROL,
+    win32con.VK_LMENU: win32con.VK_MENU,
+    win32con.VK_RMENU: win32con.VK_MENU,
+}
+
 
 class WinAbstractInput(AbstractInput):
     """输入接口类，定义输入方法的抽象接口
@@ -119,20 +145,18 @@ class WinAbstractInput(AbstractInput):
         Unity 6+ 校验 lParam 中的 scan code 和 extended flag，
         固定 0x00000001 会被丢弃。
         """
-        scan = win32api.MapVirtualKey(vk, 0)
-        extended = vk in {
-            win32con.VK_UP, win32con.VK_DOWN, win32con.VK_LEFT, win32con.VK_RIGHT,
-            win32con.VK_HOME, win32con.VK_END, win32con.VK_PRIOR, win32con.VK_NEXT,
-            win32con.VK_INSERT, win32con.VK_DELETE,
-            win32con.VK_RCONTROL, win32con.VK_RMENU,
-            win32con.VK_LWIN, win32con.VK_RWIN,
-        }
+        scan = win32api.MapVirtualKey(vk, 0) & 0xFF
+        extended = vk in EXTENDED_KEY_VKS
         lparam = 1 | (scan << 16)
         if extended:
             lparam |= 1 << 24
         if key_up:
             lparam |= (1 << 30) | (1 << 31)
         return lparam
+
+    @staticmethod
+    def _make_key_wparam(vk: int) -> int:
+        return MESSAGE_KEY_WPARAMS.get(vk, vk)
 
     def input_text(self, text: str):
         """将 `text` 通过 WM_CHAR 消息逐字符输入目标窗口。
@@ -573,11 +597,12 @@ class BackgroundInput(WinAbstractInput, metaclass=SingletonMeta):
         """
         hwnd = screen.handle.hwnd
         vk = int(backend_key)
+        wparam = self._make_key_wparam(vk)
         lparam = self._make_key_lparam(vk, key_up=False)
         if self.use_post_message:
-            win32api.PostMessage(hwnd, win32con.WM_KEYDOWN, vk, lparam)
+            win32api.PostMessage(hwnd, win32con.WM_KEYDOWN, wparam, lparam)
         else:
-            win32api.SendMessage(hwnd, win32con.WM_KEYDOWN, vk, lparam)
+            win32api.SendMessage(hwnd, win32con.WM_KEYDOWN, wparam, lparam)
 
     def _key_up_impl(self, backend_key: int):
         """键盘按键抬起
@@ -586,11 +611,12 @@ class BackgroundInput(WinAbstractInput, metaclass=SingletonMeta):
         """
         hwnd = screen.handle.hwnd
         vk = int(backend_key)
+        wparam = self._make_key_wparam(vk)
         lparam = self._make_key_lparam(vk, key_up=True)
         if self.use_post_message:
-            win32api.PostMessage(hwnd, win32con.WM_KEYUP, vk, lparam)
+            win32api.PostMessage(hwnd, win32con.WM_KEYUP, wparam, lparam)
         else:
-            win32api.SendMessage(hwnd, win32con.WM_KEYUP, vk, lparam)
+            win32api.SendMessage(hwnd, win32con.WM_KEYUP, wparam, lparam)
 
     def mouse_move(self, coordinate=(1, 1)) -> None:
         """鼠标移动到指定坐标
@@ -794,11 +820,12 @@ class WindowMoveInput(WinAbstractInput, metaclass=SingletonMeta):
         """
         hwnd = screen.handle.hwnd
         vk = int(backend_key)
+        wparam = self._make_key_wparam(vk)
         lparam = self._make_key_lparam(vk, key_up=False)
         if self.use_post_message:
-            win32api.PostMessage(hwnd, win32con.WM_KEYDOWN, vk, lparam)
+            win32api.PostMessage(hwnd, win32con.WM_KEYDOWN, wparam, lparam)
         else:
-            win32api.SendMessage(hwnd, win32con.WM_KEYDOWN, vk, lparam)
+            win32api.SendMessage(hwnd, win32con.WM_KEYDOWN, wparam, lparam)
 
     def _key_up_impl(self, backend_key: int):
         """键盘按键抬起
@@ -807,11 +834,12 @@ class WindowMoveInput(WinAbstractInput, metaclass=SingletonMeta):
         """
         hwnd = screen.handle.hwnd
         vk = int(backend_key)
+        wparam = self._make_key_wparam(vk)
         lparam = self._make_key_lparam(vk, key_up=True)
         if self.use_post_message:
-            win32api.PostMessage(hwnd, win32con.WM_KEYUP, vk, lparam)
+            win32api.PostMessage(hwnd, win32con.WM_KEYUP, wparam, lparam)
         else:
-            win32api.SendMessage(hwnd, win32con.WM_KEYUP, vk, lparam)
+            win32api.SendMessage(hwnd, win32con.WM_KEYUP, wparam, lparam)
 
     def mouse_down(self, x, y):
         """鼠标左键按下
