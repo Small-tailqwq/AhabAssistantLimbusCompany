@@ -148,8 +148,11 @@ def back_init_menu(*, allow_restart: bool = True):
         if auto.find_element("base/waiting_2_assets.png"):
             continue
 
-        # 左上角有后退键
-        if auto.click_element("home/back_assets_v2.png", model="normal", threshold=0.6):
+        # 左上角有后退键（原版：纽本/经验本等 bbox 位置准确的场景）
+        if auto.click_element("home/back_assets.png"):
+            continue
+        # 通用后退按钮（周常奖励/首次提示等 bbox 失效的场景，全屏搜索）
+        if auto.click_element("base/back_assets.png", model="normal", threshold=0.6):
             continue
 
         # 战斗结算确认（需在投降逻辑之前，避免结算界面误匹配 setting 按钮）
