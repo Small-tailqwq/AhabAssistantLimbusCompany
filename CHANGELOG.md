@@ -2,6 +2,50 @@
 
 ## [Unreleased] — Canary
 
+## [1.5.0-canary.16] — 2026-05-29
+
+### 新功能
+- feat: 新增 Match Viewer 图片匹配诊断工具
+- feat: 配置备份自动恢复 — 设置损坏时自动读取最新备份文件
+- feat: 新增商店与镜牢事件调试开关，统一调试开关描述格式
+
+### 修复
+- fix(back_init_menu): 返回按钮改用 back_assets_v2 + normal 模型，解决 720P 下返回按钮无法匹配
+- fix(back_assets): 双模板策略 — 原版处理纽本经验本，base/back_assets 处理周常奖励和首次提示
+- fix: 返回上一级卡住 — 修复节流导致识别器重复读取同一份截图 5 秒
+- fix: 截屏冻结检测阈值从 3 降到 2，减少冗余点击
+- fix: take_screenshot 对 last_click_time 也施加截屏间隔限制，防止点击后截到过渡帧
+- fix(input): SendMessage/PostMessage 左右修饰键 wParam 归一化并截断 scan code 高位
+- fix: 为所有输入处理器的 key_press 补上 DEBUG 日志
+- fix(mirror): 关键词刷新误判失效 + 商店后寻路缓存缺失
+- fix(mirror): 限定 E.G.O 升级扫描区域
+- fix(mirror): 优化商店购买与饰品升级稳定性
+- fix: 路径状态判断增加互斥匹配和阈值差择优逻辑
+- fix: OCR 金额识别补充 h→4 的映射
+- fix(config): 备份目录不存在/删除失败/未完整初始化等多边界防御
+- fix: 重新抛出异常时保留堆栈信息
+- fix: 过滤已归档资产以避免重复加载
+- fix: 修复自动换饼工具的多项问题
+- fix(mumu): 模拟器模式下静默窗口未初始化日志噪音
+- fix: match_viewer 扫描所有 .png 文件，bbox 裁剪统一应用于所有图像
+
+### 重构
+- refactor(luxcavation): 连续战斗次数设置从滑块拖拽改为按钮点击交互
+- refactor: 统一按键输入契约与映射
+- refactor(config): 设置备份改为每天一次，最多保留十份
+- refactor: retry 移除 skip_screenshot 参数
+
+### 调试工具
+- style: log_viewer 和 match_viewer 统一 AALC 设计系统
+- chore: 新增低分辨率匹配诊断脚本和模板内容检查脚本
+
+### 测试
+- test: 新增 retry 函数截图刷新与弹窗检查覆盖率测试
+
+### 其他
+- chore: 清理过期 TODO 与无用导入
+- docs: 补充 debug_tools 目录说明，增加 CI 命令文档
+
 ## [1.5.0-canary.15] — 2026-05-18
 
 ### 新功能
