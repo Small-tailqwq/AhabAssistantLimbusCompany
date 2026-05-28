@@ -185,3 +185,8 @@ assets:
   note: ''
   checksum: sha256:2f0c799bbb0a9b691aeb3674e98c622dd4197e02fffaa936fd30972fdb051c99
   status: archived
+- file: default/share/home/back_assets_v2.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:50519c467a633a887841ff2fe01c2f94b7a9a2d5e3bdf44599fc41d486fb5bde
