@@ -179,7 +179,7 @@ class Config(metaclass=SingletonMeta):
 
                 settings.update(history)
                 settings["remark_name"] = remark_name
-                teams[f"{i}"] = TeamSetting(**settings).model_dump()
+                teams[f"{i}"] = settings
             loaded_config["teams"] = teams
         if saved_version < 1779444115:
             current_config_path = Path("config.yaml")
@@ -342,6 +342,12 @@ class Config(metaclass=SingletonMeta):
                     saved_version = loaded_config.get("config_version", 0)
                     loaded_config["config_version"] = self.config.config_version
                     self._old_version_cfg_upgrade(saved_version, loaded_config)
+
+                teams = loaded_config.get("teams", {})
+                if isinstance(teams, dict):
+                    for team_key, settings in list(teams.items()):
+                        if isinstance(settings, dict):
+                            teams[team_key] = migrate_legacy_team_setting_data(settings)
 
                 self.config = ConfigModel(**loaded_config)
                 gp = Path(self.config.game_path)
@@ -740,6 +746,49 @@ class Config(metaclass=SingletonMeta):
         if hasattr(self.config, name):
             return self.get_value(name)
         raise AttributeError(f"'{type(self).__name__}' 对象没有属性 ‘{name}'")
+
+
+def migrate_legacy_team_setting_data(data: dict) -> dict:
+    """Normalize starlight fields so current legacy callers can consume imported/newer team data."""
+    migrated = dict(data)
+    opening_bonus = migrated.get("opening_bonus")
+    if not isinstance(opening_bonus, list):
+        return migrated
+
+    normalized_bonus = [max(0, min(3, int(value or 0))) for value in opening_bonus[:10]]
+    if len(normalized_bonus) < 10:
+        normalized_bonus.extend([0] * (10 - len(normalized_bonus)))
+
+    missing_legacy_fields = any(
+        key not in migrated
+        for key in ("choose_opening_bonus", "opening_bonus_select", "opening_bonus_order", "opening_bonus_level")
+    )
+    uses_new_starlight_shape = any(value not in (0, 1) for value in normalized_bonus)
+    if not missing_legacy_fields and not uses_new_starlight_shape:
+        return migrated
+
+    default_new_bonus = [1, 1, 1, 1, 0, 0, 0, 0, 0, 0]
+    if normalized_bonus == default_new_bonus:
+        migrated["choose_opening_bonus"] = False
+        migrated["opening_bonus_select"] = 0
+        migrated["opening_bonus"] = [0] * 10
+        migrated["opening_bonus_order"] = [0] * 10
+        migrated["opening_bonus_level"] = [0] * 10
+        return migrated
+
+    migrated["choose_opening_bonus"] = any(value > 0 for value in normalized_bonus)
+    migrated["opening_bonus"] = [1 if value > 0 else 0 for value in normalized_bonus]
+    migrated["opening_bonus_select"] = sum(migrated["opening_bonus"])
+    migrated["opening_bonus_order"] = [0] * 10
+    migrated["opening_bonus_level"] = [max(value - 1, 0) if value > 0 else 0 for value in normalized_bonus]
+
+    order = 1
+    for index, value in enumerate(normalized_bonus):
+        if value > 0:
+            migrated["opening_bonus_order"][index] = order
+            order += 1
+
+    return migrated
 
 
 class Theme_pack_list(metaclass=SingletonMeta):
