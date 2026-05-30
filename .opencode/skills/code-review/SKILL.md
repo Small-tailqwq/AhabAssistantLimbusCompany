@@ -1,6 +1,11 @@
 ---
 name: code-review
 description: 异步代码审阅 — 通过 Task tool 派发子 agent 审阅代码，主 agent 不阻塞，审阅完成后汇报中文报告
+license: AGPL-3.0
+compatibility: opencode
+metadata:
+  audience: maintainers
+  workflow: review
 ---
 
 # 异步代码审阅 Skill

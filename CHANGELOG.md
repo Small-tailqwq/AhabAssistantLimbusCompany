@@ -2,6 +2,15 @@
 
 ## [Unreleased] — Canary
 
+## [1.5.0-canary.17] — 2026-05-30
+
+### 修复
+- fix(mirror): 优化镜牢事件唤醒流程，减少冗余截图与等待
+- fix(mirror): 修复暗色模式 legend 资产未匹配导致事件层卡死
+
+### 其他
+- chore: 更新 opencode 配置（code-review / upstream-contribution / 移除过时技能）
+
 ## [1.5.0-canary.16] — 2026-05-29
 
 ### 新功能

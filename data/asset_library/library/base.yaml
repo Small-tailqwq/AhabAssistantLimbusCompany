@@ -147,3 +147,8 @@ assets:
   note: ''
   checksum: sha256:effe155a56bc7b4dbb016452236e584fb170caa834690f1afdb5e5bb1cc2602f
   status: missing
+- file: default/share/base/back_assets.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:50519c467a633a887841ff2fe01c2f94b7a9a2d5e3bdf44599fc41d486fb5bde

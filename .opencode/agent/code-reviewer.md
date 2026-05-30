@@ -36,13 +36,18 @@ Perform the following reasoning steps **silently**, without exposing them in you
 ## What to Look For (Priority-Ordered)
 **1. Correctness, Security, and Regressions**
 - Logic errors, off-by-one, inverted conditions, missing guards.
-- Security: injection risks, data exposure, broken authentication/authorization.
+- Security: injection risks (SQL injection, XSS, path traversal, command injection), data exposure, broken authentication/authorization.
+- Hardcoded credentials: API keys, passwords, tokens in source code.
 - Behavior regressions that could silently alter existing functionality.
-- Error handling: swallowed exceptions, missing error states.
+- Error handling: swallowed exceptions, missing error states, incomplete fallback.
+- Input validation: missing or insufficient validation on user-controlled data.
 
 **2. Performance & Resource Bottlenecks**
 - O(N²) on unbounded data, N+1 queries, blocking I/O in hot paths.
 - Memory leaks (unmanaged listeners, dangling callbacks), excessive allocations.
+- Missing caching or memoization in repeated computations.
+- Unnecessary re-computation on every render/call.
+- Large bundle or asset sizes that could be optimized.
 
 **3. Architectural & Design Smells**
 - **Redundancy**: Duplicated logic, near-duplicate functions, or reinvention of existing utilities.
@@ -55,8 +60,11 @@ Perform the following reasoning steps **silently**, without exposing them in you
 - **Coupling & cohesion**: Tight coupling, missing clear boundaries.
 
 **4. Maintainability & Cognitive Load**
-- Deep nesting (more than 3 levels), long functions, magic numbers.
+- Deep nesting (more than 3 levels), long functions (>50 lines), large files (>800 lines), magic numbers.
 - Excessively clever or obscure code.
+- TODO/FIXME without associated tickets or tracking.
+- Missing JSDoc/docstrings on public APIs.
+- Poor naming: single-letter variables, misleading names, inconsistent terminology.
 
 **5. Style & Conventions** (only if clearly violating established project rules)
 
@@ -87,3 +95,20 @@ Flag structural weaknesses or design smells that are **not outright bugs** but c
 Provide specific, actionable code snippets that resolve the issues above. Show before/after comparisons where helpful.
 
 **If you find no significant issues:** Output only the **Architect's Assessment** with a concise, specific statement about the code's strengths (e.g., "Correct with no security risks. Clean structure, follows existing patterns, no significant design issues.").
+
+## Approval Criteria (CI Gate)
+Use these criteria to determine the review verdict at the end of your report:
+- **Block**: Critical issues or High-severity bugs found. Changes must not be merged.
+- **Warning**: Medium-severity issues only. Merge with caution after addressing.
+- **Approve**: No Critical or High issues. Code meets quality bar.
+
+When applicable, append a single line at the end: `**Verdict: Block / Warning / Approve**`
+
+## Post-Review Actions (CI Integration)
+After completing the review, recommend these follow-up actions for CI:
+- Run linter/formatter on modified files.
+- Run type checker to verify type safety.
+- Run tests to confirm changes do not break existing functionality.
+- Remove any debug artifacts (console.log, temporary files).
+
+Include these only when relevant to the issues found; skip if the review found no actionable items.

@@ -180,18 +180,19 @@ class Mirror:
         if wake_times is None:
             wake_times = random.randint(3, 4)
         for wake_index in range(wake_times):
-            sleep(0.25)
+            sleep(0.2)
             log.debug(f"事件 {reason} 后发送空格唤醒 ({wake_index + 1}/{wake_times})")
             auto.key_press("space")
-            sleep(0.6)
-            if auto.take_screenshot() is None:
-                continue
-            if (
-                self.event_action_visible()
-                or (stop_on_decision and self.event_decision_visible())
-                or auto.find_element("mirror/road_in_mir/ego_gift_get_confirm_assets.png")
-            ):
-                return True
+        sleep(0.5)
+        if auto.take_screenshot() is None:
+            return False
+        if (
+            self.event_action_visible()
+            or (stop_on_decision and self.event_decision_visible())
+            or auto.find_element("mirror/road_in_mir/ego_gift_get_confirm_assets.png")
+            or auto.find_element("mirror/road_in_mir/legend_assets.png")
+        ):
+            return True
         return False
 
     def nudge_event_after_skip(self):
@@ -233,11 +234,9 @@ class Mirror:
         return clicked_skip
 
     def wake_event_after_progress(self, action_name):
-        sleep(0.45)
-        if auto.take_screenshot() is None:
-            return False
         if self.wake_event_selection(wake_times=random.randint(3, 4), reason=action_name, stop_on_decision=False):
             return True
+        sleep(0.3)
         if auto.take_screenshot() is None:
             return False
         if self.event_decision_visible():
@@ -250,9 +249,8 @@ class Mirror:
                 self.event_action_visible()
                 or self.event_decision_visible()
                 or auto.find_element("mirror/road_in_mir/ego_gift_get_confirm_assets.png")
+                or auto.find_element("mirror/road_in_mir/legend_assets.png")
             )
-        if self.wake_event_selection(wake_times=random.randint(3, 4), reason=action_name):
-            return True
         return self.event_decision_visible()
 
     def recover_stalled_event_layer(self):
