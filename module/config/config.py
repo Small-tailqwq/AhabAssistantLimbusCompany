@@ -23,8 +23,9 @@ from .config_typing import ConfigModel, TeamSetting
 
 
 class Config(metaclass=SingletonMeta):
-    def __init__(self, version_path, example_path, config_path):
+    def __init__(self, version_path, example_path, config_path, backup_path: str = "config_backup"):
         self.yaml = YAML()
+        self.backup_path = Path(backup_path)
         # 并发与延迟写控制
         self._lock = threading.RLock()
         self._save_timer = None
