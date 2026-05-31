@@ -184,6 +184,7 @@ def lunacy_to_enkephalin(times=0):
             sleep(1)
             continue
         break
+    current_enkephalin = get_current_enkephalin()
     auto.click_element("enkephalin/enkephalin_cancel_assets.png")
     if current_enkephalin is None:
         log.warning("狂气换体结束后无法识别当前体力，跳过补做脑啡肽模块")

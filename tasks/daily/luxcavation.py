@@ -20,6 +20,12 @@ def _is_thread_debug_enabled():
 def _dump_thread_debug_frame(label: str):
     if not _is_thread_debug_enabled():
         return
+    import time
+    from pathlib import Path
+
+    import cv2
+    import numpy as np
+
     screenshot = auto.screenshot
     if screenshot is None:
         log.debug(f"纽本调试截图失败: {label}")
@@ -164,7 +170,6 @@ def _filter_thread_level_targets(level: list[tuple[int, int]] | None, scale: flo
     return sorted(selected, key=lambda point: point[1], reverse=True)
 
 
->>>>>>> 3e055efd (refactor(luxcavation): 连续战斗次数设置从滑块拖拽改为按钮点击交互)
 def EXP_luxcavation(combat_count: int = 1):
     loop_count = 30
     auto.model = "clam"
@@ -333,23 +338,6 @@ def thread_luxcavation(combat_count: int = 1):
                     if not level:
                         continue
 
-<<<<<<< HEAD
-                    level = sorted(level, key=lambda y: y[1], reverse=True)
-                    if combat_count > 1 and auto.click_element(
-                        "luxcavation/thread_continuous_combat_show_box_assets.png"
-                    ):
-                        scale = cfg.set_win_size / 1440
-                        sleep(0.1)
-                        if slide_bar := auto.find_element(
-                            "luxcavation/continuous_combat.png", threshold=0.78, take_screenshot=True
-                        ):
-                            auto.mouse_drag(slide_bar[0], slide_bar[1], dx=32 * scale * (combat_count - 1))
-                    for lv in level:
-                        auto.mouse_click(lv[0], lv[1])
-                        sleep(1)
-                        auto.mouse_to_blank()
-                        if auto.find_element("teams/identify_assets.png", take_screenshot=True):
-=======
                     log.debug(f"纽本(滑动后)检测到 {len(level)} 个关卡入口: {level}")
                     for lv_idx, lv in enumerate(level):
                         success = False
@@ -363,7 +351,6 @@ def thread_luxcavation(combat_count: int = 1):
                                 success = True
                                 break
                         if success:
->>>>>>> 3e055efd (refactor(luxcavation): 连续战斗次数设置从滑块拖拽改为按钮点击交互)
                             break
 
             continue
