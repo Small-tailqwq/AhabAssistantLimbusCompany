@@ -10,12 +10,6 @@ on:
       - 1.4.13-mactest
 
 jobs:
-  build-windows:
-    uses: ./.github/workflows/reusable-build.yml
-    with:
-      version: ${{ github.sha }}
-      target_os: windows
-
   build-macos:
     uses: ./.github/workflows/reusable-build.yml
     with:
