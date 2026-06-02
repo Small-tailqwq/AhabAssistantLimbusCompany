@@ -739,8 +739,9 @@ class SinnerSelect(QFrame):
         banner_x = int((self.width() - banner_width) / 2)  # Center the banner
         banner_y = int(self.height() * 0.50)
         self.banner_label.setGeometry(banner_x, banner_y, banner_width, banner_height)
-        self.raw_geom = None
-        self._end_geom = None
+        if self.ani.state() != QAbstractAnimation.State.Running:
+            self.raw_geom = None
+            self._end_geom = None
         super().resizeEvent(event)
 
     def moveEvent(self, event):
