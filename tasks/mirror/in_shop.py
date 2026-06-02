@@ -197,6 +197,70 @@ class Shop:
     class RestartGame(Exception):
         pass
 
+    def _should_try_refresh(self, my_remaining_money, threshold):
+        if my_remaining_money < 0:
+            return True
+        return my_remaining_money - self.reserve_upgrade_funds >= threshold
+
+    def _finalize_purchase_attempt(self):
+        auto.take_screenshot()
+        if auto.click_element("mirror/road_in_mir/ego_gift_get_confirm_assets.png"):
+            sleep(0.5)
+        auto.mouse_click_blank(times=3)
+        sleep(1)
+
+    def _finish_shop_refresh(self):
+        auto.mouse_click_blank()
+        sleep(3)
+        if retry() is False:
+            raise self.RestartGame()
+        if self.skill_replacement and self.replacement < 3:
+            self.replacement_skill()
+
+    def _try_keyword_refresh(self):
+        sleep(1)
+
+        if not auto.click_element(
+            f"mirror/shop/keyword/keyword_{self.system}.png",
+            take_screenshot=True,
+        ):
+            return False
+
+        sleep(0.5)
+
+        if not auto.click_element("mirror/shop/refresh_keyword_confirm_assets.png", take_screenshot=True):
+            return False
+
+        if _wait_for_keyword_refresh_confirm_to_clear():
+            self._finish_shop_refresh()
+            return True
+
+        for _ in range(2):
+            log.warning("关键词刷新确认未生效，重试中")
+            sleep(0.4)
+            if not auto.click_element(
+                f"mirror/shop/keyword/keyword_{self.system}.png",
+                take_screenshot=True,
+            ):
+                continue
+            sleep(0.4)
+            if not auto.click_element(
+                "mirror/shop/refresh_keyword_confirm_assets.png",
+                take_screenshot=True,
+            ):
+                continue
+            if _wait_for_keyword_refresh_confirm_to_clear():
+                self._finish_shop_refresh()
+                return True
+
+        return False
+
+    def _try_normal_refresh(self):
+        if auto.click_element("mirror/shop/refresh_assets.png"):
+            self._finish_shop_refresh()
+            return True
+        return False
+
     def ego_gift_to_power_up(self):
         loop_count = 30
         auto.model = "clam"
@@ -375,11 +439,7 @@ class Shop:
                         auto.mouse_click_blank(times=3)
                         continue
                     else:
-                        auto.take_screenshot()
-                        if auto.click_element("mirror/road_in_mir/ego_gift_get_confirm_assets.png"):
-                            sleep(0.5)
-                        auto.mouse_click_blank(times=3)
-                        sleep(1)
+                        self._finalize_purchase_attempt()
 
             if self.second_system and self.second_system_action[1]:
                 if self.second_system_setting == 1 or (self.second_system_setting == 0 and self.fuse_IV is True):
@@ -410,73 +470,30 @@ class Shop:
                             auto.mouse_click_blank(times=3)
                             continue
                         else:
-                            auto.take_screenshot()
-                            if auto.click_element("mirror/road_in_mir/ego_gift_get_confirm_assets.png"):
-                                sleep(0.5)
-                            auto.mouse_click_blank(times=3)
-                            sleep(1)
+                            self._finalize_purchase_attempt()
 
             if retry() is False:
                 raise self.RestartGame()
 
             my_remaining_money = self._get_cost()
 
-            if keyword_refresh_count < self.max_keyword_refresh:
-                if my_remaining_money < 0 or my_remaining_money - self.reserve_upgrade_funds >= 300:
-                    auto.mouse_click_blank(times=3)
-                    if auto.click_element("mirror/shop/refresh_keyword_assets.png"):
-                        sleep(1)
-                        auto.click_element(
-                            f"mirror/shop/keyword/keyword_{self.system}.png",
-                            take_screenshot=True,
-                        )
-                        sleep(0.5)
-                        auto.click_element("mirror/shop/refresh_keyword_confirm_assets.png", take_screenshot=True)
-                        if not _wait_for_keyword_refresh_confirm_to_clear():
-                            for _ in range(2):
-                                log.warning("关键词刷新确认未生效，重试中")
-                                sleep(0.4)
-                                auto.click_element(
-                                    f"mirror/shop/keyword/keyword_{self.system}.png",
-                                    take_screenshot=True,
-                                )
-                                sleep(0.4)
-                                auto.click_element(
-                                    "mirror/shop/refresh_keyword_confirm_assets.png",
-                                    take_screenshot=True,
-                                )
-                                if _wait_for_keyword_refresh_confirm_to_clear():
-                                    break
+            if keyword_refresh_count < self.max_keyword_refresh and self._should_try_refresh(my_remaining_money, 300):
+                auto.mouse_click_blank(times=3)
+                if auto.click_element("mirror/shop/refresh_keyword_assets.png"):
+                    if self._try_keyword_refresh():
                         keyword_refresh_count += 1
-                        auto.mouse_click_blank()
-                        sleep(3)
-                        if retry() is False:
-                            raise self.RestartGame()
-                        if self.skill_replacement and self.replacement < 3:
-                            self.replacement_skill()
                         continue
 
-            if normal_refresh_count < self.max_normal_refresh:
-                if my_remaining_money < 0 or my_remaining_money - self.reserve_upgrade_funds >= 200:
-                    auto.mouse_click_blank(times=3)
-                    if auto.click_element("mirror/shop/refresh_assets.png"):
-                        normal_refresh_count += 1
-                        sleep(3)
-                        if retry() is False:
-                            raise self.RestartGame()
-                        if self.skill_replacement and self.replacement < 3:
-                            self.replacement_skill()
-                        continue
+            if normal_refresh_count < self.max_normal_refresh and self._should_try_refresh(my_remaining_money, 200):
+                auto.mouse_click_blank(times=3)
+                if self._try_normal_refresh():
+                    normal_refresh_count += 1
+                    continue
 
             if normal_refresh_count < self.max_normal_refresh and my_remaining_money >= 200:
                 auto.mouse_click_blank(times=3)
-                if auto.click_element("mirror/shop/refresh_assets.png"):
+                if self._try_normal_refresh():
                     normal_refresh_count += 1
-                    sleep(3)
-                    if retry() is False:
-                        raise self.RestartGame()
-                    if self.skill_replacement and self.replacement < 3:
-                        self.replacement_skill()
                     continue
 
             break

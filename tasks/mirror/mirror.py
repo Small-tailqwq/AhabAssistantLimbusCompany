@@ -174,17 +174,57 @@ class Mirror:
     @staticmethod
     def _event_decision_progress_wait_timeout():
         screenshot_interval = cfg.screenshot_interval if cfg.screenshot_interval else 0.85
-        return min(4.0, max(1.2, screenshot_interval * 3 + 0.4))
+        return min(1.2, max(0.6, screenshot_interval + 0.2))
+
+    @staticmethod
+    def _event_take_screenshot():
+        auto.last_click_time = 0
+        return auto.take_screenshot()
+
+    def click_event_progress_button(self):
+        for asset, debug_step in (
+            ("event/continue_assets.png", "progress_continue"),
+            ("event/proceed_assets.png", "progress_proceed"),
+            ("event/commence_assets.png", "progress_commence"),
+            ("event/commence_battle_assets.png", "progress_commence_battle"),
+        ):
+            if auto.click_element(asset):
+                self._event_debug_save(debug_step)
+                auto.last_click_time = 0
+                return True
+        return False
+
+    def click_event_progress_text_button(self):
+        progress_bbox = ImageUtils.get_bbox(ImageUtils.load_image("event/continue_assets.png"))
+        progress_text_hit = auto.find_language_text(
+            ["继续", "开始", "开始战斗"],
+            ["continue", "proceed", "commence"],
+            my_crop=progress_bbox,
+        )
+        if progress_text_hit:
+            log.debug("事件判定层已识别到底部推进按钮文本，优先点击推进按钮")
+            self._event_debug_save("progress_text_click")
+            auto.mouse_click((progress_bbox[0] + progress_bbox[2]) // 2, (progress_bbox[1] + progress_bbox[3]) // 2)
+            auto.last_click_time = 0
+            return True
+        return False
+
+    @staticmethod
+    def click_event_skip_fast(skip_asset_path="event/skip_assets.png"):
+        if auto.click_element(skip_asset_path, times=6):
+            auto.last_click_time = 0
+            return True
+        return False
 
     def wake_event_selection(self, wake_times=None, reason="skip", stop_on_decision=True):
         if wake_times is None:
-            wake_times = random.randint(3, 4)
+            wake_times = random.randint(1, 2)
         for wake_index in range(wake_times):
-            sleep(0.2)
+            sleep(0.03)
             log.debug(f"事件 {reason} 后发送空格唤醒 ({wake_index + 1}/{wake_times})")
             auto.key_press("space")
-        sleep(0.5)
-        if auto.take_screenshot() is None:
+        sleep(0.12)
+        if self._event_take_screenshot() is None:
             return False
         if (
             self.event_action_visible()
@@ -199,26 +239,26 @@ class Mirror:
         log.debug("事件 skip 后未立即出现可交互项，尝试点击空白推进当前事件层")
         auto.mouse_click_blank(move_back=False)
         sleep(0.55)
-        if auto.take_screenshot() is None:
+        if self._event_take_screenshot() is None:
             return False
         return self.event_action_visible() or auto.find_element("mirror/road_in_mir/ego_gift_get_confirm_assets.png")
 
     def skip_event_and_wake_selection(self, skip_asset_path="event/skip_assets.png"):
-        if auto.take_screenshot() is None:
+        if self._event_take_screenshot() is None:
             return False
 
         if auto.find_element(skip_asset_path) is None:
             return False
 
         clicked_skip = False
-        max_attempts = random.randint(2, 3)
+        max_attempts = 2
         for attempt in range(max_attempts):
             if auto.click_element(skip_asset_path):
                 clicked_skip = True
             skip_disappeared = False
-            for _ in range(6):
-                sleep(0.25 if attempt == 0 else 0.3)
-                if auto.take_screenshot() is None:
+            for _ in range(3):
+                sleep(0.08)
+                if self._event_take_screenshot() is None:
                     continue
                 if auto.find_element(skip_asset_path) is None:
                     skip_disappeared = True
@@ -234,16 +274,14 @@ class Mirror:
         return clicked_skip
 
     def wake_event_after_progress(self, action_name):
-        if self.wake_event_selection(wake_times=random.randint(3, 4), reason=action_name, stop_on_decision=False):
-            return True
-        sleep(0.3)
-        if auto.take_screenshot() is None:
+        sleep(0.1)
+        if self._event_take_screenshot() is None:
             return False
         if self.event_decision_visible():
             log.debug(f"事件 {action_name} 后仍停留在判定/结果层，补空白推进后续事件")
             auto.mouse_click_blank(move_back=False)
-            sleep(0.55)
-            if auto.take_screenshot() is None:
+            sleep(0.15)
+            if self._event_take_screenshot() is None:
                 return False
             return (
                 self.event_action_visible()
@@ -251,18 +289,18 @@ class Mirror:
                 or auto.find_element("mirror/road_in_mir/ego_gift_get_confirm_assets.png")
                 or auto.find_element("mirror/road_in_mir/legend_assets.png")
             )
-        return self.event_decision_visible()
+        return True
 
     def recover_stalled_event_layer(self):
         log.debug("事件界面暂未识别到有效按钮，尝试空格推进当前层")
-        if self.wake_event_selection(wake_times=random.randint(3, 4), reason="stalled"):
+        if self.wake_event_selection(wake_times=1, reason="stalled"):
             return True
-        if auto.take_screenshot() is None:
+        if self._event_take_screenshot() is None:
             return False
         log.debug("事件空格推进后仍无有效按钮，尝试点击空白继续唤醒")
         auto.mouse_click_blank(move_back=False)
-        sleep(0.55)
-        if auto.take_screenshot() is None:
+        sleep(0.2)
+        if self._event_take_screenshot() is None:
             return False
         return (
             self.event_action_visible()
@@ -559,7 +597,7 @@ class Mirror:
                 continue
 
             # 遇到事件
-            if self.skip_event_and_wake_selection("event/skip_assets.png"):
+            if auto.click_element("event/skip_assets.png", times=6):
                 self.event_handling()
                 continue
 
@@ -1259,9 +1297,11 @@ class Mirror:
         event_chance = 15
         decision_progress_wait_until = 0.0
         decision_progress_wait_logged = False
+        fast_skip_count = 0
         while True:
             # 自动截图
-            if auto.take_screenshot() is None:
+            # 事件循环自带重试，跳过点击冷却节流以恢复 v1.4.6 的轮询速度
+            if self._event_take_screenshot() is None:
                 continue
 
             if retry() is False:
@@ -1322,6 +1362,7 @@ class Mirror:
 
             # 针对不同事件进行处理，优先选???与直接获取的，再选需要判定的，再选后续事件的，最后第一个事项
             if auto.click_element("event/unknown_event.png"):
+                fast_skip_count = 0
                 event_chance -= 1
                 continue
             if positions_list := auto.find_element(
@@ -1331,52 +1372,33 @@ class Mirror:
             ):
                 positions_list = sorted(positions_list, key=lambda x: (x[1], x[0]))
                 auto.mouse_click(positions_list[0][0], positions_list[0][1])
+                fast_skip_count = 0
                 event_chance -= 1
                 continue
+            # 决策/分支界面
             choice_screen_visible = auto.find_element("event/choices_assets.png")
-            select_first_option_visible = choice_screen_visible and auto.find_element("event/select_first_option_assets.png", check_gray=True)
             decision_feature_visible = auto.find_element("event/perform_the_check_feature_assets.png")
-            continue_visible = auto.find_element("event/continue_assets.png")
-            proceed_visible = auto.find_element("event/proceed_assets.png")
-            commence_visible = auto.find_element("event/commence_assets.png")
-            commence_battle_visible = auto.find_element("event/commence_battle_assets.png")
-            progress_visible = any((continue_visible, proceed_visible, commence_visible, commence_battle_visible))
-            progress_bbox = None
-            progress_text_visible = False
-            if decision_feature_visible and not progress_visible:
-                progress_bbox = ImageUtils.get_bbox(ImageUtils.load_image("event/continue_assets.png"))
-                progress_text_visible = auto.find_language_text(
-                    ["继续", "开始", "开始战斗"],
-                    ["continue", "proceed", "commence"],
-                    my_crop=progress_bbox,
-                )
-                progress_visible = bool(progress_text_visible)
-
-            now = time.time()
-            if progress_visible and decision_progress_wait_until:
-                decision_progress_wait_until = 0.0
-                decision_progress_wait_logged = False
-            elif decision_progress_wait_until and now >= decision_progress_wait_until:
-                decision_progress_wait_until = 0.0
-                decision_progress_wait_logged = False
-                log.debug("事件罪人选择等待推进超时，恢复罪人判定重试")
-            decision_progress_waiting = decision_progress_wait_until > 0
-
-            # 某些随机事件在点击 continue 后会进入"应该让谁去呢"的罪人判定层，
-            # 此时 skip 会灰掉，advantage_check 又可能误匹配，因此要优先按判定界面处理。
             if choice_screen_visible or decision_feature_visible:
                 self._event_debug_save("event_branch")
-                if progress_text_visible and progress_bbox is not None:
-                    log.debug("事件判定层已识别到底部推进按钮文本，优先点击推进按钮")
-                    self._event_debug_save("progress_text_click")
-                    auto.mouse_click((progress_bbox[0] + progress_bbox[2]) // 2, (progress_bbox[1] + progress_bbox[3]) // 2)
-                    self.wake_event_after_progress("text_progress")
+                # 快路径：可见推进按钮优先于 OCR 和恢复逻辑，避免事件页空转。
+                if self.click_event_progress_button():
+                    fast_skip_count = 0
+                    decision_progress_wait_until = 0.0
+                    decision_progress_wait_logged = False
                     continue
-                if select_first_option_visible and not progress_visible:
-                    auto.click_element("event/select_first_option_assets.png", check_gray=True)
-                    event_chance = max(0, event_chance - 1)
+                if decision_feature_visible and self.click_event_progress_text_button():
+                    fast_skip_count = 0
+                    decision_progress_wait_until = 0.0
+                    decision_progress_wait_logged = False
                     continue
-                if choice_screen_visible and not select_first_option_visible and not progress_visible:
+
+                if choice_screen_visible:
+                    select_first_hit = auto.find_element("event/select_first_option_assets.png", check_gray=True)
+                    if select_first_hit:
+                        auto.click_element("event/select_first_option_assets.png", check_gray=True)
+                        fast_skip_count = 0
+                        event_chance = max(0, event_chance - 1)
+                        continue
                     log.debug("首选项灰色不可点击，尝试多目标匹配寻找可用选项")
                     if all_options := auto.find_element(
                         "event/select_first_option_assets.png",
@@ -1384,7 +1406,7 @@ class Mirror:
                         threshold=0.75,
                     ):
                         all_options.sort(key=lambda x: (x[1], x[0]))
-                        clicked = False
+                        clicked_option = False
                         for opt_x, opt_y in all_options:
                             roi_w, roi_h = 40, 40
                             y1 = max(0, opt_y - roi_h // 2)
@@ -1398,93 +1420,81 @@ class Mirror:
                                 if sat_mean >= 15:
                                     auto.mouse_click(opt_x, opt_y)
                                     log.debug(f"已点击非灰色选项 ({opt_x},{opt_y}), 饱和度={sat_mean:.1f}")
-                                    clicked = True
+                                    clicked_option = True
                                     break
-                        if clicked:
+                        if clicked_option:
+                            fast_skip_count = 0
                             continue
-                if not progress_visible:
-                    if decision_progress_waiting:
+
+                now = time.time()
+                if decision_progress_wait_until > 0:
+                    if now >= decision_progress_wait_until:
+                        decision_progress_wait_until = 0.0
+                        decision_progress_wait_logged = False
+                        log.debug("事件罪人选择等待推进超时，恢复罪人判定重试")
+                    else:
                         if not decision_progress_wait_logged:
                             log.debug("已点击事件罪人，等待底部推进按钮稳定")
                             decision_progress_wait_logged = True
                         continue
-                    if not self.event_decision_visible():
-                        log.debug("识别到罪人选择预加载界面，先发送空格并点击空白唤醒头像与成功率")
-                        self.wake_event_selection(wake_times=random.randint(3, 4), reason="decision_preload")
-                        if auto.take_screenshot() is not None and not self.event_decision_visible():
-                            auto.mouse_click_blank(move_back=False)
-                            sleep(0.55)
-                        continue
-                    log.debug("识别到事件罪人判定层，优先执行罪人判定逻辑")
-                    self._event_debug_save("decision_enter_visible")
-                    if event_handling.decision_event_handling():
-                        wait_timeout = self._event_decision_progress_wait_timeout()
-                        decision_progress_wait_until = time.time() + wait_timeout
-                        decision_progress_wait_logged = False
-                        log.debug(f"已点击事件罪人，进入推进等待窗口 {wait_timeout:.2f}s")
+                if not decision_feature_visible and not self.event_decision_visible():
                     continue
-                if decision_feature_visible and not progress_visible:
-                    log.debug("识别到事件罪人判定层，优先执行罪人判定逻辑")
-                    self._event_debug_save("decision_enter_feature")
-                    if event_handling.decision_event_handling():
-                        wait_timeout = self._event_decision_progress_wait_timeout()
-                        decision_progress_wait_until = time.time() + wait_timeout
-                        decision_progress_wait_logged = False
-                        log.debug(f"已点击事件罪人，进入推进等待窗口 {wait_timeout:.2f}s")
+                if not self.event_decision_visible():
+                    log.debug("识别到罪人选择预加载界面，先发送空格并点击空白唤醒头像与成功率")
+                    self.wake_event_selection(wake_times=random.randint(1, 2), reason="decision_preload")
+                    if self._event_take_screenshot() is not None and not self.event_decision_visible():
+                        auto.mouse_click_blank(move_back=False)
+                        sleep(0.2)
                     continue
-            if decision_progress_waiting and not progress_visible:
-                if not decision_progress_wait_logged:
+                log.debug("识别到事件罪人判定层，优先执行罪人判定逻辑")
+                self._event_debug_save("decision_enter_visible")
+                if event_handling.decision_event_handling():
+                    fast_skip_count = 0
+                    decision_progress_wait_until = time.time() + self._event_decision_progress_wait_timeout()
+                    decision_progress_wait_logged = False
+                continue
+            # 罪人判定后等待（决策分支外部，等待进度按钮出现）
+            now = time.time()
+            if decision_progress_wait_until > 0:
+                if self.click_event_progress_button():
+                    fast_skip_count = 0
+                    decision_progress_wait_until = 0.0
+                    decision_progress_wait_logged = False
+                    continue
+                if now >= decision_progress_wait_until:
+                    decision_progress_wait_until = 0.0
+                    decision_progress_wait_logged = False
+                    log.debug("事件罪人选择等待推进超时，恢复罪人判定重试")
+                elif not decision_progress_wait_logged:
                     log.debug("已点击事件罪人，等待底部推进按钮稳定")
                     decision_progress_wait_logged = True
                 continue
             if auto.click_element("event/advantage_check.png"):
+                fast_skip_count = 0
                 event_chance -= 1
                 continue
             if auto.click_element("event/gain_a_ego_depending_on_result.png"):
+                fast_skip_count = 0
                 event_chance -= 1
                 continue
-
-            # 如果需要罪人判定
-            if choice_screen_visible and select_first_option_visible:
-                auto.click_element("event/select_first_option_assets.png", check_gray=True)
-                event_chance -= 1
-            if decision_feature_visible and not progress_visible:
-                if decision_progress_waiting:
-                    if not decision_progress_wait_logged:
-                        log.debug("已点击事件罪人，等待底部推进按钮稳定")
-                        decision_progress_wait_logged = True
-                    continue
-                self._event_debug_save("decision_outer_fallback")
-                if event_handling.decision_event_handling():
-                    wait_timeout = self._event_decision_progress_wait_timeout()
-                    decision_progress_wait_until = time.time() + wait_timeout
-                    decision_progress_wait_logged = False
-                    log.debug(f"已点击事件罪人，进入推进等待窗口 {wait_timeout:.2f}s")
-                continue
-            if continue_visible and auto.click_element("event/continue_assets.png"):
-                self._event_debug_save("progress_continue")
-                self.wake_event_after_progress("continue")
-                continue
-            if proceed_visible and auto.click_element("event/proceed_assets.png"):
-                self._event_debug_save("progress_proceed")
-                self.wake_event_after_progress("proceed")
-                continue
-            if commence_visible and auto.click_element("event/commence_assets.png"):
-                self._event_debug_save("progress_commence")
-                self.wake_event_after_progress("commence")
-                continue
-            if commence_battle_visible and auto.click_element("event/commence_battle_assets.png"):
-                self._event_debug_save("progress_commence_battle")
-                self.wake_event_after_progress("commence_battle")
+            if self.click_event_progress_button():
+                fast_skip_count = 0
                 continue
 
             if auto.click_element("mirror/road_in_mir/ego_gift_get_confirm_assets.png"):
+                fast_skip_count = 0
                 continue
 
-            if self.skip_event_and_wake_selection("event/skip_assets.png"):
+            if self.click_event_skip_fast("event/skip_assets.png"):
+                fast_skip_count += 1
+                if fast_skip_count >= 4:
+                    log.debug("事件 skip 快速推进多次未脱离，启用保守唤醒")
+                    if self.skip_event_and_wake_selection("event/skip_assets.png"):
+                        fast_skip_count = 0
                 continue
 
             if self.recover_stalled_event_layer():
+                fast_skip_count = 0
                 continue
 
             loop_count -= 1
