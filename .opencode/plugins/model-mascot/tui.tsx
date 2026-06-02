@@ -145,12 +145,14 @@ function getTokenStats(api, sessionId) {
   let totalCache = 0
   let totalCost = 0
   let lastModelID = null
+  let lastProviderID = null
   let latestTps = 0
 
   for (const msg of messages) {
     if (msg.role !== "assistant") continue
     if (!msg.modelID) continue
     lastModelID = msg.modelID
+    lastProviderID = msg.providerID
     totalInput += msg.tokens?.input ?? 0
     totalOutput += msg.tokens?.output ?? 0
     totalCache += msg.tokens?.cache?.read ?? 0
@@ -166,13 +168,21 @@ function getTokenStats(api, sessionId) {
 
   let contextLimit = 0
   let outputLimit = 0
-  for (const provider of api.state.provider ?? []) {
-    const model = provider.models?.[lastModelID]
-    if (model) {
-      contextLimit = model.limit?.context ?? 0
-      outputLimit = model.limit?.output ?? 0
-      break
+  const providers = api.state.provider ?? []
+  const tryKeys = [lastModelID]
+  if (lastProviderID) {
+    tryKeys.push(`${lastProviderID}/${lastModelID}`)
+  }
+  for (const key of tryKeys) {
+    for (const provider of providers) {
+      const model = provider.models?.[key]
+      if (model) {
+        contextLimit = model.limit?.context ?? 0
+        outputLimit = model.limit?.output ?? 0
+        break
+      }
     }
+    if (contextLimit > 0 || outputLimit > 0) break
   }
 
   return {
@@ -223,7 +233,10 @@ function SideCharacter(props) {
     return mascot() ?? FALLBACK
   })
 
-  const stats = createMemo(() => getTokenStats(props.api, props.sessionId))
+  const stats = createMemo(() => {
+    props.version()
+    return getTokenStats(props.api, props.sessionId)
+  })
   const t = () => props.theme
   const artColor = createMemo(() => mascotKey() === "deepseek" ? t().primary : t().textMuted)
 
@@ -285,13 +298,11 @@ function SideCharacter(props) {
                     {fmt(s.totalOutput)} / {fmt(s.outputLimit)}
                   </text>
                 </Show>
-                <Show when={s.contextLimit > 0}>
-                  <text>
-                    <span fg={t().textMuted}>CSH </span>
-                    <span fg={t().success}>[{bar(s.cacheRatio, barW)}]</span>
-                    <span fg={t().text}> {Math.round(s.cacheRatio * 100)}%</span>
-                  </text>
-                </Show>
+                <text>
+                  <span fg={t().textMuted}>CSH </span>
+                  <span fg={t().success}>[{bar(s.cacheRatio, barW)}]</span>
+                  <span fg={t().text}> {Math.round(s.cacheRatio * 100)}%</span>
+                </text>
                 <Show when={s.totalCost > 0}>
                   <text>
                     <span fg={t().textMuted}>CAPS </span>
@@ -332,19 +343,22 @@ const tui = async (api, _options) => {
   const bump = () => setVersion((v) => v + 1)
 
   const onDelta = api.event.on("message.part.delta", (evt) => {
-    if (evt.properties.field !== "text") return
     const now = Date.now()
-    const samples = tracker.streamSamplesBySession[evt.properties.sessionID] ?? []
-    tracker.streamSamplesBySession[evt.properties.sessionID] = [
-      ...samples.filter((s) => now - s.at <= STREAM_WINDOW_MS),
-      { at: now, tokens: estimateStreamTokens(evt.properties.delta) },
-    ]
+
     const timing = tracker.messageTimingByID[evt.properties.messageID]
     if (timing) {
       tracker.messageTimingByID[evt.properties.messageID] = timing.firstTokenAt
         ? { ...timing, lastTokenAt: now }
         : { ...timing, firstResponseAt: timing.firstResponseAt ?? now, firstTokenAt: now, lastTokenAt: now }
     }
+
+    if (evt.properties.field !== "text") return
+
+    const samples = tracker.streamSamplesBySession[evt.properties.sessionID] ?? []
+    tracker.streamSamplesBySession[evt.properties.sessionID] = [
+      ...samples.filter((s) => now - s.at <= STREAM_WINDOW_MS),
+      { at: now, tokens: estimateStreamTokens(evt.properties.delta) },
+    ]
     bump()
   })
 
