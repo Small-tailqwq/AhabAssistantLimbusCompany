@@ -3,6 +3,45 @@ import platform
 import socket
 import sys
 import threading
+import traceback
+from datetime import datetime
+
+_APP_DIR = os.path.dirname(os.path.abspath(__file__))
+_STARTUP_LOG = None
+
+
+def _startup_crash_handler():
+    """将未捕获异常的完整 traceback 写入桌面日志文件，方便 macOS 盲测。"""
+    global _STARTUP_LOG
+    try:
+        _STARTUP_LOG = os.path.join(os.path.expanduser("~"), "Desktop", "AALC_startup_crash.log")
+    except Exception:
+        _STARTUP_LOG = os.path.join(os.getcwd(), "AALC_startup_crash.log")
+
+    def _write_crash(exc_type, exc_value, exc_tb):
+        lines = [
+            f"AALC Startup Crash Report",
+            f"Timestamp: {datetime.now().isoformat()}",
+            f"Python: {sys.version}",
+            f"Platform: {platform.platform()}",
+            f"Frozen: {getattr(sys, 'frozen', False)}",
+            f"cwd: {os.getcwd()}",
+            f"sys.executable: {sys.executable}",
+            f"Exception: {exc_type.__name__}: {exc_value}",
+            f"",
+        ]
+        lines.extend(traceback.format_exception(exc_type, exc_value, exc_tb))
+        try:
+            with open(_STARTUP_LOG, "w", encoding="utf-8") as f:
+                f.write("\n".join(lines))
+        except Exception:
+            pass
+        sys.__excepthook__(exc_type, exc_value, exc_tb)
+
+    sys.excepthook = _write_crash
+
+
+_startup_crash_handler()
 
 # 在导入任何模块之前设置工作目录，确保相对路径（如 ./assets/、./config.yaml）正确解析
 if getattr(sys, "frozen", False):
@@ -156,7 +195,7 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
     app.setAttribute(Qt.AA_DontCreateNativeWidgetSiblings)
-    app.setWindowIcon(_mac_rounded_icon("./assets/logo/canary.png"))
+    app.setWindowIcon(_mac_rounded_icon("./assets/logo/my_icon.png"))
 
     # 创建主窗口
     ui = MainWindow(sys.argv)
