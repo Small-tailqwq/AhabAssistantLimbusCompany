@@ -13,6 +13,7 @@ except ImportError:
 
 from module.automation import auto
 from module.config import cfg
+from module.game_and_screen import screen
 from module.logger import log
 from utils.utils import check_game_running
 
@@ -77,7 +78,11 @@ def retry():
     为保证稳定性，retry 内循环始终刷新截图，避免复用旧帧导致误判。
     """
     start_time = time.time()
+    saved_hwnd = screen.handle.hwnd
     while True:
+        if screen.handle.hwnd != saved_hwnd:
+            saved_hwnd = screen.handle.hwnd
+            start_time = time.time()
         if auto.get_restore_time() is not None:
             start_time = max(start_time, auto.get_restore_time())
         if check_times(start_time):
