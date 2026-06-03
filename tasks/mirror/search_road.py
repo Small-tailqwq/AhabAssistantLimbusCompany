@@ -990,7 +990,7 @@ def _evaluate_route_map_plan(start_time, bus, hard_mode=False):
             tolerance_x=55 * scale,
             tolerance_y=55 * scale,
             max_attempts=4,
-            pause=0.4,
+            pause=0.2,
         )
         current_bus = current_bus or find_visible_bus_position()
         if current_bus is None:
@@ -1190,7 +1190,7 @@ def search_road_from_road_map(hard_mode=False):
             tolerance_x=70 * scale,
             tolerance_y=45 * scale,
             max_attempts=5,
-            pause=0.5,
+            pause=0.25,
         )
     else:
         bus = None
@@ -1214,7 +1214,7 @@ def search_road_from_road_map(hard_mode=False):
             tolerance_x=45 * scale,
             tolerance_y=50 * scale,
             max_attempts=3,
-            pause=0.35,
+            pause=0.2,
         )
         scout_bus = scout_bus or find_visible_bus_position()
         scout_plan = _evaluate_route_map_plan(start_time, scout_bus, hard_mode=hard_mode) if scout_bus else None
