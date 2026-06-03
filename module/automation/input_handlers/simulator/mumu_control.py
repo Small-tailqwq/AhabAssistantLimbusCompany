@@ -1001,19 +1001,16 @@ class MumuControl(AbstractInput):
             dy (int): y方向拖动距离
             move_back (bool): 是否在拖动后将鼠标移动回原位置
         """
-        self.down(x, y)
         x2 = x + dx
         y2 = y + dy
         points = insert_swipe(p0=(x, y), p3=(x2, y2))
 
         for point in points:
             self.down(*point)
-            time.sleep(0.020)
+            time.sleep(0.012)
 
-        if drag_time * 0.3 > 0.5:
-            time.sleep(drag_time * 0.3)
-        else:
-            time.sleep(0.5)
+        hold = max(0.12, min(0.25, drag_time * 0.3))
+        time.sleep(hold)
 
         self.up()
 
@@ -1045,7 +1042,6 @@ class MumuControl(AbstractInput):
             position (list): 目标位置列表
             drag_time (float): 拖动时间
         """
-        self.down(position[0][0], position[0][1])
         p = (position[0][0], position[0][1])
         for pos in position[1:]:
             points = insert_swipe(p0=(p[0], p[1]), p3=(pos[0], pos[1]), min_distance=min_distance)
@@ -1056,9 +1052,8 @@ class MumuControl(AbstractInput):
 
             p = pos
 
-        time.sleep(0.5)
+        time.sleep(0.2)
         self.up()
-        time.sleep(0.050)
 
     def check_game_alive(self) -> bool:
         """检查游戏是否存活
