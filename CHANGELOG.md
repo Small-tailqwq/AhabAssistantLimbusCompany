@@ -2,6 +2,28 @@
 
 ## [Unreleased] — Canary
 
+## [1.5.0-canary.18] — 2026-06-03
+
+### 新功能
+- feat: 模拟器启动加速器 — 启动前检测 tun 接口，自动启动加速器并点击加速按钮
+
+### 修复
+- fix(animation): 防止动画播放中重置几何数据导致崩溃
+- fix(tui): 模型吉祥物 provider 感知与计时修正
+- fix: 优化 Mumu 模拟器拖动操作参数（移除冗余预按、缩短插值间隔、约束保持时间）
+- fix: 修复镜牢开场加成选择逻辑（仅选择一次而非每轮循环重复）
+
+### 重构
+- refactor(mirror): 加速事件循环并重构商店刷新逻辑
+- refactor: 移除废弃的低分辨率优化功能（experimental_low_res_match）
+
+### 性能
+- perf: 降低镜牢寻路检测的停顿时间（各场景 pause 参数减半）
+
+### 其他
+- chore: 新增 opencode 配置导入 VS Code 脚本
+- chore: 添加截图性能基准测试脚本
+
 ## [1.5.0-canary.17] — 2026-05-30
 
 ### 修复
