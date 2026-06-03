@@ -963,7 +963,7 @@ class Mirror:
             if not bonuses_selected:
                 if not self.choose_opening_bonus:
                     for i in range(4):
-                        auto.mouse_click(first_starlight[0] + star_card_size[0] * i, first_starlight[1])
+                        auto.mouse_action_with_pos((first_starlight[0] + star_card_size[0] * i, first_starlight[1]))
                         sleep(cfg.mouse_action_interval)
                 else:
                     click_list = []
@@ -988,14 +988,15 @@ class Mirror:
                     if not (len(click_list) == 10 and auto.click_element("mirror/road_to_mir/select_all_stars_assets.png")):
                         for index in click_list:
                             if index <= 4:
-                                auto.mouse_click(
-                                    first_starlight[0] + star_card_size[0] * index,
-                                    first_starlight[1],
+                                auto.mouse_action_with_pos(
+                                    (first_starlight[0] + star_card_size[0] * index, first_starlight[1]),
                                 )
                             else:
-                                auto.mouse_click(
-                                    first_starlight[0] + star_card_size[0] * (index - 5),
-                                    first_starlight[1] + star_card_size[1],
+                                auto.mouse_action_with_pos(
+                                    (
+                                        first_starlight[0] + star_card_size[0] * (index - 5),
+                                        first_starlight[1] + star_card_size[1],
+                                    ),
                                 )
                             sleep(cfg.mouse_action_interval)
                     if all_click_level == 1 and auto.click_element(
@@ -1015,18 +1016,16 @@ class Mirror:
                                         x = first_single_plus[0] + double_plus_offset + star_card_size[0] * index
                                     else:
                                         x = first_single_plus[0] + star_card_size[0] * index
-                                    auto.mouse_click(
-                                        x,
-                                        first_single_plus[1],
+                                    auto.mouse_action_with_pos(
+                                        (x, first_single_plus[1]),
                                     )
                                 else:
                                     if self.opening_bonus_level[index] == 2:
                                         x = first_single_plus[0] + double_plus_offset + star_card_size[0] * (index - 5)
                                     else:
                                         x = first_single_plus[0] + star_card_size[0] * (index - 5)
-                                    auto.mouse_click(
-                                        x,
-                                        first_single_plus[1] + star_card_size[1],
+                                    auto.mouse_action_with_pos(
+                                        (x, first_single_plus[1] + star_card_size[1]),
                                     )
                                 sleep(cfg.mouse_action_interval)
                 bonuses_selected = True
