@@ -546,6 +546,55 @@ class SettingInterface(QWidget):
             config_name="experimental_keep_screen_awake",
             parent=self.experimental_group,
         )
+        self.accelerator_switch_card = SwitchSettingCard(
+            FIF.SPEED_HIGH,
+            QT_TRANSLATE_NOOP("SwitchSettingCard", "模拟器启动加速器"),
+            QT_TRANSLATE_NOOP(
+                "SwitchSettingCard",
+                "启动游戏前检测加速是否生效（tun 接口），未生效时自动启动加速器并点击加速按钮",
+            ),
+            config_name="lab_simulator_launch_accelerator",
+            parent=self.experimental_group,
+        )
+        self.accelerator_preset_card = ComboBoxSettingCard(
+            config_name="lab_simulator_accelerator_preset",
+            icon=FIF.SPEED_HIGH,
+            title=QT_TRANSLATE_NOOP("ComboBoxSettingCard", "加速器类型"),
+            content=QT_TRANSLATE_NOOP("ComboBoxSettingCard", "选择预设可自动配置包名和按钮检测规则"),
+            texts={
+                QT_TRANSLATE_NOOP("ComboBoxSettingCard", "自定义"): "custom",
+                QT_TRANSLATE_NOOP("ComboBoxSettingCard", "雷神加速器"): "leigod",
+            },
+            parent=self.experimental_group,
+        )
+        self.accelerator_package_card = BasePushSettingCard(
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "修改"),
+            FIF.FOLDER,
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "加速器包名"),
+            cfg.get_value("lab_simulator_accelerator_package", ""),
+            parent=self.experimental_group,
+        )
+        self.accelerator_tap_x_card = BasePushSettingCard(
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "修改"),
+            FIF.GAME,
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "加速按钮 X 坐标"),
+            str(cfg.get_value("lab_simulator_accelerator_tap_x", 0)),
+            parent=self.experimental_group,
+        )
+        self.accelerator_tap_y_card = BasePushSettingCard(
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "修改"),
+            FIF.GAME,
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "加速按钮 Y 坐标"),
+            str(cfg.get_value("lab_simulator_accelerator_tap_y", 0)),
+            parent=self.experimental_group,
+        )
+        self.accelerator_delay_card = BasePushSettingCard(
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "修改"),
+            FIF.SPEED_HIGH,
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "启动后等待时间(秒)"),
+            str(cfg.get_value("lab_simulator_accelerator_delay", 3.0)),
+            parent=self.experimental_group,
+        )
         self.__refreshExperimentalCardContents()
 
     def _on_hard_mirror_chance_confirm(self, _: int) -> None:
@@ -611,6 +660,12 @@ class SettingInterface(QWidget):
         self.experimental_group.addSettingCard(self.obs_source_name_card)
         self.experimental_group.addSettingCard(self.obs_image_format_card)
         self.experimental_group.addSettingCard(self.obs_image_quality_card)
+        self.experimental_group.addSettingCard(self.accelerator_switch_card)
+        self.experimental_group.addSettingCard(self.accelerator_preset_card)
+        self.experimental_group.addSettingCard(self.accelerator_package_card)
+        self.experimental_group.addSettingCard(self.accelerator_tap_x_card)
+        self.experimental_group.addSettingCard(self.accelerator_tap_y_card)
+        self.experimental_group.addSettingCard(self.accelerator_delay_card)
         self.experimental_group.addSettingCard(self.keep_screen_awake_card)
 
         self.expand_layout.addWidget(self.game_setting_group)
@@ -684,10 +739,16 @@ class SettingInterface(QWidget):
         self.debug_mode_card.switchButton.checkedChanged.connect(self.__onDebugModeChanged)
         self.logitech_switch_card.switchButton.checkedChanged.connect(self.__onExperimentalDependencyChanged)
         self.obs_switch_card.switchButton.checkedChanged.connect(self.__onExperimentalDependencyChanged)
+        self.accelerator_switch_card.switchButton.checkedChanged.connect(self.__onExperimentalDependencyChanged)
+        self.accelerator_preset_card.valueChanged.connect(self.__onExperimentalDependencyChanged)
         self.logitech_dll_path_card.clicked.connect(self.__onLogitechDllPathCardClicked)
         self.obs_host_card.clicked.connect(self.__onObsHostCardClicked)
         self.obs_password_card.clicked.connect(self.__onObsPasswordCardClicked)
         self.obs_source_name_card.clicked.connect(self.__onObsSourceNameCardClicked)
+        self.accelerator_package_card.clicked.connect(self.__onAcceleratorPackageCardClicked)
+        self.accelerator_tap_x_card.clicked.connect(self.__onAcceleratorTapXCardClicked)
+        self.accelerator_tap_y_card.clicked.connect(self.__onAcceleratorTapYCardClicked)
+        self.accelerator_delay_card.clicked.connect(self.__onAcceleratorDelayCardClicked)
         self.__onWinInputTypeChanged()
         self.__refreshDebugCardVisibility()
         self.__refreshExperimentalCardVisibility()
@@ -750,10 +811,16 @@ class SettingInterface(QWidget):
             QT_TRANSLATE_NOOP("BasePushSettingCard", "(已设置)") if cfg.get_value("obs_password", "") else QT_TRANSLATE_NOOP("BasePushSettingCard", "(未设置)")
         )
         self.obs_source_name_card.setContent(cfg.get_value("obs_source_name", ""))
+        self.accelerator_package_card.setContent(str(cfg.get_value("lab_simulator_accelerator_package", "")))
+        self.accelerator_tap_x_card.setContent(str(cfg.get_value("lab_simulator_accelerator_tap_x", 0)))
+        self.accelerator_tap_y_card.setContent(str(cfg.get_value("lab_simulator_accelerator_tap_y", 0)))
+        self.accelerator_delay_card.setContent(str(cfg.get_value("lab_simulator_accelerator_delay", 3.0)))
 
     def __refreshExperimentalCardVisibility(self):
         logitech_enabled = bool(cfg.get_value("lab_mouse_logitech", False))
         obs_enabled = bool(cfg.get_value("lab_screenshot_obs", False))
+        accelerator_enabled = bool(cfg.get_value("lab_simulator_launch_accelerator", False))
+        is_custom_preset = cfg.get_value("lab_simulator_accelerator_preset", "custom") == "custom"
 
         self.logitech_dll_path_card.setVisible(logitech_enabled)
         self.logitech_bionic_trajectory_card.setVisible(logitech_enabled)
@@ -764,6 +831,11 @@ class SettingInterface(QWidget):
         self.obs_source_name_card.setVisible(obs_enabled)
         self.obs_image_format_card.setVisible(obs_enabled)
         self.obs_image_quality_card.setVisible(obs_enabled)
+
+        self.accelerator_package_card.setVisible(accelerator_enabled and is_custom_preset)
+        self.accelerator_tap_x_card.setVisible(accelerator_enabled and is_custom_preset)
+        self.accelerator_tap_y_card.setVisible(accelerator_enabled and is_custom_preset)
+        self.accelerator_delay_card.setVisible(accelerator_enabled)
 
         self.experimental_group.adjustSize()
         self.scroll_widget.adjustSize()
@@ -799,6 +871,18 @@ class SettingInterface(QWidget):
 
     def __onObsSourceNameCardClicked(self):
         self.__openTextEditForConfig("OBS 截图源名称", "obs_source_name", self.obs_source_name_card)
+
+    def __onAcceleratorPackageCardClicked(self):
+        self.__openTextEditForConfig("加速器包名", "lab_simulator_accelerator_package", self.accelerator_package_card)
+
+    def __onAcceleratorTapXCardClicked(self):
+        self.__openTextEditForConfig("加速按钮 X 坐标", "lab_simulator_accelerator_tap_x", self.accelerator_tap_x_card)
+
+    def __onAcceleratorTapYCardClicked(self):
+        self.__openTextEditForConfig("加速按钮 Y 坐标", "lab_simulator_accelerator_tap_y", self.accelerator_tap_y_card)
+
+    def __onAcceleratorDelayCardClicked(self):
+        self.__openTextEditForConfig("启动后等待时间(秒)", "lab_simulator_accelerator_delay", self.accelerator_delay_card)
 
     def __onScreenshotBenchmarkCardClicked(self):
         from module.automation.screenshot import ScreenShot

@@ -540,6 +540,24 @@ class ConfigModel(BaseModel):
     experimental_keep_screen_awake: bool = False
     """运行期间阻止系统与显示器休眠，任务结束自动恢复"""
 
+    lab_simulator_launch_accelerator: bool = False
+    """模拟器启动加速器：启动游戏前检测加速是否生效（通过 tun 接口），未生效时自动启动加速器并点击加速按钮"""
+
+    lab_simulator_accelerator_preset: str = "custom"
+    """模拟器加速器预设："custom" 或 "leigod"。选择预设后自动填充包名和加速按钮检测规则"""
+
+    lab_simulator_accelerator_package: str = ""
+    """模拟器加速器包名，自定义预设时需要手动填写"""
+
+    lab_simulator_accelerator_tap_x: int = 0
+    """模拟器加速器加速按钮 X 坐标（ADB input tap），仅在自动检测失败或自定义预设时作为回退"""
+
+    lab_simulator_accelerator_tap_y: int = 0
+    """模拟器加速器加速按钮 Y 坐标（ADB input tap），仅在自动检测失败或自定义预设时作为回退"""
+
+    lab_simulator_accelerator_delay: float = 3.0
+    """模拟器加速器启动后等待时间（秒），等待应用完成加载后再进行弹窗关闭和点击操作"""
+
     teams: dict[str, TeamSetting] = {"1": TeamSetting()}
     """队伍设置"""
 

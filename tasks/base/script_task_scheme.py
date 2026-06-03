@@ -163,16 +163,20 @@ def init_game():
     if cfg.simulator:
         stop_checker()
         if cfg.simulator_type == 0:
+            from module.automation.accelerator import ensure_accelerator
             from module.automation.input_handlers.simulator.mumu_control import (
                 MumuControl,
             )
 
+            ensure_accelerator()
             MumuControl.connection_device.start_game()
         else:
+            from module.automation.accelerator import ensure_accelerator
             from module.automation.input_handlers.simulator.simulator_control import (
                 SimulatorControl,
             )
 
+            ensure_accelerator()
             SimulatorControl.connection_device.start_game()
     else:
         stop_checker()
@@ -365,7 +369,7 @@ def script_task() -> None | int:
         if _get_game_rendering_scale() == 2:
             log.warning("当前游戏渲染比例为低, 可能会导致识别错误, 建议设置为中或更高")
         if cfg.set_win_size == 720:
-            log.warning("当前游戏分辨率为1280*720, 可能会导致识别错误或卡死, 建议设置为更高分辨率")
+            log.info("当前游戏分辨率为1280*720，以该分辨率运行时部分场景下可能导致匹配失败；若遇到问题可尝试设置更高分辨率")
 
     path_manager.initialize_paths()
     auto.clear_img_cache()
