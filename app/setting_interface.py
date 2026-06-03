@@ -438,16 +438,6 @@ class SettingInterface(QWidget):
             QT_TRANSLATE_NOOP("BaseSettingCardGroup", "实验性内容"), self.scroll_widget
         )
 
-        self.low_res_match_card = SwitchSettingCard(
-            FIF.ZOOM,
-            QT_TRANSLATE_NOOP("SwitchSettingCard", "低分辨率优化"),
-            QT_TRANSLATE_NOOP(
-                "SwitchSettingCard",
-                "提升 720P 等低分辨率下部分图片匹配率，但会增加匹配时间；2K/1080P 通常无需开启",
-            ),
-            config_name="experimental_low_res_match",
-            parent=self.experimental_group,
-        )
         self.logitech_switch_card = SwitchSettingCard(
             FIF.MOVE,
             QT_TRANSLATE_NOOP("SwitchSettingCard", "启用罗技驱动模拟"),
@@ -649,7 +639,6 @@ class SettingInterface(QWidget):
         self.about_group.addSettingCard(self.version_card)
         self.about_group.addSettingCard(self.system_proxy_card)
 
-        self.experimental_group.addSettingCard(self.low_res_match_card)
         self.experimental_group.addSettingCard(self.logitech_switch_card)
         self.experimental_group.addSettingCard(self.logitech_dll_path_card)
         self.experimental_group.addSettingCard(self.logitech_bionic_trajectory_card)
@@ -1009,7 +998,6 @@ class SettingInterface(QWidget):
         self.discord_group_card.retranslateUi()
         self.feedback_card.retranslateUi()
         self.experimental_group.retranslateUi()
-        self.low_res_match_card.retranslateUi()
         self.logitech_switch_card.retranslateUi()
         self.logitech_dll_path_card.retranslateUi()
         self.logitech_bionic_trajectory_card.retranslateUi()

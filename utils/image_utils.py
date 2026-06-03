@@ -21,10 +21,6 @@ class ImageUtils:
         return path
 
     @staticmethod
-    def should_use_low_res_match_optimization() -> bool:
-        return bool(getattr(cfg, "experimental_low_res_match", False) and getattr(cfg, "set_win_size", 1440) < 1080)
-
-    @staticmethod
     def normalize_screenshot_for_1440_matching(screenshot):
         """将当前截图归一到 1440 基准坐标系，便于与未缩放模板匹配。"""
         if screenshot is None or screenshot.size == 0:
