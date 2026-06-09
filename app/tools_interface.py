@@ -23,7 +23,7 @@ class ToolsInterface(ScrollArea):
         self.__init_widget()
         self.__init_card()
         self.__initLayout()
-        self.set_style_sheet()  # 设置滚动区域和内容容器的透明背景，使显示主窗口背景色
+        self.set_style_sheet()
         self.__connect_signal()
         self.setWidget(self.scroll_widget)
 
@@ -78,6 +78,16 @@ class ToolsInterface(ScrollArea):
             ),
             parent=self.tools_group,
         )
+        self.skip_tutorial_card = BasePushSettingCard(
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "运行"),
+            FIF.EDUCATION,
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "新手提示工具"),
+            QT_TRANSLATE_NOOP(
+                "BasePushSettingCard",
+                "直接修改游戏存档，关闭或恢复所有新手引导和红点提示",
+            ),
+            parent=self.tools_group,
+        )
 
     def __initLayout(self):
         self.tools_group.addSettingCard(self.auto_battle_card)
@@ -85,6 +95,7 @@ class ToolsInterface(ScrollArea):
         self.tools_group.addSettingCard(self.get_screenshot_card)
         self.tools_group.addSettingCard(self.issue_replay_card)
         self.tools_group.addSettingCard(self.asset_manager_card)
+        self.tools_group.addSettingCard(self.skip_tutorial_card)
 
         self.expand_layout.addWidget(self.tools_group)
 
@@ -110,6 +121,7 @@ class ToolsInterface(ScrollArea):
         self.get_screenshot_card.clicked.connect(lambda: self._tool_start("screenshot", self.get_screenshot_card))
         self.issue_replay_card.clicked.connect(lambda: self._tool_start("issue_replay", self.issue_replay_card))
         self.asset_manager_card.clicked.connect(lambda: self._tool_start("asset_manager", self.asset_manager_card))
+        self.skip_tutorial_card.clicked.connect(lambda: self._tool_start("tutorial_skip", self.skip_tutorial_card))
 
     def _tool_start(self, tool_name: str, card: BasePushSettingCard):
         if tool_name in self.tools:
@@ -163,3 +175,4 @@ class ToolsInterface(ScrollArea):
         self.get_screenshot_card.retranslateUi()
         self.issue_replay_card.retranslateUi()
         self.asset_manager_card.retranslateUi()
+        self.skip_tutorial_card.retranslateUi()

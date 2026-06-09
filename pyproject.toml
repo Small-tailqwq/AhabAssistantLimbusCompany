@@ -39,6 +39,7 @@ dependencies = [
     "unitypy>=1.25.0",
     "cloudscraper>=1.2.71",
     "curl-cffi[requests]>=0.15.0",
+    "pycryptodome>=3.21.0",
 ]
 
 [dependency-groups]

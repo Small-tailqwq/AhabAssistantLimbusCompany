@@ -1,5 +1,6 @@
 import os
 
+from PySide6.QtWidgets import QApplication
 from qfluentwidgets import isDarkTheme
 
 
@@ -21,6 +22,10 @@ def get_tool_window_style(widget_selector: str) -> str:
                 color: #f0f0f0;
             }}
             QCheckBox {{
+                background-color: transparent;
+                color: #f0f0f0;
+            }}
+            QRadioButton {{
                 background-color: transparent;
                 color: #f0f0f0;
             }}
@@ -140,6 +145,10 @@ def get_tool_window_style(widget_selector: str) -> str:
             background-color: transparent;
             color: #202020;
         }}
+        QRadioButton {{
+            background-color: transparent;
+            color: #202020;
+        }}
         QPushButton {{
             background-color: #ffffff;
             color: #202020;
@@ -256,6 +265,17 @@ def apply_tool_window_theme(widget, widget_selector: str) -> None:
     widget.setStyleSheet(get_tool_window_style(widget_selector))
     if os.name == "nt":
         _set_windows_title_bar_theme(widget, dark=dark)
+
+
+def center_window(window):
+    """将窗口移动到主屏幕中央（支持多显示器）"""
+    screen = QApplication.primaryScreen()
+    if screen is None:
+        return
+    geo = screen.availableGeometry()
+    x = geo.x() + (geo.width() - window.width()) // 2
+    y = geo.y() + (geo.height() - window.height()) // 2
+    window.move(x, y)
 
 
 def _set_windows_title_bar_theme(widget, dark: bool) -> None:

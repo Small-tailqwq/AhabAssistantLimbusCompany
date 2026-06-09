@@ -27,7 +27,7 @@ from tasks.base.make_enkephalin_module import (
     make_enkephalin_module,
 )
 from tasks.base.retry import kill_game
-from tasks.tools.ui_style import apply_tool_window_theme, get_status_label_style
+from tasks.tools.ui_style import apply_tool_window_theme, center_window, get_status_label_style
 
 
 class ProductionWork(QThread):
@@ -221,7 +221,7 @@ class ProductionModule(QWidget):
     def setup_ui(self):
         """配置窗口的基本属性和界面元素。"""
         self.setWindowTitle("自动换饼")
-        self.setGeometry(100, 100, 600, 400)
+        self.resize(600, 400)
         self.setWindowIcon(QIcon("./assets/logo/canary.ico"))
 
         # 创建布局
@@ -265,6 +265,7 @@ class ProductionModule(QWidget):
         layout.addWidget(self.log_text)
 
         self.setLayout(layout)
+        center_window(self)
 
     def _apply_theme_style(self):
         apply_tool_window_theme(self, "ProductionModule")

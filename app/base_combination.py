@@ -6,9 +6,10 @@ import pyperclip
 from PySide6.QtCore import (
     QAbstractAnimation,
     QEasingCurve,
-    QObject,
     QPropertyAnimation,
     QRect,
+    QRectF,
+    Qt,
     QTime,
     QTimer,
     Signal,
@@ -19,13 +20,15 @@ from PySide6.QtGui import (
     QKeyEvent,
     QKeySequence,
     QPainter,
+    QPainterPath,
     QPixmap,
+    QRegion,
+    QTransform,
 )
 from PySide6.QtWidgets import (
     QFrame,
     QGraphicsDropShadowEffect,
     QLabel,
-    QPushButton,
     QWidget,
 )
 from qfluentwidgets import (
@@ -63,9 +66,9 @@ from app.language_manager import LanguageManager
 from module.font_manager import font_manager
 from module.logger import log
 from module.my_error.my_error import settingsTypeError
-from module.update.check_update import UpdateStatus, UpdateThread, check_update, start_update_thread
-from utils.utils import decrypt_string, encrypt_string, get_timezone
+from module.update.check_update import UpdateStatus, UpdateThread, start_update_thread
 from utils.image_utils import ImageUtils
+from utils.utils import get_timezone
 
 
 class ToolCheckButton(ToolButton):
@@ -624,10 +627,10 @@ class SinnerSelect(QFrame):
 
     def __init__animation__(self):
         self.ani = QPropertyAnimation(self, b"geometry")
-        self.ani_time = 100  # ms
+        self.ani_time = 180
         self.ani.setDuration(self.ani_time)
-        self.ani.setEasingCurve(QEasingCurve.InOutQuad)
-        self.zoom_factor = 1.1  # 原地放大倍率
+        self.ani.setEasingCurve(QEasingCurve.OutCubic)
+        self.zoom_factor = 1.05
         self.raw_geom = None
         self._end_geom = None
 
@@ -661,7 +664,18 @@ class SinnerSelect(QFrame):
             self.mask_widget.setProperty("checked", "false")
         self.mask_widget.style().unpolish(self.mask_widget)
         self.mask_widget.style().polish(self.mask_widget)
+        self._apply_rounded_mask(checked)
         self.update()
+
+    def _apply_rounded_mask(self, checked):
+        if checked:
+            self.clearMask()
+            return
+        if self.width() <= 0 or self.height() <= 0:
+            return
+        path = QPainterPath()
+        path.addRoundedRect(QRectF(self.rect()), 16, 16)
+        self.setMask(QRegion(path.toFillPolygon(QTransform()).toPolygon()))
 
     def set_text(self, text):
         self.number_label.setText(text)
@@ -739,6 +753,7 @@ class SinnerSelect(QFrame):
         banner_x = int((self.width() - banner_width) / 2)  # Center the banner
         banner_y = int(self.height() * 0.50)
         self.banner_label.setGeometry(banner_x, banner_y, banner_width, banner_height)
+        self._apply_rounded_mask(self.box.check_box.isChecked())
         if self.ani.state() != QAbstractAnimation.State.Running:
             self.raw_geom = None
             self._end_geom = None
