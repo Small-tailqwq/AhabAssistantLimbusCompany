@@ -87,31 +87,35 @@ PYAUTOGUI_KEY_NAMES = {key: key for key in CANONICAL_KEYS}
 PYAUTOGUI_KEY_NAMES["lwindows"] = "winleft"
 PYAUTOGUI_KEY_NAMES["rwindows"] = "winright"
 
-EXTENDED_KEY_VKS = frozenset(
-    {
-        win32con.VK_UP,
-        win32con.VK_DOWN,
-        win32con.VK_LEFT,
-        win32con.VK_RIGHT,
-        win32con.VK_HOME,
-        win32con.VK_END,
-        win32con.VK_PRIOR,
-        win32con.VK_NEXT,
-        win32con.VK_INSERT,
-        win32con.VK_DELETE,
-        win32con.VK_RCONTROL,
-        win32con.VK_RMENU,
-        win32con.VK_LWIN,
-        win32con.VK_RWIN,
-    }
-)
+if win32con is not None:
+    EXTENDED_KEY_VKS = frozenset(
+        {
+            win32con.VK_UP,
+            win32con.VK_DOWN,
+            win32con.VK_LEFT,
+            win32con.VK_RIGHT,
+            win32con.VK_HOME,
+            win32con.VK_END,
+            win32con.VK_PRIOR,
+            win32con.VK_NEXT,
+            win32con.VK_INSERT,
+            win32con.VK_DELETE,
+            win32con.VK_RCONTROL,
+            win32con.VK_RMENU,
+            win32con.VK_LWIN,
+            win32con.VK_RWIN,
+        }
+    )
 
-MESSAGE_KEY_WPARAMS = {
-    win32con.VK_LCONTROL: win32con.VK_CONTROL,
-    win32con.VK_RCONTROL: win32con.VK_CONTROL,
-    win32con.VK_LMENU: win32con.VK_MENU,
-    win32con.VK_RMENU: win32con.VK_MENU,
-}
+    MESSAGE_KEY_WPARAMS = {
+        win32con.VK_LCONTROL: win32con.VK_CONTROL,
+        win32con.VK_RCONTROL: win32con.VK_CONTROL,
+        win32con.VK_LMENU: win32con.VK_MENU,
+        win32con.VK_RMENU: win32con.VK_MENU,
+    }
+else:
+    EXTENDED_KEY_VKS = frozenset()
+    MESSAGE_KEY_WPARAMS = {}
 
 
 class WinAbstractInput(AbstractInput):
