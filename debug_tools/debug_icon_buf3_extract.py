@@ -6,7 +6,6 @@ import cv2
 import numpy as np
 from PIL import Image
 
-
 BASE = Path(__file__).resolve().parent
 ATLAS_PATH = BASE / "archive/2026-04-30_card_pack_extraction/extracted/other/local_assets/Icon_buf_3.png"
 SCREENSHOT_PATH = BASE / "screenshot_20260524_215912.png"

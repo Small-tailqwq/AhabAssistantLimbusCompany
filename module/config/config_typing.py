@@ -360,8 +360,8 @@ class ConfigModel(BaseModel):
     mumu_instance_number: int = -1
     """mumu模拟器的实例编号"""
 
-    start_emulator_timeout: int = 120
-    """启动模拟器超时时间"""
+    start_emulator_timeout: int = 150
+    """启动模拟器超时时间。增加至 150 秒以应对 projectmonn 模拟器启动缓慢的问题"""
 
     check_update: bool = True
     """检查更新"""

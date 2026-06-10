@@ -13,6 +13,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import PyInstaller.__main__
+
 from module.update.update_protocol import (
     BOOTSTRAP_VERSION_PATH,
     DEFAULT_PROTECTED_PATHS,
@@ -93,7 +94,7 @@ except ImportError:
 
 # 字体子集化：扫描源码中的 CJK 字符，裁剪 dist 中的字体
 try:
-    from fontTools.subset import Subsetter, Options
+    from fontTools.subset import Options, Subsetter
     from fontTools.ttLib import TTFont
 
     font_path = os.path.join("dist", "AALC", "assets", "app", "fonts", "ChineseFont.ttf")

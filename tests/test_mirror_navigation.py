@@ -167,10 +167,9 @@ class TestMirrorNavigation(unittest.TestCase):
             patch.object(mirror_module, "retry", return_value=True),
             patch.object(mirror_module, "sleep", return_value=None),
             patch.object(mirror_module.event_handling, "decision_event_handling", side_effect=AssertionError),
-            patch.object(mirror, "wake_event_after_progress", return_value=True),
+            patch.object(mirror, "wake_event_after_progress", return_value=True),self.assertRaises(_StopAfterCommence)
         ):
-            with self.assertRaises(_StopAfterCommence):
-                mirror.event_handling()
+            mirror.event_handling()
 
         self.assertIn("event/commence_assets.png", auto.clicked)
 
@@ -185,10 +184,9 @@ class TestMirrorNavigation(unittest.TestCase):
             patch.object(mirror_module.ImageUtils, "load_image", return_value=object()),
             patch.object(mirror_module.ImageUtils, "get_bbox", return_value=(10, 20, 110, 120)),
             patch.object(mirror_module.event_handling, "decision_event_handling", side_effect=AssertionError),
-            patch.object(mirror, "wake_event_after_progress", return_value=True),
+            patch.object(mirror, "wake_event_after_progress", return_value=True),self.assertRaises(_StopAfterCommence)
         ):
-            with self.assertRaises(_StopAfterCommence):
-                mirror.event_handling()
+            mirror.event_handling()
 
         self.assertIn(("ocr", 60, 70), auto.clicked)
 

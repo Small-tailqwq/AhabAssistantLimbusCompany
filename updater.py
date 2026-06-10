@@ -8,7 +8,6 @@ from pathlib import Path
 import psutil
 
 from module.update.update_protocol import (
-    BOOTSTRAP_VERSION_PATH,
     DEFAULT_PROTECTED_PATHS,
     INSTALLED_MANIFEST_META_PATH,
     INSTALLED_MANIFEST_PATH,

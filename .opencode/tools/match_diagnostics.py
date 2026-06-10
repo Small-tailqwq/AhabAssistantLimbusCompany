@@ -1,10 +1,11 @@
 """Template match diagnostic: reproduce the app's matching pipeline step by step."""
 
-import os, sys
+import os
+from copy import deepcopy
+
 import cv2
 import numpy as np
 from PIL import Image
-from copy import deepcopy
 
 # Ensure we run from project root
 os.chdir(os.path.dirname(os.path.abspath(__file__)) + "/../..")
@@ -114,7 +115,7 @@ for label, path in assets.items():
         print(f"{label:<25} {model:<12} {score:<8.4f} {pos_str:<18} {tpl_shape:<16}")
 
 # ---- multi-scale scan for the problematic asset ----
-print(f"\n\n--- Multi-scale (aggressive) for mirror_dungeons_assets ---")
+print("\n\n--- Multi-scale (aggressive) for mirror_dungeons_assets ---")
 tpl, bbox = load_asset(assets["Problematic (zh_cn)"])
 for sf in [0.80, 0.85, 0.90, 0.95, 1.00, 1.05, 1.10, 1.15, 1.20]:
     h, w = tpl.shape[:2]
@@ -123,7 +124,7 @@ for sf in [0.80, 0.85, 0.90, 0.95, 1.00, 1.05, 1.10, 1.15, 1.20]:
     print(f"  scale={sf:5.2f}  score={score:.4f}  at ({pos[0]},{pos[1]})")
 
 # ---- try the raw (un-cropped) asset too ----
-print(f"\n--- Raw uncropped asset (aggressive) ---")
+print("\n--- Raw uncropped asset (aggressive) ---")
 full_path = os.path.join(os.getcwd(), "assets/images/default/zh_cn/home/mirror_dungeons_assets.png")
 raw_img = np.array(Image.open(full_path))
 # Only resize, don't crop
@@ -141,7 +142,7 @@ print(f"  raw template shape: {raw_gray.shape[1]}x{raw_gray.shape[0]}")
 
 # ---- also check: does drive_assets find the SAME region as mirror_dungeons? ----
 # This would indicate the screenshot is NOT showing the mirror dungeon UI at all
-print(f"\n--- Cross-reference: drive_assets match position vs mirror_dungeons ---")
+print("\n--- Cross-reference: drive_assets match position vs mirror_dungeons ---")
 tpl_drive, bbox_drive = load_asset(assets["Control drive"])
 pos_drive, score_drive = match_template(scr_gray, tpl_drive, bbox_drive, model="aggressive")
 print(f"  drive_assets: score={score_drive:.4f} at ({pos_drive[0]},{pos_drive[1]})")

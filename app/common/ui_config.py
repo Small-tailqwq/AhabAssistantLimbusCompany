@@ -6,8 +6,7 @@ from PySide6.QtWidgets import QFrame
 from qfluentwidgets import isDarkTheme, qconfig
 
 if TYPE_CHECKING:
-    from PySide6.QtGui import QPaintEvent
-    from qfluentwidgets import SegmentedWidget
+    pass
 
 BORDER_STYLE = {
     "dark": """border: 1px solid #545454; border-radius: {radius}px;""",

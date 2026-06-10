@@ -5,10 +5,12 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+import updater as updater_module
+from module.update.check_update import UpdateStatus, UpdateThread
 from module.update.update_protocol import (
+    DEFAULT_PROTECTED_PATHS,
     INSTALLED_MANIFEST_META_PATH,
     INSTALLED_MANIFEST_PATH,
-    DEFAULT_PROTECTED_PATHS,
     build_update_manifest,
     collect_managed_files,
     normalize_version_text,
@@ -19,9 +21,7 @@ from module.update.update_protocol import (
     version_at_least,
     version_at_most,
 )
-import updater as updater_module
 from updater import Updater
-from module.update.check_update import UpdateStatus, UpdateThread
 
 
 class TestUpdateProtocolHelpers(unittest.TestCase):
@@ -46,9 +46,8 @@ class TestUpdateProtocolHelpers(unittest.TestCase):
             "assets/file.txt:",
         ]
         for value in bad_values:
-            with self.subTest(value=value):
-                with self.assertRaises(ValueError):
-                    validate_relative_manifest_path(value, DEFAULT_PROTECTED_PATHS)
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                validate_relative_manifest_path(value, DEFAULT_PROTECTED_PATHS)
 
     def test_validate_relative_manifest_path_rejects_protected_targets(self):
         protected_values = [
@@ -62,9 +61,8 @@ class TestUpdateProtocolHelpers(unittest.TestCase):
             "Update_Temp/AALC.7z",
         ]
         for value in protected_values:
-            with self.subTest(value=value):
-                with self.assertRaises(ValueError):
-                    validate_relative_manifest_path(value, DEFAULT_PROTECTED_PATHS)
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                validate_relative_manifest_path(value, DEFAULT_PROTECTED_PATHS)
 
     def test_resolve_safe_child_stays_under_root(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1005,9 +1003,8 @@ class TestUpdaterBootstrapFlow(unittest.TestCase):
                 updater_module.shutil, "copy"
             ) as copy_mock, mock.patch.object(updater_module.subprocess, "Popen") as popen_mock, mock.patch.object(
                 updater_module.sys, "exit", side_effect=SystemExit
-            ):
-                with self.assertRaises(SystemExit):
-                    updater_module.check_temp_dir_and_run()
+            ), self.assertRaises(SystemExit):
+                updater_module.check_temp_dir_and_run()
 
             self.assertTrue(resident_update.exists())
             copy_mock.assert_called_once_with(source_path, base_dir / "update_temp" / "Update.exe")

@@ -56,7 +56,7 @@ from module.system_actions import (
     set_after_completion_config,
 )
 from tasks.base.script_task_scheme import my_script_task
-from utils.utils import check_hard_mirror_time, get_timezone
+from utils.utils import check_hard_mirror_time
 
 
 class AfterCompletionActionEditor(FlyoutViewBase):

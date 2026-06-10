@@ -16,7 +16,6 @@ from qfluentwidgets import (
     Action,
     BodyLabel,
     DropDownPushButton,
-    FluentIcon as FIF,
     InfoBarPosition,
     PrimaryPushButton,
     PushButton,
@@ -26,15 +25,17 @@ from qfluentwidgets import (
     TitleLabel,
     isDarkTheme,
 )
+from qfluentwidgets import (
+    FluentIcon as FIF,
+)
 from qframelesswindow import FramelessDialog, StandardTitleBar
 from ruamel.yaml import YAML
 
-from app.language_manager import LanguageManager
 from app.base_tools import BaseSpinBox
 from app.card.messagebox_custom import BaseInfoBar, MessageBoxConfirm
+from app.language_manager import LanguageManager
 from module import THEME_PACK_LIST_EXAMPLE_PATH
 from module.config import cfg, theme_list
-from utils.image_utils import ImageUtils
 from module.config.theme_pack_import_export import (
     export_theme_pack_weight,
     generate_theme_pack_export_filename,

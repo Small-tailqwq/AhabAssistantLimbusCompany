@@ -15,12 +15,12 @@ Features:
 - Press Ctrl+C to exit
 """
 
+import hashlib
 import os
 import subprocess
 import sys
 import threading
 import time
-import hashlib
 
 # 解决 Windows DPI 缩放问题
 from ctypes import c_void_p, windll

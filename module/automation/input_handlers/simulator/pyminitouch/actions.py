@@ -311,9 +311,6 @@ class MNTDevice(object):
             all_points.append(last_target)
 
         total = len(all_points)
-        unique = len(set(all_points))
-        head = all_points[:10]
-        tail = all_points[-10:] if total > 10 else []
 
         # 统计连续重复点数量
         consecutive_dups = 0

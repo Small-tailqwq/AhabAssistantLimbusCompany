@@ -1,13 +1,15 @@
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, r'C:\Users\Ko_teiru\Documents\code\AhabAssistantLimbusCompany')
 
 import cv2
 import numpy as np
 from PIL import Image
 
+from module.config import cfg
 from utils.image_utils import ImageUtils
 from utils.path_manager import path_manager
-from module.config import cfg
 
 path_manager.initialize_paths()
 path_manager.set_theme("default")
@@ -111,5 +113,5 @@ for label, fname in SCREENSHOTS.items():
         best_path = path1 or path2 or ""
         print(f"{target:<45} {s1:>8} @ {str(p1 or ''):<12} {s2:>8} @ {str(p2 or ''):<12} {best_path or '':>20}{mark}")
 
-print(f"\nmodel=clam = 在bbox±30px区域内搜索 (back_init_menu默认)")
-print(f"model=aggressive = 全屏搜索")
+print("\nmodel=clam = 在bbox±30px区域内搜索 (back_init_menu默认)")
+print("model=aggressive = 全屏搜索")

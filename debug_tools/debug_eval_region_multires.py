@@ -6,7 +6,6 @@ import cv2
 import numpy as np
 from PIL import Image, ImageDraw
 
-
 BASE = Path(__file__).resolve().parent
 SYSTEMS = ["burn", "bleed", "tremor", "rupture", "poise", "sinking", "charge", "slash", "pierce", "blunt"]
 

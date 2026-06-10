@@ -13,7 +13,6 @@ Limbus Company - Mirror Dungeon Theme Pack Image Extractor
 """
 
 import json
-import shutil
 from collections import Counter
 from pathlib import Path
 
@@ -216,18 +215,18 @@ def print_summary(all_themes: dict):
     print(f"  EGO gift icons:         {gift_count}")
 
     tier_counts = Counter(t["tier"] for t in all_themes.values())
-    print(f"\n  Theme packs by tier:")
+    print("\n  Theme packs by tier:")
     for tier, count in sorted(tier_counts.items()):
         print(f"    {tier}: {count} themes")
 
-    print(f"\n  Covers by season:")
+    print("\n  Covers by season:")
     for d in sorted(COVERS_DIR.iterdir()):
         if d.is_dir():
             c = len(list(d.glob("*.png")))
             print(f"    {d.name}: {c}")
 
     # Show cover-to-theme mapping
-    print(f"\n  Sample cover images:")
+    print("\n  Sample cover images:")
     cover_names = set()
     for f in COVERS_DIR.rglob("*.png"):
         cover_names.add(f.stem)

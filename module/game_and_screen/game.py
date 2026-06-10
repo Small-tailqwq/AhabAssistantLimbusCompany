@@ -62,5 +62,5 @@ class Game(metaclass=SingletonMeta):
                 self.log.info(f"游戏启动：{self.game_path}")
             return True
         except Exception as e:
-            self.log.error(f"启动游戏时发生错误：{e}")
+            self.log.exception(f"启动游戏时发生错误：{e}")
         return False

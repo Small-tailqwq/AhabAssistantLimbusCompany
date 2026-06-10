@@ -10,7 +10,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-
 ROOT = Path(__file__).resolve().parents[1]
 COPILOT_INSTRUCTIONS = ROOT / ".github" / "copilot-instructions.md"
 PROMPT_OUTPUT_DIR = ROOT / ".github" / "prompts" / "opencode"

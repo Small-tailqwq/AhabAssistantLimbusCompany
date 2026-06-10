@@ -334,7 +334,7 @@ def check_update(self, timeout=5, flag=False):
                     start_update_thread(assets_url)
         elif status == UpdateStatus.SUCCESS:
             # 显示当前为最新版本的信息
-            bar = BaseInfoBar.success(
+            BaseInfoBar.success(
                 title=QT_TRANSLATE_NOOP("BaseInfoBar", "当前是最新版本(＾∀＾●)"),
                 content="",
                 orient=Qt.Horizontal,
@@ -345,7 +345,7 @@ def check_update(self, timeout=5, flag=False):
             )
         else:
             # 显示检查更新失败的信息
-            bar = BaseInfoBar.warning(
+            BaseInfoBar.warning(
                 title=QT_TRANSLATE_NOOP("BaseInfoBar", "检测更新失败(╥╯﹏╰╥)"),
                 content=self.update_thread.error_msg,
                 orient=Qt.Horizontal,
@@ -417,14 +417,13 @@ def update(assets_url):
         # 构建保存文件的完整路径
         file_path = os.path.join("update_temp", file_name)
 
-        with requests.get(assets_url, stream=True, proxies=proxies) as r:
-            with open(file_path, "wb") as f:
-                for chunk in r.iter_content(chunk_size=1024):
-                    if chunk:
-                        f.write(chunk)
-                        downloaded += len(chunk)
-                        progress = int(downloaded / total_size * 100)
-                        mediator.update_progress.emit(progress)
+        with requests.get(assets_url, stream=True, proxies=proxies) as r, open(file_path, "wb") as f:
+            for chunk in r.iter_content(chunk_size=1024):
+                if chunk:
+                    f.write(chunk)
+                    downloaded += len(chunk)
+                    progress = int(downloaded / total_size * 100)
+                    mediator.update_progress.emit(progress)
 
         log.info("下载进度100%")
 

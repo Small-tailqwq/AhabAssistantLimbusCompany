@@ -3,8 +3,8 @@ import re
 from pathlib import Path
 from typing import Optional
 
-from ruamel.yaml import YAML
 from pydantic import ValidationError
+from ruamel.yaml import YAML
 
 from module.config import cfg, theme_list
 from module.config.config_typing import TeamSetting

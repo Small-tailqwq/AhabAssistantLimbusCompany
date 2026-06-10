@@ -83,11 +83,24 @@ files = [
 ]
 
 [tool.ruff.lint]
-# 启用规则集 (E: pycodestyle, F: Pyflakes, I: isort)
-# T201: 禁止使用print进行调试
-select = ["E", "F", "I", "T201"]
+# 启用规则集
+#   E: pycodestyle (代码风格)
+#   F: Pyflakes (逻辑错误)
+#   I: isort (导入排序)
+#   T201: 禁止 print
+#   SIM: 简化表达式 (简化条件、合并嵌套 if、三元表达式等)
+#   TRY: 异常处理最佳实践
+#   BLE: 盲收异常检测 (过于宽泛的 except 子句)
+select = ["E", "F", "I", "T201", "SIM", "TRY", "BLE"]
 # 忽略特定的规则
-ignore = ["E501"]
+ignore = [
+    "E501",        # 行太长 — 自动化代码中坐标/路径常超长
+    "SIM102",      # 合并嵌套 if — 自动化代码中点击-检测-重试的三层嵌套有语义意义
+    "SIM108",      # 三元表达式替代 if-else — 自动化代码的可读性更重要
+    "SIM114",      # 合并 if 分支 — 条件分支逻辑有时需要显式分离
+    "TRY300",      # try 中所有语句后都有 finally 时建议移出 — 与现有模式冲突
+    "BLE001",      # 盲收 Exception — 绝大多数现有 except 是自动化容错可接受
+]
 [tool.ruff]
 line-length = 120
 target-version = "py312"

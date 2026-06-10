@@ -293,7 +293,7 @@ def print_human_report(report: dict):
             print(f"  {count:>5}  {label}")
 
     # ── 修复建议 ──
-    print(f"\n[修复建议] 按 ROI 排序:")
+    print("\n[修复建议] 按 ROI 排序:")
     for i, fix in enumerate(report.get("fixes", []), 1):
         icon = {"critical": "[!!!]", "high": "[!!]", "medium": "[!]", "low": "[*]"}.get(fix["priority"], "[?]")
         print(f"  {i}. {icon} [{fix['priority'].upper()}] {fix['category']}")
@@ -307,7 +307,7 @@ def print_human_report(report: dict):
                 print(f"       ... 共 {len(fix['sources'])} 个文件")
 
     # ── Top 问题文件 ──
-    print(f"\n[文件] LLM 可读性最差 Top 10（按扣分排序）:")
+    print("\n[文件] LLM 可读性最差 Top 10（按扣分排序）:")
     print(f"   {'#':<4} {'扣分':<6} {'通配符':<8} {'裸exc':<7} {'print':<7} {'大小':<7} 文件路径")
     print(f"   {'-' * 70}")
     top = [f for f in report["files"] if compute_score(f) > 0][:10]

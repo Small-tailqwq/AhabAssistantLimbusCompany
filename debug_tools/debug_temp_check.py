@@ -1,11 +1,11 @@
-import sys, os
+import sys
+
 sys.path.insert(0, r'C:\Users\Ko_teiru\Documents\code\AhabAssistantLimbusCompany')
 import cv2
 import numpy as np
-from PIL import Image
+
 from utils.image_utils import ImageUtils
 from utils.path_manager import path_manager
-from module.config import cfg
 
 path_manager.initialize_paths()
 path_manager.set_theme("default")

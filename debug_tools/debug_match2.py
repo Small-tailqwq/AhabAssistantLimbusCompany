@@ -1,12 +1,12 @@
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, r'C:\Users\Ko_teiru\Documents\code\AhabAssistantLimbusCompany')
 
-from utils.path_manager import path_manager
-from utils.image_utils import ImageUtils
-from module.config import cfg
-import numpy as np
 import cv2
-from PIL import Image
+
+from utils.image_utils import ImageUtils
+from utils.path_manager import path_manager
 
 base = r'C:\Users\Ko_teiru\Documents\code\AhabAssistantLimbusCompany'
 
@@ -17,7 +17,6 @@ print(f"current_language: {path_manager.current_language}")
 target = 'mirror/shop/enhance_gifts/burn.png'
 
 # Resolve the exact path
-from utils.image_utils import ImageUtils
 img_path, selected_path = ImageUtils._resolve_image_path(target)
 print(f"resolved path: {img_path}")
 print(f"selected path: {selected_path}")

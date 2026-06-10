@@ -6,7 +6,6 @@ import cv2
 import numpy as np
 from PIL import Image, ImageDraw
 
-
 BASE = Path(__file__).resolve().parent
 SCREENSHOT_PATH = BASE / "screenshot_20260524_215912.png"
 OUT_IMAGE_PATH = BASE / "screenshot_20260524_215912_system_region_5x3.png"

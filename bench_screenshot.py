@@ -1,13 +1,14 @@
-import time
-import sys
-import os
 import asyncio
+import os
+import sys
+import time
 
 sys.path.insert(0, os.path.dirname(__file__))
 
+from module.automation.input_handlers.simulator.mumu_control import MumuControl
 from module.config import cfg
 from module.logger import log
-from module.automation.input_handlers.simulator.mumu_control import MumuControl
+
 
 def determine_instance():
     instance = 0
@@ -45,7 +46,6 @@ def main():
     log.info("Mumu IPC 连接成功")
 
     import cv2
-    from PIL import Image
 
     sample_count = 30
 

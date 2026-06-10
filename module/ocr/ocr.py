@@ -74,7 +74,7 @@ class OCR(metaclass=SingletonMeta):
             self.log_results(results)
             return results
         except Exception as e:
-            self.logger.error(e)
+            self.logger.exception(e)
             return RapidOCROutput()
 
     def log_results(self, ocr_results: RapidOCROutput) -> None:

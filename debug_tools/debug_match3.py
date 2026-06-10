@@ -1,12 +1,15 @@
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, r'C:\Users\Ko_teiru\Documents\code\AhabAssistantLimbusCompany')
 
-from utils.path_manager import path_manager
-from utils.image_utils import ImageUtils
-from module.config import cfg
-import numpy as np
 import cv2
+import numpy as np
 from PIL import Image
+
+from module.config import cfg
+from utils.image_utils import ImageUtils
+from utils.path_manager import path_manager
 
 base = r'C:\Users\Ko_teiru\Documents\code\AhabAssistantLimbusCompany'
 

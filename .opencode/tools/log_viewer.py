@@ -7,17 +7,18 @@ AALC 日志可视化服务器
   不指定 --log 则在页面中选择文件
 """
 
+import http.server
 import io
 import json
 import os
 import re
+import socketserver
 import sys
 import webbrowser
-import http.server
-from PIL import Image
-import socketserver
 from pathlib import Path
-from urllib.parse import urlparse, parse_qs, quote
+from urllib.parse import parse_qs, urlparse
+
+from PIL import Image
 
 # ── 配置 ──────────────────────────────────────────────
 HOST = "127.0.0.1"
@@ -459,11 +460,11 @@ def main():
 
     server = socketserver.TCPServer((args.host, args.port), Handler)
     url = f"http://{args.host}:{args.port}/"
-    print(f"\n  🪟 AALC 日志可视化面板")
-    print(f"  ─────────────────────────────────────")
+    print("\n  🪟 AALC 日志可视化面板")
+    print("  ─────────────────────────────────────")
     print(f"  📡 {url}")
-    print(f"  📁 日志目录: issues/ 和 logs/")
-    print(f"  ❌ Ctrl+C 停止")
+    print("  📁 日志目录: issues/ 和 logs/")
+    print("  ❌ Ctrl+C 停止")
     print()
     if not args.no_browser:
         webbrowser.open(url)

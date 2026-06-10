@@ -10,7 +10,7 @@ Usage:
 
 import re
 import sys
-from collections import Counter, defaultdict
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
@@ -223,7 +223,7 @@ def generate_report(log_path: str) -> str:
         if ph["time_start"] and ph["time_end"]:
             d = (ph["time_end"] - ph["time_start"]).total_seconds()
             dur_str = f" | dur={d:.0f}s"
-        emit(f"")
+        emit("")
         emit(f"  >> Phase {idx+1}: {ph['main_module']} ({ph['lines']} lines{dur_str})")
         emit(f"     Modules: {ph['module_breakdown']}")
 
@@ -244,7 +244,7 @@ def generate_report(log_path: str) -> str:
         top_ph = ph_comp.get_top_patterns(8)
         has_repeats = any(c > 1 for _, c, _ in top_ph)
         if has_repeats:
-            emit(f"     Phase patterns:")
+            emit("     Phase patterns:")
             for summary, cnt, _ in top_ph:
                 if cnt > 1:
                     emit(f"       [{cnt:>4}x] {summary}")

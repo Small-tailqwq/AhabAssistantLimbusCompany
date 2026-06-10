@@ -9,7 +9,14 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from qfluentwidgets import ExpandSettingCard, InfoBarPosition, LineEdit, PrimaryPushButton, PushButton, ScrollArea, SmoothMode
+from qfluentwidgets import (
+    ExpandSettingCard,
+    InfoBarPosition,
+    PrimaryPushButton,
+    PushButton,
+    ScrollArea,
+    SmoothMode,
+)
 from qfluentwidgets import FluentIcon as FIF
 
 from app import *
