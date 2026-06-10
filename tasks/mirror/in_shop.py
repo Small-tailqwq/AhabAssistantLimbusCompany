@@ -43,7 +43,7 @@ def _debug_save_on_failure(money_bbox, ocr_result, in_heal=False):
             try:
                 auto.screenshot.crop(money_bbox).save(f"{debug_dir}/{ts}_{prefix}_crop.png")
             except Exception:
-                pass
+                log.debug("保存调试截图裁剪区域失败", exc_info=True)
     log.info(f"[商店调试] OCR失败, 原始结果: {ocr_result}, 坐标: {money_bbox}")
 
 
@@ -104,7 +104,7 @@ def _extract_money_from_ocr_texts(texts):
 
     for text in cleaned_texts:
         normalized = text.translate(_MONEY_OCR_TRANSLATION)
-        if normalized.isdigit() and any(ch.isdigit() for ch in normalized):
+        if normalized.isdigit():
             return int(normalized)
 
     return None
@@ -131,11 +131,15 @@ def _retry_money_ocr_with_scaled_crop(money_bbox, scale=2):
     try:
         crop = auto.screenshot.crop(money_bbox)
         width, height = crop.size
-        resampling = getattr(getattr(Image, "Resampling", Image), "BICUBIC")
+        try:
+            resampling = Image.Resampling.BICUBIC
+        except AttributeError:
+            resampling = Image.BICUBIC
         enlarged = crop.resize((width * scale, height * scale), resample=resampling)
         result = ocr.run(enlarged)
         return list(result.txts or [])
     except Exception:
+        log.debug("OCR 放大裁剪识别失败", exc_info=True)
         return []
 
 
