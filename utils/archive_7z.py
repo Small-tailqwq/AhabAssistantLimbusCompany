@@ -107,7 +107,7 @@ def create_7z_archive(source_dir: Path, output_archive_path: Path) -> Path:
         output_archive_path.unlink()
 
     # 第三步：使用当前目录下的 .\* 作为输入，保证包内路径从资源目录根开始计算。
-    _run_7z_command(["a", "-t7z", str(output_archive_path.resolve()), ".\\*"], cwd=source_dir)
+    _run_7z_command(["a", "-t7z", str(output_archive_path.resolve()), "./*"], cwd=source_dir)
     return output_archive_path
 
 

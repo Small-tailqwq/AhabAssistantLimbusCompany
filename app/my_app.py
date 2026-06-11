@@ -205,8 +205,9 @@ class MainWindow(FramelessWindow):
 
         # 初始化进度环
         self.set_ring()
-        # 启动阶段先走软件更新检查，再决定是否继续执行资源同步。
-        self.resource_sync_coordinator.start_startup_check()
+        # 开发模式下跳过启动检查
+        if os.environ.get("AALC_DEV_MODE") != "1" and getattr(sys, "frozen", False):
+            self.resource_sync_coordinator.start_startup_check()
 
         # 判断是否需要降低缩放以适配小屏幕
         screen_rect = self.screen().availableGeometry()  # 获取到的rect会经过缩放因子的缩放

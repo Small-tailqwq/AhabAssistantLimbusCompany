@@ -34,7 +34,7 @@ from ruamel.yaml import YAML
 from app.language_manager import LanguageManager
 from app.base_tools import BaseSpinBox
 from app.card.messagebox_custom import BaseInfoBar, MessageBoxConfirm
-from app.language_manager import LanguageManager
+from utils.image_utils import ImageUtils
 from module import THEME_PACK_LIST_EXAMPLE_PATH
 from module.config import cfg, theme_list
 from module.config.theme_pack_import_export import (

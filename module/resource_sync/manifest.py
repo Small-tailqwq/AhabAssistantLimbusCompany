@@ -155,7 +155,7 @@ class ResourceManifest:
             generated_at=str(payload["generated_at"]),
             manifest_id=str(payload["manifest_id"]),
             package=ResourcePackageEntry.from_dict(package_payload) if package_payload is not None else None,
-            files=[ResourceFileEntry.from_dict(item) for item in payload.get("files", [])],
+            files=[ResourceFileEntry.from_dict(item) for item in (payload.get("files") or [])],
         )
 
     def to_json(self) -> str:
