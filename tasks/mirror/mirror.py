@@ -694,7 +694,7 @@ class Mirror:
             # 如果回到主界面，退出循环
             if auto.find_element("home/drive_assets.png"):
                 break
-            if auto.click_element("base/battle_finish_confirm_assets.png"):
+            if auto.click_element("battle/battle_finish_confirm_assets.png"):
                 continue
             if auto.click_element("mirror/claim_reward/rewards_acquired_assets.png"):
                 continue
@@ -716,7 +716,7 @@ class Mirror:
                     continue
                 if auto.click_element("mirror/claim_reward/claim_rewards_assets.png"):
                     sleep(1)
-                if auto.click_element("mirror/claim_reward/claim_forfeit_assets.png", take_screenshot=True):
+                if auto.click_element("mirror/claim_reward/claim_forfeit_assets.png", model="normal", take_screenshot=True):
                     continue
             else:
                 if self.hard_switch and cfg.save_rewards:
