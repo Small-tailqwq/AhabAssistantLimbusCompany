@@ -710,12 +710,7 @@ class PageMirror(PageCard):
     def create_team_from_file(self):
         """从导入的配置文件创建新队伍"""
         # 打开文件对话框选择 YAML 文件
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            self.tr("选择队伍配置文件"),
-            "",
-            "YAML Files (*.yaml *.yml)"
-        )
+        file_path, _ = QFileDialog.getOpenFileName(self, self.tr("选择队伍配置文件"), "", "YAML Files (*.yaml *.yml)")
 
         if not file_path:
             return
@@ -724,11 +719,7 @@ class PageMirror(PageCard):
         team_setting, theme_pack_weight, missing_fields = import_team_settings(file_path, 1)
 
         if team_setting is None:
-            MessageBox(
-                self.tr("导入失败"),
-                self.tr("无法读取配置文件，请检查文件格式是否正确。"),
-                self
-            ).exec()
+            MessageBox(self.tr("导入失败"), self.tr("无法读取配置文件，请检查文件格式是否正确。"), self).exec()
             return
 
         # 如果字段缺失则显示警告
@@ -737,7 +728,7 @@ class PageMirror(PageCard):
             w = MessageBox(
                 self.tr("缺少字段"),
                 self.tr(f"配置文件中缺少以下字段：\n- {missing_text}\n\n将使用默认值填充这些字段。是否继续？"),
-                self
+                self,
             )
             w.yesButton.setText(self.tr("继续"))
             w.cancelButton.setText(self.tr("取消"))
@@ -755,11 +746,7 @@ class PageMirror(PageCard):
                 break
 
         if team_num is None:
-            MessageBox(
-                self.tr("无可用队伍槽位"),
-                self.tr("已达到最大队伍数量（20个），无法创建新队伍。"),
-                self
-            ).exec()
+            MessageBox(self.tr("无可用队伍槽位"), self.tr("已达到最大队伍数量（20个），无法创建新队伍。"), self).exec()
             return
 
         # 应用导入的设置
@@ -782,15 +769,11 @@ class PageMirror(PageCard):
                 isClosable=True,
                 position=InfoBarPosition.TOP,
                 duration=2000,
-                parent=self
+                parent=self,
             )
         except Exception as e:
             log.error(f"Failed to create team from file: {e}")
-            MessageBox(
-                self.tr("创建失败"),
-                self.tr(f"创建队伍时出错：{str(e)}"),
-                self
-            ).exec()
+            MessageBox(self.tr("创建失败"), self.tr(f"创建队伍时出错：{str(e)}"), self).exec()
 
     def remove_team_card(self, target: str):
         try:

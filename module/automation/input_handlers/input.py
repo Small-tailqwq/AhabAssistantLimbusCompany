@@ -140,10 +140,10 @@ class WinAbstractInput(AbstractInput):
 
     @staticmethod
     def _make_key_lparam(vk: int, key_up: bool = False) -> int:
-        """构造 WM_KEYDOWN/UP 的正确 lParam
+        """构造 WM_KEYDOWN/UP 的正确 lParam。
 
-        Unity 6+ 校验 lParam 中的 scan code 和 extended flag，
-        固定 0x00000001 会被丢弃。
+        Unity 6+ 会校验 scan code 和 extended flag，
+        固定 0x00000001 / 0xC0000001 的消息会被忽略。
         """
         scan = win32api.MapVirtualKey(vk, 0) & 0xFF
         extended = vk in EXTENDED_KEY_VKS
@@ -174,11 +174,13 @@ class WinAbstractInput(AbstractInput):
         try:
             for char in text:
                 char_code = ord(char)
-                win32api.SendMessage(hwnd, win32con.WM_CHAR, char_code, 0)
+                if self.use_post_message:
+                    win32api.PostMessage(hwnd, win32con.WM_CHAR, char_code, 0)
+                else:
+                    win32api.SendMessage(hwnd, win32con.WM_CHAR, char_code, 0)
                 sleep(0.01)
         except Exception as e:
             log.debug(f"通过 WM_CHAR 输入文本失败: {e}")
-
 
 class Input(WinAbstractInput, metaclass=SingletonMeta):
     """基于 `pyautogui` 的输入类, 仅支持前台操作"""
@@ -350,7 +352,7 @@ class Input(WinAbstractInput, metaclass=SingletonMeta):
             except Exception:
                 log.error("pyautogui 直接输入失败")
                 return
-        pyautogui.hotkey('ctrl', 'v')
+        pyautogui.hotkey("ctrl", "v")
 
 
 class BackgroundInput(WinAbstractInput, metaclass=SingletonMeta):
@@ -747,9 +749,6 @@ class WindowMoveInput(WinAbstractInput, metaclass=SingletonMeta):
         self._set_window_pos(target_x, target_y)
         return raw_pos
 
-    def get_mouse_position(self) -> tuple[int, int]:
-        return win32api.GetCursorPos()
-
     @overload
     def _set_window_pos(self, x_or_pos: int, y: int) -> tuple[int, int]: ...
     @overload
@@ -775,7 +774,7 @@ class WindowMoveInput(WinAbstractInput, metaclass=SingletonMeta):
         y = int(y)
 
         if cfg.set_win_position == "free":
-            dx, dy = screen.handle.client_to_screen(0, 0)
+            dx, dy = screen.handle.client_to_window(0, 0)
         else:
             dx = 0
             dy = 0

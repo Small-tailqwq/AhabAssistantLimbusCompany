@@ -373,18 +373,16 @@ def load_team_code_in_game(team_code: str) -> bool:
         auto.click_element("teams/team_code_assets.png")
         sleep(1)
 
-
         # 查找并点击加载编队码按钮
-        auto.click_element("teams/load_team_code_button_assets.png",take_screenshot=True)
+        auto.click_element("teams/load_team_code_button_assets.png", take_screenshot=True)
         sleep(1)
 
         # 查找根据取消按钮判断输入框是否出现
-        if not auto.find_element("teams/team_code_cancel_button_assets.png",take_screenshot=True):
+        if not auto.find_element("teams/team_code_cancel_button_assets.png", take_screenshot=True):
             # 尝试点击取消按钮返回
             auto.mouse_click_blank()
             sleep(1)
             continue
-
 
         # 使用 input_text(text) 直接输入编队码
         auto.input_text(team_code)
@@ -392,13 +390,13 @@ def load_team_code_in_game(team_code: str) -> bool:
 
         # 点击确认按钮，最多重试 3 次
         for _ in range(3):
-            if auto.click_element("teams/team_code_confirm_button_assets.png",take_screenshot=True):
+            if auto.click_element("teams/team_code_confirm_button_assets.png", take_screenshot=True):
                 sleep(1)
             else:
                 break
 
         # 验证返回队伍选择界面
-        if auto.find_element("teams/team_code_assets.png",take_screenshot=True):
+        if auto.find_element("teams/team_code_assets.png", take_screenshot=True):
             return True
         else:
             auto.click_element("teams/team_code_cancel_button_assets.png")

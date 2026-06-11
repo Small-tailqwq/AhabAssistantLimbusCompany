@@ -46,6 +46,7 @@ def back_init_menu(*, allow_restart: bool = True):
         if _is_retry_debug_enabled():
             log.info(f"[重试调试] 返回主界面 第{30 - loop_count}次循环, 模型={auto.model}")
 
+
         if cfg.simulator:
             if cfg.simulator_type == 0:
                 from module.automation.input_handlers.simulator.mumu_control import (

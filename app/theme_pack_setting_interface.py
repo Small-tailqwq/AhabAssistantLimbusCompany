@@ -138,7 +138,7 @@ THEME_PACK_HARD_NAME_MAP = {
     "Text": "教材",
     "Blade": "刀与作",
     "Unsever": "割舍",
-    "Theb": "凤·皇"
+    "Theb": "凤·皇",
 }
 
 # 中文名称到英文key的反向映射表（普通模式）
@@ -896,7 +896,7 @@ class ThemePackSettingDialog(FramelessDialog):
 
     def _extract_team_num_from_path(self) -> int:
         """从保存路径中提取队伍编号"""
-        match = re.search(r'team_(\d+)', self.save_path)
+        match = re.search(r"team_(\d+)", self.save_path)
         if match:
             return int(match.group(1))
         return 0
@@ -910,10 +910,7 @@ class ThemePackSettingDialog(FramelessDialog):
         default_filename = generate_theme_pack_export_filename(team_num)
 
         file_path, _ = QFileDialog.getSaveFileName(
-            self,
-            self.tr("导出主题包权重"),
-            default_filename,
-            "YAML Files (*.yaml *.yml)"
+            self, self.tr("导出主题包权重"), default_filename, "YAML Files (*.yaml *.yml)"
         )
 
         if file_path:
@@ -929,7 +926,7 @@ class ThemePackSettingDialog(FramelessDialog):
                     isClosable=True,
                     position=InfoBarPosition.TOP,
                     duration=3000,
-                    parent=self
+                    parent=self,
                 )
             else:
                 BaseInfoBar.error(
@@ -939,7 +936,7 @@ class ThemePackSettingDialog(FramelessDialog):
                     isClosable=True,
                     position=InfoBarPosition.TOP,
                     duration=3000,
-                    parent=self
+                    parent=self,
                 )
 
     def on_import_settings(self):
@@ -947,21 +944,14 @@ class ThemePackSettingDialog(FramelessDialog):
         if not self.is_team_specific:
             return
 
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            self.tr("导入主题包权重"),
-            "",
-            "YAML Files (*.yaml *.yml)"
-        )
+        file_path, _ = QFileDialog.getOpenFileName(self, self.tr("导入主题包权重"), "", "YAML Files (*.yaml *.yml)")
 
         if not file_path:
             return
 
         # 显示确认对话框
         confirm = MessageBoxConfirm(
-            self.tr("确认导入"),
-            self.tr("导入将覆盖当前主题包权重设置，是否继续？"),
-            self.window()
+            self.tr("确认导入"), self.tr("导入将覆盖当前主题包权重设置，是否继续？"), self.window()
         )
 
         if not confirm.exec():
@@ -984,9 +974,7 @@ class ThemePackSettingDialog(FramelessDialog):
                 normal_imported = reloaded_config.get("theme_pack_list", {})
                 hard_imported = reloaded_config.get("theme_pack_list_hard", {})
 
-            self.preferred_threshold_spinbox.spin_box.setValue(
-                int(reloaded_config.get("preferred_thresholds", 0))
-            )
+            self.preferred_threshold_spinbox.spin_box.setValue(int(reloaded_config.get("preferred_thresholds", 0)))
 
             for pack_key, weight in normal_imported.items():
                 if pack_key in self.normal_cards:
@@ -1005,7 +993,7 @@ class ThemePackSettingDialog(FramelessDialog):
                 isClosable=True,
                 position=InfoBarPosition.TOP,
                 duration=3000,
-                parent=self
+                parent=self,
             )
         else:
             BaseInfoBar.error(
@@ -1015,7 +1003,7 @@ class ThemePackSettingDialog(FramelessDialog):
                 isClosable=True,
                 position=InfoBarPosition.TOP,
                 duration=3000,
-                parent=self
+                parent=self,
             )
 
     def save_and_close(self):

@@ -59,7 +59,7 @@ def check_times(start_time, timeout=90, logs=True):
     """检查是否卡死超时，若是则尝试关闭重启游戏"""
     now_time = time.time()
     if logs and int(now_time - start_time) > 9 and int(now_time - start_time) % 10 == 0:
-        log.info(f"初始时间为{start_time}，此刻时间为{now_time}，已卡死{int(now_time - start_time)}秒")
+        log.info(f"初始时间为{time.strftime('%H:%M:%S', time.localtime(start_time))}，此刻时间为{time.strftime('%H:%M:%S', time.localtime(now_time))}，已卡死{int(now_time - start_time)}秒")
         sleep(1)
     if now_time - start_time > timeout:
         log.info(f"已卡死超过{timeout}秒，尝试关闭重启游戏")
@@ -76,12 +76,13 @@ def retry():
     为保证稳定性，retry 内循环始终刷新截图，避免复用旧帧导致误判。
     """
     start_time = time.time()
-    saved_hwnd = screen.handle.hwnd
+    is_windows = not cfg.config.simulator
+    if is_windows:
+        saved_hwnd = screen.handle.hwnd
     while True:
-        current_hwnd = screen.handle.hwnd
-        if current_hwnd != saved_hwnd:
-            # 窗口句柄发生变化时重置卡死计时，避免误判后触发不必要重启
-            saved_hwnd = current_hwnd
+        if is_windows and screen.handle.hwnd != saved_hwnd:
+            # 句柄发生变化则重置初始时间, 以免误判卡死
+            saved_hwnd = screen.handle.hwnd
             start_time = time.time()
         if auto.get_restore_time() is not None:
             start_time = max(start_time, auto.get_restore_time())

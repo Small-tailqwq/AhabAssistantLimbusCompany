@@ -24,12 +24,42 @@ class Handle:
     _last_no_hwnd_log_time: float = 0.0
     _last_invalid_hwnd_log_time: float = 0.0
 
+    def __init__(self):
+        self._enum_windows_list = []
+
     def init_handle(self, title: str = "LimbusCompany", class_name: str = "UnityWndClass") -> int:
         """获取窗口句柄"""
         self._last_title = title
         self._last_class_name = class_name
-        self._hwnd = win32gui.FindWindow(class_name, title)
+        hwnd = win32gui.FindWindow(class_name, title)
+        if hwnd:
+            self._hwnd = hwnd
+        else:
+            self._hwnd = 0
+            try:
+                self._enum_windows_list.clear()
+                win32gui.EnumWindows(self._enum_windows_callback, None)
+            except win32gui.error:
+                pass
+            except Exception as e:
+                log.error(f"枚举窗口时发生错误: {e}", stacklevel=3)
+            if self._hwnd == 0:
+                log.error("未能获取到游戏窗口", stacklevel=3)
+                log.debug(f"枚举窗口列表: {self._enum_windows_list}")
+                self._enum_windows_list.clear()
         return self._hwnd
+
+    def _enum_windows_callback(self, hwnd, _):
+        """该函数于GUI线程中返回停止信号固定触发`win32gui.error`报错, 外部调用务必捕获异常, 以防崩溃"""
+        class_name = win32gui.GetClassName(hwnd)
+        window_text = win32gui.GetWindowText(hwnd)
+        self._enum_windows_list.append(f"hwnd: {hwnd}, class_name: {class_name}, window_text: {window_text}")
+        if class_name == "UnityWndClass" and window_text == "LimbusCompany":
+            log.debug(f"在枚举窗口中找到匹配的窗口: {hwnd}", stacklevel=4)
+            self._hwnd = hwnd
+            self._enum_windows_list.clear()
+            return False  # 停止枚举
+        return True  # 继续枚举
 
     @property
     def hwnd(self) -> int:
@@ -183,9 +213,9 @@ class Handle:
         win32gui.ShowWindow(self.hwnd, win32con.SW_SHOWNOACTIVATE)
 
     @overload
-    def client_to_screen(self, x: int, y: int, /) -> tuple[int, int]: ...
+    def client_to_window(self, x: int, y: int, /) -> tuple[int, int]: ...
     @overload
-    def client_to_screen(
+    def client_to_window(
         self,
         x: int,
         y: int,
@@ -193,7 +223,7 @@ class Handle:
         client_rect: tuple[int, int, int, int],
         window_rect: tuple[int, int, int, int],
     ) -> tuple[int, int]: ...
-    def client_to_screen(
+    def client_to_window(
         self,
         x: int,
         y: int,
@@ -201,7 +231,7 @@ class Handle:
         client_rect: tuple[int, int, int, int] | None = None,
         window_rect: tuple[int, int, int, int] | None = None,
     ) -> tuple[int, int]:
-        """将客户区坐标转换为屏幕坐标"""
+        """将客户区屏幕坐标转换为窗口外框屏幕坐标"""
         if self.hwnd == 0:
             return (x, y)
         if client_rect is None or window_rect is None:
@@ -256,10 +286,10 @@ class Handle:
             if cfg.set_win_position == "free":
                 if rect[3] - rect[1] != bottom - top:
                     need_y = (
-                        top - self.client_to_screen(0, 0, client_rect=rect, window_rect=window_rect)[1]
+                        top - self.client_to_window(0, 0, client_rect=rect, window_rect=window_rect)[1]
                     )  # 防止标题栏不在窗口内
 
-        x, y = self.client_to_screen(need_x, need_y, client_rect=rect, window_rect=window_rect)
+        x, y = self.client_to_window(need_x, need_y, client_rect=rect, window_rect=window_rect)
         if need_x != rect[0] or need_y != rect[1]:
             self.set_window_pos(x, y)
 
@@ -411,7 +441,7 @@ class Screen(metaclass=SingletonMeta):
         # 获取当前窗口和客户区大小
         window_rect = win32gui.GetWindowRect(hwnd)
         client_rect = win32gui.GetClientRect(hwnd)
-        if self.handle.client_to_screen(0, 0) != (0, 0):
+        if self.handle.client_to_window(0, 0) != (0, 0):
             # 计算边框和标题栏厚度
             window_width = window_rect[2] - window_rect[0]
             window_height = window_rect[3] - window_rect[1]

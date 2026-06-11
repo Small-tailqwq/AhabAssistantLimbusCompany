@@ -1,6 +1,6 @@
 import datetime
 
-from PySide6.QtCore import QT_TRANSLATE_NOOP, QPoint, Qt, QUrl, Signal
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QPoint, Qt, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -44,8 +44,6 @@ from utils.schedule_helper import ScheduleHelper
 
 
 class SettingInterface(QWidget):
-    manualResourceSyncRequested = Signal()
-
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.__init_widget()

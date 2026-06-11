@@ -9,7 +9,7 @@ from time import localtime, strftime, time
 from typing import Any, Optional
 
 from pydantic import BaseModel, ValidationError
-from ruamel.yaml import YAML
+from ruamel.yaml import YAML, YAMLError
 
 from module.after_completion_types import (
     LEGACY_AFTER_COMPLETION_TO_CONFIG,
@@ -320,7 +320,7 @@ class Config(metaclass=SingletonMeta):
                 self._save_config()
                 return
 
-            except (ValidationError, ValueError, TypeError) as e:
+            except (ValidationError, ValueError, TypeError, YAMLError) as e:
                 log.warning(f"{label} 数据非法: {e}")
                 continue
             except Exception as e:

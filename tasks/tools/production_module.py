@@ -156,10 +156,11 @@ class ProductionWork(QThread):
                 from tasks.base.script_task_scheme import init_game
 
                 init_game()
+                self._init_retry_count = 0
                 self._set_win()
-            except userStopError:
-                raise
-            except Exception as e:
+        except userStopError:
+            raise
+        except Exception as e:
                 log.error(f"自动换饼重启后初始化失败: {e}")
                 self.error_occurred.emit(f"自动换饼重启后初始化失败: {e}")
                 self._sleep_with_stop_check(2)

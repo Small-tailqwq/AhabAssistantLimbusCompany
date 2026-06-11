@@ -188,3 +188,6 @@ class AbstractInput:
         log.debug(f"按下按键: {canonical_key}")
         self._before_key_input(canonical_key)
         self._key_press_impl(backend_key)
+
+    def input_text(self, text: str) -> None:
+        raise InterruptedError(f"未实现的输入方法 {self.__class__.__name__}.input_text")

@@ -678,7 +678,13 @@ class Automation(metaclass=SingletonMeta):
 
     @staticmethod
     def _is_valid_match(match_val, threshold) -> bool:
-        return isinstance(match_val, (int, float, np.integer, np.floating)) and not math.isinf(match_val) and match_val >= threshold
+        return (
+            isinstance(match_val, (int, float, np.integer, np.floating))
+            and not math.isinf(match_val)
+            and match_val >= threshold
+        )
+
+    MATCH_GAP = 0.15
 
     MATCH_GAP = 0.15
 
@@ -777,8 +783,12 @@ class Automation(metaclass=SingletonMeta):
                     continue
                 center, matchVal = ImageUtils.match_template(screenshot, template, bbox, model)
                 matched = self._is_valid_match(matchVal, threshold)
+                if 0.70 < matchVal < 0.90 and int(matchVal * 1000 + 1e-9) % 10 >= 5:
+                    match_fmt = ".3f"
+                else:
+                    match_fmt = ".2f"
                 log.debug(
-                    f"目标图片：{target.replace('./assets/images/', '')}, 路径: {loaded_path}, 相似度：{matchVal:.2f}, 目标位置：{center}",
+                    f"目标图片：{target.replace('./assets/images/', '')}, 路径: {loaded_path}, 相似度：{matchVal:{match_fmt}}, 目标位置：{center}",
                     stacklevel=additional_stack + 3,
                 )
                 if matched and check_gray and center is not None and hasattr(self, "screenshot_rgb"):

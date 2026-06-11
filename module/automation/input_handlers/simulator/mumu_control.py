@@ -891,7 +891,7 @@ class MumuControl(AbstractInput):
             return
         try:
             # 将文本编码为C字符串指针，确保与原生接口参数类型一致
-            text_bytes = text.encode('utf-8')
+            text_bytes = text.encode("utf-8")
             text_buffer = ctypes.c_char_p(text_bytes)
 
             # 使用 nemu_input_text 将文本输入到模拟器，第二个参数是文本长度
@@ -908,7 +908,6 @@ class MumuControl(AbstractInput):
                 log.warning(f"粘贴文本失败，返回值: {ret}")
         except Exception as e:
             log.error(f"粘贴操作发生异常: {e}")
-
 
     def click(self, x, y):
         msg = f"点击位置:({x},{y})"

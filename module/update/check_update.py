@@ -7,6 +7,7 @@ import urllib.request
 from enum import Enum
 from pathlib import Path
 from threading import Thread
+from typing import Callable
 
 import requests  # 导入requests模块，用于发送HTTP请求
 from markdown_it import MarkdownIt
@@ -65,8 +66,8 @@ class UpdateThread(QThread):
         初始化更新线程。
 
         参数:
-        timeout -- 超时时间（秒）
-        flag -- 标志位，用于控制是否执行检查更新
+        timeout -- 更新检查请求的超时时间（秒）
+        flag -- 是否强制遵循配置项 check_update 来决定是否执行检查
         """
         super().__init__()
         self.timeout = timeout  # 超时时间
@@ -82,15 +83,35 @@ class UpdateThread(QThread):
         self._selected_release_bundle = None
         self._latest_release_tag = None
         self._bridge_release_selected = False
+        self.is_current_version_latest = False
 
     @property
     def _version_url(self) -> str:
         return f"https://raw.githubusercontent.com/{self.user}/{self.repo}/main/assets/config/version.txt"
 
+    def _set_version_gate_state(self, version: str):
+        self.new_version = version
+        current_version = parse(cfg.version.lstrip("Vv"))
+        latest_version = parse(version.lstrip("Vv"))
+        self.is_current_version_latest = current_version == latest_version
+        return current_version, latest_version
+
+    def _build_release_note_content(self, raw_content: str) -> str:
+        content = self.remove_images_from_markdown(raw_content)
+        content = re.sub(
+            r"\r\n\r\n\[.*?Mirror酱.*?CDK.*?下载\]\(https?://.*?mirrorchyan\.com[^\)]*\)",
+            "",
+            content,
+            flags=re.IGNORECASE,
+        )
+        if cfg.update_source == "GitHub":
+            content = content + "\n\n若下载速度较慢，可尝试使用 Mirror酱（设置 → 关于 → 更新源） 高速下载"
+        return content
+
     def run(self) -> None:
         """
         更新线程的主逻辑。
-        检查是否有新版本，如果有，则发送更新可用信号；否则发送成功信号。
+        检查是否有新版本，如果有则发送更新可用信号；否则发送成功信号。
         """
         try:
             # 如果标志位为 False 且配置中的检查更新标志也为 False，则直接返回
@@ -111,7 +132,8 @@ class UpdateThread(QThread):
                 return
 
             # 比较当前版本和最新版本，如果最新版本更高，则准备更新
-            if parse(normalize_version_text(version.lstrip("Vv"))) > parse(normalize_version_text(cfg.version.lstrip("Vv"))):
+            current_version, latest_version = self._set_version_gate_state(version)
+            if latest_version > current_version:
                 self.title = self.tr("发现新版本：{Old_version} ——> {New_version}\n更新日志:").format(
                     Old_version=cfg.version, New_version=version
                 )
@@ -134,9 +156,8 @@ class UpdateThread(QThread):
                 remote_version = resp.text.strip()
                 self.new_version = remote_version
 
-                if parse(normalize_version_text(remote_version.lstrip("Vv"))) > parse(
-                    normalize_version_text(cfg.version.lstrip("Vv"))
-                ):
+                current_version, latest_version = parse(cfg.version.lstrip("Vv")), parse(remote_version.lstrip("Vv"))
+                if latest_version > current_version:
                     self.title = self.tr("发现新版本：{Old_version} ——> {New_version}\n更新日志:").format(
                         Old_version=cfg.version, New_version=remote_version
                     )
@@ -311,56 +332,111 @@ class UpdateThread(QThread):
         return None
 
 
+def handle_update_status(
+    self,
+    update_thread: UpdateThread,
+    status: UpdateStatus,
+    *,
+    show_success: bool = True,
+    show_failure: bool = True,
+    show_update_dialog: bool = True,
+):
+    """根据更新状态执行默认的界面提示逻辑。
+
+    参数:
+        self: 当前界面对象，用于挂载提示框和信息栏。
+        update_thread: 刚完成检查的更新线程对象。
+        status: 更新检查结果状态。
+        show_success: 是否显示“当前已是最新版本”的提示。
+        show_failure: 是否显示“检查更新失败”的提示。
+        show_update_dialog: 是否显示“发现新版本”的更新弹窗。
+    """
+    if status == UpdateStatus.UPDATE_AVAILABLE:
+        # 第一类：发现新版本时，按策略决定是否弹出更新确认框。
+        if not show_update_dialog:
+            return
+
+        messages_box = MessageBoxUpdate(update_thread.title, update_thread.content, self.window())
+        if messages_box.exec():
+            # 如果用户确认更新，则从指定的URL下载更新资源
+            assets_url = update_thread.get_assets_url()
+            if assets_url:
+                start_update_thread(assets_url)
+    elif status == UpdateStatus.SUCCESS:
+        # 第二类：已经是最新版本时，按策略显示成功提示。
+        if not show_success:
+            return
+
+        BaseInfoBar.success(
+            title=QT_TRANSLATE_NOOP("BaseInfoBar", "当前是最新版本(＾∀＾●)"),
+            content="",
+            orient=Qt.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP,
+            duration=1000,
+            parent=self,
+        )
+    else:
+        # 第三类：检查失败时，按策略展示失败原因。
+        if not show_failure:
+            return
+
+        BaseInfoBar.warning(
+            title=QT_TRANSLATE_NOOP("BaseInfoBar", "检测更新失败(╥﹏╥)"),
+            content=update_thread.error_msg,
+            orient=Qt.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP,
+            duration=5000,
+            parent=self,
+        )
+
+
 @begin_and_finish_time_log(task_name="检查更新")
-def check_update(self, timeout=5, flag=False):
-    """检查更新功能函数。
-    :param timeout: 超时时间，默认为5秒。
-    :param flag: 更新检查的标志，默认为False。
-    此函数主要用于启动一个更新线程，并监听更新状态。
+def check_update(
+    self,
+    timeout=5,
+    flag=False,
+    on_finished: Callable[[UpdateStatus, UpdateThread], None] | None = None,
+    *,
+    show_success: bool = True,
+    show_failure: bool = True,
+    show_update_dialog: bool = True,
+):
+    """启动更新检查线程，并允许调用方监听完成结果。
+
+    参数:
+        self: 当前界面对象。
+        timeout: 更新检查请求的超时时间（秒）。
+        flag: 是否遵循配置项 check_update 来决定是否执行检查。
+        on_finished: 可选回调；线程完成后会收到状态和线程对象。
+        show_success: 是否显示“当前已是最新版本”的提示。
+        show_failure: 是否显示“检查更新失败”的提示。
+        show_update_dialog: 是否显示“发现新版本”的更新弹窗。
     """
 
-    def handler_update(status):
-        """
-        更新处理函数，根据不同的更新状态执行不同的操作。
-        :param status: 更新状态。
-        """
-        if status == UpdateStatus.UPDATE_AVAILABLE:
-            # 当有可用更新时，创建一个消息框对象并显示详细信息
-            messages_box = MessageBoxUpdate(self.update_thread.title, self.update_thread.content, self.window())
-            if messages_box.exec():
-                # 如果用户确认更新，则从指定的URL下载更新资源
-                assets_url = self.update_thread.get_assets_url()
-                if assets_url:
-                    start_update_thread(assets_url)
-        elif status == UpdateStatus.SUCCESS:
-            # 显示当前为最新版本的信息
-            BaseInfoBar.success(
-                title=QT_TRANSLATE_NOOP("BaseInfoBar", "当前是最新版本(＾∀＾●)"),
-                content="",
-                orient=Qt.Horizontal,
-                isClosable=True,
-                position=InfoBarPosition.TOP,
-                duration=1000,
-                parent=self,
-            )
-        else:
-            # 显示检查更新失败的信息
-            BaseInfoBar.warning(
-                title=QT_TRANSLATE_NOOP("BaseInfoBar", "检测更新失败(╥╯﹏╰╥)"),
-                content=self.update_thread.error_msg,
-                orient=Qt.Horizontal,
-                isClosable=True,
-                position=InfoBarPosition.TOP,
-                duration=5000,
-                parent=self,
-            )
+    update_thread = UpdateThread(timeout, flag)
 
-    # 创建一个更新线程实例
-    self.update_thread = UpdateThread(timeout, flag)
-    # 将更新处理函数连接到更新线程的信号
-    self.update_thread.updateSignal.connect(handler_update)
-    # 启动更新线程
-    self.update_thread.start()
+    def handler_update(status):
+        """处理线程返回的更新状态，并在需要时回调调用方。
+
+        参数:
+            status: 更新线程发回的状态枚举。
+        """
+        handle_update_status(
+            self,
+            update_thread,
+            status,
+            show_success=show_success,
+            show_failure=show_failure,
+            show_update_dialog=show_update_dialog,
+        )
+        if on_finished is not None:
+            on_finished(status, update_thread)
+
+    self.update_thread = update_thread
+    update_thread.updateSignal.connect(handler_update)
+    update_thread.start()
 
 
 def is_valid_url(url):
@@ -404,26 +480,22 @@ def update(assets_url):
 
     proxies = _get_proxies()
     try:
-        # 发起HTTP请求获取文件
-        response = requests.get(assets_url, stream=True, timeout=10, proxies=proxies)
-        response.raise_for_status()  # 检查 HTTP 请求是否成功
+        with requests.get(assets_url, stream=True, timeout=10, proxies=proxies) as response:
+            response.raise_for_status()
 
-        # 获取文件总大小
-        total_size = int(response.headers.get("content-length", 0))
-        downloaded = 0
+            total_size = int(response.headers.get("content-length", 0))
+            downloaded = 0
+            os.makedirs("update_temp", exist_ok=True)
+            file_path = os.path.join("update_temp", file_name)
 
-        # 创建保存临时文件的目录
-        os.makedirs("update_temp", exist_ok=True)
-        # 构建保存文件的完整路径
-        file_path = os.path.join("update_temp", file_name)
-
-        with requests.get(assets_url, stream=True, proxies=proxies) as r, open(file_path, "wb") as f:
-            for chunk in r.iter_content(chunk_size=1024):
-                if chunk:
-                    f.write(chunk)
-                    downloaded += len(chunk)
-                    progress = int(downloaded / total_size * 100)
-                    mediator.update_progress.emit(progress)
+            with open(file_path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=1024):
+                    if chunk:
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        if total_size > 0:
+                            progress = int(downloaded / total_size * 100)
+                            mediator.update_progress.emit(progress)
 
         log.info("下载进度100%")
 
@@ -470,8 +542,6 @@ def update(assets_url):
         log.error(f"下载失败，请检查网络: {e}")
     except OSError as e:
         log.error(f"文件操作失败: {e}")
-    finally:
-        response.close()  # 确保关闭响应对象
 
 
 def start_update_thread(assets_url):

@@ -10,6 +10,11 @@
 .atomcode/
 entities.json
 
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+
+
 # 构建文件
 build
 dist
@@ -21,9 +26,11 @@ dist_release
 *.dll
 !3rdparty/PaddleOCR-json_v1.4.1/*.dll
 build.bat
+config_backup
 config.yaml*
 config_backup/
 theme_pack_list.yaml
+/theme_pack_weight/
 logs
 pythonlogs
 i18n/*.qm
