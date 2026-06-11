@@ -1532,7 +1532,10 @@ class Mirror:
         auto.model = "clam"
         auto.mouse_to_blank()
         if type == 2:
-            pos = auto.find_element("mirror/road_in_mir/acquire_ego_gift_reject_assets.png")
+            pos = auto.find_element("mirror/road_in_mir/acquire_ego_gift_refuse_assets.png")
+            if pos is None:
+                log.warning("未找到拒绝获取E.G.O饰品按钮，跳过")
+                return False
             auto.mouse_click(pos[0] - 500 * my_scale, pos[1] - 500 * my_scale)
             sleep(cfg.mouse_action_interval)
             auto.mouse_click(pos[0], pos[1] - 500 * my_scale)
