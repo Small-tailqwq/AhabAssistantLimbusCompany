@@ -217,8 +217,8 @@
     <name>BaseCheckBox</name>
     <message>
         <location filename="../app/page_card.py" line="209"/>
-        <source>勾选后将使用连续作战模式，设置的值为最大连续作战场次</source>
-        <translation>When checked, Continuous Combat Mode will be enabled; the set value represents the maximum number of consecutive battles</translation>
+        <source>开启或关闭连续作战模式</source>
+        <translation>Enable or disable Continuous Combat mode</translation>
     </message>
     <message>
         <location filename="../app/page_card.py" line="218"/>

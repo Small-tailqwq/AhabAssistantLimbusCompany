@@ -210,7 +210,6 @@ class ConfigModel(BaseModel):
     config_version: int = 1779444115
     """配置文件版本号（时间戳）"""
 
-
     game_title_name: str = "LimbusCompany"
     """游戏窗口标题"""
 
@@ -372,18 +371,6 @@ class ConfigModel(BaseModel):
 
     update_use_system_proxy: bool = False
     """使用系统代理进行更新"""
-
-    image_resource_sync: bool = True
-    """是否启用图片资源自动同步"""
-
-    image_resource_source: str = "Auto"
-    """图片资源同步源"""
-
-    image_resource_sync: bool = True
-    """是否启用图片资源自动同步"""
-
-    image_resource_source: str = "Auto"
-    """图片资源同步源"""
 
     default_page: int = 0
     """保存启动后的页面"""
