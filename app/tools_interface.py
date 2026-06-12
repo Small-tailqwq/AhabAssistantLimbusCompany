@@ -156,7 +156,7 @@ class ToolsInterface(ScrollArea):
         if tool_name == "screenshot":
             tool.w.on_saved_timestr.connect(self._onScreenshotToolButtonPressed)
         if tool_name == "quick_screenshot":
-            tool.w.on_saved_timestr.connect(self._onScreenshotToolButtonPressed)
+            tool.w.on_saved_timestr.connect(self._onQuickScreenshotSaved)
             tool.w.on_error.connect(self._onQuickScreenshotError)
         if isinstance(tool.w, QThread):
             tool.w.start()
@@ -172,6 +172,20 @@ class ToolsInterface(ScrollArea):
     def _onScreenshotToolButtonPressed(self, time_str: str):
         title = QT_TRANSLATE_NOOP("BaseInfoBar", "截图完成")
         msg = QT_TRANSLATE_NOOP("BaseInfoBar", "图片保存为 AALC > screenshot_{time_str}.png")
+        BaseInfoBar.success(
+            title=title,
+            content=msg,
+            content_kwargs={"time_str": time_str},
+            orient=Qt.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.BOTTOM_RIGHT,
+            duration=-1,
+            parent=self,
+        )
+
+    def _onQuickScreenshotSaved(self, time_str: str):
+        title = QT_TRANSLATE_NOOP("BaseInfoBar", "截图完成")
+        msg = QT_TRANSLATE_NOOP("BaseInfoBar", "图片保存为 AALC > quick_screenshot_{time_str}.png")
         BaseInfoBar.success(
             title=title,
             content=msg,
