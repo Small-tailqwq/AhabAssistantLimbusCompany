@@ -5,7 +5,9 @@ from PySide6.QtWidgets import QApplication, QWidget
 from qfluentwidgets import (
     ExpandLayout,
     InfoBarPosition,
+    PrimaryPushButton,
     ScrollArea,
+    SettingCard,
 )
 from qfluentwidgets import FluentIcon as FIF
 
@@ -13,6 +15,31 @@ from app.base_combination import BasePushSettingCard, BaseSettingCardGroup
 from app.card.messagebox_custom import BaseInfoBar
 from app.language_manager import LanguageManager
 from tasks import tools
+
+
+class ScreenshotCard(SettingCard):
+    def __init__(self, icon, title, content, parent=None):
+        super().__init__(icon, title, content, parent)
+        self._quick_text = QT_TRANSLATE_NOOP("ScreenshotCard", "直接截图")
+        self._full_text = QT_TRANSLATE_NOOP("ScreenshotCard", "设置窗口后截图")
+
+        self.quick_btn = PrimaryPushButton(self._quick_text, self)
+        self.quick_btn.setFocusPolicy(Qt.NoFocus)
+        self.hBoxLayout.addWidget(self.quick_btn, 0, Qt.AlignRight)
+        self.hBoxLayout.addSpacing(10)
+
+        self.full_btn = PrimaryPushButton(self._full_text, self)
+        self.full_btn.setFocusPolicy(Qt.NoFocus)
+        self.hBoxLayout.addWidget(self.full_btn, 0, Qt.AlignRight)
+
+        self.title = title
+        self.content = content
+
+    def retranslateUi(self):
+        self.titleLabel.setText(self.tr(self.title))
+        self.contentLabel.setText(self.tr(self.content))
+        self.quick_btn.setText(self.tr(self._quick_text))
+        self.full_btn.setText(self.tr(self._full_text))
 
 
 class ToolsInterface(ScrollArea):
@@ -54,21 +81,10 @@ class ToolsInterface(ScrollArea):
             QT_TRANSLATE_NOOP("BasePushSettingCard", "辅助自动换饼小工具，防止体力溢出"),
             parent=self.tools_group,
         )
-        self.quick_screenshot_card = BasePushSettingCard(
-            QT_TRANSLATE_NOOP("BasePushSettingCard", "运行"),
+        self.screenshot_card = ScreenshotCard(
             FIF.CAMERA,
-            QT_TRANSLATE_NOOP("BasePushSettingCard", "快速截图"),
-            QT_TRANSLATE_NOOP(
-                "BasePushSettingCard",
-                "不调整窗口，直接截取游戏当前画面",
-            ),
-            parent=self.tools_group,
-        )
-        self.get_screenshot_card = BasePushSettingCard(
-            QT_TRANSLATE_NOOP("BasePushSettingCard", "运行"),
-            FIF.CAFE,
-            QT_TRANSLATE_NOOP("BasePushSettingCard", "截图小工具"),
-            QT_TRANSLATE_NOOP("BasePushSettingCard", "辅助截图小工具"),
+            QT_TRANSLATE_NOOP("ScreenshotCard", "截图小工具"),
+            QT_TRANSLATE_NOOP("ScreenshotCard", "直接截图或设置窗口后截图"),
             parent=self.tools_group,
         )
         self.issue_replay_card = BasePushSettingCard(
@@ -102,8 +118,7 @@ class ToolsInterface(ScrollArea):
     def __initLayout(self):
         self.tools_group.addSettingCard(self.auto_battle_card)
         self.tools_group.addSettingCard(self.auto_production_card)
-        self.tools_group.addSettingCard(self.quick_screenshot_card)
-        self.tools_group.addSettingCard(self.get_screenshot_card)
+        self.tools_group.addSettingCard(self.screenshot_card)
         self.tools_group.addSettingCard(self.issue_replay_card)
         self.tools_group.addSettingCard(self.asset_manager_card)
         self.tools_group.addSettingCard(self.skip_tutorial_card)
@@ -129,8 +144,8 @@ class ToolsInterface(ScrollArea):
             )
         )
         self.auto_production_card.clicked.connect(lambda: self._tool_start("production", self.auto_production_card))
-        self.quick_screenshot_card.clicked.connect(lambda: self._tool_start("quick_screenshot", self.quick_screenshot_card))
-        self.get_screenshot_card.clicked.connect(lambda: self._tool_start("screenshot", self.get_screenshot_card))
+        self.screenshot_card.quick_btn.clicked.connect(lambda: self._start_screenshot_tool("quick_screenshot", self.screenshot_card.quick_btn))
+        self.screenshot_card.full_btn.clicked.connect(lambda: self._start_screenshot_tool("screenshot", self.screenshot_card.full_btn))
         self.issue_replay_card.clicked.connect(lambda: self._tool_start("issue_replay", self.issue_replay_card))
         self.asset_manager_card.clicked.connect(lambda: self._tool_start("asset_manager", self.asset_manager_card))
         self.skip_tutorial_card.clicked.connect(lambda: self._tool_start("tutorial_skip", self.skip_tutorial_card))
@@ -168,6 +183,40 @@ class ToolsInterface(ScrollArea):
     def _restore_button_style(self, card: BasePushSettingCard):
         card.button.setText(QT_TRANSLATE_NOOP("BasePushSettingCard", "运行"))
         card.update_button(is_running=False)
+
+    def _start_screenshot_tool(self, tool_name: str, button: PrimaryPushButton):
+        if tool_name in self.tools:
+            tool = self.tools[tool_name]
+            if isinstance(tool.w, QWidget):
+                tool.w.activateWindow()
+                tool.w.raise_()
+            return
+        tool = tools.start(tool_name)
+        self.tools[tool_name] = tool
+        while tool.initialized is False:
+            QApplication.processEvents()
+            sleep(0.01)
+        if tool.initialized is None:
+            self.tools.pop(tool_name, None)
+            return
+
+        original_text = button.text()
+        button.setText(QT_TRANSLATE_NOOP("BasePushSettingCard", "运行中"))
+        button.setEnabled(False)
+
+        def on_destroyed():
+            self.tools.pop(tool_name, None)
+            button.setText(original_text)
+            button.setEnabled(True)
+
+        tool.w.destroyed.connect(on_destroyed)
+        if tool_name == "screenshot":
+            tool.w.on_saved_timestr.connect(self._onScreenshotToolButtonPressed)
+        elif tool_name == "quick_screenshot":
+            tool.w.on_saved_timestr.connect(self._onQuickScreenshotSaved)
+            tool.w.on_error.connect(self._onQuickScreenshotError)
+        if isinstance(tool.w, QThread):
+            tool.w.start()
 
     def _onScreenshotToolButtonPressed(self, time_str: str):
         title = QT_TRANSLATE_NOOP("BaseInfoBar", "截图完成")
@@ -213,8 +262,7 @@ class ToolsInterface(ScrollArea):
         self.tools_group.retranslateUi()
         self.auto_battle_card.retranslateUi()
         self.auto_production_card.retranslateUi()
-        self.quick_screenshot_card.retranslateUi()
-        self.get_screenshot_card.retranslateUi()
+        self.screenshot_card.retranslateUi()
         self.issue_replay_card.retranslateUi()
         self.asset_manager_card.retranslateUi()
         self.skip_tutorial_card.retranslateUi()
