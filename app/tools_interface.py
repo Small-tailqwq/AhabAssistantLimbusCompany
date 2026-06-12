@@ -54,6 +54,16 @@ class ToolsInterface(ScrollArea):
             QT_TRANSLATE_NOOP("BasePushSettingCard", "辅助自动换饼小工具，防止体力溢出"),
             parent=self.tools_group,
         )
+        self.quick_screenshot_card = BasePushSettingCard(
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "运行"),
+            FIF.CAMERA,
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "快速截图"),
+            QT_TRANSLATE_NOOP(
+                "BasePushSettingCard",
+                "不调整窗口，直接截取游戏当前画面",
+            ),
+            parent=self.tools_group,
+        )
         self.get_screenshot_card = BasePushSettingCard(
             QT_TRANSLATE_NOOP("BasePushSettingCard", "运行"),
             FIF.CAFE,
@@ -92,6 +102,7 @@ class ToolsInterface(ScrollArea):
     def __initLayout(self):
         self.tools_group.addSettingCard(self.auto_battle_card)
         self.tools_group.addSettingCard(self.auto_production_card)
+        self.tools_group.addSettingCard(self.quick_screenshot_card)
         self.tools_group.addSettingCard(self.get_screenshot_card)
         self.tools_group.addSettingCard(self.issue_replay_card)
         self.tools_group.addSettingCard(self.asset_manager_card)
@@ -118,6 +129,7 @@ class ToolsInterface(ScrollArea):
             )
         )
         self.auto_production_card.clicked.connect(lambda: self._tool_start("production", self.auto_production_card))
+        self.quick_screenshot_card.clicked.connect(lambda: self._tool_start("quick_screenshot", self.quick_screenshot_card))
         self.get_screenshot_card.clicked.connect(lambda: self._tool_start("screenshot", self.get_screenshot_card))
         self.issue_replay_card.clicked.connect(lambda: self._tool_start("issue_replay", self.issue_replay_card))
         self.asset_manager_card.clicked.connect(lambda: self._tool_start("asset_manager", self.asset_manager_card))
@@ -143,6 +155,9 @@ class ToolsInterface(ScrollArea):
         tool.w.destroyed.connect(lambda _: self._restore_button_style(card))
         if tool_name == "screenshot":
             tool.w.on_saved_timestr.connect(self._onScreenshotToolButtonPressed)
+        if tool_name == "quick_screenshot":
+            tool.w.on_saved_timestr.connect(self._onScreenshotToolButtonPressed)
+            tool.w.on_error.connect(self._onQuickScreenshotError)
         if isinstance(tool.w, QThread):
             tool.w.start()
 
@@ -168,10 +183,23 @@ class ToolsInterface(ScrollArea):
             parent=self,
         )
 
+    def _onQuickScreenshotError(self, msg: str):
+        title = QT_TRANSLATE_NOOP("BaseInfoBar", "截图失败")
+        BaseInfoBar.error(
+            title=title,
+            content=msg,
+            orient=Qt.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.BOTTOM_RIGHT,
+            duration=-1,
+            parent=self,
+        )
+
     def retranslateUi(self):
         self.tools_group.retranslateUi()
         self.auto_battle_card.retranslateUi()
         self.auto_production_card.retranslateUi()
+        self.quick_screenshot_card.retranslateUi()
         self.get_screenshot_card.retranslateUi()
         self.issue_replay_card.retranslateUi()
         self.asset_manager_card.retranslateUi()
