@@ -30,7 +30,6 @@ TARGETS = [
     "home/mail_assets.png",
     "home/drive_assets.png",
     "home/back_assets.png",
-    "base/battle_finish_confirm_assets.png",
     "battle/battle_finish_confirm_assets.png",
     "battle/setting_assets.png",
     "base/notification_close_assets.png",

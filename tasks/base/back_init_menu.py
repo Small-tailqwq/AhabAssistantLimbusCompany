@@ -157,8 +157,6 @@ def back_init_menu(*, allow_restart: bool = True):
             continue
 
         # 战斗结算确认（需在投降逻辑之前，避免结算界面误匹配 setting 按钮）
-        if auto.click_element("base/battle_finish_confirm_assets.png"):
-            continue
         if auto.click_element("battle/battle_finish_confirm_assets.png"):
             continue
 

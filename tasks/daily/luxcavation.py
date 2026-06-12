@@ -10,7 +10,6 @@ from module.config import cfg
 from module.logger import log
 
 _CONTINUOUS_COMBAT_DEFAULT_COUNT = 1
-_CONTINUOUS_COMBAT_MAX_COUNT = 10
 _THREAD_CONSUME_ASSET = "luxcavation/thread_consume.png"
 
 
@@ -44,11 +43,6 @@ def _dump_thread_debug_frame(label: str):
         log.debug(f"纽本调试截图写入失败: {image_path}")
 
 
-def _get_continuous_combat_up_clicks(combat_count: int) -> int:
-    target_count = max(_CONTINUOUS_COMBAT_DEFAULT_COUNT, min(int(combat_count), _CONTINUOUS_COMBAT_MAX_COUNT))
-    return target_count - _CONTINUOUS_COMBAT_DEFAULT_COUNT
-
-
 def _open_continuous_combat_count_box(log_prefix: str, box_position: tuple[int, int] | None = None) -> bool:
     if box_position is not None:
         auto.mouse_click(box_position[0], box_position[1])
@@ -73,10 +67,7 @@ def _set_continuous_combat_count(
     log_prefix: str,
     box_position: tuple[int, int] | None = None,
 ) -> bool:
-    up_clicks = _get_continuous_combat_up_clicks(combat_count)
-    if up_clicks <= 0:
-        return True
-
+    up_clicks = combat_count - _CONTINUOUS_COMBAT_DEFAULT_COUNT
     up_button = None
     for attempt in range(2):
         sleep(0.4 if attempt == 0 else 0.2)

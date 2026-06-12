@@ -42,11 +42,6 @@ assets:
   note: ''
   checksum: sha256:277d2f860ba495e24bdfc0bcf44eb11128b78feecb3228e98a2fdc2e05054137
   status: missing
-- file: default/share/base/battle_finish_confirm_assets.png
-  business_name: ''
-  tags: []
-  note: ''
-  checksum: sha256:27997491067811f713b1dbe3fc128c2e83887a927445b38f30fb17fcc22ba60f
 - file: default/share/base/battle_statistics_assets.png
   business_name: ''
   tags: []
@@ -103,11 +98,6 @@ assets:
   tags: []
   note: ''
   checksum: sha256:32489ca26eaa08d07784f49ae197558ec4befa8d6babb4e8176bd8cbfcf67f95
-- file: default/zh_cn/base/battle_finish_confirm_assets.png
-  business_name: ''
-  tags: []
-  note: ''
-  checksum: sha256:27997491067811f713b1dbe3fc128c2e83887a927445b38f30fb17fcc22ba60f
 - file: default/zh_cn/base/close.png
   business_name: ''
   tags: []
