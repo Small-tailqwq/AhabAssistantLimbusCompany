@@ -116,17 +116,14 @@ class TestQuickScreenshotTool(unittest.TestCase):
         QApplication.instance() or QApplication([])
         image = _DummyImage()
         tool = QuickScreenshotGet()
-        mock_connection = mock.MagicMock()
 
         with (
             mock.patch.object(cfg, "simulator", True),
             mock.patch.object(cfg, "simulator_type", 0),
-            mock.patch("module.automation.input_handlers.simulator.mumu_control.MumuControl") as MockMumu,
             mock.patch("tasks.tools.screenshot_module.ScreenShot.mumu_screenshot", return_value=image) as mumu_screenshot,
             mock.patch("tasks.tools.screenshot_module.datetime") as mock_dt,
             mock.patch.object(tool, "on_saved_timestr") as mock_signal,
         ):
-            MockMumu.connection_device = mock_connection
             mock_dt.now.return_value = datetime(2026, 5, 17, 15, 15, 0, 123456)
             tool.run()
 

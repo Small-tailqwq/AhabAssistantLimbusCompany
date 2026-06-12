@@ -215,6 +215,7 @@ class ToolsInterface(ScrollArea):
 
     def _onScreenshotToolButtonPressed(self, time_str: str):
         title = QT_TRANSLATE_NOOP("BaseInfoBar", "截图完成")
+        # 保存路径须与 screenshot_module._SCREENSHOT_DIR 保持一致
         msg = QT_TRANSLATE_NOOP("BaseInfoBar", "图片保存为 screenshots/screenshot_{time_str}.png")
         BaseInfoBar.success(
             title=title,
@@ -229,6 +230,7 @@ class ToolsInterface(ScrollArea):
 
     def _onQuickScreenshotSaved(self, time_str: str):
         title = QT_TRANSLATE_NOOP("BaseInfoBar", "截图完成")
+        # 保存路径须与 screenshot_module._SCREENSHOT_DIR 保持一致
         msg = QT_TRANSLATE_NOOP("BaseInfoBar", "图片保存为 screenshots/quick_screenshot_{time_str}.png")
         BaseInfoBar.success(
             title=title,
