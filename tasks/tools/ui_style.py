@@ -1,3 +1,5 @@
+import os
+
 from PySide6.QtWidgets import QApplication
 from qfluentwidgets import isDarkTheme
 
