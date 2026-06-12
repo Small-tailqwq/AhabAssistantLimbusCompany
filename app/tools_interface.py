@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QApplication, QWidget
 from qfluentwidgets import (
     ExpandLayout,
     InfoBarPosition,
-    PrimaryPushButton,
+    PushButton,
     ScrollArea,
     SettingCard,
 )
@@ -20,15 +20,15 @@ from tasks import tools
 class ScreenshotCard(SettingCard):
     def __init__(self, icon, title, content, parent=None):
         super().__init__(icon, title, content, parent)
-        self._quick_text = QT_TRANSLATE_NOOP("ScreenshotCard", "直接截图")
-        self._full_text = QT_TRANSLATE_NOOP("ScreenshotCard", "设置窗口后截图")
+        self._quick_text = QT_TRANSLATE_NOOP("ScreenshotCard", "快速截图")
+        self._full_text = QT_TRANSLATE_NOOP("ScreenshotCard", "截图")
 
-        self.quick_btn = PrimaryPushButton(self._quick_text, self)
+        self.quick_btn = PushButton(self._quick_text, self)
         self.quick_btn.setFocusPolicy(Qt.NoFocus)
         self.hBoxLayout.addWidget(self.quick_btn, 0, Qt.AlignRight)
         self.hBoxLayout.addSpacing(10)
 
-        self.full_btn = PrimaryPushButton(self._full_text, self)
+        self.full_btn = PushButton(self._full_text, self)
         self.full_btn.setFocusPolicy(Qt.NoFocus)
         self.hBoxLayout.addWidget(self.full_btn, 0, Qt.AlignRight)
 
@@ -184,7 +184,7 @@ class ToolsInterface(ScrollArea):
         card.button.setText(QT_TRANSLATE_NOOP("BasePushSettingCard", "运行"))
         card.update_button(is_running=False)
 
-    def _start_screenshot_tool(self, tool_name: str, button: PrimaryPushButton):
+    def _start_screenshot_tool(self, tool_name: str, button: PushButton):
         if tool_name in self.tools:
             tool = self.tools[tool_name]
             if isinstance(tool.w, QWidget):
