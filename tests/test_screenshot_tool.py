@@ -1,5 +1,6 @@
 import os
 import unittest
+from datetime import datetime
 from unittest import mock
 
 from PySide6.QtWidgets import QApplication
@@ -7,7 +8,7 @@ from PySide6.QtWidgets import QApplication
 from module.config import cfg
 from module.game_and_screen import screen
 from module.game_and_screen.screen import Handle
-from tasks.tools.screenshot_module import QuickScreenshotGet, ScreenshotGet, _SCREENSHOT_DIR
+from tasks.tools.screenshot_module import _SCREENSHOT_DIR, QuickScreenshotGet, ScreenshotGet
 
 
 class _DummyImage:
@@ -71,9 +72,10 @@ class TestQuickScreenshotTool(unittest.TestCase):
             mock.patch.object(Handle, "hwnd", new_callable=mock.PropertyMock, return_value=12345),
             mock.patch.object(Handle, "isMinimized", new_callable=mock.PropertyMock, return_value=False),
             mock.patch("tasks.tools.screenshot_module.ScreenShot.take_screenshot", return_value=image) as take_screenshot,
-            mock.patch("tasks.tools.screenshot_module.time.strftime", return_value="20260517_151500_123456"),
+            mock.patch("tasks.tools.screenshot_module.datetime") as mock_dt,
             mock.patch.object(tool, "on_saved_timestr") as mock_signal,
         ):
+            mock_dt.now.return_value = datetime(2026, 5, 17, 15, 15, 0, 123456)
             tool.run()
 
         init_handle.assert_called_once_with()
@@ -121,10 +123,11 @@ class TestQuickScreenshotTool(unittest.TestCase):
             mock.patch.object(cfg, "simulator_type", 0),
             mock.patch("module.automation.input_handlers.simulator.mumu_control.MumuControl") as MockMumu,
             mock.patch("tasks.tools.screenshot_module.ScreenShot.mumu_screenshot", return_value=image) as mumu_screenshot,
-            mock.patch("tasks.tools.screenshot_module.time.strftime", return_value="20260517_151500_123456"),
+            mock.patch("tasks.tools.screenshot_module.datetime") as mock_dt,
             mock.patch.object(tool, "on_saved_timestr") as mock_signal,
         ):
             MockMumu.connection_device = mock_connection
+            mock_dt.now.return_value = datetime(2026, 5, 17, 15, 15, 0, 123456)
             tool.run()
 
         mumu_screenshot.assert_called_once_with(gray=False)

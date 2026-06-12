@@ -168,11 +168,6 @@ class ToolsInterface(ScrollArea):
         self._update_running_button(card)
         tool.w.destroyed.connect(lambda _: self.tools.pop(tool_name, None))
         tool.w.destroyed.connect(lambda _: self._restore_button_style(card))
-        if tool_name == "screenshot":
-            tool.w.on_saved_timestr.connect(self._onScreenshotToolButtonPressed)
-        if tool_name == "quick_screenshot":
-            tool.w.on_saved_timestr.connect(self._onQuickScreenshotSaved)
-            tool.w.on_error.connect(self._onQuickScreenshotError)
         if isinstance(tool.w, QThread):
             tool.w.start()
 
