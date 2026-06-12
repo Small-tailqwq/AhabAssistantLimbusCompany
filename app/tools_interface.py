@@ -13,6 +13,7 @@ from qfluentwidgets import FluentIcon as FIF
 from app.base_combination import BasePushSettingCard, BaseSettingCardGroup
 from app.card.messagebox_custom import BaseInfoBar
 from app.language_manager import LanguageManager
+from module.logger import log
 from tasks import tools
 
 
@@ -114,6 +115,16 @@ class ToolsInterface(ScrollArea):
             ),
             parent=self.tools_group,
         )
+        self.ghub_manager_card = BasePushSettingCard(
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "运行"),
+            FIF.SYNC,
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "G HUB 驱动管理器"),
+            QT_TRANSLATE_NOOP(
+                "BasePushSettingCard",
+                "检测罗技 DLL 状态、启动 G HUB、管理版本更新封锁",
+            ),
+            parent=self.tools_group,
+        )
 
     def __initLayout(self):
         self.tools_group.addSettingCard(self.auto_battle_card)
@@ -122,6 +133,7 @@ class ToolsInterface(ScrollArea):
         self.tools_group.addSettingCard(self.issue_replay_card)
         self.tools_group.addSettingCard(self.asset_manager_card)
         self.tools_group.addSettingCard(self.skip_tutorial_card)
+        self.tools_group.addSettingCard(self.ghub_manager_card)
 
         self.expand_layout.addWidget(self.tools_group)
 
@@ -149,6 +161,7 @@ class ToolsInterface(ScrollArea):
         self.issue_replay_card.clicked.connect(lambda: self._tool_start("issue_replay", self.issue_replay_card))
         self.asset_manager_card.clicked.connect(lambda: self._tool_start("asset_manager", self.asset_manager_card))
         self.skip_tutorial_card.clicked.connect(lambda: self._tool_start("tutorial_skip", self.skip_tutorial_card))
+        self.ghub_manager_card.clicked.connect(lambda: self._tool_start("ghub_manager", self.ghub_manager_card))
 
     def _tool_start(self, tool_name: str, card: BasePushSettingCard):
         if tool_name in self.tools:
@@ -181,8 +194,11 @@ class ToolsInterface(ScrollArea):
         card.update_button(is_running=True)
 
     def _restore_button_style(self, card: BasePushSettingCard):
-        card.button.setText(QT_TRANSLATE_NOOP("BasePushSettingCard", "运行"))
-        card.update_button(is_running=False)
+        try:
+            card.button.setText(QT_TRANSLATE_NOOP("BasePushSettingCard", "运行"))
+            card.update_button(is_running=False)
+        except RuntimeError:
+            log.warning("恢复按钮样式时 card 已被销毁")
 
     def _start_screenshot_tool(self, tool_name: str, button: QPushButton):
         if tool_name in self.tools:
@@ -266,3 +282,4 @@ class ToolsInterface(ScrollArea):
         self.issue_replay_card.retranslateUi()
         self.asset_manager_card.retranslateUi()
         self.skip_tutorial_card.retranslateUi()
+        self.ghub_manager_card.retranslateUi()
