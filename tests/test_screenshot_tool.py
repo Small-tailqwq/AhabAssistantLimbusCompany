@@ -1,3 +1,4 @@
+import os
 import unittest
 from unittest import mock
 
@@ -6,7 +7,7 @@ from PySide6.QtWidgets import QApplication
 from module.config import cfg
 from module.game_and_screen import screen
 from module.game_and_screen.screen import Handle
-from tasks.tools.screenshot_module import QuickScreenshotGet, ScreenshotGet
+from tasks.tools.screenshot_module import QuickScreenshotGet, ScreenshotGet, _SCREENSHOT_DIR
 
 
 class _DummyImage:
@@ -36,7 +37,7 @@ class TestScreenshotTool(unittest.TestCase):
 
         init_game.assert_called_once_with()
         take_screenshot.assert_called_once_with(gray=False)
-        self.assertEqual(image.saved_path, "screenshot_20260517_151500.png")
+        self.assertEqual(image.saved_path, os.path.join(_SCREENSHOT_DIR, "screenshot_20260517_151500.png"))
         reset_win.assert_called_once_with(activate=False)
 
     def test_screenshot_tool_preserves_window_when_restore_is_disabled(self):
@@ -77,7 +78,7 @@ class TestQuickScreenshotTool(unittest.TestCase):
 
         init_handle.assert_called_once_with()
         take_screenshot.assert_called_once_with(gray=False)
-        self.assertEqual(image.saved_path, "quick_screenshot_20260517_151500_123456.png")
+        self.assertEqual(image.saved_path, os.path.join(_SCREENSHOT_DIR, "quick_screenshot_20260517_151500_123456.png"))
         mock_signal.emit.assert_called_once_with("20260517_151500_123456")
 
     def test_pc_mode_no_window(self):
@@ -127,7 +128,7 @@ class TestQuickScreenshotTool(unittest.TestCase):
             tool.run()
 
         mumu_screenshot.assert_called_once_with(gray=False)
-        self.assertEqual(image.saved_path, "quick_screenshot_20260517_151500_123456.png")
+        self.assertEqual(image.saved_path, os.path.join(_SCREENSHOT_DIR, "quick_screenshot_20260517_151500_123456.png"))
         mock_signal.emit.assert_called_once_with("20260517_151500_123456")
 
     def test_mumu_mode_not_connected(self):

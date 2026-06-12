@@ -1,7 +1,11 @@
+import os
 import time
 from datetime import datetime
 
 from PySide6.QtCore import QThread, Signal
+
+
+_SCREENSHOT_DIR = "screenshots"
 
 from module.automation import auto
 from module.automation.screenshot import ScreenShot
@@ -30,9 +34,10 @@ class ScreenshotGet(QThread):
         try:
             img = auto.take_screenshot(gray=False)
             if img:
+                os.makedirs(_SCREENSHOT_DIR, exist_ok=True)
                 timestr = time.strftime("%Y%m%d_%H%M%S", time.localtime())
-                img.save(f"screenshot_{timestr}.png")
-                log.info(f"图片保存为 AALC > screenshot_{timestr}.png")
+                img.save(os.path.join(_SCREENSHOT_DIR, f"screenshot_{timestr}.png"))
+                log.info(f"快捷截图保存到 screenshots/screenshot_{timestr}.png")
                 self.on_saved_timestr.emit(timestr)
             else:
                 log.error("截图失败，请确认游戏是否处于启动状态")
@@ -69,9 +74,10 @@ class QuickScreenshotGet(QThread):
                     raise RuntimeError("游戏窗口已最小化，无法截图")
                 img = ScreenShot.take_screenshot(gray=False)
             if img:
+                os.makedirs(_SCREENSHOT_DIR, exist_ok=True)
                 timestr = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-                img.save(f"quick_screenshot_{timestr}.png")
-                log.info(f"快捷截图保存为 quick_screenshot_{timestr}.png")
+                img.save(os.path.join(_SCREENSHOT_DIR, f"quick_screenshot_{timestr}.png"))
+                log.info(f"快捷截图保存到 screenshots/quick_screenshot_{timestr}.png")
                 self.on_saved_timestr.emit(timestr)
             else:
                 raise RuntimeError("截图返回为空")
