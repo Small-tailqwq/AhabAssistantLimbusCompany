@@ -20,7 +20,7 @@ from module.my_error.my_error import (
     userStopError,
 )
 from module.ocr import ocr
-from tasks import all_systems, start_gift
+from tasks import all_systems, start_gift, system_cn_zh
 from tasks.base.back_init_menu import back_init_menu
 from tasks.base.make_enkephalin_module import make_enkephalin_module
 from tasks.base.retry import retry
@@ -219,9 +219,10 @@ class Mirror:
     def wake_event_selection(self, wake_times=None, reason="skip", stop_on_decision=True):
         if wake_times is None:
             wake_times = random.randint(1, 2)
+        _reason_cn = {"skip": "跳过", "stalled": "卡顿", "decision_preload": "判定预加载"}
         for wake_index in range(wake_times):
             sleep(0.03)
-            log.debug(f"事件 {reason} 后发送空格唤醒 ({wake_index + 1}/{wake_times})")
+            log.debug(f"事件 {_reason_cn.get(reason, reason)} 后发送空格唤醒 ({wake_index + 1}/{wake_times})")
             auto.key_press("space")
         sleep(0.12)
         if self._event_take_screenshot() is None:
@@ -916,7 +917,7 @@ class Mirror:
         )
 
         # 输出镜牢总时间
-        msg = f"此次镜牢使用{self.system}体系队伍"
+        msg = f"此次镜牢使用{system_cn_zh.get(self.system, self.system)}体系队伍"
         to_log_with_time(msg, elapsed_time)
 
         return True

@@ -348,6 +348,11 @@ def Mirror_task():
         to_get_reward()
 
 
+
+_ACTION_CN = {"exit_game": "退出游戏", "exit_emulator": "退出模拟器", "exit_aalc": "退出AALC"}
+_POWER_CN = {"sleep": "睡眠", "hibernate": "休眠", "shutdown": "关机", "lock": "锁屏"}
+
+
 def script_task() -> None | int:
     start_time = time()
     # 获取（启动）游戏对游戏窗口进行设置
@@ -429,7 +434,10 @@ def script_task() -> None | int:
     should_exit_aalc = False
     if platform.system() == "Windows":
         actions, power_action = get_after_completion_config()
-        log.info(f"结束后操作: actions={actions}, power_action={power_action}")
+        if actions or power_action != "none":
+            _actions_str = ", ".join(_ACTION_CN.get(a, a) for a in actions) if actions else "无"
+            _power_str = _POWER_CN.get(power_action, power_action)
+            log.info(f"结束后操作: 退出动作=[{_actions_str}], 电源动作={_power_str}")
         try:
             should_exit_aalc = execute_after_completion(actions, power_action)
         except Exception:

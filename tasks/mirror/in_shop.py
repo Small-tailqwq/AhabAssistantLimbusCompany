@@ -733,10 +733,10 @@ class Shop:
                 gift = auto.find_element(my_sell_system, find_type="image_with_multiple_targets")
                 if gift:
                     if isinstance(gift, list):
-                        log.debug(f"识别到{len(gift)}个{sell_system}饰品")
+                        log.debug(f"识别到{len(gift)}个{system_cn_zh.get(sell_system, sell_system)}饰品")
                         gift_list.extend(list(g) for g in gift)
                     elif isinstance(gift, tuple):
-                        log.debug(f"识别到1个{sell_system}饰品")
+                        log.debug(f"识别到1个{system_cn_zh.get(sell_system, sell_system)}饰品")
                         gift_list.append(gift)
             # 对饰品位置列表进行排序、去重处理
             my_list = processing_coordinates(gift_list)

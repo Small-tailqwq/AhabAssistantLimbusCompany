@@ -19,13 +19,16 @@ def _is_mirror_route_debug_enabled():
     return bool(cfg.get_value("debug_mode", False) and cfg.get_value("debug_mirror_route", False))
 
 
+_DIR_CN = {"U": "上", "D": "下", "M": "中"}
+
+
 def _route_debug_log_result():
     return _is_mirror_route_debug_enabled()
 
 
 def enter_mirror_road(direction=None, position=None):
     if cfg.mirror_keyboard_navigation:
-        log.debug(f"通过键盘按键寻路: {direction}")
+        log.debug(f"通过键盘按键寻路: {_DIR_CN.get(direction, direction)}")
         if direction == "U":
             auto.key_press("up")
         elif direction == "D":
@@ -570,7 +573,7 @@ def _build_route_plan_from_grouped_roads(current_bus, snapshot, all_road, hard_m
             directions, road_class_list = sparse_plan
             directions, road_class_list = _append_post_shop_shortcut(directions, road_class_list)
             if _is_mirror_route_debug_enabled():
-                log.debug(f"镜牢路线图稀疏推算方向: {directions}")
+                log.debug(f"镜牢路线图稀疏推算方向: {[_DIR_CN.get(d, d) for d in directions]}")
                 log.debug(f"镜牢路线图稀疏推算节点: {road_class_list}")
             return {
                 "directions": directions,
@@ -587,7 +590,7 @@ def _build_route_plan_from_grouped_roads(current_bus, snapshot, all_road, hard_m
     directions, road_class_list = _append_post_shop_shortcut(directions, road_class_list)
     if _is_mirror_route_debug_enabled():
         log.debug(f"最小权重: {min_weight}")
-        log.debug(f"路径方向: {directions}")
+        log.debug(f"路径方向: {[_DIR_CN.get(d, d) for d in directions]}")
         log.debug(f"行走路径: {road_class_list}")
     return {
         "directions": directions,
@@ -708,7 +711,7 @@ class MirrorMap:
         if len(self.floor_map) > 0:
             next_step = self.floor_map.pop(0)
             if next_step is not None:
-                log.debug(f"复用镜牢路线缓存: 下一步={next_step}, 剩余缓存步数={len(self.floor_map)}")
+                log.debug(f"复用镜牢路线缓存: 下一步={_DIR_CN.get(next_step, next_step)}, 剩余缓存步数={len(self.floor_map)}")
                 return next_step
             else:
                 re_identify = True
