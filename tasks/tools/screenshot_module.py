@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 
 from PySide6.QtCore import QThread, Signal
 
@@ -68,7 +69,7 @@ class QuickScreenshotGet(QThread):
                     raise RuntimeError("游戏窗口已最小化，无法截图")
                 img = ScreenShot.take_screenshot(gray=False)
             if img:
-                timestr = time.strftime("%Y%m%d_%H%M%S_%f", time.localtime())
+                timestr = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
                 img.save(f"quick_screenshot_{timestr}.png")
                 log.info(f"快捷截图保存为 quick_screenshot_{timestr}.png")
                 self.on_saved_timestr.emit(timestr)
