@@ -11,12 +11,12 @@ from tasks.tools.asset_manager import AssetManager
 from tasks.tools.infinite_battle import InfiniteBattles
 from tasks.tools.issue_replay import IssueReplay
 from tasks.tools.production_module import ProductionModule
-from tasks.tools.screenshot_module import ScreenshotGet
+from tasks.tools.screenshot_module import QuickScreenshotGet, ScreenshotGet
 from tasks.tools.tutorial_skip import TutorialSkipWindow
 
 
 class ToolManager:
-    def __init__(self, tool: Literal["battle", "production", "screenshot", "issue_replay", "asset_manager", "tutorial_skip"]):
+    def __init__(self, tool: Literal["battle", "production", "screenshot", "issue_replay", "asset_manager", "tutorial_skip", "quick_screenshot"]):
         self.tool = tool
         self.initialized = False
         self.w: QObject = None
@@ -45,6 +45,8 @@ class ToolManager:
                     self.w = ProductionModule()
                 elif self.tool == "screenshot":
                     self.w = ScreenshotGet()
+                elif self.tool == "quick_screenshot":
+                    self.w = QuickScreenshotGet()
                 elif self.tool == "issue_replay":
                     self.w = IssueReplay()
                 elif self.tool == "asset_manager":
@@ -72,7 +74,7 @@ class ToolManager:
         QTimer.singleShot(0, app, create_and_show)
 
 
-def start(tool: Literal["battle", "production", "screenshot", "issue_replay", "asset_manager", "tutorial_skip"]):
+def start(tool: Literal["battle", "production", "screenshot", "issue_replay", "asset_manager", "tutorial_skip", "quick_screenshot"]):
     """
     启动工具管理器的方法。
     :param tool: 启动工具，可以是"battle"。
