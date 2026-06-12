@@ -54,7 +54,6 @@ class QuickScreenshotGet(QThread):
     def run(self):
         try:
             if cfg.simulator:
-                self._ensure_emulator_connected()
                 if cfg.simulator_type == 0:
                     img = ScreenShot.mumu_screenshot(gray=False)
                 elif cfg.simulator_type == 10:
@@ -79,16 +78,4 @@ class QuickScreenshotGet(QThread):
             log.error(f"快捷截图失败: {str(e)}")
             self.on_error.emit(str(e))
 
-    def _ensure_emulator_connected(self):
-        if cfg.simulator_type == 0:
-            from module.automation.input_handlers.simulator.mumu_control import MumuControl
 
-            if MumuControl.connection_device is None:
-                raise ConnectionError("未连接到 MuMu 模拟器")
-        elif cfg.simulator_type == 10:
-            from module.automation.input_handlers.simulator.simulator_control import SimulatorControl
-
-            if SimulatorControl.connection_device is None:
-                raise ConnectionError("未连接到 ADB 设备")
-        else:
-            raise RuntimeError(f"未知的模拟器类型: {cfg.simulator_type}")
