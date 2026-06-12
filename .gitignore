@@ -6,6 +6,7 @@
 .agents
 .idea
 .claude
+.mimocode/
 .env
 .atomcode/
 entities.json
