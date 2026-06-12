@@ -363,6 +363,9 @@ class ConfigModel(BaseModel):
     start_emulator_timeout: int = 150
     """启动模拟器超时时间。增加至 150 秒以应对 projectmonn 模拟器启动缓慢的问题"""
 
+    adb_reconnect_on_error: bool = True
+    """ADB或minitouch连接失效时自动重连"""
+
     check_update: bool = True
     """检查更新"""
 
