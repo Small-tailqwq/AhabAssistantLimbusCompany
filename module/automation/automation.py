@@ -686,8 +686,6 @@ class Automation(metaclass=SingletonMeta):
 
     MATCH_GAP = 0.15
 
-    MATCH_GAP = 0.15
-
     def _update_path_state_from_match_results(self, results, additional_stack: int = 0) -> None:
         dark_results = [result for result in results if path_manager.is_path_dark(result["path"])]
         default_results = [result for result in results if path_manager.is_path_default(result["path"])]

@@ -40,7 +40,7 @@ class Handle:
                 self._enum_windows_list.clear()
                 win32gui.EnumWindows(self._enum_windows_callback, None)
             except win32gui.error:
-                pass
+                log.debug("枚举窗口时触发win32gui.error (停止枚举的正常信号)", stacklevel=3)
             except Exception as e:
                 log.error(f"枚举窗口时发生错误: {e}", stacklevel=3)
             if self._hwnd == 0:

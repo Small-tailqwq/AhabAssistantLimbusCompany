@@ -63,7 +63,7 @@ class AbstractInput:
         Extra:<br>
             输出日志: "点击位置:(x,y)"
         """
-        raise InterruptedError(f"未实现的输入方法 {self.__class__.__name__}.mouse_click")
+        raise NotImplementedError(f"未实现的输入方法 {self.__class__.__name__}.mouse_click")
 
     def mouse_click_blank(self, coordinate=(1, 1), times=1, move_back=False) -> bool:
         """在空白位置点击鼠标
@@ -77,7 +77,7 @@ class AbstractInput:
         Extra:<br>
             输出日志: "点击（1，1）空白位置"
         """
-        raise InterruptedError(f"未实现的输入方法 {self.__class__.__name__}.mouse_click_blank")
+        raise NotImplementedError(f"未实现的输入方法 {self.__class__.__name__}.mouse_click_blank")
 
     def mouse_drag(self, x, y, drag_time=0.1, dx=0, dy=0, move_back=True, drag_profile=None) -> None:
         """鼠标从指定位置拖动到另一个位置
@@ -89,7 +89,7 @@ class AbstractInput:
             dy (int): y方向拖动距离
             move_back (bool): 是否在拖动后将鼠标移动回原位置
         """
-        raise InterruptedError(f"未实现的输入方法 {self.__class__.__name__}.mouse_drag")
+        raise NotImplementedError(f"未实现的输入方法 {self.__class__.__name__}.mouse_drag")
 
     def mouse_drag_down(self, x, y, reverse=1, move_back=True) -> None:
         """鼠标从指定位置向下拖动
@@ -100,7 +100,7 @@ class AbstractInput:
             reverse (int): 拖动方向，1表示向下，-1表示向上
             move_back (bool): 是否在拖动后将鼠标移动回原位置
         """
-        raise InterruptedError(f"未实现的输入方法 {self.__class__.__name__}.mouse_drag_down")
+        raise NotImplementedError(f"未实现的输入方法 {self.__class__.__name__}.mouse_drag_down")
 
     def mouse_drag_link(self, position: list, drag_time=0.1, move_back=False, drag_profile=None) -> None:
         """鼠标从指定位置拖动到指定位置
@@ -110,7 +110,7 @@ class AbstractInput:
             position (list): 目标位置列表
             drag_time (float): 拖动时间
         """
-        raise InterruptedError(f"未实现的输入方法 {self.__class__.__name__}.mouse_drag_link")
+        raise NotImplementedError(f"未实现的输入方法 {self.__class__.__name__}.mouse_drag_link")
 
     def mouse_scroll(self, direction: int = -3) -> bool:
         """
@@ -124,7 +124,7 @@ class AbstractInput:
             如果`direction`为负数, 输出日志: "鼠标滚动滚轮，远离界面"<br>
             如果`direction`为正数, 输出日志: "鼠标滚动滚轮，拉近界面"
         """
-        raise InterruptedError(f"未实现的输入方法 {self.__class__.__name__}.mouse_scroll")
+        raise NotImplementedError(f"未实现的输入方法 {self.__class__.__name__}.mouse_scroll")
 
     def mouse_to_blank(self, coordinate=(1, 1), move_back=False) -> None:
         """鼠标移动到空白位置，避免遮挡
@@ -135,7 +135,7 @@ class AbstractInput:
         Extra:<br>
             输出日志: "鼠标移动到空白，避免遮挡"
         """
-        raise InterruptedError(f"未实现的输入方法 {self.__class__.__name__}.mouse_to_blank")
+        raise NotImplementedError(f"未实现的输入方法 {self.__class__.__name__}.mouse_to_blank")
 
     def _resolve_backend_key(self, key: str) -> KeyCode:
         if self.KEY_CODES is None:
@@ -146,10 +146,10 @@ class AbstractInput:
         return
 
     def _key_down_impl(self, backend_key: KeyCode) -> None:
-        raise InterruptedError(f"未实现的输入方法 {self.__class__.__name__}._key_down_impl")
+        raise NotImplementedError(f"未实现的输入方法 {self.__class__.__name__}._key_down_impl")
 
     def _key_up_impl(self, backend_key: KeyCode) -> None:
-        raise InterruptedError(f"未实现的输入方法 {self.__class__.__name__}._key_up_impl")
+        raise NotImplementedError(f"未实现的输入方法 {self.__class__.__name__}._key_up_impl")
 
     def _key_press_impl(self, backend_key: KeyCode) -> None:
         self._key_down_impl(backend_key)
@@ -190,4 +190,4 @@ class AbstractInput:
         self._key_press_impl(backend_key)
 
     def input_text(self, text: str) -> None:
-        raise InterruptedError(f"未实现的输入方法 {self.__class__.__name__}.input_text")
+        raise NotImplementedError(f"未实现的输入方法 {self.__class__.__name__}.input_text")

@@ -91,8 +91,8 @@ class UpdateThread(QThread):
 
     def _set_version_gate_state(self, version: str):
         self.new_version = version
-        current_version = parse(cfg.version.lstrip("Vv"))
-        latest_version = parse(version.lstrip("Vv"))
+        current_version = parse(normalize_version_text(cfg.version.lstrip("Vv")))
+        latest_version = parse(normalize_version_text(version.lstrip("Vv")))
         self.is_current_version_latest = current_version == latest_version
         return current_version, latest_version
 
@@ -104,8 +104,6 @@ class UpdateThread(QThread):
             content,
             flags=re.IGNORECASE,
         )
-        if cfg.update_source == "GitHub":
-            content = content + "\n\n若下载速度较慢，可尝试使用 Mirror酱（设置 → 关于 → 更新源） 高速下载"
         return content
 
     def run(self) -> None:
@@ -123,7 +121,7 @@ class UpdateThread(QThread):
             data = self.check_update_info_github()
             version = data["tag_name"]
             self.new_version = version
-            content = self.remove_images_from_markdown(data["body"])
+            content = self._build_release_note_content(data["body"])
             self._cached_assets_url = data.get("archive_url")
 
             # 如果没有可用的下载 URL，则发送成功信号并返回
@@ -156,7 +154,7 @@ class UpdateThread(QThread):
                 remote_version = resp.text.strip()
                 self.new_version = remote_version
 
-                current_version, latest_version = parse(cfg.version.lstrip("Vv")), parse(remote_version.lstrip("Vv"))
+                current_version, latest_version = parse(normalize_version_text(cfg.version.lstrip("Vv"))), parse(normalize_version_text(remote_version.lstrip("Vv")))
                 if latest_version > current_version:
                     self.title = self.tr("发现新版本：{Old_version} ——> {New_version}\n更新日志:").format(
                         Old_version=cfg.version, New_version=remote_version
@@ -333,7 +331,7 @@ class UpdateThread(QThread):
 
 
 def handle_update_status(
-    self,
+    parent,
     update_thread: UpdateThread,
     status: UpdateStatus,
     *,
@@ -344,19 +342,19 @@ def handle_update_status(
     """根据更新状态执行默认的界面提示逻辑。
 
     参数:
-        self: 当前界面对象，用于挂载提示框和信息栏。
+        parent: 当前界面对象，用于挂载提示框和信息栏。
         update_thread: 刚完成检查的更新线程对象。
         status: 更新检查结果状态。
-        show_success: 是否显示“当前已是最新版本”的提示。
-        show_failure: 是否显示“检查更新失败”的提示。
-        show_update_dialog: 是否显示“发现新版本”的更新弹窗。
+        show_success: 是否显示"当前已是最新版本"的提示。
+        show_failure: 是否显示"检查更新失败"的提示。
+        show_update_dialog: 是否显示"发现新版本"的更新弹窗。
     """
     if status == UpdateStatus.UPDATE_AVAILABLE:
         # 第一类：发现新版本时，按策略决定是否弹出更新确认框。
         if not show_update_dialog:
             return
 
-        messages_box = MessageBoxUpdate(update_thread.title, update_thread.content, self.window())
+        messages_box = MessageBoxUpdate(update_thread.title, update_thread.content, parent.window())
         if messages_box.exec():
             # 如果用户确认更新，则从指定的URL下载更新资源
             assets_url = update_thread.get_assets_url()
@@ -374,7 +372,7 @@ def handle_update_status(
             isClosable=True,
             position=InfoBarPosition.TOP,
             duration=1000,
-            parent=self,
+            parent=parent,
         )
     else:
         # 第三类：检查失败时，按策略展示失败原因。
@@ -388,7 +386,7 @@ def handle_update_status(
             isClosable=True,
             position=InfoBarPosition.TOP,
             duration=5000,
-            parent=self,
+            parent=parent,
         )
 
 

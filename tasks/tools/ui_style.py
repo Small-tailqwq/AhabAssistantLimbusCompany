@@ -1,8 +1,5 @@
-import os
-
 from PySide6.QtWidgets import QApplication
 from qfluentwidgets import isDarkTheme
-
 
 _THEMES = {
     "dark": {
@@ -41,6 +38,10 @@ QLabel {{
     color: {window_fg};
 }}
 QCheckBox {{
+    background-color: transparent;
+    color: {window_fg};
+}}
+QRadioButton {{
     background-color: transparent;
     color: {window_fg};
 }}
