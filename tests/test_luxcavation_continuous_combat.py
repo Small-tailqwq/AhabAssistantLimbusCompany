@@ -3,7 +3,6 @@ from unittest import mock
 
 from tasks.daily.luxcavation import (
     _filter_thread_level_targets,
-    _get_continuous_combat_up_clicks,
     _get_exp_continuous_combat_box_position,
     _prepare_continuous_combat_count,
     _set_continuous_combat_count,
@@ -12,14 +11,6 @@ from tasks.daily.luxcavation import (
 
 
 class TestLuxcavationContinuousCombat(unittest.TestCase):
-    def test_get_continuous_combat_up_clicks_uses_default_count_one(self):
-        self.assertEqual(_get_continuous_combat_up_clicks(1), 0)
-        self.assertEqual(_get_continuous_combat_up_clicks(3), 2)
-
-    def test_get_continuous_combat_up_clicks_clamps_to_game_max(self):
-        self.assertEqual(_get_continuous_combat_up_clicks(10), 9)
-        self.assertEqual(_get_continuous_combat_up_clicks(99), 9)
-
     def test_filter_thread_level_targets_keeps_one_anchor_per_row(self):
         targets = [
             (809, 300),
@@ -41,30 +32,18 @@ class TestLuxcavationContinuousCombat(unittest.TestCase):
     @mock.patch("tasks.daily.luxcavation.auto")
     def test_finds_button_once_then_clicks_multiple_times(self, auto_mock, _sleep_mock):
         auto_mock.take_screenshot.return_value = True
-        auto_mock.click_element.side_effect = [(123, 456), (300, 400)]
+        auto_mock.click_element.return_value = (123, 456)
 
         result = _set_continuous_combat_count(3, "经验本")
 
         self.assertTrue(result)
-        self.assertEqual(auto_mock.take_screenshot.call_count, 2)
-        self.assertEqual(
-            auto_mock.click_element.call_args_list,
-            [
-                mock.call(
-                    "luxcavation/continuous_combat_up_box_assets.png",
-                    threshold=0.85,
-                    click=False,
-                    model="aggressive",
-                ),
-                mock.call(
-                    "luxcavation/thread_continuous_combat_show_box_assets.png",
-                    threshold=0.85,
-                    click=False,
-                    model="aggressive",
-                ),
-            ],
+        self.assertEqual(auto_mock.take_screenshot.call_count, 1)
+        auto_mock.click_element.assert_called_once_with(
+            "luxcavation/continuous_combat_up_box.png",
+            threshold=0.85,
+            click=False,
         )
-        self.assertEqual(auto_mock.mouse_click.call_args_list, [mock.call(123, 456), mock.call(123, 456), mock.call(300, 400)])
+        self.assertEqual(auto_mock.mouse_click.call_args_list, [mock.call(123, 456), mock.call(123, 456)])
 
     @mock.patch("tasks.daily.luxcavation.sleep", return_value=None)
     @mock.patch("tasks.daily.luxcavation.auto")
@@ -79,9 +58,9 @@ class TestLuxcavationContinuousCombat(unittest.TestCase):
 
     @mock.patch("tasks.daily.luxcavation.sleep", return_value=None)
     @mock.patch("tasks.daily.luxcavation.auto")
-    def test_prepare_opens_shared_count_box_before_setting_count(self, auto_mock, _sleep_mock):
+    def test_prepare_opens_count_box_then_sets_count(self, auto_mock, _sleep_mock):
         auto_mock.take_screenshot.return_value = True
-        auto_mock.click_element.side_effect = [(746, 182), (717, 217), (746, 182)]
+        auto_mock.click_element.side_effect = [(746, 182), (717, 217)]
 
         result = _prepare_continuous_combat_count(2, "纽本")
 
@@ -90,26 +69,18 @@ class TestLuxcavationContinuousCombat(unittest.TestCase):
             auto_mock.click_element.call_args_list,
             [
                 mock.call(
-                    "luxcavation/thread_continuous_combat_show_box_assets.png",
+                    "luxcavation/thread_continuous_combat_show_box.png",
                     threshold=0.85,
                     click=False,
-                    model="aggressive",
                 ),
                 mock.call(
-                    "luxcavation/continuous_combat_up_box_assets.png",
+                    "luxcavation/continuous_combat_up_box.png",
                     threshold=0.85,
                     click=False,
-                    model="aggressive",
-                ),
-                mock.call(
-                    "luxcavation/thread_continuous_combat_show_box_assets.png",
-                    threshold=0.85,
-                    click=False,
-                    model="aggressive",
                 ),
             ],
         )
-        self.assertEqual(auto_mock.mouse_click.call_args_list, [mock.call(746, 182), mock.call(717, 217), mock.call(746, 182)])
+        self.assertEqual(auto_mock.mouse_click.call_args_list, [mock.call(746, 182), mock.call(717, 217)])
 
     @mock.patch("tasks.daily.luxcavation.sleep", return_value=None)
     @mock.patch("tasks.daily.luxcavation.auto")
@@ -120,23 +91,17 @@ class TestLuxcavationContinuousCombat(unittest.TestCase):
         result = _prepare_continuous_combat_count(2, "经验本", (950, 375))
 
         self.assertTrue(result)
-        self.assertEqual(
-            auto_mock.click_element.call_args_list,
-            [
-                mock.call(
-                    "luxcavation/continuous_combat_up_box_assets.png",
-                    threshold=0.85,
-                    click=False,
-                    model="aggressive",
-                ),
-            ],
+        auto_mock.click_element.assert_called_once_with(
+            "luxcavation/continuous_combat_up_box.png",
+            threshold=0.85,
+            click=False,
         )
-        self.assertEqual(auto_mock.mouse_click.call_args_list, [mock.call(950, 375), mock.call(717, 217), mock.call(950, 375)])
+        self.assertEqual(auto_mock.mouse_click.call_args_list, [mock.call(950, 375), mock.call(717, 217)])
 
     @mock.patch("tasks.daily.luxcavation.sleep", return_value=None)
     @mock.patch("tasks.daily.luxcavation.auto")
-    def test_skips_when_target_is_default(self, auto_mock, _sleep_mock):
-        result = _set_continuous_combat_count(1, "经验本")
+    def test_prepare_skips_when_target_is_default(self, auto_mock, _sleep_mock):
+        result = _prepare_continuous_combat_count(1, "经验本")
 
         self.assertTrue(result)
         auto_mock.take_screenshot.assert_not_called()
@@ -162,9 +127,9 @@ class TestLuxcavationContinuousCombat(unittest.TestCase):
         def click_element(target, *args, **kwargs):
             if target == "luxcavation/thread_enter_assets.png":
                 return (100, 200)
-            if target == "luxcavation/thread_continuous_combat_show_box_assets.png":
+            if target == "luxcavation/thread_continuous_combat_show_box.png":
                 return (300, 400)
-            if target == "luxcavation/continuous_combat_up_box_assets.png":
+            if target == "luxcavation/continuous_combat_up_box.png":
                 return (500, 600)
             return False
 
@@ -180,7 +145,6 @@ class TestLuxcavationContinuousCombat(unittest.TestCase):
                 mock.call(300, 400),
                 mock.call(500, 600),
                 mock.call(500, 600),
-                mock.call(300, 400),
                 mock.call(100, 200),
             ],
         )
