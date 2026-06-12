@@ -204,7 +204,7 @@ class ToolsInterface(ScrollArea):
         button.setText(QT_TRANSLATE_NOOP("BasePushSettingCard", "运行中"))
         button.setEnabled(False)
 
-        def on_destroyed():
+        def on_destroyed(_obj=None):
             self.tools.pop(tool_name, None)
             button.setText(original_text)
             button.setEnabled(True)
@@ -220,7 +220,7 @@ class ToolsInterface(ScrollArea):
 
     def _onScreenshotToolButtonPressed(self, time_str: str):
         title = QT_TRANSLATE_NOOP("BaseInfoBar", "截图完成")
-        msg = QT_TRANSLATE_NOOP("BaseInfoBar", "图片保存为 AALC > screenshot_{time_str}.png")
+        msg = QT_TRANSLATE_NOOP("BaseInfoBar", "图片保存为 screenshots/screenshot_{time_str}.png")
         BaseInfoBar.success(
             title=title,
             content=msg,
@@ -234,7 +234,7 @@ class ToolsInterface(ScrollArea):
 
     def _onQuickScreenshotSaved(self, time_str: str):
         title = QT_TRANSLATE_NOOP("BaseInfoBar", "截图完成")
-        msg = QT_TRANSLATE_NOOP("BaseInfoBar", "图片保存为 AALC > quick_screenshot_{time_str}.png")
+        msg = QT_TRANSLATE_NOOP("BaseInfoBar", "图片保存为 screenshots/quick_screenshot_{time_str}.png")
         BaseInfoBar.success(
             title=title,
             content=msg,
