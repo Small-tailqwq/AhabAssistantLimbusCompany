@@ -559,6 +559,7 @@ class MainWindow(FramelessWindow):
 
         self.farming_interface.interface_left.refresh_config_display()
         self.farming_interface.interface_left.after_completion_selector.refresh_from_config()
+        self.farming_interface.interface_center.set_windows.refresh_from_cfg()
         self.farming_interface.interface_center.mirror.refresh_from_cfg()
 
         old = self.setting_interface

@@ -213,6 +213,16 @@ class PageSetWindows(PageCard):
 
         super().retranslateUi()
 
+    def refresh_from_cfg(self):
+        for combo in (self.win_size, self.win_position, self.recovery_window, self.use_post_message):
+            val = cfg.get_value(combo.combo_box.config_name)
+            if val is not None:
+                combo.combo_box.set_value(val)
+        for spin in (self.screenshot_interval, self.mouse_action_interval, self.mouse_down_duration):
+            val = cfg.get_value(spin.box.config_name)
+            if val is not None:
+                spin.box.spin_box.setValue(val)
+
 
 class PageDailyTask(PageCard):
     def __init__(self, parent=None):
