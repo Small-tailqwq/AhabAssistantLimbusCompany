@@ -482,7 +482,7 @@ class FarmingInterfaceLeft(QWidget):
         self.pause_resume_button = NormalTextButton(QT_TRANSLATE_NOOP("NormalTextButton", "暂停"), "pause_resume", 0)
         self.pause_resume_button.clicked.connect(self.pause_or_resume_tasks)
         self.pause_resume_button.button.setMinimumSize(90, 70)
-        self.pause_resume_button.button.setEnabled(False)
+        self.pause_resume_button.setVisible(False)
         scale_factor = QApplication.primaryScreen().logicalDotsPerInch() / 96  # Windows 标准 DPI 是 96
         font_size = min(14, int(14 / scale_factor))
         # 创建字体对象并设置大小
@@ -631,9 +631,8 @@ class FarmingInterfaceLeft(QWidget):
                 return
             self._stop_in_progress = False
             self.link_start_button.set_text("S t o p !")
-            self._sync_pause_resume_button()
+            self.sync_pause_resume_button()
             self._disable_setting(self.parent())
-            self.pause_resume_button.button.setEnabled(True)
             self.create_and_start_script()
         else:
             self.stop_script()
@@ -673,7 +672,7 @@ class FarmingInterfaceLeft(QWidget):
         self.link_start_button.set_text("Link Start!")
         self.link_start_button.button.setEnabled(True)
         self._enable_setting(self.parent())
-        self._reset_pause_resume_button()
+        self.reset_pause_resume_button()
         mediator.refresh_teams_order.emit()
         auto.clear_img_cache()
         mediator.mirror_bar_kill_signal.emit()
@@ -745,7 +744,7 @@ class FarmingInterfaceLeft(QWidget):
             self._enable_setting(self.parent())
             self._stop_in_progress = False
             self.my_script = None
-            self._reset_pause_resume_button()
+            self.reset_pause_resume_button()
 
     def stop_script(self):
         if self.my_script is not None:
@@ -779,14 +778,14 @@ class FarmingInterfaceLeft(QWidget):
 
     def pause_or_resume_tasks(self):
         if self.link_start_button.get_text() == "Link Start!":
-            self._reset_pause_resume_button()
+            self.reset_pause_resume_button()
             return
         auto.set_pause()
-        self._sync_pause_resume_button()
+        self.sync_pause_resume_button()
 
-    def _sync_pause_resume_button(self):
+    def sync_pause_resume_button(self):
         if self.link_start_button.get_text() == "Link Start!":
-            self._reset_pause_resume_button()
+            self.reset_pause_resume_button()
             return
         paused = False
         try:
@@ -794,16 +793,15 @@ class FarmingInterfaceLeft(QWidget):
         except Exception as e:
             log.debug(f"同步暂停状态失败: {e}")
         self.pause_resume_button.set_text(self.tr("继续" if paused else "暂停"))
-        self.pause_resume_button.button.setEnabled(True)
+        self.pause_resume_button.setVisible(True)
 
-    def _reset_pause_resume_button(self):
+    def reset_pause_resume_button(self):
         try:
             if auto.check_pause():
                 auto.set_pause()
         except Exception as e:
             log.debug(f"重置暂停状态失败: {e}")
-        self.pause_resume_button.set_text(self.tr("暂停"))
-        self.pause_resume_button.button.setEnabled(False)
+        self.pause_resume_button.setVisible(False)
 
     def connect_mediator(self):
         # 连接所有可能信号
@@ -826,7 +824,7 @@ class FarmingInterfaceLeft(QWidget):
         self.after_completion_selector.retranslateUi()
         self.select_all.retranslateUi()
         self.clear_all.retranslateUi()
-        self._sync_pause_resume_button()
+        self.sync_pause_resume_button()
 
 
 class FarmingInterfaceCenter(QWidget):
