@@ -59,6 +59,7 @@ jobs:
 
       - name: Run review
         id: review
+        timeout-minutes: 20
         env:
           OCR_LLM_URL: https://opencode.ai/zen/go/v1
           OCR_LLM_TOKEN: ${{ secrets.DEEPSEEK_API_KEY }}
@@ -70,6 +71,8 @@ jobs:
             --to "HEAD" \
             --audience agent \
             --format json \
+            --concurrency 2 \
+            --timeout 15 \
             --background "Python desktop automation (PyQt5+OpenCV+PaddleOCR) for Limbus Company game. Key dirs: app/ (GUI), module/ (automation), tasks/ (orchestration), utils/ (helpers). Critical: PyQt5 GUI updates MUST be in main thread via signals; never reinstantiate singletons (cfg, auto, ocr, screen, game_process); stop is cooperative (auto.ensure_not_stopped), never QThread.terminate(); image resources via ImageUtils.load_image." \
             > /tmp/review.json 2>/tmp/review-stderr.log
           echo "exit_code=$?" >> $GITHUB_OUTPUT
