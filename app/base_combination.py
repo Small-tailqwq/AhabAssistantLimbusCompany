@@ -22,13 +22,13 @@ from PySide6.QtGui import (
     QPainter,
     QPainterPath,
     QPixmap,
-    QRegion,
-    QTransform,
 )
 from PySide6.QtWidgets import (
     QFrame,
     QGraphicsDropShadowEffect,
+    QGraphicsOpacityEffect,
     QLabel,
+    QPushButton,
     QWidget,
 )
 from qfluentwidgets import (
@@ -495,6 +495,30 @@ class MirrorTeamCombination(QFrame):
         message_box.retranslateUi()
 
 
+class RoundedClipEffect(QGraphicsOpacityEffect):
+    def __init__(self, radius=16, parent=None):
+        super().__init__(parent)
+        self._radius = radius
+        self.setOpacity(1.0)
+
+    def draw(self, painter):
+        pixmap = self.sourcePixmap()
+        if pixmap.size().isEmpty():
+            return
+        painter.save()
+        painter.setRenderHint(QPainter.Antialiasing)
+        path = QPainterPath()
+        path.addRoundedRect(QRectF(pixmap.rect()), self._radius, self._radius)
+        painter.setClipPath(path)
+        painter.drawPixmap(pixmap.rect().topLeft(), pixmap)
+        painter.restore()
+
+    def setRadius(self, radius):
+        if self._radius != radius:
+            self._radius = radius
+            self.update()
+
+
 class SinnerSelect(QFrame):
     def __init__(
         self,
@@ -624,6 +648,7 @@ class SinnerSelect(QFrame):
         self.hover_overlay.lower()
 
         self.__init__animation__()
+        self._apply_rounded_clip()
 
     def __init__animation__(self):
         self.ani = QPropertyAnimation(self, b"geometry")
@@ -664,18 +689,11 @@ class SinnerSelect(QFrame):
             self.mask_widget.setProperty("checked", "false")
         self.mask_widget.style().unpolish(self.mask_widget)
         self.mask_widget.style().polish(self.mask_widget)
-        self._apply_rounded_mask(checked)
         self.update()
 
-    def _apply_rounded_mask(self, checked):
-        if checked:
-            self.clearMask()
-            return
-        if self.width() <= 0 or self.height() <= 0:
-            return
-        path = QPainterPath()
-        path.addRoundedRect(QRectF(self.rect()), 16, 16)
-        self.setMask(QRegion(path.toFillPolygon(QTransform()).toPolygon()))
+    def _apply_rounded_clip(self, radius=16):
+        if self.graphicsEffect() is None:
+            self.setGraphicsEffect(RoundedClipEffect(radius, self))
 
     def set_text(self, text):
         self.number_label.setText(text)
@@ -753,7 +771,7 @@ class SinnerSelect(QFrame):
         banner_x = int((self.width() - banner_width) / 2)  # Center the banner
         banner_y = int(self.height() * 0.50)
         self.banner_label.setGeometry(banner_x, banner_y, banner_width, banner_height)
-        self._apply_rounded_mask(self.box.check_box.isChecked())
+        self._apply_rounded_clip()
         if self.ani.state() != QAbstractAnimation.State.Running:
             self.raw_geom = None
             self._end_geom = None
