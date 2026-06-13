@@ -28,13 +28,26 @@ class _POINT(ctypes.Structure):
 def _find_ghub_dir() -> str:
     try:
         import winreg
-        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\lghub.exe") as key:
-            path = winreg.QueryValue(key, None)
-            if path:
-                return os.path.dirname(path)
-    except OSError as e:
-        log.warning(f"读取注册表获取 lghub.exe 路径失败: {e}")
-    return os.path.join(os.environ["PROGRAMFILES"], "LGHUB")
+        for access in (winreg.KEY_READ, winreg.KEY_READ | winreg.KEY_WOW64_64KEY, winreg.KEY_READ | winreg.KEY_WOW64_32KEY):
+            try:
+                with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\lghub.exe", access=access) as key:
+                    path = winreg.QueryValue(key, None)
+                    if path and os.path.exists(path):
+                        return os.path.dirname(path)
+            except OSError:
+                continue
+    except ImportError:
+        pass
+    for candidate in (
+        os.path.join(os.environ.get("PROGRAMFILES", ""), "LGHUB"),
+        os.path.join(os.environ.get("PROGRAMFILES(X86)", ""), "LGHUB"),
+        os.path.join(os.environ.get("LOCALAPPDATA", ""), "LGHUB"),
+        os.path.join(os.environ.get("PROGRAMDATA", ""), "LGHUB"),
+    ):
+        exe = os.path.join(candidate, "lghub.exe")
+        if os.path.exists(exe):
+            return candidate
+    return os.path.join(os.environ.get("PROGRAMFILES", "C:\\Program Files"), "LGHUB")
 
 
 _GHUB_DIR = _find_ghub_dir()
