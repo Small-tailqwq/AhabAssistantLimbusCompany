@@ -2,6 +2,57 @@
 
 ## [Unreleased] — Canary
 
+## [1.5.0-canary.19] — 2026-06-13
+
+### 上游合并
+- feat(resource-sync): 新增图片资源自动同步功能及 CI 工作流
+- refactor(updater): 基于 changes.json 实现增量更新逻辑
+- refactor(ui_style): 重构主题样式生成逻辑
+- fix(config): 增强配置文件加载的容错性和备份恢复机制
+- refactor(retry): 优化卡死检测日志的时间可读性
+- chore(automation): 动态调整日志中匹配度的显示精度
+- chore(ci): 更新 astral-sh/setup-uv action 版本
+- style: 使用 ruff 统一代码格式与优化导入
+
+### 新功能
+- feat: 快捷截图 QuickScreenshotGet — 一键截图保存到 screenshots/ 目录
+- feat: G HUB 驱动管理器小工具
+- feat: 新手提示跳过工具
+- feat: 镜牢模拟器键盘寻路支持
+
+### 修复
+- fix(simulator): 修复 MuMu 模拟器启动失败和无限递归问题
+- fix(simulator): userStopError 被异常处理器吞掉导致递归爆炸
+- fix(simulator): 修复 _enum_windows_list 初始化错误及句柄获取
+- fix(simulator): 抑制模拟器窗口句柄告警，修复循环输出日志
+- fix(input): 修复后台按键消息在游戏更新后失效
+- fix(input): 修复文本输入不遵守异步设置
+- fix(automation): 修复长时间未重启游戏导致误判卡死
+- fix(automation): 修复因游戏窗口句柄改变导致窗口操作失效
+- fix(luxcavation): 修复采光副本首通提示误触返回导致死循环
+- fix(luxcavation): 简化采光连战次数设置，清理死代码
+- fix(enkephalin): 统一换饼入口延迟，修复暂停误判超时
+- fix(enkephalin): 补全自动换饼开关与小工具重启策略
+- fix(mirror): acquire_ego_gift 修复图片路径与 None 保护
+- fix(mirror): 饰品合成关键词选择后增加等待避免滚动条拖动失效
+- fix: 移除 back_init_menu 预截图避免节流；移除 skip_screenshot 避免旧帧误判
+- fix: 启动时清除 SSLKEYLOGFILE 环境变量，避免 OpenSSL 崩溃
+- fix: 日志复现工具热加载配置后 PageSetWindows 显示旧值
+- fix: 角色卡选中/未选中均展示 16px 抗锯齿圆角
+
+### 重构与代码质量
+- chore: 启用 ruff SIM/TRY/BLE 规则集并自动修复 73 项
+- chore: 移除金丝雀特有 API 调用以兼容上游
+- chore: 优化日志中英混杂 — 动作名中文化，体系名/方向码使用中文映射
+- refactor: 合并截图卡片为双按钮一栏设计
+- docs: 补充 AI 代码质量约束（扁平化调用栈、常量提取、gortex 自审流程）
+
+### 社区贡献
+- 233dada: hwnd 重构、输入异步修复、配置备份恢复、换饼超时修复、重启卡死修复、窗口句柄变更修复
+- lus: 图片匹配脚本、图片清理重命名、.gitignore 补充、前台模式截图修复
+- luwh2000: matchVal 精度提升（4 位 → 3 位小数）
+- fsrmll: 模拟器窗口句柄告警抑制
+
 ## [1.5.0-canary.18] — 2026-06-03
 
 ### 新功能
