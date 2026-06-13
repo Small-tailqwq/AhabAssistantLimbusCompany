@@ -1,0 +1,24 @@
+{
+  "rules": [
+    {
+      "path": "**/*.py",
+      "rule": "Project: Python desktop automation (PyQt5 + OpenCV + PaddleOCR) for Limbus Company game. Key dirs: app/ (GUI), module/ (automation), tasks/ (task orchestration), utils/ (helpers). Check for: logic bugs, None/empty handling, resource leaks (file handles, OpenCV windows, OCR processes), PyQt5 thread safety (GUI updates MUST be in main thread via signals, not direct cross-thread widget access), error swallowing (bare except, except: pass, except: continue), performance issues in image processing loops."
+    },
+    {
+      "path": "app/**/*.py",
+      "rule": "GUI layer: PyQt5 widgets, signals/slots, QThread usage. GUI updates must be in the main thread. Check Thread safety. Do not hold strong references to other page instances; use mediator signals for cross-component communication. Language-aware components must implement retranslateUi and register/deregister with LanguageManager."
+    },
+    {
+      "path": "module/**/*.py",
+      "rule": "Automation layer: singleton services (cfg, auto, ocr, screen, game_process). Never reinstantiate singletons. Image search calls should prefer default parameters; do not add redundant threshold/model args. Use ImageUtils.load_image for asset loading. Check for blocking I/O and stop-request handling (auto.ensure_not_stopped)."
+    },
+    {
+      "path": "tasks/**/*.py",
+      "rule": "Task orchestration: my_script_task thread class. Stop is cooperative (not forced via terminate). Long tasks must check auto.ensure_not_stopped(). Never use QThread.terminate(). Check for proper cleanup on stop (disconnect OBS, emit mediator.script_finished)."
+    },
+    {
+      "path": "**/updater.py",
+      "rule": "Auto-update: bootstrap version compatibility, release asset filtering (AALC_<version>.7z, update_manifest.json, .sha256). Check for proper error handling and fallback paths."
+    }
+  ]
+}

@@ -19,74 +19,132 @@ jobs:
       group: pr-review-${{ github.repository }}-${{ github.event.pull_request.number || github.event.issue.number }}
       cancel-in-progress: true
     permissions:
-      id-token: write
       contents: read
       pull-requests: write
     steps:
-      - name: Get PR number
-        id: pr
+      - name: Resolve review context
+        id: ctx
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ "${{ github.event_name }}" = "pull_request_target" ]; then
-            echo "number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+            PR="${{ github.event.pull_request.number }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            BASE_REF="${{ github.base_ref }}"
           else
-            echo "number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+            PR="${{ github.event.issue.number }}"
+            HEAD_SHA=$(gh pr view "$PR" --json headRefOid -q .headRefOid)
+            BASE_REF=$(gh pr view "$PR" --json baseRefName -q .baseRefName)
           fi
+          echo "pr=$PR" >> $GITHUB_OUTPUT
+          echo "head_sha=$HEAD_SHA" >> $GITHUB_OUTPUT
+          echo "base_ref=$BASE_REF" >> $GITHUB_OUTPUT
+          echo "[ctx] PR=#$PR base=$BASE_REF head=$HEAD_SHA"
 
       - uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           persist-credentials: false
 
-      - name: Run review
-        uses: anomalyco/opencode/github@latest
-        env:
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OPENCODE_CONFIG_CONTENT: |
-            {
-              "provider": {
-                "opencode-go": {
-                  "name": "OpenCode Go",
-                  "npm": "@ai-sdk/openai-compatible",
-                  "options": {
-                    "baseURL": "https://opencode.ai/zen/go/v1",
-                    "apiKey": "{env:DEEPSEEK_API_KEY}"
-                  },
-                  "models": {
-                    "deepseek-v4-flash": {
-                      "name": "DeepSeek V4 Flash"
-                    }
-                  }
-                }
-              }
-            }
-          OPENCODE_PERMISSION: |
-            {
-              "bash": {
-                "*": "deny",
-                "gh*": "allow",
-                "gh pr review*": "deny"
-              }
-            }
+      - run: |
+          git fetch origin "pull/${{ steps.ctx.outputs.pr }}/head"
+          git checkout FETCH_HEAD
+
+      - uses: actions/setup-node@v4
         with:
-          model: opencode-go/deepseek-v4-flash
-          agent: code-reviewer
-          prompt: |
-            Review PR #${{ steps.pr.outputs.number }}.
+          node-version: '20'
 
-            PROJECT: Python desktop automation (PyQt5 + OpenCV + PaddleOCR for Limbus Company game)
-            KEY DIRS: app/ (GUI), module/ (automation), tasks/ (task orchestration), utils/ (helpers)
+      - name: Install Open Code Review
+        run: npm install -g @alibaba-group/open-code-review
 
-            1. Use gh to get the PR diff and changed files.
-            2. Check for: logic bugs, None/empty handling, resource leaks (file handles, OpenCV windows, OCR processes), PyQt5 thread safety (GUI updates MUST be in main thread), error swallowing, performance issues in image processing loops.
-            3. Post line-specific review comments using:
-               gh api --method POST -H "Accept: application/vnd.github+json" \
-                 "/repos/${{ github.repository }}/pulls/${{ steps.pr.outputs.number }}/comments" \
-                 -f "body=SEVERITY: ..." -f "commit_id=HEAD_SHA" \
-                 -f "path=path/to/file.py" -f "line=N" -f "side=RIGHT"
-               Get HEAD_SHA via: gh pr view ${{ steps.pr.outputs.number }} --json headRefOid -q .headRefOid
+      - name: Run review
+        id: review
+        env:
+          OCR_LLM_URL: https://opencode.ai/zen/go/v1
+          OCR_LLM_TOKEN: ${{ secrets.DEEPSEEK_API_KEY }}
+          OCR_LLM_MODEL: deepseek-v4-pro
+          OCR_USE_ANTHROPIC: 'false'
+        run: |
+          ocr review \
+            --from "origin/${{ steps.ctx.outputs.base_ref }}" \
+            --to "HEAD" \
+            --audience agent \
+            --format json \
+            --background "Python desktop automation (PyQt5+OpenCV+PaddleOCR) for Limbus Company game. Key dirs: app/ (GUI), module/ (automation), tasks/ (orchestration), utils/ (helpers). Critical: PyQt5 GUI updates MUST be in main thread via signals; never reinstantiate singletons (cfg, auto, ocr, screen, game_process); stop is cooperative (auto.ensure_not_stopped), never QThread.terminate(); image resources via ImageUtils.load_image." \
+            > /tmp/review.json 2>/tmp/review-stderr.log
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
 
-            RULES:
-            - Suggestions are suggestions. The human decides.
-            - Write a comment instead of suggested fix when possible.
-            - Only comment on actual issues. If code is fine, comment "LGTM :+1:" only.
-            - DO NOT create branches, push code, submit formal reviews, or modify files.
+      - name: Dump review output
+        if: always()
+        run: |
+          echo "=== STDOUT ===" && cat /tmp/review.json || echo "(empty)"
+          echo "=== STDERR ===" && cat /tmp/review-stderr.log || echo "(empty)"
+
+      - name: Post review comments
+        if: steps.review.outputs.exit_code == '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.ctx.outputs.pr }}
+          HEAD_SHA: ${{ steps.ctx.outputs.head_sha }}
+        run: |
+          python3 << 'PYEOF'
+          import json, os, subprocess, sys
+
+          pr_number = os.environ["PR_NUMBER"]
+          head_sha = os.environ["HEAD_SHA"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+
+          try:
+              with open("/tmp/review.json") as f:
+                  data = json.load(f)
+          except (FileNotFoundError, json.JSONDecodeError) as e:
+              sys.exit(f"Failed to read review output: {e}")
+
+          if isinstance(data, list):
+              comments = data
+          elif isinstance(data, dict):
+              comments = data.get("comments") or data.get("results") or []
+          else:
+              comments = []
+
+          if not comments:
+              print("No review comments to post.")
+              sys.exit(0)
+
+          posted = 0
+          for c in comments:
+              path = c.get("path", "")
+              content = c.get("content", "")
+              if not path or not content:
+                  continue
+
+              body = content
+              suggestion = c.get("suggestion_code", "")
+              if suggestion:
+                  body += f"\n\n```suggestion\n{suggestion}\n```"
+
+              cmd = [
+                  "gh", "api", "--method", "POST",
+                  "-H", "Accept: application/vnd.github+json",
+                  f"/repos/{repo}/pulls/{pr_number}/comments",
+                  "-f", f"body={body}",
+                  "-f", f"commit_id={head_sha}",
+                  "-f", f"path={path}",
+                  "-f", "side=RIGHT",
+              ]
+              start = c.get("start_line", 0)
+              if start and start > 0:
+                  cmd.extend(["-f", f"line={start}"])
+              end = c.get("end_line", 0)
+              if end and end > start:
+                  cmd.extend(["-f", f"end_line={end}"])
+
+              result = subprocess.run(cmd, capture_output=True, text=True)
+              if result.returncode == 0:
+                  posted += 1
+              else:
+                  print(f"WARN: failed to post ({path}): {result.stderr[:200]}", file=sys.stderr)
+
+          print(f"Posted {posted}/{len(comments)} review comments.")
+          PYEOF
