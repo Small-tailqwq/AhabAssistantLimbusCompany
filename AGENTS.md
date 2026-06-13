@@ -197,6 +197,80 @@ AI 有强烈的"提取函数、加抽象层、写防御性代码"倾向。但自
 3. **对冗余敏感**：如果一段代码让你觉得"不太可能真的需要"，那它很可能确实不需要。验证的方法是：删掉它，然后问自己——没有它会怎样？如果答案是"也能工作"或"只是少个日志"，那就删掉。
 4. **review 时关注 diff 方向**：Review 不是只看功能是否正确，还要看**改动量是不是和问题难度匹配**。一个 200 行 diff 解决的问题通常有一个 20 行的等价方案。
 
+### 扁平化调用栈
+
+AI 倾向于沉淀式的抽象层叠（`_prepare()` → `_open()` → `_click()`，每个函数只被一个调用者使用）。这类"一层套一层"的编排模式在只有单一调用链路时是纯粹的噪音，应扁平化为单个函数。
+
+规则：
+- 编排函数和它编排的子函数**各只有 1 个调用者**时，将子函数内联到编排函数中。三层调用 → 一层。
+- 函数体 <10 行的辅助函数默认应内联，除非被 2+ 处调用。
+- 例外：当子函数的名称本身就是有价值的文档（明确表达了"为什么这样做"），可以保留——但这需要主动判断，不是默认选择。
+
+**反面示例**（来自 `codex/luxcavation-continuous-combat` PR 初版）：
+
+```python
+# 三个函数，三层调用栈，各自只有一个调用者
+def _open_continuous_combat_count_box(log_prefix, box_position=None):
+    ...
+def _set_continuous_combat_count(combat_count, log_prefix):
+    ...
+def _prepare_continuous_combat_count(combat_count, log_prefix, box_position=None):
+    if combat_count <= 1:
+        return True
+    return _open_continuous_combat_count_box(log_prefix, box_position) and \
+           _set_continuous_combat_count(combat_count, log_prefix)
+```
+
+**正面示例**（KIYI671 重构后）：
+
+```python
+# 单函数，逻辑平铺，间以注释分隔步骤
+def _prepare_continuous_combat_count(combat_count, log_prefix, box_position=None):
+    # 1. 打开连战次数面板
+    if box_position is not None:
+        auto.mouse_click(box_position[0], box_position[1])
+    else:
+        pos = auto.click_element(...)
+    # 2. 找到 + 按钮
+    up_button = auto.find_element(...)
+    # 3. 点击 N 次
+    for _ in range(combat_count - 1):
+        auto.mouse_click(up_button[0], up_button[1])
+```
+
+### 单次使用的命名常量
+
+- 常量只在**多处引用**或**晦涩值语义化**时有提取价值。
+- 如果值在上下文中自解释（如 `1`、`"luxcavation/thread_consume.png"`），直接写死比常量名更清晰。
+- 反面示例：`_CONTINUOUS_COMBAT_DEFAULT_COUNT = 1`（只在 `combat_count - _CONTINUOUS_COMBAT_DEFAULT_COUNT` 中用了一次，阅读量大了一倍却没说清一个额外信息）。
+
+### 坐标/算术表达式不要提取
+
+- 单行坐标偏移直接写在调用点。函数名 `_get_exp_continuous_combat_box_position` 比表达式 `(lv[0] + 300 * scale, lv[1] - 450 * scale)` 还长。
+- 例外：3+ 处调用，或计算超过 5 行。
+
+### gortex 辅助代码自审
+
+写完代码后用 gortex MCP 工具检查冗余：
+
+| 工具 | 检测什么 |
+|---|---|
+| `analyze kind=dead_code include_functions=true` | 单调用者函数（可内联候选） |
+| `find_clones` | 重复代码块（应提取） |
+| `analyze kind=health_score` | 复杂度过低的函数（拆太碎的信号） |
+
+事后检查流程：
+
+```text
+写完代码
+  → gortex analyze kind=dead_code    ← 找出单调用者函数
+  → 判断：函数名比函数体传达更多信息吗？
+    是 → 保留
+    否 → 内联到调用者
+  → gortex find_clones              ← 检查重复逻辑
+  → 有重复 → 提取；无重复 → 保持
+```
+
 ## 本地 Issue 追踪
 
 `issues/` 目录存放 bug 记录，不纳入版本控制。模板：`issues/TEMPLATE.md`。
