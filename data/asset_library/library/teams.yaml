@@ -4,6 +4,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:f6750f0c485fda938cf3865a2c7ca5a3869d2e539d18fe8e5c4f8e90c2a768c5
+  status: missing
 - file: dark/share/teams/clear_selection_confirm_assets.png
   business_name: ''
   tags: []
@@ -14,6 +15,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:f696f72d7e0216ec2b7a2aeace79b9c29cef0b5b331ca88e745b79c6ec1f0686
+  status: missing
 - file: default/en/teams/clear_selection_assets.png
   business_name: ''
   tags: []
@@ -142,6 +144,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:21651d8e5021dcf2bb49cd2891f8db2f08e81aa89cd273d1cfb33d8380a40ff0
+  status: missing
 - file: dark/share/teams/team_code_assets.png
   business_name: ''
   tags: []
@@ -162,6 +165,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:f400326f9c7ee58d5bf6d7573591d0183b6b3de43c5bdd2491875dbbf7ad9137
+  status: missing
 - file: default/en/teams/load_team_code_button_assets.png
   business_name: ''
   tags: []

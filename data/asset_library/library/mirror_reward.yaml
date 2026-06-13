@@ -4,11 +4,13 @@ assets:
   tags: []
   note: ''
   checksum: sha256:a6fcfdbc6c3cb37e30d00f2563b7a38cc5bfb8d3351838beabb7acf607e5d459
+  status: missing
 - file: dark/en/mirror/claim_reward/use_enkephalin_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:63616f214ebed3f167c29f637c2f95584f9cfc2f13d3a8b91dcba0f171dfac75
+  status: missing
 - file: dark/share/mirror/claim_reward/claim_rewards_confirm_assets.png
   business_name: ''
   tags: []
@@ -24,11 +26,13 @@ assets:
   tags: []
   note: ''
   checksum: sha256:a6fcfdbc6c3cb37e30d00f2563b7a38cc5bfb8d3351838beabb7acf607e5d459
+  status: missing
 - file: dark/zh_cn/mirror/claim_reward/use_enkephalin_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:9df807ceefd1a443d74d5ac74e290034422c8064fe8a3195e2ce391b245ebb01
+  status: missing
 - file: default/en/mirror/claim_reward/claim_forfeit_assets.png
   business_name: ''
   tags: []
@@ -136,13 +140,16 @@ assets:
   tags: []
   note: ''
   checksum: sha256:9d4055773c3c6f87530a70fd2b71e158d54e46e46bc55c82ba85a31ad400d21e
+  status: missing
 - file: default/zh_cn/mirror/claim_reward/claim_rewards_confirm_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:c8d00df298fb9fb2b75c644a81e7894643a586cab4f727b1698b64bfc41deb32
+  status: missing
 - file: default/zh_cn/mirror/claim_reward/use_enkephalin_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:1f4f457fc8415266943fb6b0be65f73abf108016a575168187bf63ecc53f8658
+  status: missing

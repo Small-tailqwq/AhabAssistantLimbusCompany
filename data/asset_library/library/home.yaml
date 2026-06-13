@@ -4,6 +4,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:993eb7099b83edd3bd097a59a0aa4f80e03d19a860e58c3c44ab3182b32e77b9
+  status: missing
 - file: dark/share/home/back_assets.png
   business_name: ''
   tags: &id001 []
@@ -19,6 +20,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:4da4021e99e27514be33cb70169d8a791f050e6e08d446ec585ce89ede61a38e
+  status: missing
 - file: dark/share/home/inferno_bus_assets.png
   business_name: ''
   tags: []
@@ -41,6 +43,7 @@ assets:
   - 中文
   note: ''
   checksum: sha256:6110993e35586d5dafda8e6ce482efe6e9ab42bd43f8832b4fafc52f2db89757
+  status: missing
 - file: default/en/home/luxcavation_assets.png
   business_name: ''
   tags:

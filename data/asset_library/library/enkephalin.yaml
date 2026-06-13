@@ -37,16 +37,19 @@ assets:
   tags: []
   note: ''
   checksum: sha256:1df6ca25c6f26e5523dadce013adb4872d99f8b2d119348b4d18565c68e2237a
+  status: missing
 - file: dark/share/enkephalin/lunacy_spend_52_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:11207e075ce1343b455d14192ff056f87f2a07f1ae1f107ba7ec710a64e64b0d
+  status: missing
 - file: dark/share/enkephalin/lunacy_spend_78_assets.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:e497e7fc216d4edbb4249175fb83ca4acc48ec306734bfae5a8ed6f970bbee4f
+  status: missing
 - file: dark/zh_cn/enkephalin/use_lunacy_assets.png
   business_name: 中暗狂气按钮
   tags:

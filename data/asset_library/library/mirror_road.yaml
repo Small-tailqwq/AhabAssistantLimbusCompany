@@ -34,6 +34,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:46e25e2e7a87c5c1fdbbf96cb1e34cf8fc2ec39c36274cda408b95ff6fcccf42
+  status: missing
 - file: dark/zh_cn/mirror/road_to_mir/resume_assets.png
   business_name: ''
   tags: []
@@ -664,6 +665,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:1e40f22d1fce780d0f792b09131a7a2324e5004ad4e3487f6f4f15cc503bf8d4
+  status: missing
 - file: default/zh_cn/mirror/road_to_mir/pierce_gift_assets.png
   business_name: ''
   tags: []

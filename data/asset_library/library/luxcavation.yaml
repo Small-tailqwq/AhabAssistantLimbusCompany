@@ -9,6 +9,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:f3a68032606a04fe5f924237ea9031e079fd3ccbc264479c47adfca593616ad4
+  status: missing
 - file: dark/share/luxcavation/thread_consume.png
   business_name: ''
   tags: []
@@ -35,6 +36,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:c5d19d3a453a46705b9d8b1b579ba7ae606c0fa649c7b5b24592d60df95306c2
+  status: missing
 - file: default/share/luxcavation/EXP_assets.png
   business_name: ''
   tags: []
@@ -61,6 +63,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:3b64a5656178e944a2a0551f9bc7b01651d0a1c25482de2ad71b5c64e676b399
+  status: missing
 - file: default/share/luxcavation/thread_enter_assets.png
   business_name: ''
   tags: []
@@ -94,3 +97,14 @@ assets:
   tags: []
   note: ''
   checksum: sha256:2912599eacfaaf29525020d763420bf8ecc38657e9fb4ee6c11a1c0e0435989c
+  status: missing
+- file: default/share/luxcavation/continuous_combat_up_box.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:5e1550fecf53c640b496e8db8c7fc24eb62e9000af9aeae8445d46178bed45f1
+- file: default/share/luxcavation/thread_continuous_combat_show_box.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:c697e296cfddf7b3a6f0ccd9959ae764cc6d69452ce5cec4c29ba02d0c45205c

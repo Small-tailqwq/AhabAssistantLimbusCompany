@@ -63,21 +63,25 @@ assets:
   tags: []
   note: ''
   checksum: sha256:e9e6111e9bbb944e737e276d474886f9256a74bf4dc974bd3c31b0e8c389e0c8
+  status: missing
 - file: default/share/battle/clear_rewards_EXP_2.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:877b7f8a53a306666f0dcfc8adf901570e0aa60855712f0571843fec1f0df03c
+  status: missing
 - file: default/share/battle/clear_rewards_EXP_3.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:aad88b556afe42b297cdea8736861a2e768f0185be015a65629b8b5b7103789c
+  status: missing
 - file: default/share/battle/clear_rewards_thread.png
   business_name: ''
   tags: []
   note: ''
   checksum: sha256:514e9517cb5be820ebb9b652433a06d6f786c06e1b01e394c5371ee6e1b3a8c8
+  status: missing
 - file: default/share/battle/continue_assets.png
   business_name: ''
   tags: []
@@ -190,3 +194,23 @@ assets:
   note: ''
   checksum: sha256:2b0c46b9d52f429a67db4d3f0e400ef5649b2af230503ba6ca5be7cbf8f0ba37
   status: missing
+- file: default/share/battle/clear_rewards_EXP_1_assets.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:e9e6111e9bbb944e737e276d474886f9256a74bf4dc974bd3c31b0e8c389e0c8
+- file: default/share/battle/clear_rewards_EXP_2_assets.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:877b7f8a53a306666f0dcfc8adf901570e0aa60855712f0571843fec1f0df03c
+- file: default/share/battle/clear_rewards_EXP_3_assets.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:aad88b556afe42b297cdea8736861a2e768f0185be015a65629b8b5b7103789c
+- file: default/share/battle/clear_rewards_thread_assets.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:514e9517cb5be820ebb9b652433a06d6f786c06e1b01e394c5371ee6e1b3a8c8
