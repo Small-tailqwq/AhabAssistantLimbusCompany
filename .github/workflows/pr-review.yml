@@ -153,15 +153,16 @@ jobs:
               commitSha = pr.head.sha;
             }
 
-            const reviewComments = [];
-            const commentsWithoutLine = [];
+            const inlineComments = [];
+            const summaryComments = [];
 
             for (const comment of comments) {
-              const body = formatComment(comment);
+              const severity = classifySeverity(comment.content || '');
+              const body = formatComment(comment, severity);
               const hasValidLine = (comment.start_line >= 1) || (comment.end_line >= 1);
 
-              if (!hasValidLine) {
-                commentsWithoutLine.push({ comment, body });
+              if (!hasValidLine || severity === 'low') {
+                summaryComments.push({ comment, body, severity });
                 continue;
               }
 
@@ -180,19 +181,26 @@ jobs:
                 rc.side = 'RIGHT';
               }
 
-              reviewComments.push({ comment, reviewComment: rc });
+              inlineComments.push({ comment, reviewComment: rc, severity });
             }
 
-            let summaryBody = `🔍 **OpenCodeReview** found **${comments.length}** issue(s).`;
-            summaryBody += `\n- ✅ ${reviewComments.length} inline comment(s)`;
-            summaryBody += `\n- 📝 ${commentsWithoutLine.length} in summary`;
+            let summaryBody = `## 🔍 OpenCodeReview\n\n`;
+            summaryBody += `**${comments.length}** issue(s) found in ${result.summary?.files_reviewed || '?'} file(s).\n\n`;
+            summaryBody += `| Priority | Count |\n|---|---|\n`;
+            if (inlineComments.length > 0) summaryBody += `| 🔴 Inline (High/Medium) | ${inlineComments.length} |\n`;
+            summaryBody += `| 📝 Summary (Low / unpositioned) | ${summaryComments.length} |\n`;
             if (warnings.length > 0) {
-              summaryBody += `\n\n⚠️ ${warnings.length} warning(s) during review.`;
+              summaryBody += `\n⚠️ ${warnings.length} warning(s) during review.\n`;
             }
+            summaryBody += `\n> 💡 Build-breaking and correctness issues are shown inline. Low-priority suggestions are collapsed below. Use your own judgment — AI suggestions are advisory only.\n`;
 
-            for (const { comment } of commentsWithoutLine) {
-              summaryBody += '\n\n---\n\n';
-              summaryBody += formatSummaryEntry(comment);
+            if (summaryComments.length > 0) {
+              summaryBody += '\n<details><summary>📝 Low-priority & unpositioned suggestions (' + summaryComments.length + ')</summary>\n\n';
+              for (const { comment } of summaryComments) {
+                summaryBody += formatSummaryEntry(comment);
+                summaryBody += '\n\n---\n\n';
+              }
+              summaryBody += '</details>\n';
             }
 
             try {
@@ -203,15 +211,15 @@ jobs:
                 commit_id: commitSha,
                 body: summaryBody,
                 event: 'COMMENT',
-                comments: reviewComments.map(({ reviewComment }) => reviewComment)
+                comments: inlineComments.map(({ reviewComment }) => reviewComment)
               });
-              console.log(`Posted review with ${reviewComments.length} inline comments`);
+              console.log(`Posted review with ${inlineComments.length} inline comments`);
             } catch (e) {
               console.log('Batch review failed, posting individually:', e.message);
 
               let posted = 0;
               const failed = [];
-              for (const { comment, reviewComment } of reviewComments) {
+              for (const { comment, reviewComment } of inlineComments) {
                 try {
                   await github.rest.pulls.createReview({
                     owner: context.repo.owner,
@@ -229,22 +237,25 @@ jobs:
                 }
               }
 
-              let finalBody = `🔍 **OpenCodeReview** found **${comments.length}** issue(s).`;
-              finalBody += `\n- ✅ ${posted} inline comment(s)`;
-              finalBody += `\n- 📝 ${commentsWithoutLine.length + failed.length} in summary`;
-              if (warnings.length > 0) {
-                finalBody += `\n\n⚠️ ${warnings.length} warning(s).`;
-              }
+              let finalBody = `## 🔍 OpenCodeReview\n\n`;
+              finalBody += `**${comments.length}** issue(s) found.\n\n`;
+              finalBody += `| Priority | Count |\n|---|---|\n`;
+              if (posted > 0) finalBody += `| 🔴 Inline (High/Medium) | ${posted} |\n`;
+              finalBody += `| 📝 Summary | ${summaryComments.length + failed.length} |\n`;
+              if (warnings.length > 0) finalBody += `\n⚠️ ${warnings.length} warning(s).\n`;
 
-              for (const { comment } of commentsWithoutLine) {
-                finalBody += '\n\n---\n\n';
-                finalBody += formatSummaryEntry(comment);
-              }
-              for (const { comment, error } of failed) {
-                finalBody += '\n\n---\n\n';
-                finalBody += `### 📄 \`${comment.path}\``;
-                if (comment.start_line >= 1) finalBody += ` (L${comment.start_line})`;
-                finalBody += `\n\n⚠️ Failed to post inline: ${error}\n\n${comment.content || ''}`;
+              if (summaryComments.length > 0 || failed.length > 0) {
+                finalBody += '\n<details><summary>📝 Low-priority & unpositioned suggestions (' + (summaryComments.length + failed.length) + ')</summary>\n\n';
+                for (const { comment } of summaryComments) {
+                  finalBody += formatSummaryEntry(comment);
+                  finalBody += '\n\n---\n\n';
+                }
+                for (const { comment, error } of failed) {
+                  finalBody += `### 📄 \`${comment.path}\``;
+                  if (comment.start_line >= 1) finalBody += ` (L${comment.start_line})`;
+                  finalBody += `\n\n⚠️ Failed to post inline: ${error}\n\n${comment.content || ''}\n\n---\n\n`;
+                }
+                finalBody += '</details>\n';
               }
 
               await github.rest.issues.createComment({
@@ -255,9 +266,19 @@ jobs:
               });
             }
 
-            function formatComment(comment) {
-              let body = comment.content || '';
-              if (comment.suggestion_code && comment.existing_code) {
+            function classifySeverity(content) {
+              const lower = (content || '').toLowerCase();
+              if (/\b(high|critical|blocker|bug)\b/i.test(lower) && !lower.includes('low')) return 'high';
+              if (/\bmedium\b/i.test(lower)) return 'medium';
+              if (/\blow\b/i.test(lower)) return 'low';
+              if (lower.includes('readability') || lower.includes('maintainability') ||
+                  lower.includes('code duplication') || lower.includes('magic number')) return 'low';
+              return 'medium';
+            }
+
+            function formatComment(comment, severity) {
+              let body = (severity === 'high' ? '🔴 ' : severity === 'medium' ? '🟡 ' : '') + (comment.content || '');
+              if (comment.suggestion_code && comment.existing_code && severity !== 'low') {
                 body += '\n\n**Suggestion:**\n';
                 body += fencedBlock(comment.suggestion_code, 'suggestion');
               }
@@ -268,6 +289,8 @@ jobs:
               let md = `### 📄 \`${comment.path}\``;
               if (comment.start_line >= 1 && comment.end_line >= 1) {
                 md += ` (L${comment.start_line}-L${comment.end_line})`;
+              } else if (comment.start_line >= 1) {
+                md += ` (L${comment.start_line})`;
               }
               md += '\n\n' + (comment.content || '');
               if (comment.suggestion_code) {
