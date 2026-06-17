@@ -259,7 +259,8 @@ class TestMirrorNavigation(unittest.TestCase):
         auto = _StarlightSelectionAuto()
         mirror = cast(Any, mirror_module.Mirror.__new__(mirror_module.Mirror))
         mirror.use_starlight = True
-        mirror.choose_opening_bonus = False
+        mirror.opening_bonus = [1, 1, 1, 1, 0, 0, 0, 0, 0, 0]
+        mirror.opening_bonus_order = [0] * 10
 
         cfg_stub = type("CfgStub", (), {"set_win_size": 1440, "mouse_action_interval": 0})()
 

@@ -7,7 +7,7 @@ from pydantic import ValidationError
 from ruamel.yaml import YAML
 
 from module.config import TeamSetting, cfg, theme_list
-from module.config.config import migrate_legacy_team_setting_data
+from module.config.config import migrate_legacy_team_setting_data, sync_team_setting_starlight_fields
 from module.logger import log
 
 
@@ -32,6 +32,7 @@ def export_team_settings(team_num: int, file_path: str) -> bool:
         if not team_setting:
             log.error(f"队伍 {team_num} 未找到")
             return False
+        sync_team_setting_starlight_fields(team_setting)
 
         yaml = YAML()
         export_data = team_setting.model_dump()

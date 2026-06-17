@@ -102,10 +102,9 @@ class Mirror:
         self.shop = Shop(team_setting)
         self.system = all_systems[team_setting.team_system]  # 选择的体系
         self.avoid_skill_3 = team_setting.avoid_skill_3  # 是否避免使用3技能
-        # 自选开局星光
-        self.choose_opening_bonus = team_setting.choose_opening_bonus
+        # 开局星光加成
+        self.opening_bonus = team_setting.opening_bonus
         self.opening_bonus_order = team_setting.opening_bonus_order
-        self.opening_bonus_level = team_setting.opening_bonus_level
         self.use_starlight = team_setting.use_starlight
         # 自选奖励卡优先度
         self.reward_cards = team_setting.reward_cards
@@ -926,9 +925,8 @@ class Mirror:
         coins = auto.find_element("mirror/road_to_mir/dreaming_star/coins_assets.png", threshold=0.9)
         scale = cfg.set_win_size / 1440
         first_starlight = [coins[0] - 1800 * scale, coins[1] + 300 * scale]
-        first_single_plus = (first_starlight[0] - 80 * scale, first_starlight[1] + 320 * scale)
-        double_plus_offset = 80 * scale * 2
-        star_card_size = (400 * scale, 480 * scale)
+        starlights_X = [first_starlight[0] + (i % 5) * 400 * scale for i in range(10)]
+        starlights_Y = [first_starlight[1] + (i // 5) * 480 * scale for i in range(10)]
 
         loop_count = 30
         auto.model = "clam"
@@ -961,73 +959,56 @@ class Mirror:
                     break
 
             if not bonuses_selected:
-                if not self.choose_opening_bonus:
-                    for i in range(4):
-                        auto.mouse_action_with_pos((first_starlight[0] + star_card_size[0] * i, first_starlight[1]))
-                        sleep(cfg.mouse_action_interval)
+                bonus_num = len(self.opening_bonus)
+                level_count = self.opening_bonus.count(1)
+                level_plus_count = self.opening_bonus.count(2)
+                level_plusplus_count = self.opening_bonus.count(3)
+                if level_count == bonus_num:
+                    auto.click_element("mirror/road_to_mir/select_all_stars_assets.png")
+                elif level_plus_count == bonus_num:
+                    auto.click_element("mirror/road_to_mir/select_all_stars_assets.png")
+                    auto.click_element("mirror/road_to_mir/dreaming_star/level_one_bonus_assets.png")
+                elif level_plusplus_count == bonus_num:
+                    auto.click_element("mirror/road_to_mir/select_all_stars_assets.png")
+                    auto.click_element("mirror/road_to_mir/dreaming_star/level_two_bonus_assets.png")
                 else:
-                    click_list = []
-                    level_one_count = 0
-                    level_two_count = 0
-                    for i in range(1, 11):
-                        if i in self.opening_bonus_order:
-                            index = self.opening_bonus_order.index(i)
-                            click_list.append(index)
-                            if self.opening_bonus_level[index] == 1:
-                                level_one_count += 1
-                            elif self.opening_bonus_level[index] == 2:
-                                level_two_count += 1
-                    if len(click_list) == 0:
-                        all_click_level = 0
-                    elif len(click_list) == level_one_count:
-                        all_click_level = 1
-                    elif len(click_list) == level_two_count:
-                        all_click_level = 2
-                    else:
-                        all_click_level = 0
-                    if not (len(click_list) == 10 and auto.click_element("mirror/road_to_mir/select_all_stars_assets.png")):
-                        for index in click_list:
-                            if index <= 4:
-                                auto.mouse_action_with_pos(
-                                    (first_starlight[0] + star_card_size[0] * index, first_starlight[1]),
-                                )
-                            else:
-                                auto.mouse_action_with_pos(
-                                    (
-                                        first_starlight[0] + star_card_size[0] * (index - 5),
-                                        first_starlight[1] + star_card_size[1],
-                                    ),
-                                )
-                            sleep(cfg.mouse_action_interval)
-                    if all_click_level == 1 and auto.click_element(
-                        "mirror/road_to_mir/dreaming_star/level_one_bonus_assets.png"
-                    ):
-                        pass
+                    selected_indices = [index for index, bonus_value in enumerate(self.opening_bonus) if bonus_value >= 1]
+                    if isinstance(self.opening_bonus_order, list):
+                        ordered_pairs = []
+                        for index in selected_indices:
+                            if index < len(self.opening_bonus_order):
+                                try:
+                                    order = int(self.opening_bonus_order[index])
+                                except (TypeError, ValueError):
+                                    order = 0
+                                if order > 0:
+                                    ordered_pairs.append((order, index))
+                        ordered_indices = [index for _, index in sorted(ordered_pairs)]
+                        selected_indices = ordered_indices + [
+                            index for index in selected_indices if index not in ordered_indices
+                        ]
 
-                    elif all_click_level == 2 and auto.click_element(
-                        "mirror/road_to_mir/dreaming_star/level_two_bonus_assets.png"
-                    ):
-                        pass
-                    else:
-                        for index in click_list:
-                            if self.opening_bonus_level[index]:
-                                if index <= 4:
-                                    if self.opening_bonus_level[index] == 2:
-                                        x = first_single_plus[0] + double_plus_offset + star_card_size[0] * index
-                                    else:
-                                        x = first_single_plus[0] + star_card_size[0] * index
-                                    auto.mouse_action_with_pos(
-                                        (x, first_single_plus[1]),
-                                    )
-                                else:
-                                    if self.opening_bonus_level[index] == 2:
-                                        x = first_single_plus[0] + double_plus_offset + star_card_size[0] * (index - 5)
-                                    else:
-                                        x = first_single_plus[0] + star_card_size[0] * (index - 5)
-                                    auto.mouse_action_with_pos(
-                                        (x, first_single_plus[1] + star_card_size[1]),
-                                    )
-                                sleep(cfg.mouse_action_interval)
+                    for index in selected_indices:
+                        auto.mouse_action_with_pos((starlights_X[index], starlights_Y[index]))
+                        sleep(cfg.mouse_action_interval)
+
+                    for index in selected_indices:
+                        if self.opening_bonus[index] == 2:
+                            auto.mouse_action_with_pos(
+                                (
+                                    starlights_X[index] - 80 * scale,
+                                    starlights_Y[index] + 320 * scale,
+                                )
+                            )
+                            sleep(cfg.mouse_action_interval)
+                        elif self.opening_bonus[index] == 3:
+                            auto.mouse_action_with_pos(
+                                (
+                                    starlights_X[index] + 80 * scale,
+                                    starlights_Y[index] + 320 * scale,
+                                )
+                            )
+                            sleep(cfg.mouse_action_interval)
                 bonuses_selected = True
 
             if auto.click_element("mirror/road_to_mir/dreaming_star/dreaming_star_enter_assets.png"):
