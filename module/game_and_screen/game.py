@@ -49,8 +49,16 @@ class Game(metaclass=SingletonMeta):
                 return True
 
         if not os.path.exists(self.game_path):
-            self.log.error(f"游戏路径不存在：{self.game_path}，使用steam命令启动...")
-            self.game_path_exists = False
+            from module.config.config import Config
+            detected = Config._auto_detect_game_path()
+            if detected:
+                cfg.set_value("game_path", detected)
+                self.game_path = detected
+                self.game_path_exists = True
+                self.log.info(f"自动检测并更新游戏路径: {detected}")
+            else:
+                self.log.error(f"游戏路径不存在：{self.game_path}，使用steam命令启动...")
+                self.game_path_exists = False
 
         try:
             # 调用系统打开该 URL（会触发 Steam 启动游戏）

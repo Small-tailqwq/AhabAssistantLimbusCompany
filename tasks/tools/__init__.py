@@ -14,10 +14,11 @@ from tasks.tools.production_module import ProductionModule
 from tasks.tools.screenshot_module import QuickScreenshotGet, ScreenshotGet
 from tasks.tools.ghub_manager import GHubManager
 from tasks.tools.tutorial_skip import TutorialSkipWindow
+from tasks.tools.llc_localization import LLCLocalizationWindow
 
 
 class ToolManager:
-    def __init__(self, tool: Literal["battle", "production", "screenshot", "issue_replay", "asset_manager", "tutorial_skip", "quick_screenshot", "ghub_manager"]):
+    def __init__(self, tool: Literal["battle", "production", "screenshot", "issue_replay", "asset_manager", "tutorial_skip", "quick_screenshot", "ghub_manager", "llc_localization"]):
         self.tool = tool
         self.initialized = False
         self.w: QObject = None
@@ -56,6 +57,8 @@ class ToolManager:
                     self.w = TutorialSkipWindow()
                 elif self.tool == "ghub_manager":
                     self.w = GHubManager()
+                elif self.tool == "llc_localization":
+                    self.w = LLCLocalizationWindow()
                 if self.w is None:
                     log.error(f"工具 {self.tool} 未能成功启动")
                     self.initialized = None  # 失败返回
@@ -77,7 +80,7 @@ class ToolManager:
         QTimer.singleShot(0, app, create_and_show)
 
 
-def start(tool: Literal["battle", "production", "screenshot", "issue_replay", "asset_manager", "tutorial_skip", "quick_screenshot", "ghub_manager"]):
+def start(tool: Literal["battle", "production", "screenshot", "issue_replay", "asset_manager", "tutorial_skip", "quick_screenshot", "ghub_manager", "llc_localization"]):
     """
     启动工具管理器的方法。
     :param tool: 启动工具，可以是"battle"。

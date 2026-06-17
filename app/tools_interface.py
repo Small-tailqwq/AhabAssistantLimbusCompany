@@ -125,6 +125,16 @@ class ToolsInterface(ScrollArea):
             ),
             parent=self.tools_group,
         )
+        self.llc_localization_card = BasePushSettingCard(
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "运行"),
+            FIF.LANGUAGE,
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "零协汉化更新"),
+            QT_TRANSLATE_NOOP(
+                "BasePushSettingCard",
+                "检测零协汉化版本，自动下载更新汉化文件",
+            ),
+            parent=self.tools_group,
+        )
 
     def __initLayout(self):
         self.tools_group.addSettingCard(self.auto_battle_card)
@@ -134,6 +144,7 @@ class ToolsInterface(ScrollArea):
         self.tools_group.addSettingCard(self.asset_manager_card)
         self.tools_group.addSettingCard(self.skip_tutorial_card)
         self.tools_group.addSettingCard(self.ghub_manager_card)
+        self.tools_group.addSettingCard(self.llc_localization_card)
 
         self.expand_layout.addWidget(self.tools_group)
 
@@ -162,6 +173,9 @@ class ToolsInterface(ScrollArea):
         self.asset_manager_card.clicked.connect(lambda: self._tool_start("asset_manager", self.asset_manager_card))
         self.skip_tutorial_card.clicked.connect(lambda: self._tool_start("tutorial_skip", self.skip_tutorial_card))
         self.ghub_manager_card.clicked.connect(lambda: self._tool_start("ghub_manager", self.ghub_manager_card))
+        self.llc_localization_card.clicked.connect(
+            lambda: self._tool_start("llc_localization", self.llc_localization_card)
+        )
 
     def _tool_start(self, tool_name: str, card: BasePushSettingCard):
         if tool_name in self.tools:
@@ -280,3 +294,4 @@ class ToolsInterface(ScrollArea):
         self.asset_manager_card.retranslateUi()
         self.skip_tutorial_card.retranslateUi()
         self.ghub_manager_card.retranslateUi()
+        self.llc_localization_card.retranslateUi()

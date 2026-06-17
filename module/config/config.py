@@ -8,6 +8,12 @@ from pathlib import Path
 from time import localtime, strftime, time
 from typing import Any, Optional
 
+if sys.platform == "win32":
+    try:
+        import winreg
+    except ImportError:
+        winreg = None
+
 from pydantic import BaseModel, ValidationError
 from ruamel.yaml import YAML, YAMLError
 
@@ -243,6 +249,41 @@ class Config(metaclass=SingletonMeta):
         files.sort(key=lambda f: self._parse_backup_timestamp(f.name), reverse=True)
         return files
 
+    @staticmethod
+    def _scan_steam_libraries() -> list[Path]:
+        paths: list[Path] = []
+        if sys.platform != "win32" or winreg is None:
+            return paths
+        try:
+            key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Valve\Steam")
+            steam_path = Path(winreg.QueryValueEx(key, "InstallPath")[0])
+            winreg.CloseKey(key)
+        except OSError:
+            return paths
+        vdf_path = steam_path / "steamapps" / "libraryfolders.vdf"
+        if not vdf_path.exists():
+            return paths
+        try:
+            text = vdf_path.read_text(encoding="utf-8")
+            for m in re.finditer(r'"path"\s*"([^"]+)"', text):
+                p = Path(m.group(1).replace("\\\\", "\\"))
+                if p not in paths:
+                    paths.append(p)
+        except OSError:
+            pass
+        return paths
+
+    @staticmethod
+    def _auto_detect_game_path() -> str:
+        lib_paths = Config._scan_steam_libraries()
+        for lib in lib_paths:
+            candidate = lib / "steamapps" / "common" / "Limbus Company" / "LimbusCompany.exe"
+            if candidate.exists():
+                log.info(f"自动检测到游戏路径: {candidate}")
+                return str(candidate)
+        log.info("未自动检测到游戏路径，请手动设置")
+        return ""
+
     def _repair_config(self, config: dict) -> int:
         """检测并修复已知的配置损坏模式，返回修复计数"""
         repairs = 0
@@ -303,6 +344,11 @@ class Config(metaclass=SingletonMeta):
                     self._old_version_cfg_upgrade(saved_version, loaded_config)
 
                 self.config = ConfigModel(**loaded_config)
+                gp = Path(self.config.game_path)
+                if not gp.exists() or not gp.is_file():
+                    detected = self._auto_detect_game_path()
+                    if detected:
+                        self.config.game_path = detected
                 self._reset_session_only_config()
                 queue_in_loaded_config = loaded_config.get("teams_active_queue")
                 if queue_in_loaded_config is None:
@@ -586,6 +632,11 @@ class Config(metaclass=SingletonMeta):
                     continue
                 repairs = self._repair_config(loaded_config)
                 self.config = ConfigModel(**loaded_config)
+                gp = Path(self.config.game_path)
+                if not gp.exists() or not gp.is_file():
+                    detected = self._auto_detect_game_path()
+                    if detected:
+                        self.config.game_path = detected
                 self._reset_session_only_config()
                 queue_in_loaded_config = loaded_config.get("teams_active_queue")
                 if queue_in_loaded_config is None:
