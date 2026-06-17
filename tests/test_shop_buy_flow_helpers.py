@@ -113,6 +113,28 @@ class TestShopBuyFlowHelpers(unittest.TestCase):
         auto_mock.click_element.assert_called_once_with("mirror/road_in_mir/ego_gift_get_confirm_assets.png")
         auto_mock.mouse_click_blank.assert_called_once_with(times=3)
 
+    @mock.patch("tasks.mirror.in_shop.sleep", return_value=None)
+    @mock.patch("tasks.mirror.in_shop.auto")
+    def test_selected_id_skill_replacement_clicks_return_when_no_sinner_can_replace(self, auto_mock, _sleep_mock):
+        shop = Shop(make_team_setting(skill_replacement_select=1, sinner_order=[1, 3]))
+
+        def fake_find_element(target, *args, **kwargs):
+            if target == "mirror/shop/ID_skill_replace_0_purchased_assets.png":
+                return False
+            if target == "mirror/shop/skill_replacement_coins.png":
+                return []
+            raise AssertionError(f"unexpected find target: {target}")
+
+        auto_mock.find_element.side_effect = fake_find_element
+
+        shop.selected_id_skill_replacement("mirror/shop/ID_skill_search_assets.png")
+
+        self.assertEqual(auto_mock.click_element.call_args_list[-1].args[0], "mirror/shop/ID_skill_replace_search_return_assets.png")
+        self.assertEqual(
+            [call.args[0] for call in auto_mock.click_element.call_args_list].count("mirror/shop/ID_skill_search_assets.png"),
+            2,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
