@@ -46,6 +46,23 @@ class TestSimulatorRecovery(unittest.TestCase):
 
         self.assertEqual(clicks, [(1617, 580)])
 
+    def test_click_title_screen_safely_allows_retry_after_five_seconds(self):
+        clicks = []
+        cfg_stub = type("CfgStub", (), {"simulator": True, "set_win_size": 1000})()
+        auto_stub = type("AutoStub", (), {"mouse_click": lambda self, x, y: clicks.append((x, y))})()
+
+        with (
+            patch.object(retry_module, "cfg", cfg_stub),
+            patch.object(retry_module, "auto", auto_stub),
+            patch.object(retry_module, "_last_title_screen_tap_time", 20.0),
+        ):
+            with patch.object(retry_module.time, "time", return_value=24.9):
+                retry_module.click_title_screen_safely()
+            with patch.object(retry_module.time, "time", return_value=25.0):
+                retry_module.click_title_screen_safely()
+
+        self.assertEqual(clicks, [(1617, 580)])
+
     def test_ensure_simulator_game_started_restarts_inactive_game(self):
         calls = []
 
