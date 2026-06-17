@@ -19,16 +19,27 @@ class Game(metaclass=SingletonMeta):
         self.check_in_short_time = 0
 
     def check_game_alive(self):
-        for proc in psutil.process_iter(["name"]):
+        for proc in psutil.process_iter(["name", "memory_info", "cpu_times"]):
             try:
-                # 获取进程的可执行文件名（如 "notepad.exe"）
-                proc_name = proc.info["name"]
-                # 精确匹配进程名（区分大小写，取决于系统）
-                if self.process_name in proc_name:
-                    self.log.debug(f"游戏已启动：{self.process_name}，进程ID：{proc.pid}")
-                    return True
+                proc_name: str | None = proc.info["name"]
+                if proc_name is None or self.process_name not in proc_name:
+                    continue
+
+                mem = proc.info.get("memory_info")
+                cpu = proc.info.get("cpu_times")
+
+                # 幽灵进程判定：几乎无内存占用 + 0 CPU 时间 = 进程尸体
+                if mem is not None and cpu is not None:
+                    if mem.rss < 1024 * 1024 and cpu.user == 0.0 and cpu.system == 0.0:
+                        self.log.warning(
+                            f"检测到幽灵进程：{proc_name}(PID:{proc.pid}) "
+                            f"内存{mem.rss / 1024:.0f}KB，CPU时间0，跳过"
+                        )
+                        continue
+
+                self.log.debug(f"游戏已启动：{proc_name}，进程ID：{proc.pid}")
+                return True
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                # 忽略已终止、无权限或僵尸进程
                 continue
         return False
 
