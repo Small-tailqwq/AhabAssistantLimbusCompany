@@ -123,6 +123,43 @@ class _MirrorShopExitAuto:
         return False
 
 
+class _StarlightSelectionAuto:
+    def __init__(self):
+        self.iteration = 0
+        self.model = None
+        self.mouse_action_calls = []
+        self.mouse_click_calls = []
+
+    def find_element(self, target, *_, **__):
+        if target == "mirror/road_to_mir/dreaming_star/coins_assets.png":
+            return (2000, 400)
+        if target == "mirror/road_to_mir/bleed_gift_assets.png":
+            return self.iteration >= 2
+        if target == "mirror/road_to_mir/dreaming_star/select_star_confirm_assets.png":
+            return False
+        return False
+
+    def click_element(self, target, *_, **__):
+        if target == "mirror/road_to_mir/dreaming_star/dreaming_star_enter_assets.png":
+            return self.iteration == 1
+        return False
+
+    def mouse_action_with_pos(self, coordinates, *_, **__):
+        self.mouse_action_calls.append(coordinates)
+        return True
+
+    def mouse_click(self, x, y, *_, **__):
+        self.mouse_click_calls.append((x, y))
+        return True
+
+    def mouse_to_blank(self, *_, **__):
+        return None
+
+    def take_screenshot(self):
+        self.iteration += 1
+        return object()
+
+
 class _ShopStub:
     def __init__(self, result):
         self.result = result
@@ -217,6 +254,32 @@ class TestMirrorNavigation(unittest.TestCase):
 
         self.assertEqual(shop_stub.called_with_floor, 4)
         self.assertEqual(map_stub.cache_calls, 0)
+
+    def test_enter_mir_with_star_uses_mouse_action_for_starlight_clicks(self):
+        auto = _StarlightSelectionAuto()
+        mirror = cast(Any, mirror_module.Mirror.__new__(mirror_module.Mirror))
+        mirror.use_starlight = True
+        mirror.choose_opening_bonus = False
+
+        cfg_stub = type("CfgStub", (), {"set_win_size": 1440, "mouse_action_interval": 0})()
+
+        with (
+            patch.object(mirror_module, "auto", auto),
+            patch.object(mirror_module, "cfg", cfg_stub),
+            patch.object(mirror_module, "sleep", return_value=None),
+        ):
+            mirror.enter_mir_with_star()
+
+        self.assertEqual(
+            auto.mouse_action_calls,
+            [
+                (200.0, 700.0),
+                (600.0, 700.0),
+                (1000.0, 700.0),
+                (1400.0, 700.0),
+            ],
+        )
+        self.assertEqual(auto.mouse_click_calls, [])
 
 
 if __name__ == "__main__":
