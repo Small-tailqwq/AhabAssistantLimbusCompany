@@ -99,6 +99,69 @@ class TestToolStatusStyle(unittest.TestCase):
             setTheme(Theme.LIGHT)
             app.processEvents()
 
+    def test_auto_battle_clears_stop_request_on_finished(self):
+        app = QApplication.instance() or QApplication([])
+
+        with mock.patch("tasks.tools.infinite_battle.ExactGlobalHotKeys", _DummyHotKeys):
+            window = InfiniteBattles()
+
+        try:
+            with (
+                mock.patch.object(window, "log_text"),
+                mock.patch("tasks.tools.infinite_battle.auto") as mock_auto,
+            ):
+                window.on_battle_finished()
+                mock_auto.clear_stop_request.assert_called_once()
+        finally:
+            window.close()
+            app.processEvents()
+
+    def test_auto_battle_re_enables_checkboxes_on_finished(self):
+        app = QApplication.instance() or QApplication([])
+
+        with mock.patch("tasks.tools.infinite_battle.ExactGlobalHotKeys", _DummyHotKeys):
+            window = InfiniteBattles()
+
+        try:
+            window.defense_box.setDisabled(True)
+            window.defense_on_turn1_box.setDisabled(True)
+            window.not_choose_event_box.setDisabled(True)
+            window.main_story_mode_box.setDisabled(True)
+
+            with (
+                mock.patch("tasks.tools.infinite_battle.auto"),
+                mock.patch.object(window, "log_text"),
+            ):
+                window.on_battle_finished()
+
+            self.assertTrue(window.defense_box.isEnabled())
+            self.assertTrue(window.defense_on_turn1_box.isEnabled())
+            self.assertTrue(window.not_choose_event_box.isEnabled())
+            self.assertTrue(window.main_story_mode_box.isEnabled())
+        finally:
+            window.close()
+            app.processEvents()
+
+    def test_auto_battle_clears_stop_request_before_start(self):
+        app = QApplication.instance() or QApplication([])
+
+        with mock.patch("tasks.tools.infinite_battle.ExactGlobalHotKeys", _DummyHotKeys):
+            window = InfiniteBattles()
+
+        try:
+            worker = mock.MagicMock()
+            worker.isRunning.return_value = False
+            with (
+                mock.patch("tasks.tools.infinite_battle.BattleWorker", return_value=worker),
+                mock.patch("tasks.tools.infinite_battle.auto") as mock_auto,
+            ):
+                window.start_battle()
+                mock_auto.clear_stop_request.assert_called_once()
+                self.assertEqual(window.worker, worker)
+        finally:
+            window.close()
+            app.processEvents()
+
     def test_asset_manager_uses_tool_window_light_theme(self):
         app = QApplication.instance() or QApplication([])
         setTheme(Theme.LIGHT)

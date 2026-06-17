@@ -14,7 +14,9 @@ from module.config import cfg
 from module.game_and_screen import screen
 from module.hotkey_listener import ExactGlobalHotKeys
 from module.logger import log
+from module.my_error.my_error import backMainWinError
 from tasks.battle.battle import Battle
+from tasks.main_story.main_story import MainStory
 from tasks.tools.ui_style import apply_tool_window_theme, center_window, get_status_label_style
 from utils.path_manager import path_manager
 
@@ -31,18 +33,22 @@ class BattleWorker(QThread):
         defense=False,
         defense_on_turn1=False,
         choice_event_handling=True,
+        main_story_mode=False,
         parent=None,
     ):
         super().__init__(parent)
         self.defense = defense
         self.defense_on_turn1 = defense_on_turn1
         self.choice_event_handling = choice_event_handling
+        self.main_story_mode = main_story_mode
         self.initialized = False
         self.battle = Battle(is_tool=True)  # 复用镜牢战斗逻辑
         self.background_click = cfg.background_click
 
     def stop(self):
         """停止工作线程"""
+        if self.main_story_mode:
+            auto.request_stop()
         self.battle.running = False
         if self.background_click is False:
             cfg.set_value("background_click", False)
@@ -65,13 +71,20 @@ class BattleWorker(QThread):
                 self.error_occurred.emit(f"游戏初始化错误: {str(e)}")
                 self.msleep(2000)
                 return
-        self.battle.fight(
-            infinite_battle=True,
-            defense_on_turn1=self.defense_on_turn1,
-            defense_all_time=self.defense,
-            choice_event_handling=self.choice_event_handling,
-            deal_with_spills_in_battle=False,
-        )
+        if self.main_story_mode:
+            try:
+                main_story = MainStory(choice_event_handling=self.choice_event_handling)
+                main_story.run()
+            except backMainWinError as e:
+                self.error_occurred.emit(str(e))
+        else:
+            self.battle.fight(
+                infinite_battle=True,
+                defense_on_turn1=self.defense_on_turn1,
+                defense_all_time=self.defense,
+                choice_event_handling=self.choice_event_handling,
+                deal_with_spills_in_battle=False,
+            )
 
     def _set_win(self):
         try:
@@ -142,10 +155,12 @@ class InfiniteBattles(QWidget):
         self.defense_box = CheckBox(self.tr("无限守备"))
         self.defense_on_turn1_box = CheckBox(self.tr("第一回合开启守备"))
         self.not_choose_event_box = CheckBox(self.tr("不处理事件"))
+        self.main_story_mode_box = CheckBox(self.tr("主线模式(测试)"))
         button_layout.addWidget(self.start_stop_button)
         button_layout.addWidget(self.defense_box)
         button_layout.addWidget(self.defense_on_turn1_box)
         button_layout.addWidget(self.not_choose_event_box)
+        button_layout.addWidget(self.main_story_mode_box)
 
         button_layout.setAlignment(Qt.AlignCenter)
 
@@ -168,10 +183,12 @@ class InfiniteBattles(QWidget):
     def start_battle(self):
         """启动战斗工作线程"""
         if self.worker is None or not self.worker.isRunning():
+            auto.clear_stop_request()
             self.worker = BattleWorker(
                 defense=self.defense_box.isChecked(),
                 defense_on_turn1=self.defense_on_turn1_box.isChecked(),
                 choice_event_handling=not self.not_choose_event_box.isChecked(),
+                main_story_mode=self.main_story_mode_box.isChecked(),
             )
             self.worker.finished.connect(self.on_battle_finished)
             self.worker.battle_executed.connect(self.on_battle_executed)
@@ -184,6 +201,7 @@ class InfiniteBattles(QWidget):
             self.defense_box.setDisabled(True)
             self.defense_on_turn1_box.setDisabled(True)
             self.not_choose_event_box.setDisabled(True)
+            self.main_story_mode_box.setDisabled(True)
 
     def on_initialization_complete(self):
         """当初始化完成时调用"""
@@ -191,9 +209,14 @@ class InfiniteBattles(QWidget):
         self.status_label.setText(self.tr("状态：战斗中..."))
 
     def on_battle_finished(self):
+        auto.clear_stop_request()
         self.log_text.append("战斗线程已停止")
         self.start_stop_button.setText("开始战斗")
         self.status_label.setText("状态：已停止")
+        self.defense_box.setDisabled(False)
+        self.defense_on_turn1_box.setDisabled(False)
+        self.not_choose_event_box.setDisabled(False)
+        self.main_story_mode_box.setDisabled(False)
 
     def stop_battle(self):
         """停止战斗工作线程"""
@@ -209,6 +232,7 @@ class InfiniteBattles(QWidget):
             self.defense_box.setDisabled(False)
             self.defense_on_turn1_box.setDisabled(False)
             self.not_choose_event_box.setDisabled(False)
+            self.main_story_mode_box.setDisabled(False)
             screen.reset_win()
             auto.clear_img_cache()
 

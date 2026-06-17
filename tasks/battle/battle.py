@@ -422,6 +422,13 @@ class Battle:
                 auto.mouse_click(center_x - random_number, center_y + random_number, times=1)
                 sleep(0.15)
 
+            # 主线模式：非无尽战斗中，若已进入剧情画面则退出战斗循环
+            if not infinite_battle and (
+                auto.find_element("scenes/story_meun_assets.png")
+                or auto.find_element("scenes/story_skip_assets.png")
+            ):
+                break
+
             # 战斗结束，进入结算页面
             if auto.click_element("battle/battle_finish_confirm_assets.png", click=False) or auto.find_element(
                 "mirror/claim_reward/battle_statistics_assets.png"
