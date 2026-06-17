@@ -615,6 +615,99 @@ class Config(metaclass=SingletonMeta):
         raise AttributeError(f"'{type(self).__name__}' 对象没有属性 ‘{name}'")
 
 
+def migrate_legacy_team_setting_data(data: dict) -> dict:
+    """Normalize legacy and newer starlight fields into a shared runtime shape."""
+    migrated = dict(data)
+    runtime_bonus = _normalize_runtime_opening_bonus(migrated)
+    if runtime_bonus is None:
+        return migrated
+
+    migrated["opening_bonus"] = runtime_bonus
+    migrated.update(project_starlight_bonus_legacy_fields(runtime_bonus, migrated.get("opening_bonus_order")))
+    return migrated
+
+
+DEFAULT_OPENING_BONUS = [1, 1, 1, 1, 0, 0, 0, 0, 0, 0]
+
+
+def _normalize_starlight_int_list(values: Any, *, max_value: int) -> list[int] | None:
+    if not isinstance(values, list):
+        return None
+
+    normalized: list[int] = []
+    for value in values[:10]:
+        try:
+            normalized.append(max(0, min(max_value, int(value or 0))))
+        except (TypeError, ValueError):
+            normalized.append(0)
+
+    if len(normalized) < 10:
+        normalized.extend([0] * (10 - len(normalized)))
+    return normalized
+
+
+def _normalize_runtime_opening_bonus(data: dict) -> list[int] | None:
+    raw_bonus = _normalize_starlight_int_list(data.get("opening_bonus"), max_value=3)
+    legacy_levels = _normalize_starlight_int_list(data.get("opening_bonus_level"), max_value=2) or [0] * 10
+    legacy_order = _normalize_starlight_int_list(data.get("opening_bonus_order"), max_value=10) or [0] * 10
+    choose_opening_bonus = bool(data.get("choose_opening_bonus", False))
+
+    if raw_bonus is None:
+        if not choose_opening_bonus and not any(legacy_levels) and not any(legacy_order):
+            return None
+        raw_bonus = [0] * 10
+
+    if any(value not in (0, 1) for value in raw_bonus):
+        return raw_bonus
+
+    if choose_opening_bonus or any(legacy_levels) or any(legacy_order):
+        runtime_bonus = [0] * 10
+        for index, selected in enumerate(raw_bonus):
+            if selected > 0:
+                runtime_bonus[index] = min(3, 1 + legacy_levels[index])
+        return runtime_bonus
+
+    if raw_bonus == [0] * 10 or raw_bonus == DEFAULT_OPENING_BONUS:
+        return DEFAULT_OPENING_BONUS.copy()
+    return raw_bonus
+
+
+def project_starlight_bonus_legacy_fields(runtime_bonus: list[int], existing_order: Any = None) -> dict:
+    normalized_bonus = _normalize_starlight_int_list(runtime_bonus, max_value=3) or DEFAULT_OPENING_BONUS.copy()
+    selected_indices = [index for index, value in enumerate(normalized_bonus) if value > 0]
+
+    if normalized_bonus == DEFAULT_OPENING_BONUS:
+        return {
+            "choose_opening_bonus": False,
+            "opening_bonus_select": 0,
+            "opening_bonus_order": [0] * 10,
+            "opening_bonus_level": [0] * 10,
+        }
+
+    normalized_order = _normalize_starlight_int_list(existing_order, max_value=10) or [0] * 10
+    ordered_pairs = [(normalized_order[index], index) for index in selected_indices if normalized_order[index] > 0]
+    ordered_indices = [index for _, index in sorted(ordered_pairs)]
+    ordered_indices.extend(index for index in selected_indices if index not in ordered_indices)
+
+    opening_bonus_order = [0] * 10
+    for order, index in enumerate(ordered_indices, start=1):
+        opening_bonus_order[index] = order
+
+    return {
+        "choose_opening_bonus": True,
+        "opening_bonus_select": len(selected_indices),
+        "opening_bonus_order": opening_bonus_order,
+        "opening_bonus_level": [max(value - 1, 0) if value > 0 else 0 for value in normalized_bonus],
+    }
+
+
+def sync_team_setting_starlight_fields(team_setting: TeamSetting) -> None:
+    normalized_bonus = _normalize_starlight_int_list(team_setting.opening_bonus, max_value=3) or DEFAULT_OPENING_BONUS.copy()
+    team_setting.opening_bonus = normalized_bonus
+    for key, value in project_starlight_bonus_legacy_fields(normalized_bonus, team_setting.opening_bonus_order).items():
+        setattr(team_setting, key, value)
+
+
 class Theme_pack_list(metaclass=SingletonMeta):
     def __init__(self, example_path, theme_pack_list_path, theme_pack_weight_path):
         self.yaml = YAML()

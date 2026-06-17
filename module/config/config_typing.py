@@ -109,19 +109,19 @@ class TeamSetting(BaseModel):
     """自定义奖励卡优先度"""
 
     choose_opening_bonus: bool = False
-    """自选开局加成"""
+    """兼容旧版开局星光自选开关"""
 
     opening_bonus_select: int = 0
-    """开局加成已选数量"""
+    """兼容旧版开局加成已选数量"""
 
-    opening_bonus: List[int] = [0] * 10
-    """启用的开局加成"""
+    opening_bonus: List[int] = [1, 1, 1, 1, 0, 0, 0, 0, 0, 0]
+    """开局星光加成等级（0 未选，1 基础，2 +，3 ++）"""
 
     opening_bonus_order: List[int] = [0] * 10
-    """启用的开局加成顺序"""
+    """兼容旧版开局加成顺序"""
 
     opening_bonus_level: List[int] = [0] * 10
-    """启用的开局加成等级"""
+    """兼容旧版开局加成等级"""
 
     after_level_IV: bool = False
     """自定义合成四级后的操作"""
@@ -197,6 +197,36 @@ class TeamSetting(BaseModel):
 
     mirror_normal_count: int = 0
     """普通镜牢次数"""
+
+    @field_validator("opening_bonus", mode="before")
+    @classmethod
+    def _normalize_opening_bonus(cls, value):
+        if not isinstance(value, list):
+            return [1, 1, 1, 1, 0, 0, 0, 0, 0, 0]
+        normalized = []
+        for item in value[:10]:
+            try:
+                normalized.append(max(0, min(3, int(item or 0))))
+            except (TypeError, ValueError):
+                normalized.append(0)
+        if len(normalized) < 10:
+            normalized.extend([0] * (10 - len(normalized)))
+        return normalized
+
+    @field_validator("opening_bonus_order", "opening_bonus_level", mode="before")
+    @classmethod
+    def _normalize_legacy_opening_bonus_lists(cls, value):
+        if not isinstance(value, list):
+            return [0] * 10
+        normalized = []
+        for item in value[:10]:
+            try:
+                normalized.append(max(0, int(item or 0)))
+            except (TypeError, ValueError):
+                normalized.append(0)
+        if len(normalized) < 10:
+            normalized.extend([0] * (10 - len(normalized)))
+        return normalized
 
 
 class ConfigModel(BaseModel):
