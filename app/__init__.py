@@ -226,6 +226,7 @@ all_checkbox_config_name = [
     "shopping_strategy",
     "opening_items",
     "second_system",
+    "observe_ego_gift",
     "skill_replacement",
     "ignore_shop",
     "use_custom_theme_pack_weight",

@@ -1,6 +1,66 @@
+import re
 from typing import List, Optional
 
 from pydantic import BaseModel, field_validator
+
+
+_OBSERVE_EGO_GIFT_NEW_PATTERN = re.compile(r"^([a-z]+)_(\d+)_(\d+)_(\d+)$")
+_OBSERVE_EGO_GIFT_LEGACY_PATTERN = re.compile(r"^([a-z]+)_gift_(\d+)_(\d+)\.png$")
+_OBSERVE_EGO_GIFT_SYSTEMS = {
+    "burn",
+    "bleed",
+    "tremor",
+    "rupture",
+    "sinking",
+    "poise",
+    "charge",
+    "slash",
+    "pierce",
+    "blunt",
+    "general",
+}
+
+
+def _normalize_observe_ego_gift_selected(values) -> list[str]:
+    if not isinstance(values, list):
+        return []
+
+    normalized: list[str] = []
+    for value in values[:3]:
+        if not isinstance(value, str):
+            continue
+
+        text = value.strip()
+        if not text:
+            continue
+
+        if match := _OBSERVE_EGO_GIFT_NEW_PATTERN.match(text):
+            system = match.group(1)
+            try:
+                level = int(match.group(2))
+                row = int(match.group(3))
+                col = int(match.group(4))
+            except ValueError:
+                continue
+        elif match := _OBSERVE_EGO_GIFT_LEGACY_PATTERN.match(text):
+            system = match.group(1)
+            try:
+                level = int(match.group(2))
+                index = int(match.group(3))
+            except ValueError:
+                continue
+            if index <= 0:
+                continue
+            row = (index - 1) // 8 + 1
+            col = (index - 1) % 8 + 1
+        else:
+            continue
+
+        if system not in _OBSERVE_EGO_GIFT_SYSTEMS or level not in (1, 2, 3) or row not in range(1, 11) or col not in range(1, 9):
+            continue
+        normalized.append(f"{system}_{level}_{row}_{col}")
+
+    return normalized
 
 
 class TeamSetting(BaseModel):
@@ -156,6 +216,12 @@ class TeamSetting(BaseModel):
     second_system_action: List[int] = [0] * 4
     """第二体系行动模式"""
 
+    observe_ego_gift: bool = False
+    """是否启用观测EGO饰品"""
+
+    observe_ego_gift_selected: List[str] = []
+    """观测EGO饰品选择列表（system_level_row_col）"""
+
     skill_replacement: bool = False
     """自定义技能替换"""
 
@@ -229,6 +295,11 @@ class TeamSetting(BaseModel):
         if len(normalized) < 10:
             normalized.extend([0] * (10 - len(normalized)))
         return normalized
+
+    @field_validator("observe_ego_gift_selected", mode="before")
+    @classmethod
+    def _normalize_observe_ego_gift_selected(cls, value):
+        return _normalize_observe_ego_gift_selected(value)
 
 
 class ConfigModel(BaseModel):
