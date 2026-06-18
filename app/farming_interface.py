@@ -764,6 +764,7 @@ class FarmingInterfaceLeft(QWidget):
             self.link_start_button.set_text("Link Start!")
             self.link_start_button.button.setEnabled(True)
             self._enable_setting(self.parent())
+            self.reset_pause_resume_button()
             mediator.refresh_teams_order.emit()
             mediator.mirror_bar_kill_signal.emit()
             self._stop_in_progress = False
