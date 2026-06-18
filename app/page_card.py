@@ -38,6 +38,7 @@ from qfluentwidgets import FluentIcon as FIF
 from app import *
 from app.base_combination import (
     CheckBoxWithComboBox,
+    LabelWithCheckBoxes,
     LabelWithComboBox,
     LabelWithSpinBox,
     MirrorSpinBox,
@@ -399,10 +400,10 @@ class PageGetPrize(PageCard):
         self.setObjectName("page_get_prize")
 
     def __init_card(self):
-        self.set_get_prize = LabelWithComboBox(
-            QT_TRANSLATE_NOOP("LabelWithComboBox", "领取奖励"),
-            "set_get_prize",
-            set_get_prize_options,
+        self.set_get_prize = LabelWithCheckBoxes(
+            QT_TRANSLATE_NOOP("LabelWithCheckBoxes", "领取奖励"),
+            "set_get_prize_actions",
+            set_get_prize_items,
         )
 
     def __init_layout(self):

@@ -81,6 +81,49 @@ class TestGetMailPrize(unittest.TestCase):
         self.assertEqual(actions.count("click:mail/close_assets.png"), 1)
         self.assertLess(actions.index("click:mail/claim_all_assets.png"), actions.index("click:mail/close_assets.png"))
 
+    def test_get_mail_prize_closes_when_empty_mailbox_has_no_confirm(self):
+        actions = []
+
+        class AutoStub:
+            def __init__(self):
+                self.model = "clam"
+                self.claim_clicks = 0
+
+            def take_screenshot(self):
+                actions.append("screenshot")
+                return object()
+
+            def click_element(self, target, *args, **kwargs):
+                actions.append(f"click:{target}")
+                if target == "mail/get_mail_prize_confirm.png":
+                    return False
+                if target == "mail/claim_all_assets.png":
+                    self.claim_clicks += 1
+                    return True
+                if target == "mail/close_assets.png":
+                    return True
+                raise AssertionError
+
+            def find_element(self, target, *args, **kwargs):
+                actions.append(f"find:{target}")
+                if target == "mail/get_mail_prize_confirm.png":
+                    return False
+                if target == "mail/claim_all_assets.png":
+                    return True  # 无邮件，按钮依然可见
+                raise AssertionError
+
+        auto_stub = AutoStub()
+        with (
+            patch.object(get_prize_module, "auto", auto_stub),
+            patch.object(get_prize_module, "retry", side_effect=[None, None]),
+            patch.object(get_prize_module, "sleep", lambda *_: None),
+        ):
+            result = get_prize_module.get_mail_prize()
+
+        self.assertIsInstance(result, float)
+        self.assertEqual(auto_stub.claim_clicks, 1)
+        self.assertEqual(actions.count("click:mail/close_assets.png"), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

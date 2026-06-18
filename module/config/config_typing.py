@@ -308,7 +308,7 @@ class ConfigModel(BaseModel):
     # 解决金丝雀新增的字段导致的兼容性问题，允许出现未定义的字段
     model_config = {"extra": "allow"}
 
-    config_version: int = 1779444115
+    config_version: int = 1779880000
     """配置文件版本号（时间戳）"""
 
     game_title_name: str = "LimbusCompany"
@@ -554,8 +554,8 @@ class ConfigModel(BaseModel):
     get_reward: bool = False
     """是否进行获取奖励"""
 
-    set_get_prize: int = 0
-    """奖励领取模式"""
+    set_get_prize_actions: List[str] = ["mail", "daily_weekly"]
+    """奖励领取细项：mail 邮件, daily_weekly 日/周常任务, pass_level 通行证等级奖励"""
 
     buy_enkephalin: bool = False
     """是否自动购买体力"""

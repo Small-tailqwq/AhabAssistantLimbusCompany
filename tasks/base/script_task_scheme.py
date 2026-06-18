@@ -39,7 +39,13 @@ from tasks.base.make_enkephalin_module import (
     make_enkephalin_module,
 )
 from tasks.battle import battle
-from tasks.daily.get_prize import get_mail_prize, get_pass_prize
+from tasks.daily.get_prize import (
+    claim_pass_level_rewards,
+    claim_pass_missions,
+    get_mail_prize,
+    open_battle_pass_page,
+    open_pass_mission_page,
+)
 from tasks.daily.luxcavation import EXP_luxcavation, thread_luxcavation
 from tasks.mirror.mirror import Mirror
 from tasks.teams.team_formation import select_battle_team
@@ -108,19 +114,23 @@ def onetime_mir_process(team_setting: TeamSetting, team_num: int):
 
 
 def to_get_reward():
-    if cfg.set_get_prize == 0:
-        back_init_menu()
-        get_pass_prize()
-        back_init_menu()
-        get_mail_prize()
-        back_init_menu()
-    elif cfg.set_get_prize == 1:
-        back_init_menu()
-        get_pass_prize()
-        back_init_menu()
-    else:
+    actions = cfg.get_value("set_get_prize_actions") or []
+
+    if "mail" in actions:
         back_init_menu()
         get_mail_prize()
+        back_init_menu()
+
+    has_pass_actions = "daily_weekly" in actions or "pass_level" in actions
+    if has_pass_actions:
+        if "pass_level" in actions:
+            if "daily_weekly" not in actions and not open_pass_mission_page():
+                log.warning("无法打开通行证页面，跳过等级奖励领取")
+            else:
+                if open_battle_pass_page():
+                    claim_pass_level_rewards()
+        else:
+            claim_pass_missions()
         back_init_menu()
 
 

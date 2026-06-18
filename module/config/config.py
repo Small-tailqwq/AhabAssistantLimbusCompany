@@ -192,6 +192,18 @@ class Config(metaclass=SingletonMeta):
                     except Exception as e:
                         log.error(f"删除旧备份文件 {file} 失败: {e}")
 
+        if saved_version < 1779880000:
+            old_value = loaded_config.get("set_get_prize")
+            if isinstance(old_value, int):
+                if old_value == 0:
+                    loaded_config["set_get_prize_actions"] = ["mail", "daily_weekly"]
+                elif old_value == 1:
+                    loaded_config["set_get_prize_actions"] = ["daily_weekly"]
+                elif old_value == 2:
+                    loaded_config["set_get_prize_actions"] = ["mail"]
+                loaded_config.pop("set_get_prize", None)
+                log.info(f"已将旧版奖励领取配置（set_get_prize={old_value}）迁移为 set_get_prize_actions")
+
         log.info("配置升级完成")
 
     def _load_version(self, version_path: str) -> str:

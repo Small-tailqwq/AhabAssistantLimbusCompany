@@ -13,6 +13,9 @@ from utils.image_utils import ImageUtils
 PASS_TASKS_RIGHT_COLUMN_BBOX = (1180, 300, 1500, 1260)
 PASS_ROW_ACTION_PADDING = (150, 18, 25, 18)
 PASS_CLAIM_ORANGE_THRESHOLD = 0.12
+PASS_BATTLE_PASS_TAB_BBOX = (250, 40, 620, 150)
+PASS_CLAIM_ALL_BBOX = (1570, 1170, 1845, 1315)
+PASS_CLAIM_ALL_OCR_SCALE = 2
 
 
 def to_gray_image(image):
@@ -56,6 +59,14 @@ def get_scaled_bbox(bbox, screenshot_shape):
 
 def get_pass_tasks_right_column_bbox(screenshot_shape):
     return get_scaled_bbox(PASS_TASKS_RIGHT_COLUMN_BBOX, screenshot_shape)
+
+
+def get_pass_battle_pass_tab_bbox(screenshot_shape):
+    return get_scaled_bbox(PASS_BATTLE_PASS_TAB_BBOX, screenshot_shape)
+
+
+def get_pass_claim_all_bbox(screenshot_shape):
+    return get_scaled_bbox(PASS_CLAIM_ALL_BBOX, screenshot_shape)
 
 
 def build_pass_action_bbox(ratio_bbox, screenshot_shape):
@@ -172,6 +183,68 @@ def claim_visible_pass_coins():
     return claimed
 
 
+def find_pass_claim_all_click_coordinate(screenshot):
+    claim_bbox = get_pass_claim_all_bbox(screenshot.shape)
+    fallback_coordinate = get_bbox_center(claim_bbox)
+    claim_crop = screenshot[claim_bbox[1] : claim_bbox[3], claim_bbox[0] : claim_bbox[2]]
+    if claim_crop.size == 0:
+        return fallback_coordinate
+
+    scaled_claim_crop = cv2.resize(
+        to_rgb_image(claim_crop),
+        None,
+        fx=PASS_CLAIM_ALL_OCR_SCALE,
+        fy=PASS_CLAIM_ALL_OCR_SCALE,
+        interpolation=cv2.INTER_LINEAR,
+    )
+    result = ocr.run(scaled_claim_crop)
+    if not result.txts or result.boxes is None:
+        return None
+
+    boxes = result.boxes.tolist() if hasattr(result.boxes, "tolist") else result.boxes
+    xs = []
+    ys = []
+    for box in boxes:
+        xs.extend(point[0] for point in box)
+        ys.extend(point[1] for point in box)
+    if not xs or not ys:
+        return fallback_coordinate
+
+    scale = PASS_CLAIM_ALL_OCR_SCALE
+    text_bbox = (
+        claim_bbox[0] + int(min(xs) / scale),
+        claim_bbox[1] + int(min(ys) / scale),
+        claim_bbox[0] + int(max(xs) / scale),
+        claim_bbox[1] + int(max(ys) / scale),
+    )
+    return get_bbox_center(text_bbox)
+
+
+def open_battle_pass_page():
+    screenshot = np.array(auto.screenshot) if auto.screenshot is not None else None
+    if screenshot is None or screenshot.size == 0:
+        if auto.take_screenshot() is None:
+            return False
+        screenshot = np.array(auto.screenshot)
+    auto.mouse_click(*get_bbox_center(get_pass_battle_pass_tab_bbox(screenshot.shape)))
+    sleep(0.8)
+    return True
+
+
+def claim_pass_level_rewards():
+    if auto.take_screenshot(gray=False) is None:
+        return False
+    screenshot = np.array(auto.screenshot)
+    click_coordinate = find_pass_claim_all_click_coordinate(screenshot)
+    if click_coordinate is None:
+        log.debug("未找到领取按钮，跳过")
+        return True
+    log.debug(f"战斗通行证全部领取：点击坐标{click_coordinate}")
+    auto.mouse_click(*click_coordinate)
+    sleep(1.0)
+    return True
+
+
 def open_pass_mission_page():
     loop_count = 15
     auto.model = "clam"
@@ -204,16 +277,25 @@ def open_pass_mission_page():
             return False
 
 
-@begin_and_finish_time_log(task_name="收取日常/周常", calculate_time=False)
-def get_pass_prize():
+def claim_pass_missions():
+    """打开通行证页面，领取日/周常任务奖励"""
     if not open_pass_mission_page():
         log.error("无法收取日常/周常")
-        return
+        return False
     claim_visible_pass_coins()
     auto.take_screenshot()
     auto.click_element("pass/weekly_assets.png")
     sleep(0.8)
     claim_visible_pass_coins()
+    return True
+
+
+@begin_and_finish_time_log(task_name="收取日常/周常", calculate_time=False)
+def get_pass_prize():
+    if not claim_pass_missions():
+        return
+    if open_battle_pass_page():
+        claim_pass_level_rewards()
 
 
 @begin_and_finish_time_log(task_name="收取邮箱", calculate_time=False)
@@ -230,12 +312,20 @@ def get_mail_prize():
             auto.click_element("mail/close_assets.png")
             break
         if auto.click_element("mail/claim_all_assets.png"):
-            sleep(3)
             if retry() is False:
                 return False
-            if auto.take_screenshot() is None:
-                continue
-            if auto.find_element("mail/get_mail_prize_confirm.png") or auto.find_element("mail/claim_all_assets.png"):
+            claimed = False
+            for _ in range(2):
+                sleep(0.5)
+                if auto.take_screenshot() is None:
+                    continue
+                if auto.find_element("mail/get_mail_prize_confirm.png"):
+                    claimed = True
+                    break
+                if not auto.find_element("mail/claim_all_assets.png"):
+                    claimed = True
+                    break
+            if claimed:
                 continue
             auto.click_element("mail/close_assets.png")
             break

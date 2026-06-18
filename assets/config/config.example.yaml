@@ -129,7 +129,10 @@ thread_day_7: 1
 
 # 是否自动获取奖励
 get_reward: False # 是否进行获取奖励
-set_get_prize: 0 # 0 领取邮件和通行证日常与周常，1 只领取通行证日常与周常， 2 只领取邮件
+set_get_prize_actions:
+  - mail
+  - daily_weekly
+  # 可选: pass_level（通行证等级奖励）
 
 # 是否自动购买体力
 buy_enkephalin: False # 是否自动购买体力

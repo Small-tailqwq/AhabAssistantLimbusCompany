@@ -47,11 +47,11 @@ set_lunacy_to_enkephalin_options = {
     QT_TRANSLATE_NOOP("BaseComboBox", "换第二次"): 2,
     QT_TRANSLATE_NOOP("BaseComboBox", "换第三次"): 3,
 }
-set_get_prize_options = {
-    QT_TRANSLATE_NOOP("BaseComboBox", "邮件+日/周常"): 0,
-    QT_TRANSLATE_NOOP("BaseComboBox", "日/周常"): 1,
-    QT_TRANSLATE_NOOP("BaseComboBox", "邮件"): 2,
-}
+set_get_prize_items = [
+    ("mail", QT_TRANSLATE_NOOP("LabelWithCheckBoxes", "邮件")),
+    ("daily_weekly", QT_TRANSLATE_NOOP("LabelWithCheckBoxes", "日/周常任务")),
+    ("pass_level", QT_TRANSLATE_NOOP("LabelWithCheckBoxes", "通行证等级奖励")),
+]
 set_after_completion_options = {
     QT_TRANSLATE_NOOP("BaseComboBox", "无"): 0,
     QT_TRANSLATE_NOOP("BaseComboBox", "睡眠"): 1,

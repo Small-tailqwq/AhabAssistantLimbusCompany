@@ -24,6 +24,7 @@ from PySide6.QtGui import (
     QPixmap,
 )
 from PySide6.QtWidgets import (
+    QCheckBox,
     QFrame,
     QGraphicsDropShadowEffect,
     QGraphicsOpacityEffect,
@@ -249,6 +250,67 @@ class LabelWithSpinBox(QFrame):
 
     def retranslateUi(self):
         self.label.label.setText(self.tr(self.text))
+        if self.tips:
+            self.setToolTip(self.tr(self.tips))
+
+
+class LabelWithCheckBoxes(QFrame):
+    def __init__(
+        self,
+        label_text,
+        config_name,
+        items,
+        vbox=True,
+        parent=None,
+        tips: str | None = None,
+    ):
+        super().__init__(parent)
+        self.setObjectName(config_name)
+        self.config_name = config_name
+        self.text = label_text
+        self.items = items
+        self.tips = tips
+
+        if vbox:
+            self.layout_ = QVBoxLayout(self)
+        else:
+            self.layout_ = QHBoxLayout(self)
+        self.layout_.setContentsMargins(0, 0, 0, 0)
+        self.label = BaseLabel(label_text)
+        self.layout_.addWidget(self.label)
+
+        self.checkboxes: dict[str, QCheckBox] = {}
+        current_actions = cfg.get_value(config_name)
+        if not isinstance(current_actions, list):
+            current_actions = []
+        for action_key, display_text in items:
+            cb = QCheckBox(self.tr(display_text))
+            cb.setChecked(action_key in current_actions)
+            cb.toggled.connect(lambda checked, k=action_key: self._on_toggle(k, checked))
+            self.layout_.addWidget(cb)
+            self.checkboxes[action_key] = cb
+
+        self.layout_.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setMaximumHeight(120 if vbox else 80)
+        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+
+        if tips:
+            self.setToolTip(tips)
+            self.installEventFilter(ToolTipFilter(self))
+
+    def _on_toggle(self, action_key: str, checked: bool):
+        actions = cfg.get_value(self.config_name)
+        if not isinstance(actions, list):
+            actions = []
+        if checked and action_key not in actions:
+            cfg.set_value(self.config_name, actions + [action_key])
+        elif not checked and action_key in actions:
+            cfg.set_value(self.config_name, [a for a in actions if a != action_key])
+
+    def retranslateUi(self):
+        self.label.label.setText(self.tr(self.text))
+        for action_key, display_text in self.items:
+            self.checkboxes[action_key].setText(self.tr(display_text))
         if self.tips:
             self.setToolTip(self.tr(self.tips))
 
