@@ -1,9 +1,9 @@
 assets:
 - file: dark/en/teams/clear_selection_assets.png
   business_name: ''
-  tags: []
+  tags: &id001 []
   note: ''
-  checksum: sha256:f6750f0c485fda938cf3865a2c7ca5a3869d2e539d18fe8e5c4f8e90c2a768c5
+  checksum: sha256:96e736b5041799c18934aa2dd592aad66223af88450cd6183da675ba19bfb2c2
   status: missing
 - file: dark/share/teams/clear_selection_confirm_assets.png
   business_name: ''
@@ -12,9 +12,9 @@ assets:
   checksum: sha256:383a872ee76df3aae6ad3f236183e9bca86ca45e603cfc66ef70a838faa614ff
 - file: dark/zh_cn/teams/clear_selection_assets.png
   business_name: ''
-  tags: []
+  tags: &id002 []
   note: ''
-  checksum: sha256:f696f72d7e0216ec2b7a2aeace79b9c29cef0b5b331ca88e745b79c6ec1f0686
+  checksum: sha256:e85c7ad1c17a10ea0b265650dff202d2334177d04e203b5a1a86e9d58f3db8a1
   status: missing
 - file: default/en/teams/clear_selection_assets.png
   business_name: ''
@@ -191,3 +191,15 @@ assets:
   tags: []
   note: ''
   checksum: sha256:2e06f0b4adf7a2d5e2afd7fd3f4f8ba7b1769e6880299674100b31fa2e63d3cb
+- file: dark/en/teams/clear_selection_assets.png
+  business_name: ''
+  tags: *id001
+  note: ''
+  checksum: sha256:f6750f0c485fda938cf3865a2c7ca5a3869d2e539d18fe8e5c4f8e90c2a768c5
+  status: archived
+- file: dark/zh_cn/teams/clear_selection_assets.png
+  business_name: ''
+  tags: *id002
+  note: ''
+  checksum: sha256:f696f72d7e0216ec2b7a2aeace79b9c29cef0b5b331ca88e745b79c6ec1f0686
+  status: archived

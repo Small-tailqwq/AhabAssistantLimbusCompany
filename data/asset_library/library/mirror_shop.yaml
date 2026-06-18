@@ -865,3 +865,13 @@ assets:
   tags: []
   note: ''
   checksum: sha256:34c6812e7b3fe964e9eeebb5d667c18721aab6f220eb635143c128d200c87f99
+- file: default/en/mirror/shop/ID_skill_replace_search_return_assets.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:70356a7fdf90fd4a8a42427095965e6f34d06d8dc328084d4c9cbeeb82f5db83
+- file: default/zh_cn/mirror/shop/ID_skill_replace_search_return_assets.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:bd3e7d9035e9aba53af1f0885b9c7663572bd6873fb4fac95a5b9e174a165605

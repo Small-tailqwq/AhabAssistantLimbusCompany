@@ -44,7 +44,7 @@ from tasks.daily.get_prize import (
     claim_pass_missions,
     get_mail_prize,
     open_battle_pass_page,
-    open_pass_mission_page,
+    open_pass_page,
 )
 from tasks.daily.luxcavation import EXP_luxcavation, thread_luxcavation
 from tasks.mirror.mirror import Mirror
@@ -121,16 +121,17 @@ def to_get_reward():
         get_mail_prize()
         back_init_menu()
 
-    has_pass_actions = "daily_weekly" in actions or "pass_level" in actions
-    if has_pass_actions:
-        if "pass_level" in actions:
-            if "daily_weekly" not in actions and not open_pass_mission_page():
-                log.warning("无法打开通行证页面，跳过等级奖励领取")
-            else:
-                if open_battle_pass_page():
-                    claim_pass_level_rewards()
-        else:
-            claim_pass_missions()
+    if "daily_weekly" in actions and "pass_level" in actions:
+        claim_pass_missions()
+        if open_battle_pass_page():
+            claim_pass_level_rewards()
+        back_init_menu()
+    elif "daily_weekly" in actions:
+        claim_pass_missions()
+        back_init_menu()
+    elif "pass_level" in actions:
+        if open_pass_page() and open_battle_pass_page():
+            claim_pass_level_rewards()
         back_init_menu()
 
 

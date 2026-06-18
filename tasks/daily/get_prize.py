@@ -245,15 +245,15 @@ def claim_pass_level_rewards():
     return True
 
 
-def open_pass_mission_page():
+def open_pass_page():
+    """打开通行证页面（不点击具体标签页），返回是否成功"""
     loop_count = 15
     auto.model = "clam"
     season_bbox = ImageUtils.get_bbox(ImageUtils.load_image("home/season_assets.png"))
     while True:
         if auto.take_screenshot() is None:
             continue
-        if auto.click_element("pass/pass_missions_assets.png"):
-            sleep(0.8)
+        if auto.find_element("pass/pass_missions_assets.png"):
             return True
         if loop_count >= 10:
             if auto.click_element("home/season_assets.png"):
@@ -273,8 +273,17 @@ def open_pass_mission_page():
         if loop_count < 5:
             auto.model = "aggressive"
         if loop_count < 0:
-            log.error("无法打开通行证任务界面")
+            log.error("无法打开通行证页面")
             return False
+
+
+def open_pass_mission_page():
+    """打开通行证页面并切换到任务标签页"""
+    if not open_pass_page():
+        return False
+    auto.click_element("pass/pass_missions_assets.png")
+    sleep(0.8)
+    return True
 
 
 def claim_pass_missions():

@@ -726,3 +726,43 @@ assets:
   tags: []
   note: ''
   checksum: sha256:d2162917a9792d184b9fcea48609875b5db39fe9329f52d73e2a684f2f3940b2
+- file: default/share/mirror/road_to_mir/observe_ego_gift/gift_box_bbox.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:adeaad40cc07f1028886c2f21bf0ddaadb2c6b77febefa401d7ed38529f199f2
+- file: default/share/mirror/road_to_mir/observe_ego_gift/Level_I.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:21ebc3eb4edb1b3020cbfee252db56b86b00c3d278bcaefd77ef5f64a885f1de
+- file: default/share/mirror/road_to_mir/observe_ego_gift/Level_II.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:4e61c4ba9b03ec903ad6749cb3db94496fff3a50116df9d7b42955fad6920e8b
+- file: default/share/mirror/road_to_mir/observe_ego_gift/Level_III.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:81c16a42bab3eddcbbdebd657df7869977d72913cf09a43e6662617d4da9849b
+- file: default/share/mirror/road_to_mir/observe_ego_gift/observe_bleed_assets.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:490de85a84fc7335400af46b957d88df6dba3ef2161ae5ec9d2641dce816b595
+- file: default/share/mirror/road_to_mir/observe_ego_gift/observe_burn_assets.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:42e06f50ee37cd18a4acaee8f20dec527d094a06326bba510b57a28c5489a1b5
+- file: default/share/mirror/road_to_mir/observe_ego_gift/reject_gift_bbox.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:e44ae6d764943bae07a46e035af0a5e9b3caaaacaa6f457ac3f1e37fe8db3788
+- file: default/share/mirror/road_to_mir/observe_ego_gift/select_gift_bbox.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:7fe43271d26b26d20d1dd29573bc91cc9182ea4ba89a6e9eee897c5ce62883c8
