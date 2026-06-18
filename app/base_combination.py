@@ -24,7 +24,6 @@ from PySide6.QtGui import (
     QPixmap,
 )
 from PySide6.QtWidgets import (
-    QCheckBox,
     QFrame,
     QGraphicsDropShadowEffect,
     QGraphicsOpacityEffect,
@@ -279,12 +278,12 @@ class LabelWithCheckBoxes(QFrame):
         self.label = BaseLabel(label_text)
         self.layout_.addWidget(self.label)
 
-        self.checkboxes: dict[str, QCheckBox] = {}
+        self.checkboxes: dict[str, RightClickCheckBox] = {}
         current_actions = cfg.get_value(config_name)
         if not isinstance(current_actions, list):
             current_actions = []
         for action_key, display_text in items:
-            cb = QCheckBox(self.tr(display_text))
+            cb = RightClickCheckBox(self.tr(display_text))
             cb.setChecked(action_key in current_actions)
             cb.toggled.connect(lambda checked, k=action_key: self._on_toggle(k, checked))
             self.layout_.addWidget(cb)
