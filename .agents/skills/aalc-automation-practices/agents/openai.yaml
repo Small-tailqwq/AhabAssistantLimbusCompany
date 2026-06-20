@@ -1,0 +1,4 @@
+interface:
+  display_name: "AALC Automation Practices"
+  short_description: "Apply AALC automation, lifecycle, UI, and review conventions"
+  default_prompt: "Use $aalc-automation-practices when changing AALC automation or reviewing its design."
