@@ -145,6 +145,9 @@ class Mirror:
 
         self.bequest_from_the_previous_game = False
 
+        self._consecutive_road_search_count = 0
+        self._recovery_attempted = False
+
     def event_action_visible(self):
         return any(
             auto.find_element(asset)
@@ -501,8 +504,29 @@ class Mirror:
                 while auto.take_screenshot() is None:
                     continue
                 if auto.find_element("mirror/road_in_mir/legend_assets.png"):
-                    self.find_road_total_time += self.search_road()
+                    self._consecutive_road_search_count += 1
+                    if self._consecutive_road_search_count >= 4:
+                        if self._recovery_attempted:
+                            log.warning(
+                                f"连续{self._consecutive_road_search_count}次寻路未触发新事件，"
+                                "恢复失败，降级为鼠标点击寻路"
+                            )
+                            self.find_road_total_time += self.search_road()
+                        else:
+                            log.warning(
+                                f"连续{self._consecutive_road_search_count}次寻路未触发新事件，"
+                                "疑似输入软卡死，尝试点击设置重置"
+                            )
+                            self._recover_from_input_lock()
+                            self._recovery_attempted = True
+                            self._consecutive_road_search_count = 0
+                    else:
+                        self.find_road_total_time += self.search_road()
                 continue
+
+            # 不在镜牢路线图时，重置软卡死计数器
+            self._consecutive_road_search_count = 0
+            self._recovery_attempted = False
 
             # 进入节点
             if auto.click_element("mirror/road_in_mir/enter_assets.png"):
@@ -1382,6 +1406,16 @@ class Mirror:
             if retry() is False:
                 return False
 
+    def _recover_from_input_lock(self):
+        log.warning("检测到输入软卡死，尝试点击设置菜单重置输入状态")
+        if auto.click_element("mirror/road_in_mir/setting_assets.png"):
+            sleep(0.5)
+            scale = cfg.set_win_size / 1440
+            auto.mouse_click(int(500 * scale), int(450 * scale))
+            sleep(0.5)
+        else:
+            log.warning("未找到设置按钮，恢复失败")
+
     def re_start(self):
         start_time = time.time()
         loop = 0
@@ -1531,8 +1565,14 @@ class Mirror:
                     select_first_hit = auto.find_element("event/select_first_option_assets.png", check_gray=True)
                     if select_first_hit:
                         auto.click_element("event/select_first_option_assets.png", check_gray=True)
+                        auto.last_click_time = 0
                         fast_skip_count = 0
                         event_chance = max(0, event_chance - 1)
+                        if self._event_take_screenshot() is not None:
+                            if self.click_event_progress_button():
+                                continue
+                            if self.click_event_skip_fast("event/skip_assets.png"):
+                                continue
                         continue
                     log.debug("首选项灰色不可点击，尝试多目标匹配寻找可用选项")
                     if all_options := auto.find_element(
