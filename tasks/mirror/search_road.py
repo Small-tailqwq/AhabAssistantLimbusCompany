@@ -27,6 +27,23 @@ def _route_debug_log_result():
 
 
 def enter_mirror_road(direction=None, position=None):
+    if position is not None:
+        # 若已不在路线图（被键盘路径提前送入节点），直接视为成功
+        if not auto.find_element("mirror/road_in_mir/legend_assets.png"):
+            return True
+        auto.mouse_click(position[0], position[1])
+        sleep(1.25)
+        if auto.click_element(
+            "mirror/road_in_mir/enter_assets.png",
+            take_screenshot=True,
+            log_result=_route_debug_log_result(),
+        ):
+            return True
+        # enter 按钮未出现但已离开路线图 → 可能已进入节点
+        if not auto.find_element("mirror/road_in_mir/legend_assets.png"):
+            return True
+        return False
+
     if cfg.mirror_keyboard_navigation:
         log.debug(f"通过键盘按键寻路: {_DIR_CN.get(direction, direction)}")
         if direction == "U":
@@ -44,17 +61,11 @@ def enter_mirror_road(direction=None, position=None):
             log_result=_route_debug_log_result(),
         ):
             return True
-        return True
-
-    if position is not None:
-        auto.mouse_click(position[0], position[1])
-        sleep(1.25)
-        if auto.click_element(
-            "mirror/road_in_mir/enter_assets.png",
-            take_screenshot=True,
-            log_result=_route_debug_log_result(),
-        ):
+        # enter 按钮未出现但已离开路线图 → 键盘已成功送入节点
+        if not auto.find_element("mirror/road_in_mir/legend_assets.png"):
             return True
+        return False
+
     return False
 
 
