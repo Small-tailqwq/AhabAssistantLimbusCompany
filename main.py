@@ -32,6 +32,13 @@ except (AttributeError, OSError):
         except Exception:
             pass
 
+# 为 Windows 任务栏注册唯一 AppUserModelID，避免首次启动时任务栏使用 python.exe 默认图标。
+# 此 API 自 Windows 7 起可用，SetProcessDpiAwarenessContext 成功即保障可用。
+try:
+    windll.shell32.SetCurrentProcessExplicitAppUserModelID("AALC.MainWindow")
+except Exception:
+    pass
+
 from app.language_manager import LanguageManager
 from app.my_app import MainWindow
 from module.config import cfg
