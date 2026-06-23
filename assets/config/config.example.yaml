@@ -63,6 +63,9 @@ resonate_with_Ahab: False # 是否播放亚哈语录
 lab_mouse_logitech: False # 实验室功能：通过独立罗技驱动 DLL 进行硬件级键鼠输入模拟，需填入正确 DLL 路径才能生效
 logitech_dll_path: "" # 罗技驱动 DLL 的绝对路径，启用硬件键鼠模拟必填
 logitech_bionic_trajectory: True # 罗技驱动专用：是否启用仿生轨迹与仿生点击偏移
+lab_mouse_razer: False # 实验室功能：通过独立雷蛇驱动 DLL 进行硬件级键鼠输入模拟，需填入正确 DLL 路径才能生效
+razer_dll_path: "" # 雷蛇驱动 DLL 的绝对路径，启用硬件键鼠模拟必填
+razer_bionic_trajectory: True # 雷蛇驱动专用：是否启用仿生轨迹与仿生点击偏移
 lab_screenshot_obs: False # 实验室功能：通过 OBS WebSocket 截图，规避 ScreenCaptureAnalytics 检测
 obs_host: "localhost" # OBS WebSocket 服务地址
 obs_port: 4455 # OBS WebSocket 服务端口

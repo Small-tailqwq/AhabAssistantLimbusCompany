@@ -465,6 +465,33 @@ class SettingInterface(QWidget):
             config_name="logitech_bionic_trajectory",
             parent=self.experimental_group,
         )
+        self.razer_switch_card = SwitchSettingCard(
+            FIF.MOVE,
+            QT_TRANSLATE_NOOP("SwitchSettingCard", "启用雷蛇驱动模拟"),
+            QT_TRANSLATE_NOOP(
+                "SwitchSettingCard",
+                "使用独立 DLL 进行硬件级键鼠输入模拟，需安装 Razer Synapse 3 并配置可用的雷蛇驱动 DLL 路径",
+            ),
+            config_name="lab_mouse_razer",
+            parent=self.experimental_group,
+        )
+        self.razer_dll_path_card = BasePushSettingCard(
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "选择"),
+            FIF.FOLDER,
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "雷蛇 DLL 路径"),
+            cfg.get_value("razer_dll_path", ""),
+            parent=self.experimental_group,
+        )
+        self.razer_bionic_trajectory_card = SwitchSettingCard(
+            FIF.MOVE,
+            QT_TRANSLATE_NOOP("SwitchSettingCard", "启用仿生轨迹"),
+            QT_TRANSLATE_NOOP(
+                "SwitchSettingCard",
+                "启用后使用仿生鼠标轨迹与仿生点击偏移；关闭后回退为普通分段移动",
+            ),
+            config_name="razer_bionic_trajectory",
+            parent=self.experimental_group,
+        )
         self.obs_switch_card = SwitchSettingCard(
             FIF.CAMERA,
             QT_TRANSLATE_NOOP("SwitchSettingCard", "启用 OBS 截图"),
@@ -642,6 +669,9 @@ class SettingInterface(QWidget):
         self.experimental_group.addSettingCard(self.logitech_switch_card)
         self.experimental_group.addSettingCard(self.logitech_dll_path_card)
         self.experimental_group.addSettingCard(self.logitech_bionic_trajectory_card)
+        self.experimental_group.addSettingCard(self.razer_switch_card)
+        self.experimental_group.addSettingCard(self.razer_dll_path_card)
+        self.experimental_group.addSettingCard(self.razer_bionic_trajectory_card)
         self.experimental_group.addSettingCard(self.obs_switch_card)
         self.experimental_group.addSettingCard(self.obs_host_card)
         self.experimental_group.addSettingCard(self.obs_port_card)
@@ -726,11 +756,13 @@ class SettingInterface(QWidget):
         self.zoom_card.valueChanged.connect(self.__onZoomCardValueChanged)
         self.win_input_type_card.valueChanged.connect(self.__onWinInputTypeChanged)
         self.debug_mode_card.switchButton.checkedChanged.connect(self.__onDebugModeChanged)
-        self.logitech_switch_card.switchButton.checkedChanged.connect(self.__onExperimentalDependencyChanged)
+        self.logitech_switch_card.switchButton.checkedChanged.connect(self.__onLogitechSwitchChanged)
+        self.razer_switch_card.switchButton.checkedChanged.connect(self.__onRazerSwitchChanged)
         self.obs_switch_card.switchButton.checkedChanged.connect(self.__onExperimentalDependencyChanged)
         self.accelerator_switch_card.switchButton.checkedChanged.connect(self.__onExperimentalDependencyChanged)
         self.accelerator_preset_card.valueChanged.connect(self.__onExperimentalDependencyChanged)
         self.logitech_dll_path_card.clicked.connect(self.__onLogitechDllPathCardClicked)
+        self.razer_dll_path_card.clicked.connect(self.__onRazerDllPathCardClicked)
         self.obs_host_card.clicked.connect(self.__onObsHostCardClicked)
         self.obs_password_card.clicked.connect(self.__onObsPasswordCardClicked)
         self.obs_source_name_card.clicked.connect(self.__onObsSourceNameCardClicked)
@@ -795,6 +827,7 @@ class SettingInterface(QWidget):
 
     def __refreshExperimentalCardContents(self):
         self.logitech_dll_path_card.setContent(cfg.get_value("logitech_dll_path", ""))
+        self.razer_dll_path_card.setContent(cfg.get_value("razer_dll_path", ""))
         self.obs_host_card.setContent(cfg.get_value("obs_host", "localhost"))
         self.obs_password_card.setContent(
             QT_TRANSLATE_NOOP("BasePushSettingCard", "(已设置)") if cfg.get_value("obs_password", "") else QT_TRANSLATE_NOOP("BasePushSettingCard", "(未设置)")
@@ -814,6 +847,10 @@ class SettingInterface(QWidget):
         self.logitech_dll_path_card.setVisible(logitech_enabled)
         self.logitech_bionic_trajectory_card.setVisible(logitech_enabled)
 
+        razer_enabled = bool(cfg.get_value("lab_mouse_razer", False))
+        self.razer_dll_path_card.setVisible(razer_enabled)
+        self.razer_bionic_trajectory_card.setVisible(razer_enabled)
+
         self.obs_host_card.setVisible(obs_enabled)
         self.obs_port_card.setVisible(obs_enabled)
         self.obs_password_card.setVisible(obs_enabled)
@@ -832,12 +869,29 @@ class SettingInterface(QWidget):
     def __onExperimentalDependencyChanged(self, _: bool):
         self.__refreshExperimentalCardVisibility()
 
+    def __onLogitechSwitchChanged(self, checked: bool):
+        if checked and cfg.get_value("lab_mouse_razer", False):
+            cfg.set_value("lab_mouse_razer", False)
+        self.__refreshExperimentalCardVisibility()
+
+    def __onRazerSwitchChanged(self, checked: bool):
+        if checked and cfg.get_value("lab_mouse_logitech", False):
+            cfg.set_value("lab_mouse_logitech", False)
+        self.__refreshExperimentalCardVisibility()
+
     def __onLogitechDllPathCardClicked(self):
         dll_path, _ = QFileDialog.getOpenFileName(self, "选择罗技驱动 DLL", "", "DLL Files (*.dll)")
         if not dll_path or cfg.get_value("logitech_dll_path") == dll_path:
             return
         cfg.set_value("logitech_dll_path", dll_path)
         self.logitech_dll_path_card.setContent(dll_path)
+
+    def __onRazerDllPathCardClicked(self):
+        dll_path, _ = QFileDialog.getOpenFileName(self, "选择雷蛇驱动 DLL", "", "DLL Files (*.dll)")
+        if not dll_path or cfg.get_value("razer_dll_path") == dll_path:
+            return
+        cfg.set_value("razer_dll_path", dll_path)
+        self.razer_dll_path_card.setContent(dll_path)
 
     def __openTextEditForConfig(self, title: str, config_name: str, card, password: bool = False):
         current_value = str(cfg.get_value(config_name, "") or "")

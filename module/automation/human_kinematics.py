@@ -44,6 +44,15 @@ class HumanKinematics:
         time.sleep(HumanKinematics.sample_duration(base, jitter, minimum=minimum, maximum=maximum))
 
     @staticmethod
+    def pace_inter_chunk() -> None:
+        """分块移动间的微步进延迟，模拟真实鼠标 HID 轮询。
+        每次 IOCTL 之间插入 0.5–1.5 ms 的硬件 PLL 时钟噪声，
+        将 IOCTL 突发打散为均匀事件流——RawInput 时间戳呈对数正态，
+        而非固定间隔的 Dirac 峰。延迟极小不影响落地精度。"""
+        delay = max(0.00025, random.gauss(0.00085, 0.00022))
+        time.sleep(delay)
+
+    @staticmethod
     def generate_step_intervals(
         step_count: int,
         total_duration: float,

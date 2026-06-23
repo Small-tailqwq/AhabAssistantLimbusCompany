@@ -86,6 +86,11 @@ class Automation(metaclass=SingletonMeta):
 
                 log.debug("使用罗技硬件鼠标模拟模块（延迟加载 DLL）")
                 self.input_handler = LogitechInput()
+            elif getattr(cfg, "lab_mouse_razer", False):
+                from .input_handlers.razer import RazerInput
+
+                log.debug("使用雷蛇硬件鼠标模拟模块（延迟加载 DLL）")
+                self.input_handler = RazerInput()
             elif input_type == "background":
                 from .input_handlers.input import BackgroundInput
 
@@ -210,6 +215,10 @@ class Automation(metaclass=SingletonMeta):
         use_logitech_humanization = bool(
             getattr(cfg, "lab_mouse_logitech", False) and getattr(cfg, "logitech_bionic_trajectory", True)
         )
+        use_razer_humanization = bool(
+            getattr(cfg, "lab_mouse_razer", False) and getattr(cfg, "razer_bionic_trajectory", True)
+        )
+        use_hardware_humanization = use_logitech_humanization or use_razer_humanization
 
         if len(coordinates) >= 4 and all(isinstance(value, (int, float)) for value in coordinates[:4]):
             left, top, right, bottom = coordinates[:4]
@@ -220,7 +229,7 @@ class Automation(metaclass=SingletonMeta):
         else:
             x, y = coordinates
 
-        if offset and use_logitech_humanization:
+        if offset and use_hardware_humanization:
             x, y = HumanKinematics.get_gaussian_click_point(
                 float(x),
                 float(y),
@@ -284,10 +293,15 @@ class Automation(metaclass=SingletonMeta):
             self.last_click_time = time.time()
         if time.time() - self.last_click_time < interval:
             if (
-                getattr(cfg, "lab_mouse_logitech", False)
-                and getattr(cfg, "logitech_bionic_trajectory", True)
-                and action == "click"
-            ):
+                (
+                    getattr(cfg, "lab_mouse_logitech", False)
+                    and getattr(cfg, "logitech_bionic_trajectory", True)
+                )
+                or (
+                    getattr(cfg, "lab_mouse_razer", False)
+                    and getattr(cfg, "razer_bionic_trajectory", True)
+                )
+            ) and action == "click":
                 HumanKinematics.human_sleep(interval, jitter=0.12, minimum=interval)
             else:
                 time.sleep(interval)

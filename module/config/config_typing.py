@@ -662,6 +662,15 @@ class ConfigModel(BaseModel):
     lab_simulator_accelerator_delay: float = 3.0
     """模拟器加速器启动后等待时间（秒），等待应用完成加载后再进行弹窗关闭和点击操作"""
 
+    lab_mouse_razer: bool = False
+    """启用雷蛇驱动硬件级键鼠输入模拟"""
+
+    razer_dll_path: str = ""
+    """雷蛇驱动 DLL 的绝对路径"""
+
+    razer_bionic_trajectory: bool = True
+    """雷蛇驱动专用：是否启用仿生轨迹与仿生点击偏移"""
+
     teams: dict[str, TeamSetting] = {"1": TeamSetting()}
     """队伍设置"""
 

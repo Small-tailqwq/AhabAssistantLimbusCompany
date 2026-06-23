@@ -29,19 +29,17 @@ BUTTON_LEFT = 1
 BUTTON_RIGHT = 2
 BUTTON_MIDDLE = 4
 
-LOGITECH_KEY_NAMES = {key: key for key in CANONICAL_KEYS}
-LOGITECH_KEY_NAMES["rwindows"] = "rwindows_"
+RAZER_KEY_NAMES = {key: key for key in CANONICAL_KEYS}
 
 
-class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
-    """基于可编译罗技驱动 DLL 的硬件级键鼠输入类。"""
+class RazerInput(WinAbstractInput, metaclass=SingletonMeta):
 
-    KEY_BACKEND = "logitech"
-    KEY_CODES = LOGITECH_KEY_NAMES
+    KEY_BACKEND = "razer"
+    KEY_CODES = RAZER_KEY_NAMES
 
     def __init__(self):
         super().__init__()
-        self.dll_path = cfg.logitech_dll_path
+        self.dll_path = cfg.razer_dll_path
         self.dll = None
         self.device_open_func = None
         self.device_close_func = None
@@ -60,15 +58,15 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         self._cleanup_registered = False
         self._focus_waiting_notified = False
 
-        log.info("罗技输入适配器已创建，DLL 将在首次实际键鼠操作时加载。")
+        log.info("雷蛇输入适配器已创建，DLL 将在首次实际键鼠操作时加载。")
 
     def _require_export(self, export_name: str):
         try:
             return getattr(self.dll, export_name)
         except AttributeError as e:
             message = (
-                f"当前罗技驱动 DLL 缺少必需导出 `{export_name}`。"
-                f"这通常表示你配置的仍是旧版 DLL，而不是新的 Logitech_driver-main 编译产物。"
+                f"当前雷蛇驱动 DLL 缺少必需导出 `{export_name}`。"
+                f"这通常表示你配置的仍是旧版 DLL，而不是新的 Razer_driver-main 编译产物。"
             )
             raise RuntimeError(message) from e
 
@@ -76,10 +74,10 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         if self._driver_ready:
             return
 
-        self.dll_path = cfg.logitech_dll_path
+        self.dll_path = cfg.razer_dll_path
         if not self.dll_path or not os.path.exists(self.dll_path):
-            message = f"罗技驱动 DLL 未找到：{self.dll_path}"
-            log.error(f"无法使用实验室罗技驱动模拟：缺失 DLL 或路径错误 ({self.dll_path})。请在配置中提供正确路径。")
+            message = f"雷蛇驱动 DLL 未找到：{self.dll_path}"
+            log.error(f"无法使用实验室雷蛇驱动模拟：缺失 DLL 或路径错误 ({self.dll_path})。请在配置中提供正确路径。")
             raise FileNotFoundError(message)
 
         try:
@@ -130,18 +128,18 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
 
             status = bool(self.device_open_func())
             if not status:
-                log.error("罗技驱动 DLL 初始化设备失败(device_open=False)，请确认环境、驱动与 DLL 是否匹配。")
-                raise RuntimeError("罗技驱动 DLL 设备开启失败。")
+                log.error("雷蛇驱动 DLL 初始化设备失败(device_open=False)，请确认环境、驱动与 DLL 是否匹配。")
+                raise RuntimeError("雷蛇驱动 DLL 设备开启失败。")
 
             self._driver_ready = True
             if not self._cleanup_registered:
                 atexit.register(self._cleanup_driver_state)
                 self._cleanup_registered = True
 
-            log.info("成功加载罗技驱动 DLL，启用硬件级键鼠模拟保护。")
-            log.info("罗技输入已切换为新 DLL 后端：驱动级鼠标移动/拖拽 + 驱动级键盘按键。")
+            log.info("成功加载雷蛇驱动 DLL，启用硬件级键鼠模拟保护。")
+            log.info("雷蛇输入已切换为新 DLL 后端：驱动级鼠标移动/拖拽 + 驱动级键盘按键。")
         except Exception as e:
-            msg = f"加载或初始化罗技驱动 DLL 失败: {e}"
+            msg = f"加载或初始化雷蛇驱动 DLL 失败: {e}"
             log.error(msg)
             raise RuntimeError(msg) from e
 
@@ -181,14 +179,14 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         while not screen.ensure_direct_input_ready():
             self.check_stop_requested()
             if not self._focus_waiting_notified:
-                message = "罗技模拟要求游戏窗口保持前台。请手动点回游戏窗口，脚本会在确认焦点后继续。"
+                message = "雷蛇模拟要求游戏窗口保持前台。请手动点回游戏窗口，脚本会在确认焦点后继续。"
                 log.warning(message)
                 mediator.warning.emit(message)
                 self._focus_waiting_notified = True
             HumanKinematics.human_sleep(0.4, jitter=0.15, minimum=0.25, maximum=0.6)
             self.check_stop_requested()
         if self._focus_waiting_notified:
-            log.info("已检测到游戏窗口重新获得焦点，继续执行罗技模拟输入。")
+            log.info("已检测到游戏窗口重新获得焦点，继续执行雷蛇模拟输入。")
             mediator.warning_clear.emit()
             self._focus_waiting_notified = False
 
@@ -248,7 +246,7 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
     def _resolve_drag_profile(profile_name, duration: float, button_state: int) -> dict:
         profile = {
             "duration": duration,
-            "use_bionic_trajectory": bool(getattr(cfg, "logitech_bionic_trajectory", True)),
+            "use_bionic_trajectory": bool(getattr(cfg, "razer_bionic_trajectory", True)),
             "step_time": None,
             "post_drag_pause_scale": 1.0,
             "final_settle_sleep": 0.04,
@@ -282,7 +280,6 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         use_bionic_trajectory = profile["use_bionic_trajectory"]
 
         if use_bionic_trajectory:
-            # 调用底层绝对仿生引擎 (Minimum Jerk + Perlin Noise)
             trajectory = HumanKinematics.generate_bionic_curve(
                 start_x,
                 start_y,
@@ -291,8 +288,6 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
                 target_width=25.0 if button_state == BUTTON_RELEASED else 10.0,
                 duration=duration,
             )
-            # 因为轨迹自身就是基于 100 FPS (10ms) 分切的！
-            # 必须严格锁定为每帧 10ms，绝不可以由于外部 duration 极小而将帧间压缩到 1ms（这会击穿 sleep 精度阈值导致光速狂点发射）
             step_time = 0.01
         else:
             linear_step_time = profile["step_time"] or 0.01
@@ -306,24 +301,20 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
             ]
             step_time = move_duration / max(len(trajectory), 1) if move_duration > 0 else linear_step_time
 
-        # 引入硬件状态观测器 (State Observer) 解决闭环积分发散和 Windows 加速漂移
         os_x, os_y = self.get_mouse_position()
         unack_dx, unack_dy = 0, 0
 
         for index, (current_target_x, current_target_y) in enumerate(trajectory):
             step_start = time()
-            
-            # 获取最新系统光标（若遭遇硬件延迟，坐标不会立即更新）
+
             current_x, current_y = self.get_mouse_position()
             if current_x != os_x or current_y != os_y:
-                # 操作系统跟进了物理偏移，重置未确认缓冲堆栈
                 os_x, os_y = current_x, current_y
                 unack_dx, unack_dy = 0, 0
-                
-            # 推理游标必定到达的位置 (实际系统位置 + 已发送但还在底层路上堵着的相对差异)
+
             predicted_x = current_x + unack_dx
             predicted_y = current_y + unack_dy
-            
+
             step_dx = int(current_target_x - predicted_x)
             step_dy = int(current_target_y - predicted_y)
 
@@ -337,8 +328,6 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
             if remaining > 0.001:
                 HumanKinematics.human_sleep(remaining, jitter=0.08, minimum=remaining)
 
-        # 核心改进：轨迹已经发送完毕，给 Windows 操作系统 40 毫秒的时间清空所有的 WM_MOUSEMOVE 消息缓冲。
-        # 不然有概率光标起飞
         sleep(profile["final_settle_sleep"])
 
         final_x, final_y = self.get_mouse_position()
@@ -362,24 +351,22 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         y = int(y)
         current_x, current_y = self.get_mouse_position()
         target_screen_x, target_screen_y = self._client_to_screen_target(x, y)
-        
-        # 直接透传 duration，让底层 Fitts Law (如果 duration=0) 能够自己判断，而不是在这里用固定的 resolve_move_duration() 将其强制覆盖为 0.075s 之类
-        # 仅为打印日志而临时计算展示用的 move_duration：
+
         dummy_move_duration = duration if duration > 0 else self._resolve_move_duration(
             math.hypot(target_screen_x - current_x, target_screen_y - current_y), duration
         )
         log.debug(
-            f"新罗技驱动目标换算: 客户区({x},{y}) -> 屏幕({target_screen_x},{target_screen_y}), 当前鼠标({current_x},{current_y}), 日志估算时长{dummy_move_duration * 1000:.0f}ms",
+            f"新雷蛇驱动目标换算: 客户区({x},{y}) -> 屏幕({target_screen_x},{target_screen_y}), 当前鼠标({current_x},{current_y}), 日志估算时长{dummy_move_duration * 1000:.0f}ms",
             stacklevel=2,
         )
-        
+
         self._move_to_client(x, y, duration=duration, drag_profile=drag_profile)
 
         final_x, final_y = self.get_mouse_position()
         err_x = target_screen_x - final_x
         err_y = target_screen_y - final_y
         log.debug(
-            f"新罗技驱动实际落点: 屏幕({final_x},{final_y}), 与目标差值({err_x},{err_y})",
+            f"新雷蛇驱动实际落点: 屏幕({final_x},{final_y}), 与目标差值({err_x},{err_y})",
             stacklevel=2,
         )
 
@@ -401,7 +388,7 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         if move_back:
             current_mouse_position = self.get_mouse_position()
 
-        log.debug(f"新罗技驱动点击位置:({x},{y})", stacklevel=2)
+        log.debug(f"新雷蛇驱动点击位置:({x},{y})", stacklevel=2)
 
         for index in range(times):
             self._ensure_input_focus()
@@ -498,7 +485,7 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         if move_back:
             current_mouse_position = self.get_mouse_position()
 
-        log.debug("新罗技驱动点击空白位置", stacklevel=2)
+        log.debug("新雷蛇驱动点击空白位置", stacklevel=2)
         x = coordinate[0] + random.randint(0, 10)
         y = coordinate[1] + random.randint(0, 10)
         for _ in range(times):
@@ -524,7 +511,7 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         target_x = int(coordinate[0])
         target_y = int(coordinate[1])
         self.set_mouse_pos(target_x, target_y)
-        log.debug(f"新罗技驱动鼠标移动到空白避免遮挡: 客户区({target_x},{target_y})", stacklevel=2)
+        log.debug(f"新雷蛇驱动鼠标移动到空白避免遮挡: 客户区({target_x},{target_y})", stacklevel=2)
         self.wait_pause()
 
     def mouse_scroll(self, direction: int = -3) -> bool:
@@ -550,7 +537,7 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         try:
             self.press_key_func(str(backend_key).encode("utf-8"))
         except Exception as e:
-            log.error(f"新罗技驱动键盘按下异常: {backend_key}, {e}")
+            log.error(f"新雷蛇驱动键盘按下异常: {backend_key}, {e}")
             raise
 
     def _key_up_impl(self, backend_key: str):
@@ -558,7 +545,7 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         try:
             self.release_key_func(str(backend_key).encode("utf-8"))
         except Exception as e:
-            log.error(f"新罗技驱动键盘抬起异常: {backend_key}, {e}")
+            log.error(f"新雷蛇驱动键盘抬起异常: {backend_key}, {e}")
             raise
 
     def _key_press_impl(self, backend_key: str):
@@ -567,7 +554,6 @@ class LogitechInput(WinAbstractInput, metaclass=SingletonMeta):
         self._key_up_impl(backend_key)
 
     def input_text(self, text: str):
-        """将 `text` 粘贴到当前前台游戏窗口。"""
         if not text:
             log.warning("未提供要粘贴的文本")
             return
