@@ -36,7 +36,6 @@ from module.system_actions import (
 from tasks.base.back_init_menu import (
     StartupMainMenuWaitResult,
     back_init_menu,
-    back_init_menu_impl,
     wait_until_main_menu_after_launch,
 )
 from tasks.base.make_enkephalin_module import (
@@ -392,7 +391,7 @@ def script_task() -> None | int:
     else:
         startup_wait_result = wait_until_main_menu_after_launch(allow_restart=True)
         if startup_wait_result == StartupMainMenuWaitResult.RUNTIME_UI:
-            if not back_init_menu_impl():
+            if not back_init_menu():
                 raise cannotOperateGameError("启动后未能进入主界面，请手动检查后重试")
         elif startup_wait_result == StartupMainMenuWaitResult.TIMEOUT:
             raise cannotOperateGameError("启动等待主界面超时，请手动检查后重试")

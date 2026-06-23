@@ -1380,8 +1380,8 @@ class TestTeamQueueNormalization(unittest.TestCase):
             calls.append(("wait_main_menu", allow_restart))
             return "runtime_ui"
 
-        def back_to_main_menu_impl(*, allow_restart=True):
-            calls.append(("back_init_menu_impl", allow_restart))
+        def back_to_main_menu(*, allow_restart=True):
+            calls.append(("back_init_menu", allow_restart))
             return True
 
         with (
@@ -1396,15 +1396,15 @@ class TestTeamQueueNormalization(unittest.TestCase):
                 wait_for_main_menu,
                 create=True,
             ),
-            patch.object(script_task_scheme, "back_init_menu_impl", back_to_main_menu_impl, create=True),
+            patch.object(script_task_scheme, "back_init_menu", back_to_main_menu),
             patch.object(script_task_scheme, "send_toast", lambda *args, **kwargs: calls.append(("send_toast",))),
             patch.object(script_task_scheme.platform, "system", return_value="Linux"),
         ):
             script_task_scheme.script_task()
 
         self.assertIn(("wait_main_menu", True), calls)
-        self.assertIn(("back_init_menu_impl", True), calls)
-        self.assertLess(calls.index(("wait_main_menu", True)), calls.index(("back_init_menu_impl", True)))
+        self.assertIn(("back_init_menu", True), calls)
+        self.assertLess(calls.index(("wait_main_menu", True)), calls.index(("back_init_menu", True)))
 
     def test_script_task_raises_when_runtime_ui_recovery_and_back_init_menu_fail(self):
         calls = []
@@ -1445,8 +1445,8 @@ class TestTeamQueueNormalization(unittest.TestCase):
             calls.append(("wait_main_menu", allow_restart))
             return "runtime_ui"
 
-        def back_to_main_menu_impl(*, allow_restart=True):
-            calls.append(("back_init_menu_impl", allow_restart))
+        def back_to_main_menu(*, allow_restart=True):
+            calls.append(("back_init_menu", allow_restart))
             return False
 
         with (
@@ -1461,7 +1461,7 @@ class TestTeamQueueNormalization(unittest.TestCase):
                 wait_for_main_menu,
                 create=True,
             ),
-            patch.object(script_task_scheme, "back_init_menu_impl", back_to_main_menu_impl, create=True),
+            patch.object(script_task_scheme, "back_init_menu", back_to_main_menu),
             patch.object(script_task_scheme, "send_toast", lambda *args, **kwargs: calls.append(("send_toast",))),
             patch.object(script_task_scheme.platform, "system", return_value="Linux"),
             self.assertRaises(script_task_scheme.cannotOperateGameError) as exc_info,
@@ -1470,7 +1470,7 @@ class TestTeamQueueNormalization(unittest.TestCase):
 
         self.assertEqual(str(exc_info.exception), "启动后未能进入主界面，请手动检查后重试")
         self.assertIn(("wait_main_menu", True), calls)
-        self.assertIn(("back_init_menu_impl", True), calls)
+        self.assertIn(("back_init_menu", True), calls)
 
     def test_script_task_allows_startup_wait_to_restart_on_timeout(self):
         calls = []
@@ -1525,9 +1525,8 @@ class TestTeamQueueNormalization(unittest.TestCase):
             ),
             patch.object(
                 script_task_scheme,
-                "back_init_menu_impl",
+                "back_init_menu",
                 side_effect=AssertionError("startup timeout recovery is handled inside wait_until_main_menu_after_launch()"),
-                create=True,
             ),
             patch.object(script_task_scheme, "send_toast", lambda *args, **kwargs: calls.append(("send_toast",))),
             patch.object(script_task_scheme.platform, "system", return_value="Linux"),

@@ -456,7 +456,7 @@ class TestSimulatorRecovery(unittest.TestCase):
         ):
             result = back_init_menu_module.back_init_menu(allow_restart=False)
 
-        self.assertIsInstance(result, float)
+        self.assertIs(result, True)
         self.assertIn(("wait_main_menu", False), calls)
         self.assertEqual(ensure_call_count["value"], 1)
 
@@ -536,7 +536,7 @@ class TestSimulatorRecovery(unittest.TestCase):
         self.assertIs(result, False)
         self.assertEqual(calls, [("init_game",), ("wait_main_menu", True)])
 
-    def test_back_init_menu_impl_returns_bool_false_when_retry_fails(self):
+    def test_back_init_menu_returns_bool_false_when_retry_fails(self):
         class AutoStub:
             model = "clam"
 
@@ -548,18 +548,11 @@ class TestSimulatorRecovery(unittest.TestCase):
             patch.object(back_init_menu_module, "ensure_simulator_game_started", return_value=False),
             patch.object(back_init_menu_module, "retry", return_value=False),
         ):
-            result = back_init_menu_module.back_init_menu_impl(allow_restart=False)
+            result = back_init_menu_module.back_init_menu(allow_restart=False)
 
         self.assertIs(result, False)
 
-    def test_back_init_menu_wrapper_still_returns_float(self):
-        with patch.object(back_init_menu_module, "back_init_menu_impl", return_value=False, create=True) as impl:
-            result = back_init_menu_module.back_init_menu(allow_restart=False)
-
-        self.assertIsInstance(result, float)
-        impl.assert_called_once_with(allow_restart=False)
-
-    def test_script_task_startup_runtime_ui_fallback_uses_back_init_menu_impl(self):
+    def test_script_task_startup_runtime_ui_fallback_uses_back_init_menu(self):
         import tasks.base.script_task_scheme as script_task_scheme
 
         calls = []
@@ -583,8 +576,8 @@ class TestSimulatorRecovery(unittest.TestCase):
             calls.append(("wait_main_menu", allow_restart))
             return "runtime_ui"
 
-        def back_init_menu_impl(*, allow_restart=True):
-            calls.append(("back_init_menu_impl", allow_restart))
+        def back_init_menu_stub(*, allow_restart=True):
+            calls.append(("back_init_menu", allow_restart))
             return False
 
         with (
@@ -593,22 +586,17 @@ class TestSimulatorRecovery(unittest.TestCase):
             patch.object(script_task_scheme, "path_manager", path_manager_stub),
             patch.object(script_task_scheme, "init_game", lambda: calls.append(("init_game",))),
             patch.object(script_task_scheme, "wait_until_main_menu_after_launch", wait_for_main_menu),
-            patch.object(script_task_scheme, "back_init_menu_impl", back_init_menu_impl, create=True),
-            patch.object(
-                script_task_scheme,
-                "back_init_menu",
-                side_effect=AssertionError("script_task() fallback should use back_init_menu_impl()"),
-            ),
+            patch.object(script_task_scheme, "back_init_menu", back_init_menu_stub),
             self.assertRaises(script_task_scheme.cannotOperateGameError) as exc_info,
         ):
             script_task_scheme.script_task()
 
         self.assertEqual(str(exc_info.exception), "启动后未能进入主界面，请手动检查后重试")
         self.assertIn(("wait_main_menu", True), calls)
-        self.assertIn(("back_init_menu_impl", True), calls)
-        self.assertLess(calls.index(("wait_main_menu", True)), calls.index(("back_init_menu_impl", True)))
+        self.assertIn(("back_init_menu", True), calls)
+        self.assertLess(calls.index(("wait_main_menu", True)), calls.index(("back_init_menu", True)))
 
-    def test_script_task_startup_timeout_after_recovery_does_not_use_back_init_menu_impl(self):
+    def test_script_task_startup_timeout_after_recovery_does_not_use_back_init_menu(self):
         import tasks.base.script_task_scheme as script_task_scheme
 
         calls = []
@@ -640,9 +628,8 @@ class TestSimulatorRecovery(unittest.TestCase):
             patch.object(script_task_scheme, "wait_until_main_menu_after_launch", wait_for_main_menu),
             patch.object(
                 script_task_scheme,
-                "back_init_menu_impl",
+                "back_init_menu",
                 side_effect=AssertionError("startup timeout recovery is handled inside wait_until_main_menu_after_launch()"),
-                create=True,
             ),
             self.assertRaises(script_task_scheme.cannotOperateGameError) as exc_info,
         ):
@@ -651,7 +638,7 @@ class TestSimulatorRecovery(unittest.TestCase):
         self.assertEqual(str(exc_info.exception), "启动等待主界面超时，请手动检查后重试")
         self.assertEqual(calls.count(("wait_main_menu", True)), 1)
 
-    def test_production_work_policy_uses_back_init_menu_impl(self):
+    def test_production_work_policy_uses_back_init_menu(self):
         import tasks.tools.production_module as production_module
 
         calls = []
@@ -659,25 +646,19 @@ class TestSimulatorRecovery(unittest.TestCase):
         cfg_stub = type("CfgStub", (), {"simulator": False})()
         auto_stub = type("AutoStub", (), {"ensure_not_stopped": lambda self: calls.append(("ensure_not_stopped",))})()
 
-        def back_init_menu_impl(*, allow_restart=True):
-            calls.append(("back_init_menu_impl", allow_restart))
+        def back_init_menu_stub(*, allow_restart=True):
+            calls.append(("back_init_menu", allow_restart))
             return True
 
         with (
             patch.object(production_module, "cfg", cfg_stub),
             patch.object(production_module, "auto", auto_stub),
-            patch.object(production_module, "back_init_menu_impl", back_init_menu_impl, create=True),
-            patch.object(
-                production_module,
-                "back_init_menu",
-                side_effect=AssertionError("_back_init_menu_with_tool_policy() should use back_init_menu_impl()"),
-                create=True,
-            ),
+            patch.object(production_module, "back_init_menu", back_init_menu_stub),
         ):
             result = production_module.ProductionWork._back_init_menu_with_tool_policy(work)
 
         self.assertIs(result, True)
-        self.assertEqual(calls, [("ensure_not_stopped",), ("back_init_menu_impl", False)])
+        self.assertEqual(calls, [("ensure_not_stopped",), ("back_init_menu", False)])
 
 
 if __name__ == "__main__":

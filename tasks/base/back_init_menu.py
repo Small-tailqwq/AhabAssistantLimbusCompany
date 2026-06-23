@@ -93,7 +93,8 @@ def wait_until_main_menu_after_launch(*, allow_restart: bool = True) -> StartupM
         init_game()
 
 
-def back_init_menu_impl(*, allow_restart: bool = True) -> bool:
+@begin_and_finish_time_log(task_name="返回主界面")
+def back_init_menu(*, allow_restart: bool = True) -> bool:
     loop_count = 30
     auto.model = "clam"
     _last_fingerprint = None
@@ -250,8 +251,3 @@ def back_init_menu_impl(*, allow_restart: bool = True) -> bool:
 
         auto.mouse_click_blank()
         auto.key_press("esc")
-
-
-@begin_and_finish_time_log(task_name="返回主界面")
-def back_init_menu(*, allow_restart: bool = True):
-    return back_init_menu_impl(allow_restart=allow_restart)
