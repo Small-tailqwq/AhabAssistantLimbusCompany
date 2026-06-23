@@ -224,7 +224,7 @@ def thread_luxcavation(combat_count: int = 1):
             auto.find_element("home/first_prompt_assets.png", model="clam")
             and auto.find_element("home/back_assets.png", model="normal")
             and not auto.find_element("luxcavation/thread_enter_assets.png", threshold=0.78)
-            and not auto.find_element(_THREAD_CONSUME_ASSET, threshold=0.85)
+            and not auto.find_element(_THREAD_CONSUME_ASSET)
         ):
             auto.key_press("esc")
             continue
@@ -239,7 +239,7 @@ def thread_luxcavation(combat_count: int = 1):
             if auto.take_screenshot() is None:
                 continue
             _dump_thread_debug_frame("enter_thread")
-            if pos := auto.find_element(_THREAD_CONSUME_ASSET, threshold=0.85):
+            if pos := auto.find_element(_THREAD_CONSUME_ASSET):
                 _dump_thread_debug_frame("thread_consume_found")
                 if scroll_bar := auto.find_element("luxcavation/thread_scroll_bar.png"):
                     _dump_thread_debug_frame("scroll_bar_found")
