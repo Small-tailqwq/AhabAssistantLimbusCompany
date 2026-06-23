@@ -1273,6 +1273,341 @@ class TestTeamQueueNormalization(unittest.TestCase):
         self.assertIn(("start_game",), calls)
         self.assertIn(("set_win",), calls)
 
+    def test_script_task_initializes_image_paths_before_waiting_for_main_menu(self):
+        calls = []
+
+        class AutoStub:
+            def clear_img_cache(self):
+                calls.append(("clear_img_cache",))
+
+            def click_element(self, target, *args, **kwargs):
+                calls.append(("click_element", target, kwargs.get("take_screenshot")))
+                return False
+
+            def ensure_not_stopped(self):
+                calls.append(("ensure_not_stopped",))
+
+        cfg_stub = type(
+            "CfgStub",
+            (),
+            {
+                "skip_enkephalin": False,
+                "simulator": False,
+                "set_win_size": 1080,
+                "resonate_with_Ahab": False,
+                "daily_task": False,
+                "get_reward": False,
+                "buy_enkephalin": False,
+                "mirror": False,
+                "set_reduce_miscontact": False,
+                "lab_screenshot_obs": False,
+            },
+        )()
+        path_manager_stub = type(
+            "PathManagerStub",
+            (),
+            {"initialize_paths": lambda self: calls.append(("initialize_paths",)), "pic_path": []},
+        )()
+
+        def wait_for_main_menu(*, allow_restart=True):
+            calls.append(("wait_main_menu", allow_restart))
+            return "main_menu"
+
+        with (
+            patch.object(script_task_scheme, "cfg", cfg_stub),
+            patch.object(script_task_scheme, "auto", AutoStub()),
+            patch.object(script_task_scheme, "path_manager", path_manager_stub),
+            patch.object(script_task_scheme, "_get_game_rendering_scale", return_value=None),
+            patch.object(script_task_scheme, "init_game", lambda: calls.append(("init_game",))),
+            patch.object(
+                script_task_scheme,
+                "wait_until_main_menu_after_launch",
+                wait_for_main_menu,
+                create=True,
+            ),
+            patch.object(script_task_scheme, "send_toast", lambda *args, **kwargs: calls.append(("send_toast",))),
+            patch.object(script_task_scheme.platform, "system", return_value="Linux"),
+        ):
+            script_task_scheme.script_task()
+
+        self.assertEqual(
+            calls[:5],
+            [
+                ("init_game",),
+                ("initialize_paths",),
+                ("clear_img_cache",),
+                ("click_element", "battle/turn_assets.png", True),
+                ("wait_main_menu", True),
+            ],
+        )
+
+    def test_script_task_falls_back_to_back_init_menu_when_startup_wait_detects_runtime_ui(self):
+        calls = []
+
+        class AutoStub:
+            def clear_img_cache(self):
+                calls.append(("clear_img_cache",))
+
+            def click_element(self, *args, **kwargs):
+                return False
+
+            def ensure_not_stopped(self):
+                calls.append(("ensure_not_stopped",))
+
+        cfg_stub = type(
+            "CfgStub",
+            (),
+            {
+                "skip_enkephalin": False,
+                "simulator": False,
+                "set_win_size": 1080,
+                "resonate_with_Ahab": False,
+                "daily_task": False,
+                "get_reward": False,
+                "buy_enkephalin": False,
+                "mirror": False,
+                "set_reduce_miscontact": False,
+                "lab_screenshot_obs": False,
+            },
+        )()
+        path_manager_stub = type(
+            "PathManagerStub",
+            (),
+            {"initialize_paths": lambda self: calls.append(("initialize_paths",)), "pic_path": []},
+        )()
+
+        def wait_for_main_menu(*, allow_restart=True):
+            calls.append(("wait_main_menu", allow_restart))
+            return "runtime_ui"
+
+        def back_to_main_menu_impl(*, allow_restart=True):
+            calls.append(("back_init_menu_impl", allow_restart))
+            return True
+
+        with (
+            patch.object(script_task_scheme, "cfg", cfg_stub),
+            patch.object(script_task_scheme, "auto", AutoStub()),
+            patch.object(script_task_scheme, "path_manager", path_manager_stub),
+            patch.object(script_task_scheme, "_get_game_rendering_scale", return_value=None),
+            patch.object(script_task_scheme, "init_game", lambda: calls.append(("init_game",))),
+            patch.object(
+                script_task_scheme,
+                "wait_until_main_menu_after_launch",
+                wait_for_main_menu,
+                create=True,
+            ),
+            patch.object(script_task_scheme, "back_init_menu_impl", back_to_main_menu_impl, create=True),
+            patch.object(script_task_scheme, "send_toast", lambda *args, **kwargs: calls.append(("send_toast",))),
+            patch.object(script_task_scheme.platform, "system", return_value="Linux"),
+        ):
+            script_task_scheme.script_task()
+
+        self.assertIn(("wait_main_menu", True), calls)
+        self.assertIn(("back_init_menu_impl", True), calls)
+        self.assertLess(calls.index(("wait_main_menu", True)), calls.index(("back_init_menu_impl", True)))
+
+    def test_script_task_raises_when_runtime_ui_recovery_and_back_init_menu_fail(self):
+        calls = []
+
+        class AutoStub:
+            def clear_img_cache(self):
+                calls.append(("clear_img_cache",))
+
+            def click_element(self, *args, **kwargs):
+                return False
+
+            def ensure_not_stopped(self):
+                calls.append(("ensure_not_stopped",))
+
+        cfg_stub = type(
+            "CfgStub",
+            (),
+            {
+                "skip_enkephalin": False,
+                "simulator": False,
+                "set_win_size": 1080,
+                "resonate_with_Ahab": False,
+                "daily_task": False,
+                "get_reward": False,
+                "buy_enkephalin": False,
+                "mirror": False,
+                "set_reduce_miscontact": False,
+                "lab_screenshot_obs": False,
+            },
+        )()
+        path_manager_stub = type(
+            "PathManagerStub",
+            (),
+            {"initialize_paths": lambda self: calls.append(("initialize_paths",)), "pic_path": []},
+        )()
+
+        def wait_for_main_menu(*, allow_restart=True):
+            calls.append(("wait_main_menu", allow_restart))
+            return "runtime_ui"
+
+        def back_to_main_menu_impl(*, allow_restart=True):
+            calls.append(("back_init_menu_impl", allow_restart))
+            return False
+
+        with (
+            patch.object(script_task_scheme, "cfg", cfg_stub),
+            patch.object(script_task_scheme, "auto", AutoStub()),
+            patch.object(script_task_scheme, "path_manager", path_manager_stub),
+            patch.object(script_task_scheme, "_get_game_rendering_scale", return_value=None),
+            patch.object(script_task_scheme, "init_game", lambda: calls.append(("init_game",))),
+            patch.object(
+                script_task_scheme,
+                "wait_until_main_menu_after_launch",
+                wait_for_main_menu,
+                create=True,
+            ),
+            patch.object(script_task_scheme, "back_init_menu_impl", back_to_main_menu_impl, create=True),
+            patch.object(script_task_scheme, "send_toast", lambda *args, **kwargs: calls.append(("send_toast",))),
+            patch.object(script_task_scheme.platform, "system", return_value="Linux"),
+            self.assertRaises(script_task_scheme.cannotOperateGameError) as exc_info,
+        ):
+            script_task_scheme.script_task()
+
+        self.assertEqual(str(exc_info.exception), "启动后未能进入主界面，请手动检查后重试")
+        self.assertIn(("wait_main_menu", True), calls)
+        self.assertIn(("back_init_menu_impl", True), calls)
+
+    def test_script_task_allows_startup_wait_to_restart_on_timeout(self):
+        calls = []
+
+        class AutoStub:
+            def clear_img_cache(self):
+                calls.append(("clear_img_cache",))
+
+            def click_element(self, *args, **kwargs):
+                return False
+
+            def ensure_not_stopped(self):
+                calls.append(("ensure_not_stopped",))
+
+        cfg_stub = type(
+            "CfgStub",
+            (),
+            {
+                "skip_enkephalin": False,
+                "simulator": False,
+                "set_win_size": 1080,
+                "resonate_with_Ahab": False,
+                "daily_task": False,
+                "get_reward": False,
+                "buy_enkephalin": False,
+                "mirror": False,
+                "set_reduce_miscontact": False,
+                "lab_screenshot_obs": False,
+            },
+        )()
+        path_manager_stub = type(
+            "PathManagerStub",
+            (),
+            {"initialize_paths": lambda self: calls.append(("initialize_paths",)), "pic_path": []},
+        )()
+
+        def wait_for_main_menu(*, allow_restart=True):
+            calls.append(("wait_main_menu", allow_restart))
+            return "main_menu" if allow_restart else "timeout"
+
+        with (
+            patch.object(script_task_scheme, "cfg", cfg_stub),
+            patch.object(script_task_scheme, "auto", AutoStub()),
+            patch.object(script_task_scheme, "path_manager", path_manager_stub),
+            patch.object(script_task_scheme, "_get_game_rendering_scale", return_value=None),
+            patch.object(script_task_scheme, "init_game", lambda: calls.append(("init_game",))),
+            patch.object(
+                script_task_scheme,
+                "wait_until_main_menu_after_launch",
+                wait_for_main_menu,
+                create=True,
+            ),
+            patch.object(
+                script_task_scheme,
+                "back_init_menu_impl",
+                side_effect=AssertionError("startup timeout recovery is handled inside wait_until_main_menu_after_launch()"),
+                create=True,
+            ),
+            patch.object(script_task_scheme, "send_toast", lambda *args, **kwargs: calls.append(("send_toast",))),
+            patch.object(script_task_scheme.platform, "system", return_value="Linux"),
+        ):
+            script_task_scheme.script_task()
+
+        self.assertEqual(calls.count(("wait_main_menu", True)), 1)
+        self.assertNotIn(("wait_main_menu", False), calls)
+
+    def test_script_task_resumes_battle_before_waiting_for_main_menu(self):
+        calls = []
+
+        class AutoStub:
+            def clear_img_cache(self):
+                calls.append(("clear_img_cache",))
+
+            def click_element(self, target, *args, **kwargs):
+                calls.append(("click_element", target, kwargs.get("take_screenshot")))
+                return target == "battle/turn_assets.png"
+
+            def ensure_not_stopped(self):
+                calls.append(("ensure_not_stopped",))
+
+        cfg_stub = type(
+            "CfgStub",
+            (),
+            {
+                "skip_enkephalin": False,
+                "simulator": False,
+                "set_win_size": 1080,
+                "resonate_with_Ahab": False,
+                "daily_task": False,
+                "get_reward": False,
+                "buy_enkephalin": False,
+                "mirror": False,
+                "set_reduce_miscontact": False,
+                "lab_screenshot_obs": False,
+            },
+        )()
+        path_manager_stub = type(
+            "PathManagerStub",
+            (),
+            {"initialize_paths": lambda self: calls.append(("initialize_paths",)), "pic_path": []},
+        )()
+        battle_stub = type(
+            "BattleStub",
+            (),
+            {"fight": lambda self=None: calls.append(("battle_fight",)) or "battle_resumed"},
+        )()
+
+        def wait_for_main_menu(*, allow_restart=True):
+            calls.append(("wait_main_menu", allow_restart))
+            raise AssertionError("battle recovery should skip main menu wait")
+
+        with (
+            patch.object(script_task_scheme, "cfg", cfg_stub),
+            patch.object(script_task_scheme, "auto", AutoStub()),
+            patch.object(script_task_scheme, "path_manager", path_manager_stub),
+            patch.object(script_task_scheme, "battle", battle_stub),
+            patch.object(script_task_scheme, "_get_game_rendering_scale", return_value=None),
+            patch.object(script_task_scheme, "init_game", lambda: calls.append(("init_game",))),
+            patch.object(
+                script_task_scheme,
+                "wait_until_main_menu_after_launch",
+                wait_for_main_menu,
+                create=True,
+            ),
+            patch.object(script_task_scheme, "send_toast", lambda *args, **kwargs: calls.append(("send_toast",))),
+            patch.object(script_task_scheme.platform, "system", return_value="Linux"),
+        ):
+            script_task_scheme.script_task()
+
+        self.assertIn(("click_element", "battle/turn_assets.png", True), calls)
+        self.assertIn(("battle_fight",), calls)
+        self.assertNotIn(("wait_main_menu", True), calls)
+        self.assertLess(
+            calls.index(("click_element", "battle/turn_assets.png", True)),
+            calls.index(("battle_fight",)),
+        )
+
     def test_script_task_validates_obs_capture_before_running(self):
         calls = []
 
@@ -1325,13 +1660,86 @@ class TestTeamQueueNormalization(unittest.TestCase):
             patch.object(script_task_scheme, "mediator", mediator_stub),
             patch.object(script_task_scheme, "path_manager", path_manager_stub),
             patch.object(script_task_scheme, "init_game", lambda: calls.append(("init_game",))),
+            patch.object(
+                script_task_scheme,
+                "wait_until_main_menu_after_launch",
+                lambda allow_restart=True: calls.append(("wait_main_menu", allow_restart)) or "main_menu",
+                create=True,
+            ),
             patch.object(script_task_scheme, "get_obs_capture", lambda: ObsStub(), create=True),
+            self.assertRaises(script_task_scheme.cannotOperateGameError),
         ):
-            with self.assertRaises(script_task_scheme.cannotOperateGameError):
-                script_task_scheme.script_task()
+            script_task_scheme.script_task()
 
         self.assertIn(("validate_capture_ready",), calls)
         self.assertIn(("warning", "obs not ready"), calls)
+
+    def test_script_task_obs_not_ready_fails_before_main_menu_wait(self):
+        calls = []
+
+        class AutoStub:
+            def clear_img_cache(self):
+                calls.append(("clear_img_cache",))
+
+            def click_element(self, *args, **kwargs):
+                calls.append(("click_element", args[0]))
+                return False
+
+            def ensure_not_stopped(self):
+                calls.append(("ensure_not_stopped",))
+
+        class ObsStub:
+            def validate_capture_ready(self):
+                calls.append(("validate_capture_ready",))
+                return False, "obs not ready"
+
+        cfg_stub = type(
+            "CfgStub",
+            (),
+            {
+                "skip_enkephalin": False,
+                "simulator": False,
+                "set_win_size": 1080,
+                "resonate_with_Ahab": False,
+                "daily_task": False,
+                "get_reward": False,
+                "buy_enkephalin": False,
+                "mirror": False,
+                "set_reduce_miscontact": False,
+                "lab_screenshot_obs": True,
+            },
+        )()
+        mediator_stub = type(
+            "MediatorStub",
+            (),
+            {"warning": type("SignalStub", (), {"emit": lambda self, msg: calls.append(("warning", msg))})()},
+        )()
+        path_manager_stub = type(
+            "PathManagerStub",
+            (),
+            {"initialize_paths": lambda self: calls.append(("initialize_paths",)), "pic_path": []},
+        )()
+
+        with (
+            patch.object(script_task_scheme, "cfg", cfg_stub),
+            patch.object(script_task_scheme, "auto", AutoStub()),
+            patch.object(script_task_scheme, "mediator", mediator_stub),
+            patch.object(script_task_scheme, "path_manager", path_manager_stub),
+            patch.object(script_task_scheme, "init_game", lambda: calls.append(("init_game",))),
+            patch.object(
+                script_task_scheme,
+                "wait_until_main_menu_after_launch",
+                lambda allow_restart=True: calls.append(("wait_main_menu", allow_restart)) or "main_menu",
+                create=True,
+            ),
+            patch.object(script_task_scheme, "get_obs_capture", lambda: ObsStub(), create=True),
+            self.assertRaises(script_task_scheme.cannotOperateGameError),
+        ):
+            script_task_scheme.script_task()
+
+        self.assertEqual(calls[:3], [("init_game",), ("validate_capture_ready",), ("warning", "obs not ready")])
+        self.assertNotIn(("initialize_paths",), calls)
+        self.assertNotIn(("wait_main_menu", True), calls)
 
     def test_automation_init_input_prefers_logitech_handler_when_enabled(self):
         class FakeBaseInput(automation_module.AbstractInput):

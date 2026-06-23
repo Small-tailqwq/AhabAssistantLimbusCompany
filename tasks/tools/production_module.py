@@ -19,7 +19,7 @@ from module.config import cfg
 from module.game_and_screen import screen
 from module.logger import log
 from module.my_error.my_error import userStopError
-from tasks.base.back_init_menu import back_init_menu
+from tasks.base.back_init_menu import back_init_menu_impl
 from tasks.base.make_enkephalin_module import (
     get_current_enkephalin,
     get_the_timing,
@@ -131,7 +131,7 @@ class ProductionWork(QThread):
 
         while self.production_running:
             auto.ensure_not_stopped()
-            if back_init_menu(allow_restart=False):
+            if back_init_menu_impl(allow_restart=False):
                 return True
 
             elapsed = monotonic() - start_time

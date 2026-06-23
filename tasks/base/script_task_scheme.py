@@ -33,7 +33,12 @@ from module.system_actions import (
     execute_after_completion,
     get_after_completion_config,
 )
-from tasks.base.back_init_menu import back_init_menu
+from tasks.base.back_init_menu import (
+    StartupMainMenuWaitResult,
+    back_init_menu,
+    back_init_menu_impl,
+    wait_until_main_menu_after_launch,
+)
 from tasks.base.make_enkephalin_module import (
     lunacy_to_enkephalin,
     make_enkephalin_module,
@@ -377,6 +382,23 @@ def script_task() -> None | int:
             mediator.warning.emit(message)
             raise cannotOperateGameError(message)
 
+    path_manager.initialize_paths()
+    auto.clear_img_cache()
+    log.debug(f"初始化图片路径: {path_manager.pic_path}")
+
+    get_reward = None
+    if auto.click_element("battle/turn_assets.png", take_screenshot=True):
+        get_reward = battle.fight()
+    else:
+        startup_wait_result = wait_until_main_menu_after_launch(allow_restart=True)
+        if startup_wait_result == StartupMainMenuWaitResult.RUNTIME_UI:
+            if not back_init_menu_impl():
+                raise cannotOperateGameError("启动后未能进入主界面，请手动检查后重试")
+        elif startup_wait_result == StartupMainMenuWaitResult.TIMEOUT:
+            raise cannotOperateGameError("启动等待主界面超时，请手动检查后重试")
+        elif startup_wait_result != StartupMainMenuWaitResult.MAIN_MENU:
+            raise cannotOperateGameError("启动后主界面状态未知，请手动检查后重试")
+
     auto.ensure_not_stopped()
 
     if cfg.skip_enkephalin:
@@ -387,17 +409,8 @@ def script_task() -> None | int:
         if cfg.set_win_size == 720:
             log.info("当前游戏分辨率为1280*720，以该分辨率运行时部分场景下可能导致匹配失败；若遇到问题可尝试设置更高分辨率")
 
-    path_manager.initialize_paths()
-    auto.clear_img_cache()
-    log.debug(f"初始化图片路径: {path_manager.pic_path}")
-
     if cfg.resonate_with_Ahab:
         Resonate_with_Ahab()
-
-    # 如果是战斗中，先处理战斗
-    get_reward = None
-    if auto.click_element("battle/turn_assets.png", take_screenshot=True):
-        get_reward = battle.fight()
 
     task_list = []
     # 执行日常刷本任务
