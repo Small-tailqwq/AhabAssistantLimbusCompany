@@ -148,6 +148,12 @@ class Mirror:
         self._consecutive_road_search_count = 0
         self._recovery_attempted = False
 
+    def _time_call(self, fn, *args, **kwargs):
+        """调用 fn 并返回 (result, elapsed_time)，用于显式计时替代装饰器返回值。"""
+        start = time.time()
+        result = fn(*args, **kwargs)
+        return result, time.time() - start
+
     def event_action_visible(self):
         return any(
             auto.find_element(asset)
@@ -511,7 +517,8 @@ class Mirror:
                                 f"连续{self._consecutive_road_search_count}次寻路未触发新事件，"
                                 "恢复失败，降级为鼠标点击寻路"
                             )
-                            self.find_road_total_time += self.search_road()
+                            _, elapsed = self._time_call(self.search_road)
+                            self.find_road_total_time += elapsed
                         else:
                             log.warning(
                                 f"连续{self._consecutive_road_search_count}次寻路未触发新事件，"
@@ -521,7 +528,8 @@ class Mirror:
                             self._recovery_attempted = True
                             self._consecutive_road_search_count = 0
                     else:
-                        self.find_road_total_time += self.search_road()
+                        _, elapsed = self._time_call(self.search_road)
+                        self.find_road_total_time += elapsed
                 continue
 
             # 不在镜牢路线图时，重置软卡死计数器
@@ -579,20 +587,24 @@ class Mirror:
             if auto.find_element("battle/more_information_assets.png") or auto.find_element(
                 "battle/in_mirror_assets.png"
             ):
-                self.battle_total_time += battle.fight(self.avoid_skill_3, self.defense_first_round)
+                _, elapsed = self._time_call(battle.fight, self.avoid_skill_3, self.defense_first_round)
+                self.battle_total_time += elapsed
                 continue
             elif battle.identify_keyword_turn and self.LOOP_COUNT - main_loop_count < 5:
                 if auto.find_element("battle/turn_assets.png") or auto.find_element("battle/in_mirror_assets.png"):
-                    self.battle_total_time += battle.fight(self.avoid_skill_3, self.defense_first_round)
+                    _, elapsed = self._time_call(battle.fight, self.avoid_skill_3, self.defense_first_round)
+                    self.battle_total_time += elapsed
                     continue
             else:
                 turn_bbox = ImageUtils.get_bbox(ImageUtils.load_image("battle/turn_assets.png"))
                 turn_ocr_result = auto.find_text_element("turn", turn_bbox)
                 if turn_ocr_result is not False:
-                    self.battle_total_time += battle.fight(self.avoid_skill_3, self.defense_first_round)
+                    _, elapsed = self._time_call(battle.fight, self.avoid_skill_3, self.defense_first_round)
+                    self.battle_total_time += elapsed
                     continue
             if auto.find_element("battle/win_rate_card.png") and auto.find_element("battle/gear_right.png"):
-                self.battle_total_time += battle.fight(self.avoid_skill_3, self.defense_first_round)
+                _, elapsed = self._time_call(battle.fight, self.avoid_skill_3, self.defense_first_round)
+                self.battle_total_time += elapsed
                 continue
 
             # 镜牢星光
@@ -629,7 +641,8 @@ class Mirror:
 
             # 商店事件
             if auto.find_element("mirror/shop/shop_coins_assets.png"):
-                self.shop_total_time += self.in_shop()
+                _, elapsed = self._time_call(self.in_shop)
+                self.shop_total_time += elapsed
                 continue
 
             # 选择奖励卡
@@ -1943,6 +1956,7 @@ class Mirror:
         shop_exit_success = bool(self.shop.in_shop(self.floor))
         if shop_exit_success:
             self.mirror_map.cache_post_shop_boss_route()
+        return shop_exit_success
 
     def get_which_floor(self):
         def extract_floor_from_text(ocr_text):
