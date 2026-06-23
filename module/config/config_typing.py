@@ -3,7 +3,6 @@ from typing import List, Optional
 
 from pydantic import BaseModel, field_validator
 
-
 _OBSERVE_EGO_GIFT_NEW_PATTERN = re.compile(r"^([a-z]+)_(\d+)_(\d+)_(\d+)$")
 _OBSERVE_EGO_GIFT_LEGACY_PATTERN = re.compile(r"^([a-z]+)_gift_(\d+)_(\d+)\.png$")
 _OBSERVE_EGO_GIFT_SYSTEMS = {
@@ -320,6 +319,9 @@ class ConfigModel(BaseModel):
     game_path: str = r"C:\Program Files (x86\Steam\steamapps\common\Limbus Company\LimbusCompany.exe"
     """游戏启动路径"""
 
+    startup_wait_timeout_pc: int = 120
+    """PC 启动游戏后等待主界面的超时时间（秒）"""
+
     language_in_game: str = "en"
     """游戏语言"""
 
@@ -463,6 +465,9 @@ class ConfigModel(BaseModel):
 
     start_emulator_timeout: int = 150
     """启动模拟器超时时间。增加至 150 秒以应对 projectmonn 模拟器启动缓慢的问题"""
+
+    startup_wait_timeout_simulator: int = 180
+    """模拟器启动游戏后等待主界面的超时时间（秒）"""
 
     adb_reconnect_on_error: bool = True
     """ADB或minitouch连接失效时自动重连"""
