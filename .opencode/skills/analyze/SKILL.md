@@ -17,6 +17,9 @@ metadata:
 ## 前置依赖
 
 - `.opencode/tools/log_analyzer.py` — 日志压缩分析工具（纯 stdlib，无需额外依赖）
+- `.opencode/tools/match_viewer.py` — Web UI 交互式模板匹配工具
+- `debug_tools/verify_matching.py` — CLI 批量模板匹配验证工具（支持 A/B 对照）
+- `.opencode/reference/replay_matching.md` — 模板匹配重放的完整管道说明与常见陷阱
 - `issues/TEMPLATE.md` — issue 模板
 
 ## 分析流程
@@ -94,6 +97,42 @@ uv run python .opencode/tools/log_analyzer.py <log_path>
 - `开始执行 X` 和 `结束执行 X` 时间戳差 ≤1ms → 函数体未执行任何实际操作
 - 通常是因为前置条件（skip/skip_enkephalin 等配置）导致函数直接 return
 - 需与用户配置交叉验证：查日志头部 cfg 或 grep 对应配置项
+
+### 第4.5步：模板匹配重放验证
+
+如果用户提供了卡死界面的截图，必须对截图进行完整的模板匹配重放，验证日志中的相似度是否符合预期。
+
+**使用 `verify_matching.py` 快速验证：**
+
+```powershell
+# 单截图 + 关键资产
+uv run python debug_tools/verify_matching.py <screenshot.png> --minimal --models clam aggressive
+
+# A/B 对照（问题截图 vs 正常截图）
+uv run python debug_tools/verify_matching.py <问题截图> --compare <正常截图> --minimal
+
+# 完整资产列表
+uv run python debug_tools/verify_matching.py <screenshot.png>
+
+# 指定区域像素分析
+uv run python debug_tools/verify_matching.py <screenshot.png> --pixel X Y W H
+```
+
+**A/B 对照是判断资产过期/UI 变化的最有效手段**：
+- 两张截图分辨率相同但匹配值差异悬殊 → UI 差异（字体/HDR/主题/汉化补丁修改）
+- 两张截图匹配值都低 → 资产已过期，需要更新
+- 同一张截图 `identify_assets.png` 高（>0.9）但按钮匹配低 → 弹窗/覆盖层遮挡按钮
+
+**手动重放管道**遵循 `.opencode/reference/replay_matching.md`：
+1. 以截图实际高度除以 1440 计算 scale（不用 `cfg.set_win_size`）
+2. `_assets.png` 后缀资产必须先 `get_bbox()` + `crop()` 再匹配
+3. 使用 `ImageUtils.match_template()`，不能直接用 `cv2.matchTemplate()`
+4. `model=clam` 在 bbox 附近搜索，`model=aggressive` 全屏搜索
+
+**像素分析辅助判定**：当匹配值异常时，用 `--pixel` 参数提取按钮区域像素统计。对比模板按钮区域的亮暗像素分布可判断：
+- 按钮是否被禁用（灰色/暗化）
+- 文字/图标亮度是否与模板匹配
+- 是否有半透明覆盖层
 
 ### 第5步：溯源调用链
 
@@ -174,6 +213,7 @@ uv run python .opencode/tools/log_analyzer.py <log_path>
 | 跳过换体/日常 | `开始执行 体力换饼` 和 `结束执行` 时间戳相同 | `skip_enkephalin=True` 配置导致函数直接 return |
 | 战斗完不前进 | 战斗胜利后 stuck，路线识别/奖励确认资产匹配失败 | 分辨率不匹配、主题包资产缺失 |
 | 截图超时恢复 | `check_times()` 触发 → `kill_game()` + `restart_game()` | 游戏进程卡死/窗口失去焦点导致截图一直超时 |
+| UI 修改导致匹配失败 | `identify_assets.png` 高匹配但操作按钮低匹配，同屏幕不同截图匹配值差异巨大 | 用户修改了汉化字体/主题，或开启了 HDR/夜间模式等影响画面渲染的选项 |
 
 ## 注意事项
 
@@ -185,3 +225,6 @@ uv run python .opencode/tools/log_analyzer.py <log_path>
 - **复现步骤必须可执行** — 不能写"未知"，至少写"在 X 环境下运行 Y 功能时卡死"
 - **修复建议优先用最小改动方案**
 - **引用代码时用 GitHub blob 行号链接**，例如 `<https://github.com/Small-tailqwq/AhabAssistantLimbusCompany/blob/<commit>/path/to/file.py#L123-L130>`**
+- **用户提供截图时必须执行模板匹配重放** — 优先使用 `verify_matching.py --compare` 做 A/B 对照，可快速区分资产过期 vs UI 修改 vs 弹窗遮挡
+- **如果匹配值能复现但不合理** — 检查用户是否修改了汉化补丁字体、是否开启了 HDR/夜间模式/主题包覆盖等会改变画面渲染的系统选项
+- **`chaim_to_battle_assets.png` 等全屏截图式资产** — 这类资产是 2560×1440 的完整截图而非按钮裁剪，bbox 超出截图可用区域时匹配值会被压低，需确认截图分辨率 ≥ 模板 bbox 覆盖范围
