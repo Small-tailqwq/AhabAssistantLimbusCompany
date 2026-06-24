@@ -118,10 +118,10 @@ class ToolsInterface(ScrollArea):
         self.ghub_manager_card = BasePushSettingCard(
             QT_TRANSLATE_NOOP("BasePushSettingCard", "运行"),
             FIF.SYNC,
-            QT_TRANSLATE_NOOP("BasePushSettingCard", "G HUB 驱动管理器"),
+            QT_TRANSLATE_NOOP("BasePushSettingCard", "驱动 DLL 管理器"),
             QT_TRANSLATE_NOOP(
                 "BasePushSettingCard",
-                "检测罗技 DLL 状态、启动 G HUB、管理版本更新封锁",
+                "检测罗技/雷蛇驱动 DLL 状态、启动 G HUB、管理版本更新封锁",
             ),
             parent=self.tools_group,
         )
