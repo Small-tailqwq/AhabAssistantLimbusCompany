@@ -245,6 +245,17 @@ class LLCLocalizationWindow(QWidget):
         btn_layout.addWidget(self.update_btn)
         layout.addLayout(btn_layout)
 
+        self.attribution_label = QLabel(
+            '汉化文件来自 <a href="https://github.com/LocalizeLimbusCompany/LocalizeLimbusCompany">'
+            "LocalizeLimbusCompany</a>，采用 "
+            '<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh-hans">'
+            "CC BY-NC-SA 4.0</a> 协议"
+        )
+        self.attribution_label.setOpenExternalLinks(True)
+        self.attribution_label.setAlignment(Qt.AlignCenter)
+        self.attribution_label.setStyleSheet("font-size: 11px; color: #888;")
+        layout.addWidget(self.attribution_label)
+
         self._apply_theme_style()
         center_window(self)
 
