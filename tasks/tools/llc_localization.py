@@ -18,13 +18,13 @@ from PySide6.QtWidgets import (
 from qfluentwidgets import qconfig
 
 from module.config import cfg
+from module.game_and_screen import game_process
 from module.logger import log
 from tasks.tools.ui_style import (
     apply_tool_window_theme,
     center_window,
     get_status_label_style,
 )
-from utils.utils import check_game_running
 
 LLC_REPO = "LocalizeLimbusCompany/LocalizeLimbusCompany"
 GITHUB_API = f"https://api.github.com/repos/{LLC_REPO}/releases/latest"
@@ -135,12 +135,8 @@ class LLCLocalizationWorker(QThread):
             self.operation_finished.emit(True)
             return
 
-        if check_game_running():
-            self._emit_log("游戏正在运行，请先关闭游戏后再更新汉化")
-            self.status_type.emit("error")
-            self.status_text.emit("请先关闭游戏后再更新汉化")
-            self.operation_finished.emit(False)
-            return
+        if game_process.check_game_alive():
+            self._emit_log("游戏正在运行，更新后需重启游戏使汉化生效")
 
         self._do_download_and_extract(latest_tag, lang_dir)
 
@@ -203,6 +199,7 @@ class LLCLocalizationWindow(QWidget):
         super().__init__()
         self.setAttribute(Qt.WA_DeleteOnClose, True)
         self.worker = None
+        self._updating = False
         self.setup_ui()
         qconfig.themeChanged.connect(self._apply_theme_style)
         self._auto_check()
@@ -276,9 +273,12 @@ class LLCLocalizationWindow(QWidget):
         self.worker.start()
 
     def _on_status_type(self, st: str):
+        if self._updating:
+            return
         self.update_btn.setVisible(st == "update")
 
     def _on_update_clicked(self):
+        self._updating = True
         self.update_btn.setVisible(False)
         self.update_btn.setEnabled(False)
         if self.worker and self.worker.isRunning():
@@ -288,6 +288,7 @@ class LLCLocalizationWindow(QWidget):
             self.worker.request_update()
 
     def _on_operation_finished(self, success: bool):
+        self._updating = False
         self.update_btn.setEnabled(True)
 
     def _append_log(self, msg: str):
