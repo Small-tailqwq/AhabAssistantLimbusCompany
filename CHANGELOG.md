@@ -2,6 +2,21 @@
 
 ## [Unreleased] — Canary
 
+## [1.5.0-canary.20] — 2026-06-24
+
+- feat: 新增雷蛇驱动对接，支持 Razer 硬件鼠标输入 + 分块间微步进延迟
+- feat: 添加零协汉化更新工具，支持游戏路径自动检测
+- feat: 增加运行暂停/继续按钮
+- feat: 新增观测 EGO 饰品功能，适配星光加成系统
+- feat: 新增 `debug_tools/verify_matching.py` 模板匹配验证工具（CLI 批量匹配/A/B 对照/像素分析）
+- fix: 修复多个镜牢卡死场景（输入软卡死恢复、寻路 position 分支、奖励卡状态机、技能观测无法选中罪人）
+- fix: mirror.py 耗时统计改用显式计时，修复装饰器吞返回值
+- fix: 修复亮色模式复选框不可见
+- fix: 优化初始菜单节奏，修复启动等待超时恢复、邮件领取重试、幽灵进程阻塞
+- fix: 前移奖励卡画面检测，避免结算跳过误触奖励卡 (issue #35)
+- refactor: 重构 Agent 基础设施为渐进式披露模式，更新 analyze skill
+- refactor(ci): PR 审阅迁移到 Open Code Review CLI
+
 ## [1.5.0-canary.19] — 2026-06-13
 
 ### 上游合并
