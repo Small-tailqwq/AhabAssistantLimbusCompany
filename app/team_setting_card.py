@@ -109,6 +109,11 @@ class TeamSettingCard(QFrame):
             title=self.tr("自定义设置（设置存在冲突时，将根据优先级覆盖生效）"),
         )
 
+        self.observe_ego_gift_layout = ExpandSettingCard(
+            icon=FIF.SEARCH,
+            title=self.tr("观测EGO饰品"),
+        )
+
         self.custom_layout2 = ExpandSettingCard(icon=FIF.INFO, title=self.tr("编队统计数据"))
 
         self.setting_layout = QHBoxLayout()
@@ -250,6 +255,7 @@ class TeamSettingCard(QFrame):
         )
 
         self.customize_settings_module = CustomizeSettingsModule(self.team_num)
+        self.observe_ego_gift_module = ObserveEgoGiftModule(self.team_num)
         self.customize_info_module = CustomizeInfoModule(self.team_num)
         self.customize_settings_module.select_theme_pack_weight_button.clicked.connect(
             self.open_theme_pack_weight_dialog
@@ -309,6 +315,7 @@ class TeamSettingCard(QFrame):
         self.layout_.addLayout(self.sinner_layout)
         self.layout_.addWidget(self.gift_system_layout)
         self.layout_.addWidget(self.custom_layout)
+        self.layout_.addWidget(self.observe_ego_gift_layout)
         self.layout_.addWidget(self.custom_layout2)
 
         self.main_layout.addLayout(self.setting_layout)
@@ -316,6 +323,7 @@ class TeamSettingCard(QFrame):
         self.setting_layout.setContentsMargins(10, 0, 10, 0)  # 手动对齐其他组件
 
         self.custom_layout.viewLayout.addWidget(self.customize_settings_module)
+        self.observe_ego_gift_layout.viewLayout.addWidget(self.observe_ego_gift_module)
         self.custom_layout2.viewLayout.addWidget(self.customize_info_module)
 
     def connect_mediator(self):
