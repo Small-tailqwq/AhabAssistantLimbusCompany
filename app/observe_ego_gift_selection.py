@@ -1,10 +1,10 @@
-from __future__ import annotations
-
 """观测 EGO 饰品控件组的轻量数据模型与新格式读写工具。
 
 当前文件只服务 GUI 侧的控件组回显、补空行和保存逻辑。
 优先使用新格式 ``system_level_row_col``，同时兼容旧版 ``system_gift_level_index.png``。
 """
+
+from __future__ import annotations
 
 import re
 from dataclasses import dataclass

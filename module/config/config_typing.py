@@ -3,7 +3,6 @@ from typing import List, Optional
 
 from pydantic import BaseModel, field_validator
 
-
 _OBSERVE_EGO_GIFT_NEW_PATTERN = re.compile(r"^([a-z]+)_(\d+)_(\d+)_(\d+)$")
 _OBSERVE_EGO_GIFT_LEGACY_PATTERN = re.compile(r"^([a-z]+)_gift_(\d+)_(\d+)\.png$")
 _OBSERVE_EGO_GIFT_SYSTEMS = {

@@ -1,4 +1,4 @@
-from PySide6.QtCore import QTimer, Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -39,6 +39,13 @@ from app.common.ui_config import (
     get_starlight_total_cost_qss,
 )
 from app.language_manager import LanguageManager
+from app.observe_ego_gift_selection import (
+    MAX_OBSERVE_GIFT_SELECTIONS,
+    ObserveGiftSelection,
+    ensure_placeholder_row,
+    parse_observe_ego_gift_values,
+    serialize_observe_ego_gift_values,
+)
 from app.starlight_bonus import StarlightCard, StarlightLevelSelector
 from app.theme_pack_setting_interface import ThemePackSettingDialog
 from module.config import TeamSetting, cfg, theme_list
@@ -48,13 +55,6 @@ from module.config.team_import_export import (
     export_team_settings,
     generate_team_export_filename,
     import_team_settings,
-)
-from app.observe_ego_gift_selection import (
-    MAX_OBSERVE_GIFT_SELECTIONS,
-    ObserveGiftSelection,
-    ensure_placeholder_row,
-    parse_observe_ego_gift_values,
-    serialize_observe_ego_gift_values,
 )
 
 
@@ -983,7 +983,9 @@ class CustomizeSettingsModule(QFrame):
 
     def _apply_total_cost_style(self):
         from qfluentwidgets import setCustomStyleSheet
+
         from app.starlight_bonus import _register_custom_style_widget
+
         _register_custom_style_widget(self.starlight_total_cost_label)
         light_qss, dark_qss = get_starlight_total_cost_qss()
         setCustomStyleSheet(self.starlight_total_cost_label, light_qss, dark_qss)

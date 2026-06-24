@@ -68,9 +68,8 @@ from app.observe_ego_gift_selection import (
 from module.font_manager import font_manager
 from module.logger import log
 from module.my_error.my_error import settingsTypeError
-from module.update.check_update import UpdateStatus, UpdateThread, check_update, start_update_thread
-from utils.image_utils import ImageUtils
-from utils.utils import decrypt_string, encrypt_string, get_timezone
+from module.update.check_update import check_update
+from utils.utils import decrypt_string, encrypt_string
 
 
 class CheckBoxWithButton(QFrame):
