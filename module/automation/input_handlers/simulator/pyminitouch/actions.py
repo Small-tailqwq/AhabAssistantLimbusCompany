@@ -133,19 +133,46 @@ class MNTDevice(object):
         self.stop()
         self.start()
 
-    def start(self):
-        # prepare for connection
-        try:
-            self.server = MNTServer(self.device_id)
-        except AssertionError:
-            import adbutils
+    def start(self, max_retries=3):
+        last_exc = None
+        for attempt in range(1, max_retries + 1):
+            server = None
+            try:
+                server = MNTServer(self.device_id)
+                self.connection = MNTConnection(server.port)
+                self.server = server
+                log.info(
+                    "minitouch 初始化成功 (device=%s, port=%s, attempt=%d)",
+                    self.device_id, server.port, attempt,
+                )
+                return
+            except AssertionError as e:
+                import adbutils
+                log.warning("minitouch heartbeat 失败，重启 ADB server 后重试")
+                try:
+                    adbutils.adb.kill_server()
+                except Exception as kill_err:
+                    log.warning("adb.kill_server 失败: %s", kill_err)
+                last_exc = e
+            except Exception as e:
+                log.warning(
+                    "minitouch 初始化失败 (device=%s, attempt=%d/%d): %s: %s",
+                    self.device_id, attempt, max_retries, type(e).__name__, e,
+                )
+                last_exc = e
+            if server:
+                try:
+                    server.stop()
+                except Exception as stop_err:
+                    log.debug("minitouch server.stop() 清理失败: %s", stop_err)
+            if attempt < max_retries:
+                time.sleep(attempt)
 
-            adbutils.adb.kill_server()
-            self.start()
-        except:
-            self.start()
-        # real connection
-        self.connection = MNTConnection(self.server.port)
+        log.error(
+            "minitouch 初始化全部失败 (device=%s, retries=%d), last_error=%s: %s",
+            self.device_id, max_retries, type(last_exc).__name__, last_exc,
+        )
+        raise RuntimeError(f"minitouch 初始化失败，已达最大重试次数 ({max_retries}次)")
 
     def stop(self):
         self.connection.disconnect()

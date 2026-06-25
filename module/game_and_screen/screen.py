@@ -24,6 +24,7 @@ class Handle:
 
     _hwnd: int = 0
     _transparent = False
+    _macos_hwnd_hint_logged = False
 
     def init_handle(self, title: str = "LimbusCompany", class_name: str = "UnityWndClass") -> int:
         """获取窗口句柄"""
@@ -35,7 +36,9 @@ class Handle:
         """获取窗口句柄"""
         if self._hwnd == 0:
             if win32gui is None:
-                log.debug("当前为 macOS 环境或 win32 不可用，跳过窗口初始化", stacklevel=3)
+                if not self._macos_hwnd_hint_logged:
+                    self._macos_hwnd_hint_logged = True
+                    log.debug("当前为 macOS 环境或 win32 不可用，跳过窗口初始化", stacklevel=3)
             elif cfg.simulator:
                 log.debug("模拟器模式下无法获取窗口句柄", stacklevel=3)
             else:

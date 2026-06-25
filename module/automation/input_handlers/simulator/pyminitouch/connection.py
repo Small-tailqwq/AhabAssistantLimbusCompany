@@ -206,21 +206,38 @@ class MNTConnection(object):
         # get minitouch server info
         socket_out = client.makefile()
 
-        # v <version>
-        # protocol version, usually it is 1. needn't use this
-        socket_out.readline()
+        version_raw = socket_out.readline()
+        version_line = version_raw.replace("\n", "").replace("\r", "")
 
-        # ^ <max-contacts> <max-x> <max-y> <max-pressure>
-        _, max_contacts, max_x, max_y, max_pressure, *_ = (
-            socket_out.readline().replace("\n", "").replace("\r", "").split(" ")
-        )
+        head_raw = socket_out.readline()
+        head_line = head_raw.replace("\n", "").replace("\r", "").split(" ")
+        if len(head_line) < 5:
+            log.error(
+                "minitouch 握手失败: version_line=%r, head_raw=%r (len=%d, fields=%s)",
+                version_line, head_raw, len(head_line), head_line,
+            )
+            raise RuntimeError(
+                f"minitouch 协议首行格式异常: expected >=5 fields, "
+                f"got {len(head_line)} (version={version_line!r}, head={head_line!r})"
+            )
+        _, max_contacts, max_x, max_y, max_pressure, *_ = head_line
         self.max_contacts = max_contacts
         self.max_x = max_x
         self.max_y = max_y
         self.max_pressure = max_pressure
 
-        # $ <pid>
-        _, pid = socket_out.readline().replace("\n", "").replace("\r", "").split(" ")
+        pid_raw = socket_out.readline()
+        pid_line = pid_raw.replace("\n", "").replace("\r", "").split(" ")
+        if len(pid_line) < 2:
+            log.error(
+                "minitouch PID 行异常: version_line=%r, head_line=%r, pid_raw=%r",
+                version_line, head_line, pid_raw,
+            )
+            raise RuntimeError(
+                f"minitouch PID 行格式异常: expected >=2 fields, "
+                f"got {len(pid_line)} (pid_raw={pid_line!r})"
+            )
+        _, pid = pid_line
         self.pid = pid
 
         log.debug("在端口上运行的 Minitouch：{}，PID：{}".format(self.port, self.pid))
