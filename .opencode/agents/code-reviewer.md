@@ -1,8 +1,7 @@
 ---
 description: |
-  Code review expert. Discovers functional bugs, design flaws, code smells, and structural inefficiencies.
-  Use for: PR review, code health check, reviewing uncommitted changes, reviewing branches.
-  Does not: fix code, modify files, dispatch sub-agents.
+  Use when reviewing AALC code changes, pull requests, branches, commits, or uncommitted diffs.
+  Reports confirmed defects before design observations. Does not edit files or dispatch subagents.
 mode: subagent
 temperature: 0.2
 steps: 30

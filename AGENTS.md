@@ -52,6 +52,7 @@ uv run python .\scripts\export-requirements-from-uv-lock.py
 | 任务线程 | `tasks/base/script_task_scheme.py` |
 | 自动化/单例 | `module/` |
 | 图片 | `assets/images/default/{en,zh_cn,share}/`、`assets/images/dark/` |
+| OpenCode | `.opencode/agents/`、`.opencode/skills/`、`.opencode/reference/` |
 
 ## 核心不变量
 
