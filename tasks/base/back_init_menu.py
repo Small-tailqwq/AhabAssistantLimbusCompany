@@ -7,6 +7,7 @@ from module.config import cfg
 from module.decorator.decorator import begin_and_finish_time_log
 from module.logger import log
 from tasks.base.retry import (
+    _is_runtime_ui_visible,
     click_title_screen_safely,
     ensure_simulator_game_started,
     retry,
@@ -26,9 +27,10 @@ def _is_retry_debug_enabled():
 
 
 def _screenshot_fingerprint():
-    if auto.screenshot is None:
+    screenshot = getattr(auto, "screenshot", None)
+    if screenshot is None:
         return None
-    raw = auto.screenshot.tobytes()
+    raw = screenshot.tobytes()
     return hash(raw[: min(len(raw), 1024)])
 
 
@@ -52,6 +54,11 @@ def handle_launch_state_once() -> bool | None:
         return True
     if auto.click_element("base/only_option_assets.png", model="clam"):
         return True
+    # 镜牢入口等游戏内子界面检测：按下ESC返回主菜单
+    if auto.find_element("mirror/road_to_mir/enter_assets.png"):
+        auto.key_press("esc")
+        sleep(0.5)
+        return True
     return None
 
 
@@ -63,6 +70,8 @@ def wait_until_main_menu_after_launch(*, allow_restart: bool = True) -> StartupM
         deadline = start_time + timeout_seconds
         halfway_logged = False
         halfway_threshold = start_time + timeout_seconds / 2
+        _last_fingerprint = None
+        _stale_count = 0
         while True:
             now = time.time()
             if now > deadline:
@@ -77,8 +86,31 @@ def wait_until_main_menu_after_launch(*, allow_restart: bool = True) -> StartupM
                 continue
             if auto.take_screenshot() is None:
                 continue
+
+            fingerprint = _screenshot_fingerprint()
+            if fingerprint is None:
+                _stale_count = 0
+                _last_fingerprint = None
+            elif fingerprint == _last_fingerprint:
+                _stale_count += 1
+                if _stale_count >= 3:
+                    log.warning(f"检测到截屏冻结（连续 {_stale_count} 轮画面不变），跳过本轮")
+                    if _is_runtime_ui_visible():
+                        return StartupMainMenuWaitResult.RUNTIME_UI
+                    if hasattr(auto, "key_press"):
+                        log.debug("截屏冻结且无运行时 UI 匹配，尝试按 ESC 导航")
+                        auto.key_press("esc")
+                    sleep(0.5)
+                    continue
+            else:
+                _stale_count = 0
+                _last_fingerprint = fingerprint
+
             if handle_launch_state_once():
                 continue
+
+            if _is_runtime_ui_visible():
+                return StartupMainMenuWaitResult.RUNTIME_UI
             if auto.click_element("home/window_assets.png") and auto.find_element("home/mail_assets.png", model="normal"):
                 return StartupMainMenuWaitResult.MAIN_MENU
             sleep(0.5)
@@ -135,7 +167,10 @@ def back_init_menu(*, allow_restart: bool = True) -> bool:
 
         # 截屏冻结检测：连续 3 轮相同画面则跳过（不点击），防止 Mumu 显存刷新延迟导致的无限误触
         fingerprint = _screenshot_fingerprint()
-        if fingerprint == _last_fingerprint:
+        if fingerprint is None:
+            _stale_count = 0
+            _last_fingerprint = None
+        elif fingerprint == _last_fingerprint:
             _stale_count += 1
             if _stale_count >= 3:
                 log.warning(f"检测到截屏冻结（连续 {_stale_count} 轮画面不变），跳过本轮")
@@ -143,7 +178,7 @@ def back_init_menu(*, allow_restart: bool = True) -> bool:
                 continue
         else:
             _stale_count = 0
-        _last_fingerprint = fingerprint
+            _last_fingerprint = fingerprint
 
         if auto.click_element("home/window_assets.png") and auto.find_element("home/mail_assets.png", model="normal"):
             return True

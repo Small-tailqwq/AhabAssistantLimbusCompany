@@ -128,6 +128,7 @@ class TestStartupMainMenuWait(unittest.TestCase):
             patch.object(back_init_menu_module, "auto", auto_stub),
             patch.object(back_init_menu_module, "ensure_simulator_game_started", return_value=False),
             patch.object(back_init_menu_module, "handle_launch_state_once", side_effect=handle_launch_state_once_stub),
+            patch.object(back_init_menu_module, "_is_runtime_ui_visible", return_value=False),
             patch.object(back_init_menu_module, "get_startup_wait_timeout_seconds", return_value=3),
         ):
             result = back_init_menu_module.wait_until_main_menu_after_launch(allow_restart=False)
@@ -165,6 +166,7 @@ class TestStartupMainMenuWait(unittest.TestCase):
                 "handle_launch_state_once",
                 side_effect=lambda: handle_calls.append("handle") or None,
             ),
+            patch.object(back_init_menu_module, "_is_runtime_ui_visible", return_value=False),
             patch.object(back_init_menu_module, "get_startup_wait_timeout_seconds", return_value=1),
             patch.object(back_init_menu_module, "sleep", lambda *_: None),
             patch.object(back_init_menu_module, "time", TimeSequence(0.0, 0.0, 0.5, 1.0)),
@@ -206,6 +208,80 @@ class TestStartupMainMenuWait(unittest.TestCase):
 
         self.assertEqual(result, "runtime_ui")
         self.assertEqual(actions, [("ensure_not_stopped",)])
+
+    def test_wait_until_main_menu_after_launch_returns_runtime_ui_when_runtime_ui_visible(self):
+        calls = []
+
+        class AutoStub:
+            def ensure_not_stopped(self):
+                calls.append(("ensure_not_stopped",))
+
+            def take_screenshot(self):
+                calls.append(("take_screenshot",))
+                return object()
+
+            def click_element(self, target, *args, **kwargs):
+                calls.append(("click_element", target))
+                return False
+
+            def find_element(self, target, *args, **kwargs):
+                calls.append(("find_element", target))
+                return False
+
+        with (
+            patch.object(back_init_menu_module, "auto", AutoStub()),
+            patch.object(back_init_menu_module, "ensure_simulator_game_started", return_value=False),
+            patch.object(back_init_menu_module, "handle_launch_state_once", return_value=None),
+            patch.object(back_init_menu_module, "_is_runtime_ui_visible", return_value=True),
+            patch.object(back_init_menu_module, "get_startup_wait_timeout_seconds", return_value=1),
+        ):
+            result = back_init_menu_module.wait_until_main_menu_after_launch(allow_restart=False)
+
+        self.assertEqual(result, "runtime_ui")
+        self.assertNotIn(("click_element", "home/window_assets.png"), calls)
+
+    def test_wait_until_main_menu_after_launch_presses_esc_when_frozen_unknown_screen(self):
+        calls = []
+
+        class FrozenScreenshot:
+            def tobytes(self):
+                return b"same-frame"
+
+        class AutoStub:
+            def __init__(self):
+                self.screenshot = FrozenScreenshot()
+
+            def ensure_not_stopped(self):
+                calls.append(("ensure_not_stopped",))
+
+            def take_screenshot(self):
+                calls.append(("take_screenshot",))
+                return self.screenshot
+
+            def click_element(self, target, *args, **kwargs):
+                calls.append(("click_element", target))
+                return False
+
+            def find_element(self, target, *args, **kwargs):
+                calls.append(("find_element", target))
+                return False
+
+            def key_press(self, key):
+                calls.append(("key_press", key))
+
+        with (
+            patch.object(back_init_menu_module, "auto", AutoStub()),
+            patch.object(back_init_menu_module, "ensure_simulator_game_started", return_value=False),
+            patch.object(back_init_menu_module, "handle_launch_state_once", return_value=None),
+            patch.object(back_init_menu_module, "_is_runtime_ui_visible", return_value=False),
+            patch.object(back_init_menu_module, "get_startup_wait_timeout_seconds", return_value=1),
+            patch.object(back_init_menu_module, "sleep", lambda *_: None),
+            patch.object(back_init_menu_module, "time", TimeSequence(0.0, 0.0, 0.1, 0.2, 0.3, 1.1)),
+        ):
+            result = back_init_menu_module.wait_until_main_menu_after_launch(allow_restart=False)
+
+        self.assertEqual(result, "timeout")
+        self.assertIn(("key_press", "esc"), calls)
 
     def test_wait_until_main_menu_after_launch_logs_halfway_once_and_timeout(self):
         log_messages = []
@@ -281,6 +357,7 @@ class TestStartupMainMenuWait(unittest.TestCase):
             patch.object(back_init_menu_module, "auto", AutoStub()),
             patch.object(back_init_menu_module, "ensure_simulator_game_started", return_value=False),
             patch.object(back_init_menu_module, "handle_launch_state_once", return_value=None),
+            patch.object(back_init_menu_module, "_is_runtime_ui_visible", return_value=False),
             patch.object(
                 back_init_menu_module,
                 "get_startup_wait_timeout_seconds",

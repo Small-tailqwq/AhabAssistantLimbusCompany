@@ -50,6 +50,7 @@ def _is_runtime_ui_visible() -> bool:
         or auto.find_element("mirror/road_in_mir/to_window_assets.png", threshold=0.75)
         or auto.find_element("mirror/road_in_mir/select_encounter_reward_card_assets.png")
         or auto.find_element("mirror/road_in_mir/legend_assets.png")
+        or auto.find_element("mirror/road_to_mir/enter_assets.png")
     )
 
 
