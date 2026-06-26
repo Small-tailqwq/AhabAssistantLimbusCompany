@@ -67,3 +67,6 @@ assets/app/fonts/chars.txt
 
 # Gortex index data
 .gortex/
+
+# 临时清理目录
+_pending_cleanup/
