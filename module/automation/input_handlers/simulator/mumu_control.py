@@ -875,6 +875,7 @@ class MumuControl(AbstractInput):
         )
 
     def _run_input_event_with_retries(self, func, *args, error_message: str) -> None:
+        reconnected = False
         for attempt in range(1, NEMU_IPC_INPUT_RETRY_LIMIT + 1):
             self.check_stop_requested()
             ret = self.ev_run_sync(func, *args)
@@ -885,7 +886,18 @@ class MumuControl(AbstractInput):
                     f"调用 {func.__name__} 失败，结果={ret}，"
                     f"重试 {attempt}/{NEMU_IPC_INPUT_RETRY_LIMIT}"
                 )
-                time.sleep(0.05)
+                backoff = min(0.05 * (2 ** (attempt - 1)), 1.0)
+                time.sleep(backoff)
+                if attempt >= 5 and not reconnected:
+                    log.warning(
+                        f"{func.__name__} 连续失败 {attempt} 次，尝试重连 IPC"
+                    )
+                    try:
+                        self.reconnect()
+                        reconnected = True
+                    except Exception:
+                        log.warning("IPC 重连失败，继续重试")
+                    args = (self.connect_id, self.display_id) + args[2:]
                 continue
 
             message = (

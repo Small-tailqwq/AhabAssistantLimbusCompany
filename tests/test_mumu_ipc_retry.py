@@ -35,6 +35,7 @@ class TestMumuIpcInputRetry(unittest.TestCase):
         with (
             patch.object(mumu_control_module.log, "warning"),
             patch.object(mumu_control_module.time, "sleep"),
+            patch.object(control, "reconnect"),
         ):
             control.down(12, 34)
 
@@ -47,6 +48,7 @@ class TestMumuIpcInputRetry(unittest.TestCase):
         with (
             patch.object(mumu_control_module.log, "warning") as warning,
             patch.object(mumu_control_module.time, "sleep"),
+            patch.object(control, "reconnect"),
             self.assertRaises(userStopError) as raised,
         ):
             control.down(12, 34)
@@ -54,6 +56,19 @@ class TestMumuIpcInputRetry(unittest.TestCase):
         self.assertEqual(len(calls), 10)
         self.assertIn("连续失败10次", str(raised.exception))
         warning.assert_called()
+
+    def test_reconnect_is_attempted_after_five_failures(self):
+        control, calls = self._make_control([4] * 6 + [0])
+
+        with (
+            patch.object(mumu_control_module.log, "warning"),
+            patch.object(mumu_control_module.time, "sleep"),
+            patch.object(control, "reconnect") as mock_reconnect,
+        ):
+            control.down(12, 34)
+
+        self.assertEqual(len(calls), 7)
+        mock_reconnect.assert_called_once()
 
 
 if __name__ == "__main__":
