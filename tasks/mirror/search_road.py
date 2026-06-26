@@ -1036,6 +1036,35 @@ def _should_retry_with_camera_scout(plan):
     return len(plan["directions"]) <= 1 or plan.get("visible_rows", 0) <= 2 or plan["visible_layers"] <= 2
 
 
+# 简单键盘寻路：始终按↑选择第一个节点，完全避免鼠标拖动
+def search_road_simple_keyboard():
+    """最简单寻路策略：不进行路线规划/相机对齐/节点识别，仅按↑键选择第一个节点后回车。
+
+    适用于 Steam 环境下鼠标拖动地图导致卡死的场景，依赖 mirror_keyboard_navigation。
+    """
+    if not cfg.mirror_keyboard_navigation:
+        log.warning("简单键盘寻路需要启用键盘寻路模式")
+        return False
+
+    auto.mouse_to_blank()
+    sleep(0.3)
+
+    for attempt in range(2):
+        log.debug(f"简单键盘寻路: 第 {attempt + 1} 次尝试按↑+回车")
+        auto.key_press("up")
+        sleep(0.5)
+        auto.key_press("enter")
+        sleep(1.25)
+
+        if auto.click_element("mirror/road_in_mir/enter_assets.png", take_screenshot=True):
+            return True
+        if not auto.find_element("mirror/road_in_mir/legend_assets.png"):
+            return True
+
+    log.debug("简单键盘寻路失败，需回退到常规寻路")
+    return False
+
+
 # 在默认缩放情况下，进行镜牢寻路
 def search_road_default_distance():
     start_time = time.time()

@@ -628,6 +628,9 @@ class ConfigModel(BaseModel):
     mirror_keyboard_navigation: bool = False
     """使用键盘进行镜牢寻路"""
 
+    mirror_keyboard_simple_pathfinding: bool = False
+    """简单键盘寻路模式：始终按↑选择第一个节点，完全避免鼠标拖动"""
+
     debug_mode: bool = False
     """调试模式总开关；关闭时应同步关闭所有子调试开关"""
 
