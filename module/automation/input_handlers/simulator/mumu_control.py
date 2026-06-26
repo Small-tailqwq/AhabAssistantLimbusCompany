@@ -87,6 +87,9 @@ class NemuIpcError(Exception):
     pass
 
 
+NEMU_IPC_INPUT_RETRY_LIMIT = 10
+
+
 class CaptureStd:
     """
     Capture stdout and stderr from both python and C library
@@ -848,9 +851,14 @@ class MumuControl(AbstractInput):
         x = int(x)
         y = int(y)
 
-        ret = self.ev_run_sync(self.lib.nemu_input_event_touch_down, self.connect_id, self.display_id, x, y)
-        if ret > 0:
-            raise NemuIpcError("nemu_input_event_touch_down failed")
+        self._run_input_event_with_retries(
+            self.lib.nemu_input_event_touch_down,
+            self.connect_id,
+            self.display_id,
+            x,
+            y,
+            error_message="nemu_input_event_touch_down failed",
+        )
 
     def up(self):
         """
@@ -859,30 +867,57 @@ class MumuControl(AbstractInput):
         if self.connect_id == 0:
             self.connect()
 
-        ret = self.ev_run_sync(self.lib.nemu_input_event_touch_up, self.connect_id, self.display_id)
-        if ret > 0:
-            raise NemuIpcError("nemu_input_event_touch_up failed")
+        self._run_input_event_with_retries(
+            self.lib.nemu_input_event_touch_up,
+            self.connect_id,
+            self.display_id,
+            error_message="nemu_input_event_touch_up failed",
+        )
+
+    def _run_input_event_with_retries(self, func, *args, error_message: str) -> None:
+        for attempt in range(1, NEMU_IPC_INPUT_RETRY_LIMIT + 1):
+            self.check_stop_requested()
+            ret = self.ev_run_sync(func, *args)
+            if ret <= 0:
+                return
+            if attempt < NEMU_IPC_INPUT_RETRY_LIMIT:
+                log.warning(
+                    f"调用 {func.__name__} 失败，结果={ret}，"
+                    f"重试 {attempt}/{NEMU_IPC_INPUT_RETRY_LIMIT}"
+                )
+                time.sleep(0.05)
+                continue
+
+            message = (
+                f"MuMu IPC 输入事件 {func.__name__} 连续失败{NEMU_IPC_INPUT_RETRY_LIMIT}次，"
+                "已停止脚本，请检查模拟器状态或重启模拟器"
+            )
+            log.warning(message)
+            raise userStopError(message) from NemuIpcError(error_message)
 
     def _key_down_impl(self, key_code: int):
         if self.connect_id == 0:
             self.connect()
 
-        ret = self.ev_run_sync(
+        self._run_input_event_with_retries(
             self.lib.nemu_input_event_key_down,
             self.connect_id,
             self.display_id,
             key_code,
+            error_message="nemu_input_event_key_down failed",
         )
-        if ret > 0:
-            raise NemuIpcError("nemu_input_event_key_down failed")
 
     def _key_up_impl(self, key_code: int):
         if self.connect_id == 0:
             self.connect()
 
-        ret = self.ev_run_sync(self.lib.nemu_input_event_key_up, self.connect_id, self.display_id, key_code)
-        if ret > 0:
-            raise NemuIpcError("nemu_input_event_key_up failed")
+        self._run_input_event_with_retries(
+            self.lib.nemu_input_event_key_up,
+            self.connect_id,
+            self.display_id,
+            key_code,
+            error_message="nemu_input_event_key_up failed",
+        )
 
     def input_text(self, text: str):
         """将提供的 `text` 直接发送到 MuMu 原生输入接口。"""
