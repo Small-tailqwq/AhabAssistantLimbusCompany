@@ -1,3 +1,4 @@
+import re
 from time import sleep
 
 from module.automation import auto
@@ -26,22 +27,23 @@ def get_the_timing(return_time=False):
             module_position[1] + 220 * my_scale,
         )
         ocr_result = auto.find_text_element(None, my_crop=bbox, only_text=True)
-        s = ""
         if ocr_result is not None:
-            try:
-                for ocr in ocr_result:
-                    s += str(ocr)
-                if ":" in s:
-                    parts = s.split(":")
-                    minute = int(parts[0][-2:])
-                    seconds = int(parts[1][:2])
+            raw_text = "".join(str(ocr) for ocr in ocr_result)
+            # 720P 下 OCR 常把 0 误识别为 O/D，先做归一化再正则提取时间
+            normalized_text = re.sub(r"[oOdD]", "0", raw_text)
+            match = re.search(r"(\d{1,2}):(\d{2})", normalized_text)
+            if match:
+                try:
+                    minute = int(match.group(1))
+                    seconds = int(match.group(2))
                     if return_time:
                         return minute * 60 + seconds
                     if minute >= 5 and seconds >= 20:
                         log.debug(f"生成下一点体力的时间为{minute}分{seconds}秒，符合葛朗台模式操作")
                         return True
-            except Exception:
-                return False
+                except Exception as e:
+                    log.debug(f"体力时间解析异常: {e}")
+            log.debug(f"体力回复时间 OCR 未解析: raw='{raw_text}', normalized='{normalized_text}'")
         return False
 
 
@@ -61,7 +63,7 @@ def get_current_enkephalin():
             result = ocr.run(binary_image)
             ocr_result = [result.txts[i] for i in range(len(result.txts))]
             ocr_result = "".join(ocr_result)
-            ocr_result = ocr_result.lower()
+            ocr_result = ocr_result.lower().replace(" ", "")
             if "/" in ocr_result:
                 ocr_result = ocr_result.split("/")
                 current_enkephalin = int(ocr_result[0])
@@ -70,12 +72,18 @@ def get_current_enkephalin():
             continue
     try:
         sc = ImageUtils.crop(np.array(auto.screenshot), enkephalin_bbox)
-        _, binary_image = cv2.threshold(sc, 150, 255, cv2.THRESH_BINARY)
+        # 720P 文字可能较淡，使用较低阈值避免高阈值把文字滤掉
+        _, binary_image = cv2.threshold(sc, 80, 255, cv2.THRESH_BINARY)
         result = ocr.run(binary_image)
-        ocr_result = [result.txts[i] for i in range(len(result.txts))]
-        ocr_result = "".join(ocr_result)
-        current_enkephalin = int(ocr_result[0])
-        return current_enkephalin
+        ocr_result = "".join(str(t) for t in result.txts)
+        ocr_result = ocr_result.lower().replace(" ", "")
+        if "/" in ocr_result:
+            current_enkephalin = int(ocr_result.split("/")[0])
+            return current_enkephalin
+        # OCR 可能未识别出斜杠，兜底提取所有连续数字
+        digits = re.sub(r"\D", "", ocr_result)
+        if digits:
+            return int(digits)
     except Exception:
         pass
     return None
