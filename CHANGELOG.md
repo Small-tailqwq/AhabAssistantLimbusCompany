@@ -2,6 +2,24 @@
 
 ## [Unreleased] — Canary
 
+## [1.5.0-canary.21] — 2026-06-27
+
+### 新功能
+- feat: 添加简单键盘寻路模式（始终按↑键）
+- feat: 在狂气换体高级设置中添加独立体力换饼配置
+
+### 修复
+- fix: MuMu IPC 输入事件增加重试机制，连续失败后停止脚本
+- fix: MuMu IPC 重试增加指数退避和 5 次失败后自动重连
+- fix: 修复 wait_until_main_menu_after_launch 在子界面启动时卡死
+- fix: 修复 720P 下自动换饼 OCR 倒计时解析与体力识别兜底
+- fix: 根据审阅意见保留首次领取，外层条件改为 finish_times > 1
+
+### 其他
+- refactor: OpenCode agent 目录重命名为 agents 并更新描述
+- refactor: 精简四个 OpenCode skill 文档，改为渐进式披露风格
+- chore: match_diagnostics.py 迁移至 debug_tools，gitignore 增加 _pending_cleanup
+
 ## [1.5.0-canary.20] — 2026-06-24
 
 - feat: 新增雷蛇驱动对接，支持 Razer 硬件鼠标输入 + 分块间微步进延迟
