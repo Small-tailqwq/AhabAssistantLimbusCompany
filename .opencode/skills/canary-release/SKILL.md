@@ -80,18 +80,45 @@ After the tag triggers CI:
 3. For official stable releases, also verify `AALC_<version>.7z.sha256`; for canary,
    follow the current project release policy.
 4. Confirm the release is marked prerelease so stable-channel users do not receive it.
+5. Edit the CI-created release to add the body using `gh release edit` (CI creates an empty body).
 
 Prefer `gh release edit` with a notes file:
 
 ```powershell
 gh release edit "vX.Y.Z-canary.N" `
-  --title "vX.Y.Z-canary.N - 金丝雀预览版" `
+  --title "vX.Y.Z-canary.N — 金丝雀预览版" `
   --notes-file release-notes.md `
   --prerelease
 ```
 
 If GitHub API fallback is required, generate JSON with a structured encoder such as
 Python `json.dumps`; do not hand-build JSON around Markdown with ad hoc escaping.
+
+## Release body format
+
+**Title**: `vX.Y.Z-canary.N — 金丝雀预览版` (set via `--title`, includes version)
+
+**Body** follows this exact template. Do NOT add extra sections like "技术细节" or "影响范围" — those belong in the commit/PR, not the release notes:
+
+```markdown
+### 新功能
+- feat: <description>
+
+### 修复
+- fix: <description>
+
+### 其他
+- refactor/chore/docs: <description>
+
+[查看完整变更](https://github.com/Small-tailqwq/AhabAssistantLimbusCompany/compare/<prev_tag>...<new_tag>)
+```
+
+Rules:
+- Top-level `#` heading is **forbidden** — the title is set by `--title`, the body starts with `###`.
+- Only these three category headers (`新功能`, `修复`, `其他`). Omit empty categories.
+- If the release has only one category, skip the category header and list items directly.
+- The `[查看完整变更]` compare link is **mandatory** at the end.
+- Do NOT use `#n` shorthand to reference GitHub issues. This repository is a fork and `#n` resolves to upstream. For local issues, write `本地 issue N`; for upstream issues or PRs, use the full GitHub URL.
 
 ## Release notes
 

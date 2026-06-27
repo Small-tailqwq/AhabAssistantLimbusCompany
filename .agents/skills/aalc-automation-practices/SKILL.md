@@ -11,7 +11,7 @@ description: Apply AALC-specific conventions when implementing, debugging, or re
 
 - 修改 `auto.*`、`ImageUtils.*`、OCR、UI 定位、重试或自动化流程：读取 `references/automation-design.md`。
 - 修改任务线程、启动/停止、模拟器等待、PyQt UI、语言/主题或配置：读取 `references/lifecycle-ui.md`。
-- 重放用户截图与模板：再读取仓库 `.opencode/reference/replay_matching.md`。
+- 重放用户截图与模板：加载 `replay-matching` skill（含 `debug_tools/verify_matching.py` 用法）。技术细节参阅 `.opencode/reference/replay_matching.md`。
 - 新增或修改 `debug_*`：再读取仓库 `.opencode/tools/debug_model_constitution.md`。
 
 只读取命中的 reference。

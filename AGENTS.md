@@ -9,7 +9,7 @@
 - 修改或审阅自动化、图片匹配、任务生命周期、UI/config/debug 逻辑：加载 `aalc-automation-practices`。
 - 创建、审计或优化 AGENTS/rules/skills：加载全局 `agent-guidance-health`；不可用时按本节原则执行。
 - Issue/日志诊断：加载 `analyze`；不可用时读取 `.opencode/skills/analyze/SKILL.md`。
-- 用户截图的模板匹配重放：仅此时读取 `.opencode/reference/replay_matching.md`。
+- 用户截图的模板匹配重放：加载 `replay-matching` skill；不可用时读取 `.opencode/skills/replay-matching/SKILL.md`。
 - Canary 发版：加载 `canary-release`；不可用时读取 `.opencode/skills/canary-release/SKILL.md`。
 - 向上游贡献：加载 `upstream-contribution`；不可用时读取 `.opencode/skills/upstream-contribution/SKILL.md`。
 - 代码审阅：加载 `code-review`；不可用时读取 `.opencode/skills/code-review/SKILL.md`。
@@ -34,7 +34,7 @@ uv run python .\scripts\check_i18n.py --update
 uv run python .\scripts\export-requirements-from-uv-lock.py
 ```
 
-调试工具位于 `.opencode/tools/`：`log_analyzer.py`、`mirror_analyzer.py`、`log_viewer.py`、`match_viewer.py`。可复用临时验证脚本放 `debug_tools/`，不纳入 CI。
+调试工具位于 `.opencode/tools/`：`log_analyzer.py`、`mirror_analyzer.py`、`log_viewer.py`、`match_viewer.py`。模板匹配重放工具：`debug_tools/verify_matching.py`。可复用临时验证脚本放 `debug_tools/`，不纳入 CI。
 
 ## 项目现实
 

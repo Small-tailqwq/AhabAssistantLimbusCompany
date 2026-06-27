@@ -38,13 +38,13 @@ Never modify or delete issue archives, logs, screenshots, reports, or config sna
 
 - Large logs: run `.opencode/tools/log_analyzer.py` instead of printing the whole log.
 - Mirror-specific reports: use `.opencode/tools/mirror_analyzer.py` when present.
-- User screenshots or template-matching claims: read `.opencode/reference/replay_matching.md`
-  before replaying matching.
-- Reusable screenshot checks: use `debug_tools/verify_matching.py` when it exists.
+- User screenshots or template-matching claims: load the `replay-matching` skill which
+  covers `debug_tools/verify_matching.py` usage, pipeline simulation, and links to
+  `.opencode/reference/replay_matching.md` for technical details.
 - Interactive inspection: use `.opencode/tools/match_viewer.py` only when a visual
   matching question remains after CLI checks.
 
-Do not read replay-matching reference material when the issue has no screenshot or
+Do not load replay-matching references when the issue has no screenshot or
 template-matching question.
 
 ## Workflow
@@ -93,7 +93,10 @@ Do not paste huge terminal output. Read generated UTF-8 reports as files.
 
 ### 4. Replay template matching only with screenshots
 
-If the user supplied a screenshot or the symptom depends on template matching:
+If the user supplied a screenshot or the symptom depends on template matching, load the
+`replay-matching` skill for full tool usage and pipeline instructions.
+
+Key commands:
 
 ```powershell
 uv run python debug_tools/verify_matching.py <screenshot.png> --minimal --models clam aggressive
