@@ -306,22 +306,16 @@ class ImageUtils:
                 height, width = shape
             elif len(shape) == 3:
                 height, width, _ = shape
-            if model == "normal":
-                if bbox:
-                    bbox = (
-                        max(bbox[0] - 100, 0),  # 确保左上角 x 坐标不小于 0
-                        max(bbox[1] - 100, 0),  # 确保左上角 y 坐标不小于 0
-                        min(bbox[2] + 100, width),  # 确保右下角 x 坐标不大于 图片宽
-                        min(bbox[3] + 100, height),  # 确保右下角 y 坐标不大于 图片高
-                    )
-            else:
-                if bbox:
-                    bbox = (
-                        max(bbox[0] - 30, 0),  # 确保左上角 x 坐标不小于 0
-                        max(bbox[1] - 30, 0),  # 确保左上角 y 坐标不小于 0
-                        min(bbox[2] + 30, width),  # 确保右下角 x 坐标不大于 图片宽
-                        min(bbox[3] + 30, height),  # 确保右下角 y 坐标不大于 图片高
-                    )
+            if bbox and model != "aggressive":
+                base_margin = 100 if model == "normal" else 30
+                scale = height / 1440.0
+                margin = max(base_margin, int(base_margin * scale))
+                bbox = (
+                    max(bbox[0] - margin, 0),  # 确保左上角 x 坐标不小于 0
+                    max(bbox[1] - margin, 0),  # 确保左上角 y 坐标不小于 0
+                    min(bbox[2] + margin, width),  # 确保右下角 x 坐标不大于 图片宽
+                    min(bbox[3] + margin, height),  # 确保右下角 y 坐标不大于 图片高
+                )
             if bbox is not None and model != "aggressive":
                 screenshot_crop = screenshot[bbox[1] : bbox[3], bbox[0] : bbox[2]]
                 result = cv2.matchTemplate(screenshot_crop, template, cv2.TM_CCOEFF_NORMED)
