@@ -1458,13 +1458,13 @@ class Mirror:
                 if self._is_retry_debug_enabled():
                     log.info("[重试调试] 匹配→放弃，continue")
                 continue
-            if auto.click_element("mirror/road_in_mir/setting_assets.png"):
-                if self._is_retry_debug_enabled() and loop % 30 == 1:
-                    log.info(f"[重试调试] re_start 第{loop}次循环, 匹配→齿轮(0.85), continue")
-                continue
             if auto.click_element("battle/give_up_assets.png"):
                 if self._is_retry_debug_enabled():
                     log.info("[重试调试] 匹配→战斗中放弃，continue")
+                continue
+            if auto.click_element("mirror/road_in_mir/setting_assets.png"):
+                if self._is_retry_debug_enabled() and loop % 30 == 1:
+                    log.info(f"[重试调试] re_start 第{loop}次循环, 匹配→齿轮(0.85), continue")
                 continue
             auto.key_press("esc")
             time.sleep(1)
