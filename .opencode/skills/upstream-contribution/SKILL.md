@@ -39,10 +39,10 @@ git show <commit>
 3. Build an allow/exclude file list:
 
 ```text
-保留:
+Keep:
 - path/to/core_bugfix.py
 
-排除:
+Exclude:
 - tests/...                 # tests are not contributed in this workflow
 - .opencode/...             # local agent tooling
 - issues/...                # user evidence archive
@@ -208,6 +208,18 @@ Only after confirmation:
 
 ```powershell
 git push origin <branch>
+```
+
+When creating a PR, backticks `` ` `` in `--body` will be mangled by PowerShell if using double quotes. **Always use a PowerShell here-string** (`@'...'@`) for the body:
+
+```powershell
+# ❌ WRONG: backticks are interpreted as escape characters in double quotes
+gh pr create --repo upstream/repo --body "`code`"
+
+# ✅ RIGHT: @'...'@ preserves all characters literally
+gh pr create --repo upstream/repo --body @'
+`code` and `other`
+'@
 ```
 
 ## Failure handling

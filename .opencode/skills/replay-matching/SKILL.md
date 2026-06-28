@@ -8,48 +8,48 @@ metadata:
   workflow: issue-diagnosis
 ---
 
-# AALC 模板匹配重放
+# AALC Template Matching Replay
 
-## 工具
+## Tool
 
-`debug_tools/verify_matching.py` — CLI 模板匹配验证工具。
+`debug_tools/verify_matching.py` — CLI template matching verification tool.
 
 ```powershell
-uv run python debug_tools/verify_matching.py <screenshot>                          # 默认资产集
-uv run python debug_tools/verify_matching.py <screenshot> --minimal                  # 精简资产集
-uv run python debug_tools/verify_matching.py <screenshot> --assets KEY1 KEY2 ...     # 指定资产
-uv run python debug_tools/verify_matching.py <screenshot> --models clam aggressive   # 指定模式
-uv run python debug_tools/verify_matching.py <screenshot> --compare <screenshot2>    # A/B 对照
-uv run python debug_tools/verify_matching.py <screenshot> --pixel X Y W H             # 像素分析
+uv run python debug_tools/verify_matching.py <screenshot>                          # default asset set
+uv run python debug_tools/verify_matching.py <screenshot> --minimal                  # minimal asset set
+uv run python debug_tools/verify_matching.py <screenshot> --assets KEY1 KEY2 ...     # specific assets
+uv run python debug_tools/verify_matching.py <screenshot> --models clam aggressive   # specific models
+uv run python debug_tools/verify_matching.py <screenshot> --compare <screenshot2>    # A/B compare
+uv run python debug_tools/verify_matching.py <screenshot> --pixel X Y W H             # pixel analysis
 ```
 
-## 工作流
+## Workflow
 
-1. **确定截图分辨率** — 工具会自动打印 `分辨率: WxH scale=N`
-2. **选择资产** — 根据日志中记录的资产 key 指定 `--assets`
-3. **运行重放** — 推荐 `--models clam aggressive` 同时跑，对比搜索区域受限 vs 全屏的结果
-4. **分析结果** — 关注 `***` (≥0.80) / `! ` (≥0.70) 标签
+1. **Determine screenshot resolution** — tool auto-prints `分辨率: WxH scale=N`
+2. **Select assets** — use asset keys from the log with `--assets`
+3. **Run replay** — recommended `--models clam aggressive` together, compare bbox-restricted vs full-screen results
+4. **Analyze results** — look for `***` (≥0.80) / `! ` (≥0.70) tags
 
-## 必读参考
+## Required reference
 
-重放时需要完整模拟 `find_element()` → `find_image_element()` → `ImageUtils.match_template()` 管道。
-详细信息参阅 `.opencode/reference/replay_matching.md`：
+Full simulation of `find_element()` → `find_image_element()` → `ImageUtils.match_template()` pipeline is required.
+Details in `.opencode/reference/replay_matching.md`:
 
-- `_assets.png` 后缀模板必须做 bbox 裁剪，否则匹配值会被严重压低
-- 用截图实际高度算缩放：`scale = screenshot_np.shape[0] / 1440`（不用 `cfg.set_win_size`）
-- 必须使用 `ImageUtils.match_template()`，不能直接用 `cv2.matchTemplate()`
+- `_assets.png` suffix templates MUST undergo bbox cropping, otherwise match values are severely depressed
+- Compute scale from screenshot actual height: `scale = screenshot_np.shape[0] / 1440` (NOT `cfg.set_win_size`)
+- MUST use `ImageUtils.match_template()`, never raw `cv2.matchTemplate()`
 
-## 常见诊断模式
+## Common diagnostic patterns
 
-| 症状 | 排查方向 |
+| Symptom | Investigation direction |
 |---|---|
-| clam < 0.80 但 aggressive ≥ 0.80 | bbox 搜索区域未覆盖目标，可能是缩放导致位置偏移 |
-| aggressive < 0.80 | 模板本身不匹配，检查游戏版本/主题/语言 |
-| clam 和 aggressive 位置不同 | clam 在 bbox 区域内找到次优误匹配 |
-| 日志中的匹配值与重放不一致 | 运行时截图质量（PrintWindow vs 手动保存 PNG）差异 |
+| clam < 0.80 but aggressive ≥ 0.80 | bbox search region misses target, possibly scale-induced position drift |
+| aggressive < 0.80 | template itself doesn't match, check game version/theme/language |
+| clam and aggressive positions differ | clam found a suboptimal false match within bbox region |
+| log match values differ from replay | runtime screenshot quality (PrintWindow vs manually saved PNG) |
 
-## 相关代码
+## Related code
 
 - `utils/image_utils.py` → `ImageUtils.match_template()`, `get_bbox()`, `crop()`
 - `module/automation/automation.py` → `find_element()`, `find_image_element()`, `_load_template_for_path()`
-- `debug_tools/verify_matching.py` → 直接封装上述管道用于命令行重放
+- `debug_tools/verify_matching.py` → wraps the above pipeline for CLI replay

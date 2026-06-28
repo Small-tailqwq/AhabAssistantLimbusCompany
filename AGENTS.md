@@ -15,6 +15,8 @@
 - 代码审阅：加载 `code-review`；不可用时读取 `.opencode/skills/code-review/SKILL.md`。
 - 新增/修改 `debug_*`：再读取 `.opencode/tools/debug_model_constitution.md`。
 
+Skills 内容使用英文编写（LLM 处理效率更高），仅面向用户的输出模板保留中文。
+
 Skill 正文只读任务所需 reference，不要因“可能有用”提前展开。
 
 ## 快速命令
