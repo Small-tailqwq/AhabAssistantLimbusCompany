@@ -730,15 +730,26 @@ class MirrorMap:
             re_identify = True
 
         if re_identify is True:
-            self.floor_map, self.floor_nodes = search_road_from_road_map(hard_mode=self.hard_mode)
-            if self.floor_map is True and self.floor_nodes is True:
-                self.floor_map = []
-                self.floor_nodes = []
-                return True
-            if not isinstance(self.floor_map, list):
-                self.floor_map = list(self.floor_map)
-            self.map[f"floor{self.floor}"] = [self.floor_map[:], self.floor_nodes[:]]
-            log.debug(f"镜牢路线缓存更新: 楼层={self.floor}, 缓存步数={len(self.floor_map)}, 节点路径={self.floor_nodes}")
+            cache_key = f"floor{self.floor}"
+            if cache_key in self.map:
+                cached = self.map[cache_key]
+                if isinstance(cached, list) and len(cached) >= 2:
+                    cached_map, cached_nodes = cached[0], cached[1]
+                    if cached_map and isinstance(cached_map, list) and len(cached_map) > 0:
+                        self.floor_map = cached_map[:]
+                        self.floor_nodes = cached_nodes[:] if cached_nodes else []
+                        log.debug(f"使用镜牢路线缓存: 楼层={self.floor}, 步数={len(self.floor_map)}")
+                        re_identify = False
+            if re_identify is True:
+                self.floor_map, self.floor_nodes = search_road_from_road_map(hard_mode=self.hard_mode)
+                if self.floor_map is True and self.floor_nodes is True:
+                    self.floor_map = []
+                    self.floor_nodes = []
+                    return True
+                if not isinstance(self.floor_map, list):
+                    self.floor_map = list(self.floor_map)
+                self.map[f"floor{self.floor}"] = [self.floor_map[:], self.floor_nodes[:]]
+                log.debug(f"镜牢路线缓存更新: 楼层={self.floor}, 缓存步数={len(self.floor_map)}, 节点路径={self.floor_nodes}")
 
         if len(self.floor_map) > 0:
             next_step = self.floor_map.pop(0)
@@ -794,7 +805,9 @@ class MirrorMap:
         self.floor_map = []
         self.floor_nodes = []
 
-    def cache_post_shop_boss_route(self):
+    def cache_post_shop_boss_route(self, floor=None):
+        if floor is not None:
+            self.floor = floor
         if f"floor{self.floor}" in self.map:
             log.debug("镜牢路线缓存已存在，覆盖写入")
         self.floor_map = ["M"]

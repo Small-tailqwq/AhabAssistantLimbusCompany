@@ -1968,7 +1968,7 @@ class Mirror:
     def in_shop(self):
         shop_exit_success = bool(self.shop.in_shop(self.floor))
         if shop_exit_success:
-            self.mirror_map.cache_post_shop_boss_route()
+            self.mirror_map.cache_post_shop_boss_route(self.floor)
         return shop_exit_success
 
     def get_which_floor(self):
