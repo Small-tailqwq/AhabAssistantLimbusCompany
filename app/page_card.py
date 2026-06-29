@@ -474,6 +474,7 @@ class PageMirror(PageCard):
         self.setObjectName("page_mirror")
         self.__init_card()
         self.__init_layout()
+        self.__init_keyboard_pathfinding_linkage()
 
         self.get_setting()
         self.refresh()
@@ -609,6 +610,21 @@ class PageMirror(PageCard):
         self.vbox_advanced.addWidget(self.mirror_keyboard_simple_pathfinding)
 
         self.card_layout.insertWidget(self.card_layout.count() - 1, self.mirror_count)
+
+    def __init_keyboard_pathfinding_linkage(self):
+        nav_on = bool(cfg.get_value("mirror_keyboard_navigation"))
+        if not nav_on:
+            if cfg.get_value("mirror_keyboard_simple_pathfinding"):
+                self.mirror_keyboard_simple_pathfinding.set_check_false()
+            self.mirror_keyboard_simple_pathfinding.set_box_enabled(False)
+        self.mirror_keyboard_navigation.check_box.toggled.connect(
+            self._on_keyboard_navigation_toggled
+        )
+
+    def _on_keyboard_navigation_toggled(self, checked: bool):
+        if not checked and cfg.get_value("mirror_keyboard_simple_pathfinding"):
+            self.mirror_keyboard_simple_pathfinding.set_check_false()
+        self.mirror_keyboard_simple_pathfinding.set_box_enabled(checked)
 
     def _create_mirror_bar(self, current: int, total: int) -> TextProgressBar:
         """创建进度条"""
