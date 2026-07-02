@@ -75,6 +75,13 @@ class ScheduleHelper_Win32:
         self.scheduler.Connect()
         self.root = self.scheduler.GetFolder("\\")
 
+    @staticmethod
+    def _executable_and_args(cmd_line: str) -> tuple[str, str, str]:
+        if getattr(sys, "frozen", False):
+            return sys.executable, cmd_line, os.path.dirname(sys.executable)
+        script = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "main.py"))
+        return sys.executable, f'"{script}" {cmd_line}', os.path.dirname(script)
+
     def register_daily_task(self, task_name: str, cmd_line: str, h: int, m: int):
         task_def = self.scheduler.NewTask(0)
         task_def.RegistrationInfo.Description = "AALC Daily Task"
@@ -86,9 +93,7 @@ class ScheduleHelper_Win32:
         trigger.Enabled = True
 
         action = task_def.Actions.Create(0)
-        action.Path = sys.executable
-        action.Arguments = cmd_line
-        action.WorkingDirectory = os.path.dirname(sys.executable)
+        action.Path, action.Arguments, action.WorkingDirectory = self._executable_and_args(cmd_line)
 
         task_def.Principal.RunLevel = 1  # 管理员权限运行
         task_def.Principal.LogonType = 3
@@ -117,9 +122,7 @@ class ScheduleHelper_Win32:
         trigger.Enabled = True
 
         action = task_def.Actions.Create(0)
-        action.Path = sys.executable
-        action.Arguments = cmd_line
-        action.WorkingDirectory = os.path.dirname(sys.executable)
+        action.Path, action.Arguments, action.WorkingDirectory = self._executable_and_args(cmd_line)
 
         task_def.Principal.RunLevel = 1  # 管理员权限运行
         task_def.Principal.LogonType = 3

@@ -165,6 +165,7 @@ teams_be_select: [False] # 被选中的队伍
 teams_order: [0] # 队伍的顺序
 mirror_keyboard_navigation: False # 使用键盘进行镜牢寻路
 mirror_keyboard_simple_pathfinding: False # 简单键盘寻路（始终按↑，避免鼠标拖动）
+mirror_resource_collection: False # 镜牢资源收集模式（收集卡包地图截图用于模型训练）
 
 # 队伍设置
 teams:

@@ -27,6 +27,11 @@ from tasks.base.retry import retry
 from tasks.battle import battle
 from tasks.event import event_handling
 from tasks.mirror.in_shop import Shop
+from tasks.mirror.resource_collection import (
+    add_collected_pack,
+    save_map_screenshot,
+    select_theme_pack_for_collection,
+)
 from tasks.mirror.reward_card import get_reward_card
 from tasks.mirror.search_road import (
     MirrorMap,
@@ -148,6 +153,12 @@ class Mirror:
 
         self._consecutive_road_search_count = 0
         self._recovery_attempted = False
+
+        self.resource_collection_mode = bool(cfg.get_value("mirror_resource_collection", False))
+        self._resource_screenshot_pending = False
+        self._resource_pack_name = None
+        self._resource_target_floor = 0
+        self._resource_floor_exhausted = set()
 
     def _time_call(self, fn, *args, **kwargs):
         """调用 fn 并返回 (result, elapsed_time)，用于显式计时替代装饰器返回值。"""
@@ -460,7 +471,23 @@ class Mirror:
                     back_init_menu()
                     continue
                 sleep(2)
-                select_theme_pack(self.hard_switch, self.floor, self.team_order, self.use_custom_theme_pack_weight)
+                if self.resource_collection_mode and self.floor not in self._resource_floor_exhausted:
+                    pack_name = select_theme_pack_for_collection(
+                        self.floor,
+                        self.hard_switch,
+                        self.team_order,
+                        self.use_custom_theme_pack_weight,
+                    )
+                    if pack_name is not None:
+                        self._resource_screenshot_pending = True
+                        self._resource_pack_name = pack_name
+                        self._resource_target_floor = self.floor
+                        log.info(f"[资源收集] 第{self.floor + 1}层选中卡包 '{pack_name}'，等待地图加载后截图")
+                    else:
+                        log.info(f"[资源收集] 第{self.floor + 1}层卡包已全部收集，进入正常流程")
+                        self._resource_floor_exhausted.add(self.floor)
+                else:
+                    select_theme_pack(self.hard_switch, self.floor, self.team_order, self.use_custom_theme_pack_weight)
                 if self.re_formation_each_floor:
                     self.first_battle = True
                 try:
@@ -488,6 +515,22 @@ class Mirror:
 
             # 在镜牢中寻路
             if auto.find_element("mirror/road_in_mir/legend_assets.png"):
+                if self._resource_screenshot_pending:
+                    auto.mouse_to_blank()
+                    while auto.take_screenshot() is None:
+                        continue
+                    if auto.find_element("teams/identify_assets.png"):
+                        continue
+                    if auto.find_element("mirror/shop/shop_coins_assets.png", model="normal"):
+                        continue
+                    save_map_screenshot(self._resource_target_floor, self._resource_pack_name)
+                    add_collected_pack(self._resource_target_floor, self._resource_pack_name)
+                    self._resource_screenshot_pending = False
+                    self._resource_pack_name = None
+                    log.info("[资源收集] 截图完成，放弃当前镜牢并重新开始")
+                    self.re_start()
+                    continue
+
                 auto.mouse_to_blank()
                 while auto.take_screenshot() is None:
                     continue

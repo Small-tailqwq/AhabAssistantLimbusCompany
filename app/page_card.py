@@ -588,6 +588,12 @@ class PageMirror(PageCard):
             QT_TRANSLATE_NOOP("BaseCheckBox", "简单键盘寻路（始终按↑键，避免鼠标拖动）"),
             center=False,
         )
+        self.mirror_resource_collection = BaseCheckBox(
+            "mirror_resource_collection",
+            None,
+            QT_TRANSLATE_NOOP("BaseCheckBox", "镜牢资源收集模式（收集卡包地图截图用于模型训练）"),
+            center=False,
+        )
 
     def __init_layout(self):
         self.vbox_general.addWidget(self.team)
@@ -608,6 +614,7 @@ class PageMirror(PageCard):
         self.vbox_advanced.addWidget(self.fight_to_last_man)
         self.vbox_advanced.addWidget(self.mirror_keyboard_navigation)
         self.vbox_advanced.addWidget(self.mirror_keyboard_simple_pathfinding)
+        self.vbox_advanced.addWidget(self.mirror_resource_collection)
 
         self.card_layout.insertWidget(self.card_layout.count() - 1, self.mirror_count)
 
@@ -910,6 +917,7 @@ class PageMirror(PageCard):
         self.fight_to_last_man.retranslateUi()
         self.mirror_keyboard_navigation.retranslateUi()
         self.mirror_keyboard_simple_pathfinding.retranslateUi()
+        self.mirror_resource_collection.retranslateUi()
         self.add_team_button.setToolTip(self.tr("添加队伍"))
         for child in self.findChildren(MirrorTeamCombination):
             child.retranslateUi()

@@ -634,6 +634,9 @@ class ConfigModel(BaseModel):
     mirror_keyboard_simple_pathfinding: bool = False
     """简单键盘寻路模式：始终按↑选择第一个节点，完全避免鼠标拖动"""
 
+    mirror_resource_collection: bool = False
+    """镜牢资源收集模式：收集各层卡包地图截图用于模型训练"""
+
     debug_mode: bool = False
     """调试模式总开关；关闭时应同步关闭所有子调试开关"""
 
