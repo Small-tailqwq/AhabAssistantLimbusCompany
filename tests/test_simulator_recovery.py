@@ -4,6 +4,7 @@ from unittest.mock import patch
 import module.automation.input_handlers.simulator.simulator_control as simulator_control_module
 import tasks.base.back_init_menu as back_init_menu_module
 import tasks.base.retry as retry_module
+import tasks.base.script_task_scheme as script_task_scheme
 
 
 class TestSimulatorRecovery(unittest.TestCase):
@@ -94,6 +95,37 @@ class TestSimulatorRecovery(unittest.TestCase):
 
         self.assertEqual(clicks, [(1617, 580)])
 
+    def test_is_main_menu_visible_accepts_drive_assets_fallback(self):
+        calls = []
+
+        class AutoStub:
+            def find_element(self, target, *_, **kwargs):
+                calls.append((target, kwargs.get("model")))
+                if target == "home/window_assets.png":
+                    return False
+                if target == "home/drive_assets.png":
+                    return True
+                if target == "home/mail_assets.png":
+                    return True
+                return False
+
+        self.assertTrue(retry_module._is_main_menu_visible(AutoStub()))
+        self.assertEqual(
+            calls,
+            [
+                ("home/window_assets.png", None),
+                ("home/drive_assets.png", "normal"),
+                ("home/mail_assets.png", "normal"),
+            ],
+        )
+
+    def test_is_main_menu_visible_requires_mail_assets(self):
+        class AutoStub:
+            def find_element(self, target, *_, **__):
+                return target in {"home/window_assets.png", "home/drive_assets.png"}
+
+        self.assertFalse(retry_module._is_main_menu_visible(AutoStub()))
+
     def test_ensure_simulator_game_started_restarts_inactive_game(self):
         calls = []
 
@@ -113,6 +145,70 @@ class TestSimulatorRecovery(unittest.TestCase):
 
         self.assertTrue(result)
         self.assertEqual(calls, ["check_game_alive", "start_game"])
+
+    def test_init_game_marks_startup_wait_after_simulator_cold_start(self):
+        calls = []
+
+        class AutoStub:
+            def ensure_not_stopped(self):
+                calls.append(("ensure_not_stopped",))
+
+            def init_input(self):
+                calls.append(("init_input",))
+
+        class ConnectionDeviceStub:
+            def check_game_alive(self):
+                calls.append(("check_game_alive",))
+                return False
+
+            def start_game(self):
+                calls.append(("start_game",))
+
+        class SimulatorControlStub:
+            connection_device = ConnectionDeviceStub()
+
+            @staticmethod
+            def clean_connect():
+                calls.append(("clean_connect",))
+
+            def __init__(self, stop_checker=None):
+                calls.append(("SimulatorControl", callable(stop_checker)))
+
+        cfg_stub = type(
+            "CfgStub",
+            (),
+            {
+                "simulator": True,
+                "simulator_type": 10,
+            },
+        )()
+
+        with (
+            patch.object(script_task_scheme, "cfg", cfg_stub),
+            patch.object(script_task_scheme, "auto", AutoStub()),
+            patch.object(simulator_control_module, "SimulatorControl", SimulatorControlStub),
+            patch(
+                "module.automation.accelerator.ensure_accelerator",
+                side_effect=lambda: calls.append(("ensure_accelerator",)),
+            ),
+            patch.object(
+                script_task_scheme,
+                "clear_startup_main_menu_wait_pending",
+                side_effect=lambda: calls.append(("clear_startup_wait",)),
+            ),
+            patch.object(
+                script_task_scheme,
+                "mark_startup_main_menu_wait_pending",
+                side_effect=lambda: calls.append(("mark_startup_wait",)),
+            ),
+        ):
+            script_task_scheme.init_game()
+
+        self.assertIn(("clear_startup_wait",), calls)
+        self.assertIn(("mark_startup_wait",), calls)
+        self.assertLess(calls.index(("clear_startup_wait",)), calls.index(("check_game_alive",)))
+        self.assertLess(calls.index(("check_game_alive",)), calls.index(("start_game",)))
+        self.assertLess(calls.index(("start_game",)), calls.index(("mark_startup_wait",)))
 
     def test_should_wait_for_main_menu_after_simulator_start_detects_launch_state_once(self):
         calls = []
