@@ -1107,13 +1107,17 @@ class MumuControl(AbstractInput):
             bool: True表示游戏存活，False表示游戏未启动或已退出
         """
         package = self.get_current_package()
-        if package != self.game_package_name:
-            return False
-        return True
+        return package == self.game_package_name
 
     def get_current_package(self):
         for _ in range(3):
+            self.check_stop_requested()
             try:
+                if self.device is None:
+                    self.device = adb.device(self.get_mumu_adb_port())
+                if self.device is None:
+                    log.warning("获取当前应用包名失败：ADB 设备未初始化")
+                    return ""
                 current_package = self.device.app_current().package
                 log.debug(f"当前应用包名: {current_package}")
                 return current_package
@@ -1124,6 +1128,7 @@ class MumuControl(AbstractInput):
 
     def close_current_app(self):
         log.info("Close Current App")
-        if self.get_current_package() is None:
+        current_package = self.get_current_package()
+        if not current_package:
             return
-        self.device.app_stop(self.get_current_package())
+        self.device.app_stop(current_package)
