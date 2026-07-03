@@ -20,7 +20,7 @@ from module.my_error.my_error import (
     userStopError,
 )
 from module.ocr import ocr
-from tasks import all_systems, start_gift, system_cn_zh
+from tasks import all_systems, observe_system, start_gift, system_cn_zh
 from tasks.base.back_init_menu import back_init_menu
 from tasks.base.make_enkephalin_module import make_enkephalin_module
 from tasks.base.retry import retry
@@ -1277,7 +1277,7 @@ class Mirror:
             if file_system == "general":
                 system_index = 10
             else:
-                system_index = [k for k, v in all_systems.items() if v == file_system][0]
+                system_index = [k for k, v in observe_system.items() if v == file_system][0]
             reset_indices = [index for index in (system_index + 1, system_index - 1) if 0 <= index <= 10]
             if reset_indices:
                 auto.mouse_action_with_pos((benchmark_point[0] + 110 * reset_indices[0] * my_scale, benchmark_point[1]))
