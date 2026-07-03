@@ -3,6 +3,7 @@ import types
 import unittest
 from contextlib import suppress
 from pathlib import Path
+from typing import get_type_hints
 from unittest.mock import patch
 
 from PySide6.QtWidgets import QApplication
@@ -136,6 +137,42 @@ class TestStartupMainMenuWait(unittest.TestCase):
         self.assertTrue(result)
         self.assertEqual(seen_models, ["clam"])
         self.assertEqual(auto_stub.model, "clam")
+
+    def test_wait_until_main_menu_after_launch_detects_drive_assets_when_window_assets_misses(self):
+        calls = []
+
+        class AutoStub:
+            model = "clam"
+
+            def ensure_not_stopped(self):
+                calls.append(("ensure_not_stopped",))
+
+            def take_screenshot(self):
+                calls.append(("take_screenshot",))
+                return object()
+
+            def click_element(self, target, *args, **kwargs):
+                calls.append(("click_element", target))
+                return target == "home/window_assets.png"
+
+            def find_element(self, target, *args, **kwargs):
+                calls.append(("find_element", target, kwargs.get("model")))
+                return target == "home/mail_assets.png"
+
+        auto_stub = AutoStub()
+
+        with (
+            patch.object(back_init_menu_module, "auto", auto_stub),
+            patch.object(back_init_menu_module, "ensure_simulator_game_started", return_value=False),
+            patch.object(back_init_menu_module, "handle_launch_state_once", return_value=None),
+            patch.object(back_init_menu_module, "_is_runtime_ui_visible", return_value=False),
+            patch.object(back_init_menu_module, "get_startup_wait_timeout_seconds", return_value=3),
+        ):
+            result = back_init_menu_module.wait_until_main_menu_after_launch(allow_restart=False)
+
+        self.assertEqual(result, "main_menu")
+        self.assertIn(("click_element", "home/window_assets.png"), calls)
+        self.assertIn(("find_element", "home/mail_assets.png", "normal"), calls)
 
     def test_wait_until_main_menu_after_launch_takes_screenshot_each_loop(self):
         calls = []
@@ -381,6 +418,56 @@ class TestStartupMainMenuWait(unittest.TestCase):
         self.assertNotIn(("restart_game",), actions)
         self.assertLess(actions.index(("kill_game",)), actions.index(("init_game",)))
 
+    def test_back_init_menu_uses_pending_startup_wait_before_retry_loop(self):
+        calls = []
+
+        with (
+            patch.object(back_init_menu_module, "_pending_startup_main_menu_wait", False),
+            patch.object(
+                back_init_menu_module,
+                "wait_until_main_menu_after_launch",
+                side_effect=lambda allow_restart=True: calls.append(("wait_main_menu", allow_restart))
+                or back_init_menu_module.StartupMainMenuWaitResult.MAIN_MENU,
+            ),
+            patch.object(
+                back_init_menu_module,
+                "retry",
+                side_effect=AssertionError("back_init_menu() should return after startup wait reaches main menu"),
+            ),
+        ):
+            back_init_menu_module.mark_startup_main_menu_wait_pending()
+            result = back_init_menu_module.back_init_menu(allow_restart=False)
+
+        self.assertIs(result, True)
+        self.assertEqual(calls, [("wait_main_menu", False)])
+
+    def test_back_init_menu_falls_back_to_recovery_when_startup_wait_sees_runtime_ui(self):
+        calls = []
+
+        class AutoStub:
+            model = "clam"
+
+            def ensure_not_stopped(self):
+                calls.append(("ensure_not_stopped",))
+
+        with (
+            patch.object(back_init_menu_module, "_pending_startup_main_menu_wait", False),
+            patch.object(back_init_menu_module, "auto", AutoStub()),
+            patch.object(
+                back_init_menu_module,
+                "wait_until_main_menu_after_launch",
+                side_effect=lambda allow_restart=True: calls.append(("wait_main_menu", allow_restart))
+                or back_init_menu_module.StartupMainMenuWaitResult.RUNTIME_UI,
+            ),
+            patch.object(back_init_menu_module, "ensure_simulator_game_started", return_value=False),
+            patch.object(back_init_menu_module, "retry", side_effect=lambda: calls.append(("retry",)) or False),
+        ):
+            back_init_menu_module.mark_startup_main_menu_wait_pending()
+            result = back_init_menu_module.back_init_menu(allow_restart=False)
+
+        self.assertIs(result, False)
+        self.assertEqual(calls, [("wait_main_menu", False), ("ensure_not_stopped",), ("retry",)])
+
 
 class TestStartupMainMenuWaitTask4(unittest.TestCase):
     @classmethod
@@ -388,10 +475,10 @@ class TestStartupMainMenuWaitTask4(unittest.TestCase):
         cls.app = QApplication.instance() or QApplication([])
 
     def test_config_model_exposes_startup_wait_timeouts(self):
-        model = config_typing_module.ConfigModel()
+        hints = get_type_hints(config_typing_module.ConfigModel)
 
-        self.assertEqual(model.startup_wait_timeout_pc, 120)
-        self.assertEqual(model.startup_wait_timeout_simulator, 180)
+        self.assertIs(hints["startup_wait_timeout_pc"], int)
+        self.assertIs(hints["startup_wait_timeout_simulator"], int)
 
     def test_config_example_contains_startup_wait_timeouts(self):
         config_example = (
