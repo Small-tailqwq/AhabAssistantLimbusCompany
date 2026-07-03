@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from ruamel.yaml import YAML
@@ -20,11 +21,19 @@ from module.config.config_typing import ConfigModel, TeamSetting
 from module.my_error.my_error import userStopError
 from utils.singletonmeta import SingletonMeta
 
+DEFAULT_CONFIG_PATH = Path(__file__).resolve().parents[1] / "assets" / "config" / "config.example.yaml"
+
+
+def make_config_model(**overrides) -> ConfigModel:
+    data = YAML().load(DEFAULT_CONFIG_PATH.read_text(encoding="utf-8")) or {}
+    data.update(overrides)
+    return ConfigModel(**data)
+
 
 class TestTeamQueueNormalization(unittest.TestCase):
     def make_config(self, team_numbers, **overrides):
         cfg = Config.__new__(Config)
-        cfg.config = ConfigModel(
+        cfg.config = make_config_model(
             teams={str(team_num): TeamSetting() for team_num in team_numbers},
             **overrides,
         )
@@ -32,7 +41,7 @@ class TestTeamQueueNormalization(unittest.TestCase):
         return cfg
 
     def test_config_model_defaults_empty_active_queue(self):
-        self.assertEqual(ConfigModel().teams_active_queue, [])
+        self.assertEqual(make_config_model().teams_active_queue, [])
 
     def test_migrate_legacy_order_to_active_queue(self):
         cfg = self.make_config(
@@ -189,7 +198,7 @@ class TestTeamQueueNormalization(unittest.TestCase):
             with self.subTest(payload=payload):
                 cfg = Config.__new__(Config)
                 cfg.yaml = YAML()
-                cfg.config = ConfigModel()
+                cfg.config = make_config_model()
                 cfg._schedule_save = lambda *args, **kwargs: None
 
                 with tempfile.TemporaryDirectory() as temp_dir:
@@ -217,7 +226,7 @@ class TestTeamQueueNormalization(unittest.TestCase):
 
         cfg = Config.__new__(Config)
         cfg.yaml = YAML()
-        cfg.config = ConfigModel()
+        cfg.config = make_config_model()
         cfg._schedule_save = lambda *args, **kwargs: None
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -1248,6 +1257,10 @@ class TestTeamQueueNormalization(unittest.TestCase):
                 calls.append(("init_input",))
 
         class GameProcessStub:
+            def check_game_alive(self):
+                calls.append(("check_game_alive",))
+                return True
+
             def start_game(self):
                 calls.append(("start_game",))
 
@@ -1266,12 +1279,73 @@ class TestTeamQueueNormalization(unittest.TestCase):
             patch.object(script_task_scheme, "cfg", cfg_stub),
             patch.object(script_task_scheme, "game_process", GameProcessStub()),
             patch.object(script_task_scheme, "screen", ScreenStub()),
+            patch.object(
+                script_task_scheme,
+                "clear_startup_main_menu_wait_pending",
+                side_effect=lambda: calls.append(("clear_startup_wait",)),
+            ),
+            patch.object(
+                script_task_scheme,
+                "mark_startup_main_menu_wait_pending",
+                side_effect=AssertionError("hot start should not mark startup wait pending"),
+            ),
         ):
             script_task_scheme.init_game()
 
+        self.assertIn(("clear_startup_wait",), calls)
         self.assertIn(("init_handle", True), calls)
+        self.assertIn(("check_game_alive",), calls)
         self.assertIn(("start_game",), calls)
         self.assertIn(("set_win",), calls)
+
+    def test_init_game_marks_startup_wait_after_pc_cold_start(self):
+        calls = []
+
+        class AutoStub:
+            def ensure_not_stopped(self):
+                calls.append(("ensure_not_stopped",))
+
+            def init_input(self):
+                calls.append(("init_input",))
+
+        class GameProcessStub:
+            def check_game_alive(self):
+                calls.append(("check_game_alive",))
+                return False
+
+            def start_game(self):
+                calls.append(("start_game",))
+
+        class ScreenStub:
+            def init_handle(self, stop_checker=None):
+                calls.append(("init_handle", callable(stop_checker)))
+                return True
+
+        cfg_stub = type("CfgStub", (), {"simulator": False, "set_windows": False})()
+
+        with (
+            patch.object(script_task_scheme, "auto", AutoStub()),
+            patch.object(script_task_scheme, "cfg", cfg_stub),
+            patch.object(script_task_scheme, "game_process", GameProcessStub()),
+            patch.object(script_task_scheme, "screen", ScreenStub()),
+            patch.object(
+                script_task_scheme,
+                "clear_startup_main_menu_wait_pending",
+                side_effect=lambda: calls.append(("clear_startup_wait",)),
+            ),
+            patch.object(
+                script_task_scheme,
+                "mark_startup_main_menu_wait_pending",
+                side_effect=lambda: calls.append(("mark_startup_wait",)),
+            ),
+        ):
+            script_task_scheme.init_game()
+
+        self.assertIn(("clear_startup_wait",), calls)
+        self.assertIn(("mark_startup_wait",), calls)
+        self.assertLess(calls.index(("clear_startup_wait",)), calls.index(("check_game_alive",)))
+        self.assertLess(calls.index(("check_game_alive",)), calls.index(("start_game",)))
+        self.assertLess(calls.index(("start_game",)), calls.index(("mark_startup_wait",)))
 
     def test_script_task_initializes_image_paths_before_first_battle_probe(self):
         calls = []
@@ -1298,6 +1372,7 @@ class TestTeamQueueNormalization(unittest.TestCase):
                 "daily_task": False,
                 "get_reward": False,
                 "buy_enkephalin": False,
+                "make_enkephalin_module_only": False,
                 "mirror": False,
                 "set_reduce_miscontact": False,
                 "lab_screenshot_obs": False,
@@ -1362,6 +1437,7 @@ class TestTeamQueueNormalization(unittest.TestCase):
                 "daily_task": False,
                 "get_reward": False,
                 "buy_enkephalin": False,
+                "make_enkephalin_module_only": False,
                 "mirror": True,
                 "set_reduce_miscontact": False,
                 "lab_screenshot_obs": False,
@@ -1427,6 +1503,7 @@ class TestTeamQueueNormalization(unittest.TestCase):
                 "daily_task": False,
                 "get_reward": False,
                 "buy_enkephalin": False,
+                "make_enkephalin_module_only": False,
                 "mirror": False,
                 "set_reduce_miscontact": False,
                 "lab_screenshot_obs": False,
