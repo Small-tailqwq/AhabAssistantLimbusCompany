@@ -126,6 +126,8 @@ def click_team_by_order(team_range, team_order, first_position, scale):
 
 def reset_battle_team_dropdown(position, scale):
     my_position = [position[0], position[1] + 150 * scale]
+    auto.mouse_click(my_position[0], my_position[1])
+    sleep(0.5)
     for _ in range(3):
         auto.mouse_drag(my_position[0], my_position[1], dy=1333 * scale, drag_time=0.3)
     sleep(0.75)
@@ -242,7 +244,7 @@ def select_battle_team(num):
                 auto.mouse_drag(
                     first_position[0],
                     first_position[1] + 375 * scale,
-                    dy=-385 * scale,
+                    dy=-375 * scale,
                     drag_time=1.5,
                 )
                 sleep(1)
