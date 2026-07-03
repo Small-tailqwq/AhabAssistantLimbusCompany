@@ -43,6 +43,10 @@ except (AttributeError, OSError):
             pass
 
 from module.logger import log
+from module.logger.my_log import Logger
+
+# watcher 进程自己配一份日志；它拉起的 main.py 子进程会各自再配一次。
+Logger()
 
 try:
     from watchdog.events import FileSystemEventHandler

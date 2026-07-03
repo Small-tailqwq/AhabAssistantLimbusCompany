@@ -39,10 +39,14 @@ try:
 except Exception:
     pass
 
+from module.logger import log
+from module.logger.my_log import Logger
+
+Logger()
+
 from app.language_manager import LanguageManager
 from app.my_app import MainWindow
 from module.config import cfg
-from module.logger import log
 
 
 # 获取管理员权限
