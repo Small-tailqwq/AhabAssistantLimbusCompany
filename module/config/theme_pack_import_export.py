@@ -86,30 +86,20 @@ def import_theme_pack_weight(file_path: str, team_num: int) -> bool:
             log.warning(f"队伍 {team_num} 的导入文件为空")
             return True
 
-        theme_pack_weight_path = theme_list.build_team_weight_path(team_num)
-        target_path = Path(theme_pack_weight_path)
-
-        if target_path.exists():
-            with open(theme_pack_weight_path, "r", encoding="utf-8") as f:
-                existing_data = yaml.load(f)
-                if not existing_data:
-                    existing_data = {}
-        else:
-            existing_data = {}
-
-        # 从导入中合并/替换条目
         if isinstance(import_data, dict):
-            existing_data = _deep_merge_dicts(existing_data, import_data)
+            imported_weight = import_data
         else:
             log.error(f"队伍 {team_num} 的导入数据不是字典")
             return False
 
         # 确保父目录存在
+        theme_pack_weight_path = theme_list.build_team_weight_path(team_num)
+        target_path = Path(theme_pack_weight_path)
         target_path.parent.mkdir(parents=True, exist_ok=True)
 
         # 保存回 theme_pack_weight_team_{team_num}.yaml
         with open(theme_pack_weight_path, "w", encoding="utf-8") as f:
-            yaml.dump(existing_data, f)
+            yaml.dump(imported_weight, f)
 
         log.info(f"已从 {file_path} 导入队伍 {team_num} 的主题包权重")
         return True
@@ -118,20 +108,3 @@ def import_theme_pack_weight(file_path: str, team_num: int) -> bool:
         return False
 
 
-def _deep_merge_dicts(existing: dict, import_data: dict) -> dict:
-    """深度合并字典，将 import_data 合并到 existing
-
-    Args:
-        existing: 现有字典
-        import_data: 要合并的字典
-
-    Returns:
-        合并后的字典
-    """
-    result = existing.copy()
-    for key, value in import_data.items():
-        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
-            result[key] = _deep_merge_dicts(result[key], value)
-        else:
-            result[key] = value
-    return result

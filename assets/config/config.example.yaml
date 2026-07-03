@@ -25,7 +25,7 @@ win_input_type: "background" # 键鼠操控方式
 auto_hard_mirror: False # 周四自动切换困难镜牢
 last_auto_change: 1715990400 # 上次自动切换困难镜牢的时间戳
 hard_mirror_chance: 0 # 困难镜牢剩余次数
-timezone: None # 当前时区相对于东九区的偏移量，如东八区为1，东九区为0，东十区为-1
+timezone: null # 当前时区相对于东九区的偏移量，如东八区为1，东九区为0，东十区为-1
 
 zoom_scale: 0 # 缩放比例
 window_position_x: 0 # 窗口位置x
@@ -74,6 +74,12 @@ obs_password: "" # OBS WebSocket 密码（未设置密码则留空）
 obs_source_name: "" # OBS 中捕获游戏窗口的源名称（必填）
 obs_image_format: "jpg" # OBS 截图编码格式，推荐 jpg；png 更稳但通常更慢
 obs_image_quality: 80 # OBS 截图压缩质量，0 压缩更高，100 压缩更低；仅对有损格式生效
+lab_simulator_launch_accelerator: False # 模拟器启动加速器：启动游戏前检测加速是否生效
+lab_simulator_accelerator_preset: custom # 模拟器加速器预设："custom" 或 "leigod"
+lab_simulator_accelerator_package: "" # 模拟器加速器包名，自定义预设时需要手动填写
+lab_simulator_accelerator_tap_x: 0 # 模拟器加速器加速按钮 X 坐标
+lab_simulator_accelerator_tap_y: 0 # 模拟器加速器加速按钮 Y 坐标
+lab_simulator_accelerator_delay: 3.0 # 模拟器加速器启动后等待时间（秒）
 
 # 调试功能
 debug_mode: False # 调试模式总开关；关闭时应同步关闭所有子调试开关
@@ -94,6 +100,8 @@ adb_reconnect_on_error: True # ADB或minitouch连接失效时自动重连
 
 # 自动更新
 check_update: True
+update_channel: stable # 更新通道：stable/canary
+update_use_system_proxy: False # 使用系统代理进行更新
 update_prerelease_enable: False
 update_source: GitHub # 更新源
 mirrorchyan_cdk: "" # Mirror酱 CDK
@@ -163,6 +171,7 @@ fight_to_last_man: False # 战斗直到全灭
 teams_be_select_num: 0 # 被选中的队伍数量
 teams_be_select: [False] # 被选中的队伍
 teams_order: [0] # 队伍的顺序
+teams_active_queue: [] # 镜牢启用队伍的执行队列（单一事实源）
 mirror_keyboard_navigation: False # 使用键盘进行镜牢寻路
 mirror_keyboard_simple_pathfinding: False # 简单键盘寻路（始终按↑，避免鼠标拖动）
 mirror_resource_collection: False # 镜牢资源收集模式（收集卡包地图截图用于模型训练）

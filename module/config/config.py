@@ -48,14 +48,15 @@ class Config(metaclass=SingletonMeta):
 
         # 加载版本信息
         self.version = self._load_version(version_path)
-        # 加载默认配置
-        self.config = ConfigModel()
         # 获取用户的配置文件路径
         self.config_path = Path(config_path)
         # 保存含有注释的yaml文件的路径
         self.example_path = Path(example_path)
 
         self.backup_path = Path(backup_path)
+        # 默认值全部来自 example.yaml；ConfigModel 只负责类型声明与校验。
+        self._defaults: dict = self._load_default_config()
+        self.config = ConfigModel(**self._defaults)
 
         # 加载实际配置，此方法会根据实际配置覆盖默认配置
         self._load_config()
@@ -217,7 +218,7 @@ class Config(metaclass=SingletonMeta):
     def _load_default_config(self, example_path: str | Path | None = None) -> dict:
         """加载默认配置信息"""
         if example_path is None:
-            example_path = self.example_path
+            example_path = self.__dict__.get("example_path", Path("assets/config/config.example.yaml"))
         else:
             self.example_path = Path(example_path)
         try:
@@ -230,6 +231,13 @@ class Config(metaclass=SingletonMeta):
         except Exception:
             log.warning(f"默认配置文件 {example_path} 读取失败，使用空配置")
             return {}
+
+    def _get_defaults(self) -> dict:
+        defaults = self.__dict__.get("_defaults")
+        if not isinstance(defaults, dict) or not defaults:
+            defaults = self._load_default_config()
+            self.__dict__["_defaults"] = defaults
+        return defaults
 
     @staticmethod
     def _parse_backup_timestamp(filename: str) -> float:
@@ -335,7 +343,7 @@ class Config(metaclass=SingletonMeta):
         for attempt_path, label in load_targets:
             try:
                 if attempt_path is None:
-                    loaded_config = ConfigModel().model_dump()
+                    loaded_config = ConfigModel(**copy.deepcopy(self._get_defaults())).model_dump()
                     log.error("所有配置文件和备份均无法加载，已重置为默认配置")
                 else:
                     if not attempt_path.exists():
@@ -361,7 +369,7 @@ class Config(metaclass=SingletonMeta):
                         if isinstance(settings, dict):
                             teams[team_key] = migrate_legacy_team_setting_data(settings)
 
-                self.config = ConfigModel(**loaded_config)
+                self.config = ConfigModel(**{**copy.deepcopy(self._get_defaults()), **loaded_config})
                 gp = Path(self.config.game_path)
                 if not gp.exists() or not gp.is_file():
                     detected = self._auto_detect_game_path()
@@ -640,7 +648,7 @@ class Config(metaclass=SingletonMeta):
             try:
                 if attempt is None:
                     log.error(f"just_load_config: 所有来源均加载失败，使用默认配置 (path={path})")
-                    self.config = ConfigModel()
+                    self.config = ConfigModel(**copy.deepcopy(self._get_defaults()))
                     return
                 if not attempt.exists():
                     continue
@@ -649,7 +657,7 @@ class Config(metaclass=SingletonMeta):
                 if not loaded_config:
                     continue
                 repairs = self._repair_config(loaded_config)
-                self.config = ConfigModel(**loaded_config)
+                self.config = ConfigModel(**{**copy.deepcopy(self._get_defaults()), **loaded_config})
                 gp = Path(self.config.game_path)
                 if not gp.exists() or not gp.is_file():
                     detected = self._auto_detect_game_path()

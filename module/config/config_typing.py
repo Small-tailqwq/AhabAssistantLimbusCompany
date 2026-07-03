@@ -307,385 +307,433 @@ class ConfigModel(BaseModel):
     # 解决金丝雀新增的字段导致的兼容性问题，允许出现未定义的字段
     model_config = {"extra": "allow"}
 
-    config_version: int = 1779880000
+    config_version: int
     """配置文件版本号（时间戳）"""
 
-    game_title_name: str = "LimbusCompany"
+    game_title_name: str
     """游戏窗口标题"""
 
-    game_process_name: str = "LimbusCompany.exe"
+    game_process_name: str
     """游戏进程名"""
 
-    game_path: str = r"C:\Program Files (x86\Steam\steamapps\common\Limbus Company\LimbusCompany.exe"
+    game_path: str
     """游戏启动路径"""
 
-    startup_wait_timeout_pc: int = 120
+    startup_wait_timeout_pc: int
     """PC 启动游戏后等待主界面的超时时间（秒）"""
 
-    language_in_game: str = "en"
+    language_in_game: str
     """游戏语言"""
 
-    after_completion_actions: List[str] = []
+    after_completion: int
+    """旧版脚本结束后的操作"""
+
+    after_completion_actions: List[str]
     """脚本结束后的前置动作（可多选）：exit_game/exit_emulator/exit_aalc"""
 
-    after_completion_power_action: str = "none"
+    after_completion_power_action: str
     """脚本结束后的最终动作（单选）：none/sleep/hibernate/lock/shutdown"""
 
-    keep_after_completion: bool = False
+    keep_after_completion: bool
     """是否保持脚本结束后的操作"""
 
-    language_in_program: str = ""
+    language_in_program: str
     """程序语言"""
 
-    shutdown_hotkey: str = "<ctrl>+q"
+    shutdown_hotkey: str
     """关闭快捷键"""
 
-    pause_hotkey: str = "<alt>+p"
+    pause_hotkey: str
     """暂停快捷键"""
 
-    resume_hotkey: str = "<alt>+r"
+    resume_hotkey: str
     """继续快捷键"""
 
-    announcement: float = 1715990400
+    announcement: float
     """公告板时间戳"""
 
-    memory_protection: bool = False
+    memory_protection: bool
     """内存占用保护"""
 
-    background_click: bool = True
+    background_click: bool
     """是否使用后台点击"""
 
-    win_input_type: str = "background"
+    win_input_type: str
     """键鼠操控方式"""
 
-    auto_hard_mirror: bool = False
+    auto_hard_mirror: bool
     """周四自动切换困难镜牢"""
 
-    last_auto_change: float = 1715990400
+    last_auto_change: float
     """上次自动切换困难镜牢的时间戳"""
 
-    hard_mirror_chance: int = 0
+    hard_mirror_chance: int
     """困难镜牢剩余次数"""
 
-    timezone: Optional[float] = None
+    timezone: Optional[float]
     """当前时区相对于东九区的偏移量"""
 
-    zoom_scale: int = 0
+    zoom_scale: int
     """缩放比例"""
 
-    window_position_x: int = 0
+    window_position_x: int
     """窗口位置x"""
 
-    window_position_y: int = 0
+    window_position_y: int
     """窗口位置y"""
 
-    theme_mode: str = "AUTO"
+    theme_mode: str
     """应用主题：AUTO, LIGHT, DARK"""
 
-    autostart: bool = False
+    autostart: bool
     """自启动"""
 
-    autodaily: bool = False
+    autodaily: bool
     """启用定时执行"""
 
-    autodaily_task: List[bool] = [False] * 4
+    autodaily_task: List[bool]
     """定时任务列表"""
 
-    autodaily_task_exit: List[bool] = [False] * 7
+    autodaily_task_exit: List[bool]
     """定时任务退出列表: [exit_game, exit_aalc, sleep, hibernate, shutdown, lock, exit_emulator]"""
 
-    autodaily_time: str = "00:00"
+    autodaily_time: str
     """定时执行时间（HH:mm）"""
 
-    autodaily2: bool = False
+    autodaily2: bool
     """启用定时执行2"""
 
-    autodaily2_task: List[bool] = [False] * 4
+    autodaily2_task: List[bool]
     """定时任务2列表"""
 
-    autodaily2_task_exit: List[bool] = [False] * 7
+    autodaily2_task_exit: List[bool]
     """定时任务2退出列表: [exit_game, exit_aalc, sleep, hibernate, shutdown, lock, exit_emulator]"""
 
-    autodaily_time2: str = "00:00"
+    autodaily_time2: str
     """定时执行时间2（HH:mm）"""
 
-    autodaily3: bool = False
+    autodaily3: bool
     """启用定时执行3"""
 
-    autodaily3_task: List[bool] = [False] * 4
+    autodaily3_task: List[bool]
     """定时任务3列表"""
 
-    autodaily3_task_exit: List[bool] = [False] * 7
+    autodaily3_task_exit: List[bool]
     """定时任务3退出列表: [exit_game, exit_aalc, sleep, hibernate, shutdown, lock, exit_emulator]"""
 
-    autodaily_time3: str = "00:00"
+    autodaily_time3: str
     """定时执行时间3（HH:mm）"""
 
-    autodaily4: bool = False
+    autodaily4: bool
     """启用定时执行4"""
 
-    autodaily4_task: List[bool] = [False] * 4
+    autodaily4_task: List[bool]
     """定时任务4列表"""
 
-    autodaily4_task_exit: List[bool] = [False] * 7
+    autodaily4_task_exit: List[bool]
     """定时任务4退出列表: [exit_game, exit_aalc, sleep, hibernate, shutdown, lock, exit_emulator]"""
 
-    autodaily_time4: str = "00:00"
+    autodaily_time4: str
     """定时执行时间4（HH:mm）"""
 
-    minimize_to_tray: bool = False
+    minimize_to_tray: bool
     """最小化到托盘"""
 
-    screenshot_interval: float = 0.85
+    screenshot_interval: float
     """截图间隔时间"""
 
-    mouse_action_interval: float = 0.5
+    mouse_action_interval: float
     """鼠标操作间隔时间"""
 
-    mouse_down_duration: float = 0.1
+    mouse_down_duration: float
     """鼠标按下持续时间"""
 
-    use_post_message: bool = False
+    use_post_message: bool
     """是否使用PostMessage进行输入"""
 
-    resonate_with_Ahab: bool = False
+    resonate_with_Ahab: bool
     """是否播放亚哈语录"""
 
-    simulator: bool = False
+    lab_mouse_logitech: bool
+    """实验室功能：通过独立罗技驱动 DLL 进行硬件级键鼠输入模拟"""
+
+    logitech_dll_path: str
+    """罗技驱动 DLL 的绝对路径"""
+
+    logitech_bionic_trajectory: bool
+    """罗技驱动专用：是否启用仿生轨迹与仿生点击偏移"""
+
+    lab_screenshot_obs: bool
+    """实验室功能：通过 OBS WebSocket 截图"""
+
+    obs_host: str
+    """OBS WebSocket 服务地址"""
+
+    obs_port: int
+    """OBS WebSocket 服务端口"""
+
+    obs_password: str
+    """OBS WebSocket 密码"""
+
+    obs_source_name: str
+    """OBS 中捕获游戏窗口的源名称"""
+
+    obs_image_format: str
+    """OBS 截图编码格式"""
+
+    obs_image_quality: int
+    """OBS 截图压缩质量"""
+
+    simulator: bool
     """是否使用模拟器"""
 
-    simulator_type: int = 0
+    simulator_type: int
     """0:mumu, 10:其他"""
 
-    simulator_port: int = 0
+    simulator_port: int
     """端口"""
 
-    mumu_instance_number: int = -1
+    mumu_instance_number: int
     """mumu模拟器的实例编号"""
 
-    start_emulator_timeout: int = 150
-    """启动模拟器超时时间。增加至 150 秒以应对 projectmonn 模拟器启动缓慢的问题"""
+    start_emulator_timeout: int
+    """启动模拟器超时时间"""
 
-    startup_wait_timeout_simulator: int = 180
+    startup_wait_timeout_simulator: int
     """模拟器启动游戏后等待主界面的超时时间（秒）"""
 
-    adb_reconnect_on_error: bool = True
+    adb_reconnect_on_error: bool
     """ADB或minitouch连接失效时自动重连"""
 
-    check_update: bool = True
+    check_update: bool
     """检查更新"""
 
-    update_channel: str = "stable"
+    update_channel: str
     """更新通道: stable (稳定版, 检查上游 KIYI671 仓库) / canary (金丝雀版, 检查 Small-tailqwq 仓库)"""
 
-    update_use_system_proxy: bool = False
+    update_use_system_proxy: bool
     """使用系统代理进行更新"""
 
-    default_page: int = 0
+    update_prerelease_enable: bool
+    """启用预发布版更新"""
+
+    update_source: str
+    """更新源"""
+
+    mirrorchyan_cdk: str
+    """Mirror酱 CDK"""
+
+    image_resource_sync: bool
+    """是否启用图片资源自动同步"""
+
+    image_resource_source: str
+    """图片资源同步源"""
+
+    default_page: int
     """保存启动后的页面"""
 
-    set_windows: bool = True
+    set_windows: bool
     """是否进行自动窗口设置"""
 
-    set_win_size: int = 1080
+    set_win_size: int
     """设置使用的分辨率"""
 
-    set_win_position: str = "free"
+    set_win_position: str
     """是否自动设置窗口的位置"""
 
-    set_reduce_miscontact: bool = True
+    set_reduce_miscontact: bool
     """是否防止误触"""
 
-    select_team_by_order: bool = False
+    select_team_by_order: bool
     """是否按顺序（而非名称）选择队伍"""
 
-    daily_task: bool = False
+    daily_task: bool
     """是否进行日常本"""
 
-    set_EXP_count: int = 1
+    set_EXP_count: int
     """设置经验本的次数"""
 
-    set_thread_count: int = 3
+    set_thread_count: int
     """设置纽本的次数"""
 
-    daily_teams: int = 1
+    daily_teams: int
     """设置日常本使用的队伍"""
 
-    targeted_teaming_EXP: bool = False
+    targeted_teaming_EXP: bool
     """经验本指定队伍"""
 
-    EXP_day_1_2: int = 1
+    EXP_day_1_2: int
     """周一/二经验本队伍"""
 
-    EXP_day_3_4: int = 1
+    EXP_day_3_4: int
     """周三/四经验本队伍"""
 
-    EXP_day_5_6: int = 1
+    EXP_day_5_6: int
     """周五/六经验本队伍"""
 
-    EXP_day_7: int = 1
+    EXP_day_7: int
     """周日经验本队伍"""
 
-    targeted_teaming_thread: bool = False
+    targeted_teaming_thread: bool
     """纽本指定队伍"""
 
-    use_continuous_combat: bool = False
+    use_continuous_combat: bool
     """是否使用连续作战"""
 
-    use_continuous_combat_select: int = 1
+    use_continuous_combat_select: int
     """一场连续作战的最大次数"""
 
-    thread_day_1: int = 1
+    thread_day_1: int
     """周一纽本队伍"""
 
-    thread_day_2: int = 1
+    thread_day_2: int
     """周二纽本队伍"""
 
-    thread_day_3: int = 1
+    thread_day_3: int
     """周三纽本队伍"""
 
-    thread_day_4: int = 1
+    thread_day_4: int
     """周四纽本队伍"""
 
-    thread_day_5: int = 1
+    thread_day_5: int
     """周五纽本队伍"""
 
-    thread_day_6: int = 1
+    thread_day_6: int
     """周六纽本队伍"""
 
-    thread_day_7: int = 1
+    thread_day_7: int
     """周日纽本队伍"""
 
-    get_reward: bool = False
+    get_reward: bool
     """是否进行获取奖励"""
 
-    set_get_prize_actions: List[str] = ["mail", "daily_weekly"]
+    set_get_prize_actions: List[str]
     """奖励领取细项：mail 邮件, daily_weekly 日/周常任务, pass_level 通行证等级奖励"""
 
-    buy_enkephalin: bool = False
+    buy_enkephalin: bool
     """是否自动购买体力"""
 
-    set_lunacy_to_enkephalin: int = 2
+    set_lunacy_to_enkephalin: int
     """购买体力次数"""
 
-    Dr_Grandet_mode: bool = False
+    Dr_Grandet_mode: bool
     """葛朗台模式"""
 
-    skip_enkephalin: bool = False
+    skip_enkephalin: bool
     """跳过换体"""
 
-    make_enkephalin_module_only: bool = False
+    make_enkephalin_module_only: bool
     """独立体力换饼（不进行其他任务）"""
 
-    mirror: bool = False
+    mirror: bool
     """是否进行自动镜牢"""
 
-    set_mirror_count: int = 1
+    set_mirror_count: int
     """镜牢的次数"""
 
-    hard_mirror: int | bool = 0
+    hard_mirror: int | bool
     """进行困难镜牢"""
 
-    no_weekly_bonuses: int | bool = 0
+    no_weekly_bonuses: int | bool
     """不使用每周加成"""
 
-    floor_3_exit: bool = False
+    floor_3_exit: bool
     """只打三层"""
 
-    infinite_dungeons: bool = False
+    infinite_dungeons: bool
     """无限刷牢"""
 
-    save_rewards: bool = False
+    save_rewards: bool
     """保存奖励不领"""
 
-    hard_mirror_single_bonuses: bool = False
+    hard_mirror_single_bonuses: bool
     """困难镜牢使用单次加成"""
 
-    select_event_pack: bool = False
+    select_event_pack: bool
     """第五层选择活动卡包"""
 
-    skip_event_pack: bool = False
+    skip_event_pack: bool
     """第五层跳过活动卡包"""
 
-    re_claim_rewards: bool = False
+    re_claim_rewards: bool
     """再次执行领取奖励任务"""
 
-    not_skip_whitegossypium: bool = False
+    not_skip_whitegossypium: bool
     """不跳过白棉花"""
 
-    fight_to_last_man: bool = False
+    fight_to_last_man: bool
     """战斗直到全灭"""
 
-    teams_be_select_num: int = 0
+    teams_be_select_num: int
     """被选中的队伍数量"""
 
-    teams_be_select: List[bool] = [False]
+    teams_be_select: List[bool]
     """被选中的队伍"""
 
-    teams_order: List[int] = [0]
+    teams_order: List[int]
     """队伍的顺序"""
 
-    teams_active_queue: List[int] = []
+    teams_active_queue: List[int]
     """镜牢启用队伍的执行队列（单一事实源）"""
 
-    mirror_keyboard_navigation: bool = False
+    mirror_keyboard_navigation: bool
     """使用键盘进行镜牢寻路"""
 
-    mirror_keyboard_simple_pathfinding: bool = False
+    mirror_keyboard_simple_pathfinding: bool
     """简单键盘寻路模式：始终按↑选择第一个节点，完全避免鼠标拖动"""
 
-    mirror_resource_collection: bool = False
+    mirror_resource_collection: bool
     """镜牢资源收集模式：收集各层卡包地图截图用于模型训练"""
 
-    debug_mode: bool = False
+    debug_mode: bool
     """调试模式总开关；关闭时应同步关闭所有子调试开关"""
 
-    debug_mirror_route: bool = False
+    debug_mirror_route: bool
     """镜牢寻路调试：输出额外日志并保存路线图调试截图"""
 
-    debug_thread_dungeon: bool = False
+    debug_thread_dungeon: bool
     """纽本调试：保存纽本流程截图到 logs/thread_dungeon_debug"""
 
-    debug_retry: bool = False
+    debug_retry: bool
     """重试调试：在尝试退出、重启镜牢时输出识别情况的日志断点"""
 
-    debug_shop: bool = False
+    debug_shop: bool
     """商店调试：输出商店各操作的详细识别和点击日志"""
 
-    debug_mirror_event: bool = False
+    debug_mirror_event: bool
     """镜牢事件调试：在事件判定各关键节点保存截图到 logs/event_debug"""
 
-    experimental_keep_screen_awake: bool = False
+    experimental_keep_screen_awake: bool
     """运行期间阻止系统与显示器休眠，任务结束自动恢复"""
 
-    lab_simulator_launch_accelerator: bool = False
+    lab_simulator_launch_accelerator: bool
     """模拟器启动加速器：启动游戏前检测加速是否生效（通过 tun 接口），未生效时自动启动加速器并点击加速按钮"""
 
-    lab_simulator_accelerator_preset: str = "custom"
+    lab_simulator_accelerator_preset: str
     """模拟器加速器预设："custom" 或 "leigod"。选择预设后自动填充包名和加速按钮检测规则"""
 
-    lab_simulator_accelerator_package: str = ""
+    lab_simulator_accelerator_package: str
     """模拟器加速器包名，自定义预设时需要手动填写"""
 
-    lab_simulator_accelerator_tap_x: int = 0
+    lab_simulator_accelerator_tap_x: int
     """模拟器加速器加速按钮 X 坐标（ADB input tap），仅在自动检测失败或自定义预设时作为回退"""
 
-    lab_simulator_accelerator_tap_y: int = 0
+    lab_simulator_accelerator_tap_y: int
     """模拟器加速器加速按钮 Y 坐标（ADB input tap），仅在自动检测失败或自定义预设时作为回退"""
 
-    lab_simulator_accelerator_delay: float = 3.0
+    lab_simulator_accelerator_delay: float
     """模拟器加速器启动后等待时间（秒），等待应用完成加载后再进行弹窗关闭和点击操作"""
 
-    lab_mouse_razer: bool = False
+    lab_mouse_razer: bool
     """启用雷蛇驱动硬件级键鼠输入模拟"""
 
-    razer_dll_path: str = ""
+    razer_dll_path: str
     """雷蛇驱动 DLL 的绝对路径"""
 
-    razer_bionic_trajectory: bool = True
+    razer_bionic_trajectory: bool
     """雷蛇驱动专用：是否启用仿生轨迹与仿生点击偏移"""
 
-    teams: dict[str, TeamSetting] = {"1": TeamSetting()}
+    teams: dict[str, TeamSetting]
     """队伍设置"""
 
     @field_validator("use_continuous_combat_select")
