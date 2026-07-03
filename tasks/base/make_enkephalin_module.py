@@ -54,28 +54,28 @@ def get_current_enkephalin():
     from module.ocr import ocr
 
     enkephalin_bbox = ImageUtils.get_bbox(ImageUtils.load_image("enkephalin/enkephalin_now_bbox.png"))
-    for threshold in (70, 60):
-        for _ in range(5):
-            try:
-                while auto.take_screenshot() is None:
-                    continue
-                sc = ImageUtils.crop(np.array(auto.screenshot), enkephalin_bbox)
-                # RapidOCR 容易漏掉紧贴裁剪边缘的体力数字，补黑边只影响本处 OCR 输入。
-                sc = cv2.copyMakeBorder(sc, 16, 16, 16, 16, cv2.BORDER_CONSTANT, value=0)
+    for _ in range(5):
+        try:
+            while auto.take_screenshot() is None:
+                continue
+            sc = ImageUtils.crop(np.array(auto.screenshot), enkephalin_bbox)
+            # RapidOCR 容易漏掉紧贴裁剪边缘的体力数字，补黑边只影响本处 OCR 输入。
+            sc = cv2.copyMakeBorder(sc, 16, 16, 16, 16, cv2.BORDER_CONSTANT, value=0)
+            for threshold in (100, 110, 70, 60):
                 _, binary_image = cv2.threshold(sc, threshold, 255, cv2.THRESH_BINARY)
                 result = ocr.run(binary_image)
                 ocr_result = "".join(str(t) for t in result.txts or [])
                 ocr_result = ocr_result.lower().replace(" ", "")
                 if "/" in ocr_result:
-                    match = re.search(r"(\d{1,3})\s*/", ocr_result)
+                    match = re.search(r"(\d{1,3})\s*/\s*\d{3,4}", ocr_result)
                     if match:
                         return int(match.group(1))
                 else:
                     digits = re.sub(r"\D", "", ocr_result)
                     if 0 < len(digits) <= 3:
                         return int(digits)
-            except Exception:
-                continue
+        except Exception:
+            continue
     return None
 
 
