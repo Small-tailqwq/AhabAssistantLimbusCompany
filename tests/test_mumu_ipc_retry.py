@@ -70,6 +70,22 @@ class TestMumuIpcInputRetry(unittest.TestCase):
         self.assertEqual(len(calls), 7)
         mock_reconnect.assert_called_once()
 
+    def test_check_game_alive_initializes_adb_device_before_querying_package(self):
+        control = mumu_control_module.MumuControl.__new__(mumu_control_module.MumuControl)
+        control.device = None
+        control.game_package_name = "com.ProjectMoon.LimbusCompany"
+        control.stop_checker = lambda: None
+        control.get_mumu_adb_port = lambda: "127.0.0.1:16384"
+
+        class DeviceStub:
+            def app_current(self):
+                return type("CurrentApp", (), {"package": "com.ProjectMoon.LimbusCompany"})()
+
+        with patch.object(mumu_control_module.adb, "device", return_value=DeviceStub()) as adb_device:
+            self.assertTrue(control.check_game_alive())
+
+        adb_device.assert_called_once_with("127.0.0.1:16384")
+
 
 if __name__ == "__main__":
     unittest.main()
