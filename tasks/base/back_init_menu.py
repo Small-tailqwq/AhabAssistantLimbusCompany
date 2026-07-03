@@ -23,6 +23,7 @@ class StartupMainMenuWaitResult(StrEnum):
 
 
 _pending_startup_main_menu_wait = False
+LOOP_COUNT = 30
 
 
 def mark_startup_main_menu_wait_pending() -> None:
@@ -156,7 +157,7 @@ def back_init_menu(*, allow_restart: bool = True) -> bool:
         if wait_result == StartupMainMenuWaitResult.MAIN_MENU:
             return True
 
-    loop_count = 30
+    loop_count = LOOP_COUNT
     auto.model = "clam"
     _last_fingerprint = None
     _stale_count = 0
@@ -176,7 +177,7 @@ def back_init_menu(*, allow_restart: bool = True) -> bool:
             log.error("无法返回主界面，尝试重启游戏")
             kill_game()
             restart_game()
-            loop_count = 30
+            loop_count = LOOP_COUNT
             auto.model = "clam"
             sleep(1)
             continue
@@ -308,6 +309,7 @@ def back_init_menu(*, allow_restart: bool = True) -> bool:
             if auto.click_element("base/update_confirm_assets.png"):
                 continue
             click_title_screen_safely()
+            loop_count = LOOP_COUNT
             continue
 
         if auto.click_element("base/only_option_assets.png", model="clam"):
