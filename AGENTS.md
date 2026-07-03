@@ -36,7 +36,7 @@ uv run python .\scripts\check_i18n.py --update
 uv run python .\scripts\export-requirements-from-uv-lock.py
 ```
 
-调试工具位于 `.opencode/tools/`：`log_analyzer.py`、`mirror_analyzer.py`、`log_viewer.py`、`match_viewer.py`。模板匹配重放工具：`debug_tools/verify_matching.py`。可复用临时验证脚本放 `debug_tools/`，不纳入 CI。
+调试工具位于 `.opencode/tools/`：`log_analyzer.py`、`mirror_analyzer.py`、`log_viewer.py`、`match_viewer.py`。模板匹配重放工具：`debug_tools/verify_matching.py`。可复用临时验证脚本放 `debug_tools/`，不纳入 CI。调试截图和中间图统一写入 `logs/<feature>_debug/` 等已忽略目录，不落到仓库根目录或未忽略的 `debug_*` 目录。
 
 ## 项目现实
 

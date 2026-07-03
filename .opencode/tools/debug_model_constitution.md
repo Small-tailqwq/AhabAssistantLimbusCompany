@@ -98,6 +98,8 @@ if _is_xxx_debug_enabled():
 
 统一放在 `logs/<feature>_debug/` 下。
 
+临时排障脚本也遵循同一落点；不要把 `debug_*.png`、`*_outputs/`、`*_analysis/` 写到仓库根目录或其他未忽略目录。
+
 ### 5.2 文件名
 
 ```
