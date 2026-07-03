@@ -33,7 +33,11 @@ from module.system_actions import (
     execute_after_completion,
     get_after_completion_config,
 )
-from tasks.base.back_init_menu import back_init_menu
+from tasks.base.back_init_menu import (
+    back_init_menu,
+    clear_startup_main_menu_wait_pending,
+    mark_startup_main_menu_wait_pending,
+)
 from tasks.base.make_enkephalin_module import (
     lunacy_to_enkephalin,
     make_enkephalin_module,
@@ -137,6 +141,7 @@ def to_get_reward():
 
 def init_game():
     log.debug("初始化游戏")
+    clear_startup_main_menu_wait_pending()
     stop_checker = auto.ensure_not_stopped
     if cfg.simulator:
         stop_checker()
@@ -180,7 +185,10 @@ def init_game():
             )
 
             ensure_accelerator()
+            was_game_alive = MumuControl.connection_device.check_game_alive()
             MumuControl.connection_device.start_game()
+            if not was_game_alive:
+                mark_startup_main_menu_wait_pending()
         else:
             from module.automation.accelerator import ensure_accelerator
             from module.automation.input_handlers.simulator.simulator_control import (
@@ -188,10 +196,16 @@ def init_game():
             )
 
             ensure_accelerator()
+            was_game_alive = SimulatorControl.connection_device.check_game_alive()
             SimulatorControl.connection_device.start_game()
+            if not was_game_alive:
+                mark_startup_main_menu_wait_pending()
     else:
         stop_checker()
+        was_game_alive = game_process.check_game_alive()
         game_process.start_game()
+        if not was_game_alive:
+            mark_startup_main_menu_wait_pending()
         while not screen.init_handle(stop_checker=stop_checker):
             stop_checker()
             sleep(1)

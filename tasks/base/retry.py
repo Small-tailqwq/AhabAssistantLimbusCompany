@@ -28,8 +28,13 @@ def _get_simulator_connection_device():
     return SimulatorControl.connection_device
 
 
-def _is_main_menu_visible() -> bool:
-    return bool(auto.find_element("home/window_assets.png") and auto.find_element("home/mail_assets.png", model="normal"))
+def _is_main_menu_visible(automation=None) -> bool:
+    automation = automation or auto
+    has_home_navigation = bool(
+        automation.find_element("home/window_assets.png")
+        or automation.find_element("home/drive_assets.png", model="normal")
+    )
+    return bool(has_home_navigation and automation.find_element("home/mail_assets.png", model="normal"))
 
 
 def _is_runtime_ui_visible() -> bool:

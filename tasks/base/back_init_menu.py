@@ -22,6 +22,29 @@ class StartupMainMenuWaitResult(StrEnum):
     TIMEOUT = "timeout"
 
 
+_pending_startup_main_menu_wait = False
+
+
+def mark_startup_main_menu_wait_pending() -> None:
+    global _pending_startup_main_menu_wait
+
+    _pending_startup_main_menu_wait = True
+
+
+def _consume_startup_main_menu_wait_pending() -> bool:
+    global _pending_startup_main_menu_wait
+
+    pending = _pending_startup_main_menu_wait
+    _pending_startup_main_menu_wait = False
+    return pending
+
+
+def clear_startup_main_menu_wait_pending() -> None:
+    global _pending_startup_main_menu_wait
+
+    _pending_startup_main_menu_wait = False
+
+
 def _is_retry_debug_enabled():
     return bool(cfg.get_value("debug_mode", False) and cfg.get_value("debug_retry", False))
 
@@ -63,6 +86,7 @@ def handle_launch_state_once() -> bool | None:
 
 
 def wait_until_main_menu_after_launch(*, allow_restart: bool = True) -> StartupMainMenuWaitResult:
+    clear_startup_main_menu_wait_pending()
     while True:
         auto.model = "clam"
         timeout_seconds = get_startup_wait_timeout_seconds()
@@ -127,6 +151,11 @@ def wait_until_main_menu_after_launch(*, allow_restart: bool = True) -> StartupM
 
 @begin_and_finish_time_log(task_name="返回主界面")
 def back_init_menu(*, allow_restart: bool = True) -> bool:
+    if _consume_startup_main_menu_wait_pending():
+        wait_result = wait_until_main_menu_after_launch(allow_restart=allow_restart)
+        if wait_result == StartupMainMenuWaitResult.MAIN_MENU:
+            return True
+
     loop_count = 30
     auto.model = "clam"
     _last_fingerprint = None
