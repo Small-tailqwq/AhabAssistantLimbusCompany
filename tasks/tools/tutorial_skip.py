@@ -1,6 +1,7 @@
 """Tutorial Skip Tool — 直接修改 Limbus Company 存档以跳过/恢复新手提示"""
 
 import base64
+import contextlib
 import glob
 import json
 import os
@@ -90,16 +91,61 @@ def _android_device():
 
     try:
         devices = adb.device_list()
-        if not devices:
-            return None
-        target = None
-        for d in devices:
-            if "7555" in d.serial:
-                target = d
-                break
-        return target or devices[0]
+        if devices:
+            target = None
+            for d in devices:
+                if "7555" in d.serial:
+                    target = d
+                    break
+            return target or devices[0]
     except Exception:
-        return None
+        pass
+
+    port = _discover_mumu_adb_port()
+    if port:
+        try:
+            adb.connect(port)
+            return adb.device(port)
+        except Exception:
+            pass
+
+    return _get_adb_device_auto()
+
+
+def _discover_mumu_adb_port():
+    """通过注册表 + MuMuManager 自动发现 MuMu12 ADB 端口"""
+    import subprocess
+    import winreg
+
+    software_name = [
+        "MuMuPlayer-12.0",
+        "MuMuPlayer",
+        "MuMuPlayerGlobal-12.0",
+        "MuMuPlayerGlobal",
+        "YXArkNights-12.0",
+    ]
+    for name in software_name:
+        try:
+            key = winreg.OpenKey(
+                winreg.HKEY_LOCAL_MACHINE,
+                rf"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{name}",
+            )
+            install_path = os.path.dirname(winreg.QueryValueEx(key, "DisplayIcon")[0]).strip('"')
+            winreg.CloseKey(key)
+            exe_path = os.path.join(install_path, "MuMuManager.exe")
+            if not os.path.isfile(exe_path):
+                continue
+            no_window = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0x08000000
+            proc = subprocess.run(
+                [exe_path, "adb", "-v", "0"],
+                capture_output=True, text=True, encoding="utf-8",
+                creationflags=no_window,
+            )
+            info = json.loads(proc.stdout)
+            return f"{info['adb_host']}:{info['adb_port']}"
+        except Exception:
+            continue
+    return None
 
 
 def _get_adb_device_auto():
@@ -131,6 +177,8 @@ def _get_adb_device_auto():
 
 def _load_key_iv_android(device):
     try:
+        with contextlib.suppress(Exception):
+            device.root()
         out = device.shell(f"cat '{ANDROID_PREFS_PATH}'")
         if not out:
             return None
@@ -323,6 +371,8 @@ def _patch_prefs_android(device, opt):
     if not changed:
         return False
     try:
+        with contextlib.suppress(Exception):
+            device.root()
         out = device.shell(f"cat '{ANDROID_PREFS_PATH}'")
         new_val = urllib.parse.quote(json.dumps(opt, separators=(",", ":")))
         out = device.shell(f"cat '{ANDROID_PREFS_PATH}'")
