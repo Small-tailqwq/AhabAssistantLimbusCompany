@@ -660,7 +660,11 @@ class MumuControl(AbstractInput):
             encoding="utf-8",
             creationflags=no_window_flag,
         )
-        info = json.loads(proc.stdout)
+        try:
+            info = json.loads(proc.stdout)
+        except Exception:
+            log.warning(f"get_launch_status: 解析 info 失败，stdout={proc.stdout}")
+            return "not_launched"
         try:
             if "player_state" in info:
                 return info["player_state"]
@@ -668,6 +672,7 @@ class MumuControl(AbstractInput):
                 return "start_finished"
             return "not_launched"
         except Exception:
+            log.warning(f"get_launch_status: 读取 info 字段失败，info={info}")
             return "not_launched"
 
     def load_dll(self):
