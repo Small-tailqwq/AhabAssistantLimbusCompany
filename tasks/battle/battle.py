@@ -211,7 +211,7 @@ class Battle:
 
             # 如果正在交战过程
             if auto.find_element("battle/pause_assets.png"):
-                sleep(2 * waiting)  # 战斗播片中增大间隔
+                sleep(waiting)
                 chance = self.INIT_CHANCE
                 first_turn = False
                 continue
