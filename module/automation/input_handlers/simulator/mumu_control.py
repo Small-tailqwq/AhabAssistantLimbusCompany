@@ -11,11 +11,12 @@ from time import sleep
 
 import cv2
 import numpy as np
+import psutil
 from adbutils import AdbError, adb
 
 from module.config import cfg
 from module.logger import log
-from module.my_error.my_error import userStopError
+from module.my_error.my_error import EmulatorCrashedError, userStopError
 from utils.utils import run_as_user
 
 from .. import AbstractInput
@@ -231,6 +232,22 @@ class MumuControl(AbstractInput):
         MumuControl.connection_device.disconnect()
         MumuControl.connection_device.adb_disconnect()
         MumuControl.connection_device = None
+
+    @staticmethod
+    def is_emulator_running() -> bool:
+        """检测模拟器关键进程是否存活。
+
+        检查 MuMuVMMSVC.exe (MuMu 12 VB) 或 MuMuNxService.exe (MuMu Nx)，
+        任意一个存在即视为存活。
+        """
+        key_processes = {"MuMuVMMSVC.exe", "MuMuNxService.exe"}
+        for proc in psutil.process_iter(["name"]):
+            try:
+                if proc.info["name"] in key_processes:
+                    return True
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+        return False
 
     def __init__(self, instance_number=0, display_id=0, stop_checker=None):
         self.install_path = None
@@ -830,17 +847,36 @@ class MumuControl(AbstractInput):
                     timeout=trial_timeout,
                 )
             except NemuIpcError:
+                if not MumuControl.is_emulator_running():
+                    raise EmulatorCrashedError(
+                        "MuMu模拟器进程已消失（检测到 IPC 错误），任务无法继续"
+                    )
                 if trial < retry_times - 1:
                     log.warning(f"截图失败，尝试重连后重试 ({trial + 1}/{retry_times})")
                     self.disconnect()
-                    self.connect()
+                    try:
+                        self.connect()
+                    except NemuIpcError:
+                        if not MumuControl.is_emulator_running():
+                            raise EmulatorCrashedError(
+                                "MuMu模拟器进程已消失（重连失败），任务无法继续"
+                            )
+                        raise
                     continue
                 raise
 
             if ret > 0:
                 if trial < retry_times - 1:
                     log.warning(f"nemu_capture_display 返回 {ret}，尝试重试 ({trial + 1}/{retry_times})")
+                    if not MumuControl.is_emulator_running():
+                        raise EmulatorCrashedError(
+                            "MuMu模拟器进程已消失（截图连续失败），任务无法继续"
+                        )
                     continue
+                if not MumuControl.is_emulator_running():
+                    raise EmulatorCrashedError(
+                        "MuMu模拟器进程已消失（截图重试耗尽），任务无法继续"
+                    )
                 raise NemuIpcError("nemu_capture_display failed during screenshot()")
 
             image = np.ctypeslib.as_array(pixels_pointer.contents).reshape((self.height, self.width, 4))
@@ -848,6 +884,10 @@ class MumuControl(AbstractInput):
             cv2.flip(image, 0, dst=image)
             return image
 
+        if not MumuControl.is_emulator_running():
+            raise EmulatorCrashedError(
+                "MuMu模拟器进程已消失（重试耗尽），任务无法继续"
+            )
         raise NemuIpcError("screenshot() exhausted all retries")
 
     def down(self, x, y):
@@ -1130,7 +1170,6 @@ class MumuControl(AbstractInput):
                     log.warning("获取当前应用包名失败：ADB 设备未初始化")
                     return ""
                 current_package = self.device.app_current().package
-                log.debug(f"当前应用包名: {current_package}")
                 return current_package
             except AdbError as e:
                 log.error(f"获取当前应用包名错误: {e}")
