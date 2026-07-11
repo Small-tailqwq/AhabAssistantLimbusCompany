@@ -288,10 +288,12 @@ class Battle:
                 try:
                     turn_bbox = ImageUtils.get_bbox(ImageUtils.load_image("battle/turn_assets.png"))
                     sc = ImageUtils.crop(np.array(auto.screenshot), turn_bbox)
-                    sc = cv2.inRange(sc, 50, 255)
-                    result = ocr.run(sc)
-                    ocr_result = [result.txts[i] for i in range(len(result.txts))]
-                    ocr_result = "".join(ocr_result).lower()
+                    sc_inrange = cv2.inRange(sc, 50, 255)
+                    result = ocr.run(sc_inrange)
+                    ocr_result = "".join(result.txts or ()).lower()
+                    if "turn" not in ocr_result:
+                        result = ocr.run(sc)
+                        ocr_result = "".join(result.txts or ()).lower()
                 except Exception:
                     ocr_result = ""
                 if "turn" in ocr_result:
@@ -301,14 +303,16 @@ class Battle:
                     self.identify_keyword_turn = False
                     continue
             elif fail_count >= 5:
-                if auto.click_element("battle/turn_assets.png") or auto.find_element("battle/win_rate_assets.png"):
+                if auto.click_element("battle/turn_assets.png") or auto.find_element(
+                    "battle/win_rate_assets.png", model="aggressive"
+                ):
                     self._battle_operation(first_turn, defense_first_round, avoid_skill_3)
                     chance = self.INIT_CHANCE
                     waiting = self._update_wait_time(waiting, False, total_count)
                     continue
             else:
                 if auto.find_element("battle/more_information_assets.png") or auto.find_element(
-                    "battle/win_rate_assets.png"
+                    "battle/win_rate_assets.png", model="aggressive"
                 ):
                     self._battle_operation(
                         first_turn,
@@ -324,16 +328,18 @@ class Battle:
                 try:
                     turn_bbox = ImageUtils.get_bbox(ImageUtils.load_image("battle/turn_assets.png"))
                     sc = ImageUtils.crop(np.array(auto.screenshot), turn_bbox)
-                    sc = cv2.inRange(sc, 50, 255)
-                    result = ocr.run(sc)
-                    ocr_result = [result.txts[i] for i in range(len(result.txts))]
-                    ocr_result = "".join(ocr_result).lower()
+                    sc_inrange = cv2.inRange(sc, 50, 255)
+                    result = ocr.run(sc_inrange)
+                    ocr_result = "".join(result.txts or ()).lower()
+                    if "turn" not in ocr_result:
+                        result = ocr.run(sc)
+                        ocr_result = "".join(result.txts or ()).lower()
                 except Exception:
                     ocr_result = ""
                 if (
                     "turn" in ocr_result
                     or auto.click_element("battle/turn_assets.png")
-                    or auto.find_element("battle/win_rate_assets.png")
+                    or auto.find_element("battle/win_rate_assets.png", model="aggressive")
                     or auto.find_element("battle/win_rate_card.png", threshold=0.75)
                 ):
                     self._battle_operation(first_turn, defense_first_round, avoid_skill_3)
