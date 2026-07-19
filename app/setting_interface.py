@@ -1097,6 +1097,7 @@ class SettingInterface(QWidget):
         self.obs_image_quality_card.retranslateUi()
         self.__refreshExperimentalCardContents()
         self.__refreshExperimentalCardVisibility()
+        self.hdr_warning_card.retranslateUi()
         self.keep_screen_awake_card.retranslateUi()
 
     def __onThemeCardChanged(self):
