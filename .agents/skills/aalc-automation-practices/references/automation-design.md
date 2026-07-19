@@ -1,56 +1,57 @@
-# 自动化实现与审阅
+# Automation Implementation and Review
 
-## 目录
+## Contents
 
-1. API 默认值
-2. 图片搜索机制
-3. 最小抽象
-4. 桌面自动化取舍
-5. 自审
+1. API defaults
+2. Image search behavior
+3. Minimal abstraction
+4. Desktop-automation tradeoffs
+5. Self-review
 
-## 1. API 默认值
+## 1. API defaults
 
-- 调用 `auto.*`、`ImageUtils.*`、`find_element`、`click_element`、`ocr.*` 前先查源码签名。
-- 只显式传递有意改变行为且非默认的参数。
-- 默认值是否合适应由机制和失败证据判断，不靠一次偶然成功。
-- 避免同时修改 model、threshold、find_type、重试次数等多个变量；一次确认一个真正差异。
+- Read source signatures before calling `auto.*`, `ImageUtils.*`, `find_element`, `click_element`, or `ocr.*`.
+- Pass an argument explicitly only when it intentionally changes behavior from the default or makes a non-obvious contract safer.
+- Judge defaults from the mechanism and failure evidence, not one accidental success.
+- Do not change model, threshold, search type, and retry count together. Isolate the behavioral difference.
+- Remove explicit arguments that equal current defaults unless repository context proves the explicitness communicates a durable invariant.
 
-## 2. 图片搜索机制
+## 2. Image search behavior
 
-先回答两个问题：
+Answer these before changing matching code:
 
-1. 搜索区域是全屏、模板 bbox 附近，还是调用者提供的 crop？
-2. 模板是否因 `_assets.png` 后缀执行 bbox 裁剪？
+1. Is the search full-screen, near a template bbox, or inside a caller-provided crop?
+2. Does the current loader crop the template because of its asset type or suffix?
 
-带 assets 后缀的模板通常通过 bbox 限制搜索区域；没有 bbox 时通常全屏搜索。`model` 决定 bbox 扩张或是否忽略 bbox。以当前源码为准，不凭记忆写参数。
+Templates with asset bboxes commonly constrain the search; a missing bbox commonly permits a broad search. `model` controls bbox expansion or whether the bbox is ignored. Read current source instead of recalling numeric values.
 
-需要全屏搜索时，优先确认模板命名/bbox 是否表达错了，再考虑更激进 model。不要直接用 `cv2.matchTemplate` 替代 `ImageUtils.match_template`，除非任务明确要求绕开项目管道并解释差异。
+When broad search appears necessary, first verify that template naming, bbox, scale, and crop express the intended location. Do not replace `ImageUtils.match_template()` with raw `cv2.matchTemplate()` unless the task explicitly requires a pipeline comparison and the difference is explained.
 
-重放用户截图时，缩放依据截图真实高度，而不是用户配置分辨率。完整细节读取 `.opencode/reference/replay_matching.md`。
+For user screenshots, derive scale from the actual image, not the configured window size. Load `replay-matching` for the complete production-equivalent pipeline.
 
-## 3. 最小抽象
+## 3. Minimal abstraction
 
-- 只有一个调用者的短辅助函数默认内联，除非函数名表达了重要的“为什么”。
-- 所有调用者都传同一值的参数应删除并在实现中固定。
-- 单次使用且值自解释的常量不提取。
-- 单行坐标偏移在调用点表达；3 处以上复用或计算超过约 5 行再提取。
-- 不因几段重试循环外形相似就创建参数膨胀的通用重试框架。
-- 防御性清理必须对应真实、可恢复的失败状态；页面切换已清除旧 UI 时不再额外操作。
+- Inline a short single-caller helper unless its name captures an important reason or lifecycle boundary.
+- Remove a parameter when all callers pass the same value and no near-term variant is real.
+- Do not extract a self-explanatory one-use value into a constant, especially an underscore-prefixed disposable name.
+- Keep a simple coordinate offset at the call site; extract repeated or genuinely multi-step calculations.
+- Do not create a parameter-heavy retry framework merely because several loops look similar.
+- Defensive cleanup must correspond to a reachable recoverable state; do not add clicks or resets after a transition already removes the old UI.
 
-## 4. 桌面自动化取舍
+## 4. Desktop-automation tradeoffs
 
-- 实机验证过的简单硬编码常比未经验证的可配置抽象可靠。
-- 每次自动化操作都会改变 UI 状态；恢复策略必须针对明确状态，不能靠“顺手再点一下”碰运气。
-- 理解 UI 层级变化、模板区域和渲染时序，比增加参数和分支更重要。
-- 重复不必然意味着抽象；先比较抽象成本与未来真实复用。
-- 一个简单动作不应形成 `_prepare → _open → _click` 的单调用链。
+- A simple behavior verified on the real UI can be safer than an unverified configurable abstraction.
+- Every automated action changes UI state. Recovery must target an identified state rather than adding a hopeful extra click.
+- Understand hierarchy, template regions, and rendering timing before adding branches and tuning parameters.
+- Duplication alone does not justify abstraction; compare abstraction cost with realistic reuse.
+- A simple action should not become a single-call `_prepare` → `_open` → `_click` chain.
 
-## 5. 自审
+## 5. Self-review
 
-- 每个新增参数是否非默认且有证据？
-- 每个新增函数是否有多个调用者或有文档价值？
-- 每个失败分支是否真实可达且有针对性恢复？
-- 是否引入无关清理、日志或配置？
-- 200 行 diff 是否存在约 20 行的等价修复？
+- Does each new argument differ from the default for an evidence-backed reason?
+- Does each new function have multiple callers or real semantic/documentation value?
+- Is each failure branch reachable and its recovery state-specific?
+- Did the change add unrelated cleanup, logging, config, or debug state?
+- Can a large diff be reduced to a small behavior-equivalent change?
 
-可用时，用代码索引检查单调用者函数、克隆和复杂度；结果是审阅线索，不应机械内联所有单调用者函数。
+Code-index results about single callers, clones, or complexity are review leads, not mechanical refactoring orders.

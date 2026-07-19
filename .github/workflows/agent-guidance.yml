@@ -1,0 +1,37 @@
+name: Agent Guidance
+
+on:
+  pull_request:
+    paths:
+      - "AGENTS.md"
+      - ".agents/**"
+      - ".opencode/agents/**"
+      - ".github/copilot-instructions.md"
+      - ".github/workflows/agent-guidance.yml"
+      - ".github/workflows/pr-review.yml"
+      - ".github/workflows/issue-analyze.yml"
+      - "scripts/build_pr_review_context.py"
+      - "scripts/check_agent_guidance.py"
+  push:
+    branches: [main]
+    paths:
+      - "AGENTS.md"
+      - ".agents/**"
+      - ".opencode/agents/**"
+      - ".github/copilot-instructions.md"
+      - ".github/workflows/agent-guidance.yml"
+      - ".github/workflows/pr-review.yml"
+      - ".github/workflows/issue-analyze.yml"
+      - "scripts/build_pr_review_context.py"
+      - "scripts/check_agent_guidance.py"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate agent guidance
+        run: python scripts/check_agent_guidance.py

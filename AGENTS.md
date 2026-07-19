@@ -8,12 +8,12 @@
 
 - 修改或审阅自动化、图片匹配、任务生命周期、UI/config/debug 逻辑：加载 `aalc-automation-practices`。
 - 创建、审计或优化 AGENTS/rules/skills：加载全局 `agent-guidance-health`；不可用时按本节原则执行。
-- Issue/日志诊断：加载 `analyze`；不可用时读取 `.opencode/skills/analyze/SKILL.md`。
-- 用户截图的模板匹配重放：加载 `replay-matching` skill；不可用时读取 `.opencode/skills/replay-matching/SKILL.md`。
-- Canary 发版：加载 `canary-release`；不可用时读取 `.opencode/skills/canary-release/SKILL.md`。
-- 向上游贡献：加载 `upstream-contribution`；不可用时读取 `.opencode/skills/upstream-contribution/SKILL.md`。
-- 上游优秀提交回流（fork ← upstream）：加载 `downstream-sync`；不可用时读取 `.opencode/skills/downstream-sync/SKILL.md`。
-- 代码审阅：加载 `code-review`；不可用时读取 `.opencode/skills/code-review/SKILL.md`。
+- Issue/日志诊断：加载 `analyze`；不可用时读取 `.agents/skills/analyze/SKILL.md`。
+- 用户截图的模板匹配重放：加载 `replay-matching`；不可用时读取 `.agents/skills/replay-matching/SKILL.md`。
+- Canary 发版：加载 `canary-release`；不可用时读取 `.agents/skills/canary-release/SKILL.md`。
+- 向上游贡献及 PR 后续闭环：加载 `upstream-contribution`；不可用时读取 `.agents/skills/upstream-contribution/SKILL.md`。
+- 上游优秀提交或最终 PR 结果回流（fork ← upstream）：加载 `downstream-sync`；不可用时读取 `.agents/skills/downstream-sync/SKILL.md`。
+- 代码审阅及复审：加载 `code-review`；不可用时读取 `.agents/skills/code-review/SKILL.md`。
 - 新增/修改 `debug_*`：再读取 `.opencode/tools/debug_model_constitution.md`。
 
 Skills 内容使用英文编写（LLM 处理效率更高），仅面向用户的输出模板保留中文。
@@ -35,6 +35,7 @@ uv run python .\scripts\translation_files_build.py
 uv run python .\scripts\translation_files_compile.py
 uv run python .\scripts\check_i18n.py --update
 uv run python .\scripts\export-requirements-from-uv-lock.py
+uv run python .\scripts\check_agent_guidance.py
 ```
 
 调试工具位于 `.opencode/tools/`：`log_analyzer.py`、`mirror_analyzer.py`、`log_viewer.py`、`match_viewer.py`。模板匹配重放工具：`debug_tools/verify_matching.py`。可复用临时验证脚本放 `debug_tools/`，不纳入 CI。调试截图和中间图统一写入 `logs/<feature>_debug/` 等已忽略目录，不落到仓库根目录或未忽略的 `debug_*` 目录。
@@ -55,7 +56,7 @@ uv run python .\scripts\export-requirements-from-uv-lock.py
 | 任务线程 | `tasks/base/script_task_scheme.py` |
 | 自动化/单例 | `module/` |
 | 图片 | `assets/images/default/{en,zh_cn,share}/`、`assets/images/dark/` |
-| OpenCode | `.opencode/agents/`、`.opencode/skills/`、`.opencode/reference/` |
+| Agent 指引 | `.agents/skills/`（共享 skill）、`.opencode/agents/`（OpenCode 专用代理） |
 
 ## 核心不变量
 
@@ -100,24 +101,3 @@ uv run python .\scripts\export-requirements-from-uv-lock.py
 - 根据改动运行最窄且足够的 `py_compile`、ruff、相关 unittest；涉及 i18n、构建或更新协议时运行对应脚本。
 - 修改自动化调用前先查 API 签名和仓库同类用法，不显式重复默认参数。
 - 不为了通过检查清理无关遗留警告。
-
-## Gortex 图索引路由
-
-<!-- GORTEX_COMMUNITIES_START -->
-Gortex 已索引此仓库，包含 `app/`、`module/`、`tasks/` 及 `utils/` 共 11,633 个节点。
-
-| 路径 | 任务范围 | 相关 Skill |
-|---|---|---|
-| `app/` | UI/PySide6 页面、信号、设置界面 | `gortex-app-9-dirs` |
-| `module/` | 自动化核心（输入、截屏、OBS、OCR、配置） | `gortex-25-dirs-module-game-and-screen-screen` |
-| `tasks/` | 任务编排（日常、镜像、战斗、故事、工具） | 内置技能自动路由 |
-| `tasks/tools/` | 独立工具窗口（资源管理、GHub、战斗、截图） | 内置技能自动路由 |
-| `tests/` | unittest 自动化回归 | `gortex-test-14-dirs` |
-| `debug_tools/` | 调试/验证脚本 | 内置技能自动路由 |
-| `utils/` | 工具函数（图片处理、路径、日程） | 内置技能自动路由 |
-
-优先使用 Gortex 图形工具代替文件读取：
-- `search_symbols` → `get_editing_context` → `edit_symbol` / `batch_edit`
-- `get_callers` / `find_usages` 代替 grep
-- `format:"gcx"` 参数可节省约 27% token 开销
-<!-- GORTEX_COMMUNITIES_END -->

@@ -1,311 +1,313 @@
-# AhabAssistantLimbusCompany - PR Review via OpenCodeReview
-#
-# Adapted from https://github.com/alibaba/open-code-review/tree/main/examples/github_actions
-#
-# Triggers:
-#   - PR opened/synchronized (pull_request_target for fork secret access)
-#   - Comment on PR starting with /review
-#
-# Required secret: DEEPSEEK_API_KEY
-
 name: PR Review
-
-concurrency:
-  group: pr-review-${{ github.repository }}-${{ github.event.pull_request.number || github.event.issue.number }}
-  cancel-in-progress: true
 
 on:
   pull_request_target:
-    types: [opened]
+    types: [opened, synchronize, reopened, ready_for_review]
   issue_comment:
     types: [created]
+  pull_request_review_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Pull request number to review"
+        required: true
+        type: number
+
+concurrency:
+  group: opencode-pr-review-${{ github.repository }}-${{ github.event.pull_request.number || github.event.issue.number || inputs.pr_number }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
+  issues: write
   pull-requests: write
 
+env:
+  OPENCODE_VERSION: "1.18.1"
+
 jobs:
-  review:
+  automatic-review:
     if: |
-      (github.event_name == 'pull_request_target') ||
-      (github.event_name == 'issue_comment' && github.event.issue.pull_request && startsWith(github.event.comment.body, '/review'))
+      (github.event_name == 'pull_request_target' && !github.event.pull_request.draft) ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       startsWith(github.event.comment.body, '/review') &&
+       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
-      - name: Get PR context (for comment triggers)
-        id: pr-context
-        if: github.event_name != 'pull_request_target'
+      - name: Resolve pull request context
+        id: context
         uses: actions/github-script@v7
         with:
-          script: |
-            const { data: pullRequest } = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number
-            });
-            core.setOutput('base_ref', pullRequest.base.ref);
-            core.setOutput('head_sha', pullRequest.head.sha);
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.sha || steps.pr-context.outputs.head_sha }}
-
-      - name: Fetch PR head ref
-        run: git fetch origin pull/${{ github.event.pull_request.number || github.event.issue.number }}/head
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install OpenCodeReview
-        run: npm install -g @alibaba-group/open-code-review
-
-      - name: Configure OCR
-        run: |
-          ocr config set llm.url https://opencode.ai/zen/go/v1
-          ocr config set llm.auth_token ${{ secrets.DEEPSEEK_API_KEY }}
-          ocr config set llm.model deepseek-v4-pro
-          ocr config set llm.use_anthropic false
-
-      - name: Run review
-        id: review
-        timeout-minutes: 20
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request_target" ]; then
-            BASE_REF="${{ github.event.pull_request.base.ref }}"
-            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-          else
-            BASE_REF="${{ steps.pr-context.outputs.base_ref }}"
-            HEAD_SHA="${{ steps.pr-context.outputs.head_sha }}"
-          fi
-
-          echo "Reviewing PR: ${HEAD_SHA} against origin/${BASE_REF}"
-
-          ocr review \
-            --from "origin/${BASE_REF}" \
-            --to "${HEAD_SHA}" \
-            --audience agent \
-            --format json \
-            --concurrency 2 \
-            --timeout 15 \
-            --background "Python desktop automation (PyQt5+OpenCV+PaddleOCR) for Limbus Company game. Key dirs: app/ (GUI), module/ (automation), tasks/ (orchestration), utils/ (helpers). Critical: PyQt5 GUI updates MUST be in main thread via signals; never reinstantiate singletons (cfg, auto, ocr, screen, game_process); stop is cooperative (auto.ensure_not_stopped), never QThread.terminate(); image resources via ImageUtils.load_image." \
-            > /tmp/ocr-result.json 2>/tmp/ocr-stderr.log || true
-
-      - name: Dump review output
-        if: always()
-        run: |
-          echo "=== STDOUT ===" && cat /tmp/ocr-result.json || echo "(empty)"
-          echo "=== STDERR ===" && cat /tmp/ocr-stderr.log || echo "(empty)"
-
-      - name: Post review comments
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-
-            let result;
-            try {
-              const raw = fs.readFileSync('/tmp/ocr-result.json', 'utf8');
-              result = JSON.parse(raw);
-            } catch (e) {
-              console.log('Failed to parse OCR output:', e.message);
-              const stderr = fs.existsSync('/tmp/ocr-stderr.log')
-                ? fs.readFileSync('/tmp/ocr-stderr.log', 'utf8').trim()
-                : '';
-              if (stderr) {
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.issue.number,
-                  body: `⚠️ **OpenCodeReview** encountered an error:\n${fencedBlock(stderr)}`
-                });
-              }
-              return;
-            }
-
-            const comments = result.comments || [];
-            const warnings = result.warnings || [];
-
-            if (comments.length === 0) {
-              const message = result.message || 'No issues found.';
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: `✅ **OpenCodeReview**: ${message}`
-              });
-              return;
-            }
-
-            const prNumber = context.issue.number;
-            let commitSha;
+            const path = require('path');
+            let pullNumber;
             if (context.eventName === 'pull_request_target') {
-              commitSha = context.payload.pull_request.head.sha;
+              pullNumber = context.payload.pull_request.number;
+            } else if (context.eventName === 'workflow_dispatch') {
+              pullNumber = Number(context.payload.inputs.pr_number);
             } else {
-              const { data: pr } = await github.rest.pulls.get({
+              pullNumber = context.issue.number;
+            }
+
+            const { data: pull } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pullNumber,
+            });
+            core.setOutput('pr_number', String(pull.number));
+            core.setOutput('base_sha', pull.base.sha);
+            core.setOutput('head_sha', pull.head.sha);
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pull.number,
+              per_page: 100,
+            });
+            const priorReview = comments.find((comment) =>
+              comment.user?.login === 'github-actions[bot]' &&
+              comment.body?.includes('<!-- opencode-pr-review -->')
+            );
+            const metadataPath = path.join(process.env.RUNNER_TEMP, 'pr-review-metadata.json');
+            fs.writeFileSync(metadataPath, JSON.stringify({
+              number: pull.number,
+              title: pull.title,
+              prior_review: priorReview?.body || '',
+            }));
+            core.setOutput('metadata_path', metadataPath);
+
+      # pull_request_target can access repository secrets. Never check out or execute
+      # code from the untrusted PR head in this job.
+      - name: Checkout trusted base revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.context.outputs.base_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Fetch PR head as data only
+        env:
+          PR_NUMBER: ${{ steps.context.outputs.pr_number }}
+          EXPECTED_HEAD_SHA: ${{ steps.context.outputs.head_sha }}
+        run: |
+          git fetch --no-tags origin \
+            "+pull/${PR_NUMBER}/head:refs/remotes/opencode/pr-head"
+          actual_head_sha=$(git rev-parse refs/remotes/opencode/pr-head)
+          if [ "$actual_head_sha" != "$EXPECTED_HEAD_SHA" ]; then
+            echo "PR head moved during context setup: expected $EXPECTED_HEAD_SHA, got $actual_head_sha" >&2
+            exit 1
+          fi
+
+      - name: Build bounded review context
+        run: |
+          python scripts/build_pr_review_context.py \
+            --base HEAD \
+            --head refs/remotes/opencode/pr-head \
+            --metadata "${{ steps.context.outputs.metadata_path }}" \
+            --output logs/ci/pr-review-context.md
+
+      - name: Cache OpenCode
+        id: cache-opencode
+        uses: actions/cache@v4
+        with:
+          path: ~/.opencode/bin
+          key: opencode-${{ runner.os }}-${{ env.OPENCODE_VERSION }}
+
+      - name: Install pinned OpenCode
+        if: steps.cache-opencode.outputs.cache-hit != 'true'
+        run: curl -fsSL https://opencode.ai/install | bash -s -- --version "${OPENCODE_VERSION}"
+
+      - name: Add OpenCode to PATH
+        run: echo "$HOME/.opencode/bin" >> "$GITHUB_PATH"
+
+      - name: Validate review agent discovery
+        run: opencode --pure debug agent pr-review | jq -e '.mode == "primary"'
+
+      - name: Run read-only OpenCode review
+        id: review
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          PR_NUMBER: ${{ steps.context.outputs.pr_number }}
+          BASE_SHA: ${{ steps.context.outputs.base_sha }}
+          HEAD_SHA: ${{ steps.context.outputs.head_sha }}
+          OPENCODE_CONFIG_CONTENT: |
+            {
+              "provider": {
+                "opencode-go": {
+                  "name": "OpenCode Go",
+                  "npm": "@ai-sdk/openai-compatible",
+                  "options": {
+                    "baseURL": "https://opencode.ai/zen/go/v1",
+                    "apiKey": "{env:DEEPSEEK_API_KEY}"
+                  },
+                  "models": {
+                    "deepseek-v4-pro": {
+                      "name": "DeepSeek V4 Pro"
+                    }
+                  }
+                }
+              }
+            }
+        run: |
+          set +e
+          opencode --pure run \
+            -m opencode-go/deepseek-v4-pro \
+            --agent pr-review \
+            --file logs/ci/pr-review-context.md \
+            --title "PR #${PR_NUMBER} review @ ${HEAD_SHA}" \
+            "Review PR #${PR_NUMBER} from ${BASE_SHA} to ${HEAD_SHA}. Use only the attached trusted CI context and the pr-review agent workflow. Return only the final Chinese Markdown report." \
+            > logs/ci/opencode-review.md \
+            2> logs/ci/opencode-review.stderr.log
+          exit_code=$?
+          set -e
+
+          if [ ! -s logs/ci/opencode-review.md ]; then
+            printf '## OpenCode PR 审阅\n\n审阅进程未生成报告，请检查工作流日志与附件。\n' \
+              > logs/ci/opencode-review.md
+            if [ "$exit_code" -eq 0 ]; then
+              exit_code=1
+            fi
+          fi
+          echo "exit_code=${exit_code}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload review evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencode-pr-review-${{ steps.context.outputs.pr_number }}-${{ github.run_id }}
+          path: logs/ci/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Publish sticky review report
+        if: always() && steps.context.outputs.pr_number != ''
+        uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ steps.context.outputs.pr_number }}
+          HEAD_SHA: ${{ steps.context.outputs.head_sha }}
+          REVIEW_EXIT_CODE: ${{ steps.review.outputs.exit_code }}
+          REVIEW_PATH: logs/ci/opencode-review.md
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- opencode-pr-review -->';
+            const pullNumber = Number(process.env.PR_NUMBER);
+            const headSha = process.env.HEAD_SHA;
+            const exitCode = process.env.REVIEW_EXIT_CODE || 'not-run';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const stripAnsi = (text) => text.replace(/\u001b\[[0-?]*[ -\/]*[@-~]/g, '');
+
+            let report = '审阅进程未生成可读取的报告。';
+            if (fs.existsSync(process.env.REVIEW_PATH)) {
+              report = stripAnsi(fs.readFileSync(process.env.REVIEW_PATH, 'utf8')).trim();
+            }
+            if (report.length > 56000) {
+              report = `${report.slice(0, 56000)}\n\n[报告已截断；完整输出见工作流附件]`;
+            }
+
+            const status = exitCode === '0'
+              ? 'OpenCode 已完成只读审阅。'
+              : `⚠️ OpenCode 审阅未正常完成（exit ${exitCode}）。`;
+            const body = [
+              marker,
+              report,
+              '',
+              `---\n${status} Head: \`${headSha}\` · [工作流记录](${runUrl})`,
+            ].join('\n');
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pullNumber,
+              per_page: 100,
+            });
+            const existing = comments.find((comment) =>
+              comment.user?.login === 'github-actions[bot]' && comment.body?.includes(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                pull_number: prNumber
+                comment_id: existing.id,
+                body,
               });
-              commitSha = pr.head.sha;
-            }
-
-            const inlineComments = [];
-            const summaryComments = [];
-
-            for (const comment of comments) {
-              const severity = classifySeverity(comment.content || '');
-              const body = formatComment(comment, severity);
-              const hasValidLine = (comment.start_line >= 1) || (comment.end_line >= 1);
-
-              if (!hasValidLine || severity === 'low') {
-                summaryComments.push({ comment, body, severity });
-                continue;
-              }
-
-              const rc = { path: comment.path, body };
-
-              if (comment.start_line >= 1 && comment.end_line >= 1 && comment.start_line !== comment.end_line) {
-                rc.start_line = comment.start_line;
-                rc.line = comment.end_line;
-                rc.start_side = 'RIGHT';
-                rc.side = 'RIGHT';
-              } else if (comment.end_line >= 1) {
-                rc.line = comment.end_line;
-                rc.side = 'RIGHT';
-              } else {
-                rc.line = comment.start_line;
-                rc.side = 'RIGHT';
-              }
-
-              inlineComments.push({ comment, reviewComment: rc, severity });
-            }
-
-            let summaryBody = `## 🔍 OpenCodeReview\n\n`;
-            summaryBody += `**${comments.length}** issue(s) found in ${result.summary?.files_reviewed || '?'} file(s).\n\n`;
-            summaryBody += `| Priority | Count |\n|---|---|\n`;
-            if (inlineComments.length > 0) summaryBody += `| 🔴 Inline (High/Medium) | ${inlineComments.length} |\n`;
-            summaryBody += `| 📝 Summary (Low / unpositioned) | ${summaryComments.length} |\n`;
-            if (warnings.length > 0) {
-              summaryBody += `\n⚠️ ${warnings.length} warning(s) during review.\n`;
-            }
-            summaryBody += `\n> 💡 Build-breaking and correctness issues are shown inline. Low-priority suggestions are collapsed below. Use your own judgment — AI suggestions are advisory only.\n`;
-
-            if (summaryComments.length > 0) {
-              summaryBody += '\n<details><summary>📝 Low-priority & unpositioned suggestions (' + summaryComments.length + ')</summary>\n\n';
-              for (const { comment } of summaryComments) {
-                summaryBody += formatSummaryEntry(comment);
-                summaryBody += '\n\n---\n\n';
-              }
-              summaryBody += '</details>\n';
-            }
-
-            try {
-              await github.rest.pulls.createReview({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: prNumber,
-                commit_id: commitSha,
-                body: summaryBody,
-                event: 'COMMENT',
-                comments: inlineComments.map(({ reviewComment }) => reviewComment)
-              });
-              console.log(`Posted review with ${inlineComments.length} inline comments`);
-            } catch (e) {
-              console.log('Batch review failed, posting individually:', e.message);
-
-              let posted = 0;
-              const failed = [];
-              for (const { comment, reviewComment } of inlineComments) {
-                try {
-                  await github.rest.pulls.createReview({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    pull_number: prNumber,
-                    commit_id: commitSha,
-                    body: '',
-                    event: 'COMMENT',
-                    comments: [reviewComment]
-                  });
-                  posted++;
-                } catch (inner) {
-                  failed.push({ comment, error: inner.message });
-                  console.log(`Failed: ${reviewComment.path} — ${inner.message}`);
-                }
-              }
-
-              let finalBody = `## 🔍 OpenCodeReview\n\n`;
-              finalBody += `**${comments.length}** issue(s) found.\n\n`;
-              finalBody += `| Priority | Count |\n|---|---|\n`;
-              if (posted > 0) finalBody += `| 🔴 Inline (High/Medium) | ${posted} |\n`;
-              finalBody += `| 📝 Summary | ${summaryComments.length + failed.length} |\n`;
-              if (warnings.length > 0) finalBody += `\n⚠️ ${warnings.length} warning(s).\n`;
-
-              if (summaryComments.length > 0 || failed.length > 0) {
-                finalBody += '\n<details><summary>📝 Low-priority & unpositioned suggestions (' + (summaryComments.length + failed.length) + ')</summary>\n\n';
-                for (const { comment } of summaryComments) {
-                  finalBody += formatSummaryEntry(comment);
-                  finalBody += '\n\n---\n\n';
-                }
-                for (const { comment, error } of failed) {
-                  finalBody += `### 📄 \`${comment.path}\``;
-                  if (comment.start_line >= 1) finalBody += ` (L${comment.start_line})`;
-                  finalBody += `\n\n⚠️ Failed to post inline: ${error}\n\n${comment.content || ''}\n\n---\n\n`;
-                }
-                finalBody += '</details>\n';
-              }
-
+            } else {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: prNumber,
-                body: finalBody
+                issue_number: pullNumber,
+                body,
               });
             }
 
-            function classifySeverity(content) {
-              const lower = (content || '').toLowerCase();
-              if (/\b(high|critical|blocker|bug)\b/i.test(lower) && !lower.includes('low')) return 'high';
-              if (/\bmedium\b/i.test(lower)) return 'medium';
-              if (/\blow\b/i.test(lower)) return 'low';
-              if (lower.includes('readability') || lower.includes('maintainability') ||
-                  lower.includes('code duplication') || lower.includes('magic number')) return 'low';
-              return 'medium';
-            }
+      - name: Fail when OpenCode did not complete
+        if: always() && steps.review.outputs.exit_code != '0'
+        env:
+          REVIEW_EXIT_CODE: ${{ steps.review.outputs.exit_code }}
+        run: exit "${REVIEW_EXIT_CODE:-1}"
 
-            function formatComment(comment, severity) {
-              let body = (severity === 'high' ? '🔴 ' : severity === 'medium' ? '🟡 ' : '') + (comment.content || '');
-              if (comment.suggestion_code && comment.existing_code && severity !== 'low') {
-                body += '\n\n**Suggestion:**\n';
-                body += fencedBlock(comment.suggestion_code, 'suggestion');
-              }
-              return body;
-            }
+  opencode-comment:
+    if: |
+      ((github.event_name == 'issue_comment' && github.event.issue.pull_request) ||
+       github.event_name == 'pull_request_review_comment') &&
+      (contains(github.event.comment.body, '/oc') || contains(github.event.comment.body, '/opencode')) &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout trusted default branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
 
-            function formatSummaryEntry(comment) {
-              let md = `### 📄 \`${comment.path}\``;
-              if (comment.start_line >= 1 && comment.end_line >= 1) {
-                md += ` (L${comment.start_line}-L${comment.end_line})`;
-              } else if (comment.start_line >= 1) {
-                md += ` (L${comment.start_line})`;
-              }
-              md += '\n\n' + (comment.content || '');
-              if (comment.suggestion_code) {
-                md += '\n\n<details><summary>💡 Suggested Change</summary>\n\n';
-                md += fencedBlock(comment.suggestion_code) + '\n';
-                md += '</details>';
-              }
-              return md;
-            }
+      - name: Cache OpenCode
+        id: cache-opencode
+        uses: actions/cache@v4
+        with:
+          path: ~/.opencode/bin
+          key: opencode-${{ runner.os }}-${{ env.OPENCODE_VERSION }}
 
-            function fencedBlock(content, language) {
-              language = language || '';
-              const text = String(content || '');
-              const matches = text.match(/`+/g) || [];
-              const maxTicks = Math.max(3, ...matches.map(t => t.length)) + 1;
-              const fence = '`'.repeat(maxTicks);
-              return fence + language + '\n' + text + (text.endsWith('\n') ? '' : '\n') + fence;
+      - name: Install pinned OpenCode
+        if: steps.cache-opencode.outputs.cache-hit != 'true'
+        run: curl -fsSL https://opencode.ai/install | bash -s -- --version "${OPENCODE_VERSION}"
+
+      - name: Add OpenCode to PATH
+        run: echo "$HOME/.opencode/bin" >> "$GITHUB_PATH"
+
+      - name: Validate review agent discovery
+        run: opencode --pure debug agent pr-comment | jq -e '.mode == "primary"'
+
+      - name: Run OpenCode GitHub comment workflow
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MODEL: opencode-go/deepseek-v4-pro
+          AGENT: pr-comment
+          SHARE: "false"
+          USE_GITHUB_TOKEN: "true"
+          MENTIONS: "/opencode,/oc"
+          OPENCODE_CONFIG_CONTENT: |
+            {
+              "provider": {
+                "opencode-go": {
+                  "name": "OpenCode Go",
+                  "npm": "@ai-sdk/openai-compatible",
+                  "options": {
+                    "baseURL": "https://opencode.ai/zen/go/v1",
+                    "apiKey": "{env:DEEPSEEK_API_KEY}"
+                  },
+                  "models": {
+                    "deepseek-v4-pro": {
+                      "name": "DeepSeek V4 Pro"
+                    }
+                  }
+                }
+              }
             }
+        run: opencode --pure github run

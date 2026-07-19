@@ -1,5 +1,8 @@
 name: Issue Analysis
 
+env:
+  OPENCODE_VERSION: "1.18.1"
+
 on:
   issues:
     types: [opened]
@@ -21,6 +24,7 @@ jobs:
        startsWith(github.event.comment.body, '/analyze') &&
        contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     concurrency:
       group: issue-analyze-${{ github.repository }}-${{ github.event.issue.number || github.event.inputs.issue_number }}
       cancel-in-progress: true
@@ -43,7 +47,13 @@ jobs:
           persist-credentials: false
 
       - name: Install opencode
-        run: curl -fsSL https://opencode.ai/install | bash
+        run: curl -fsSL https://opencode.ai/install | bash -s -- --version "${OPENCODE_VERSION}"
+
+      - name: Add OpenCode to PATH
+        run: echo "$HOME/.opencode/bin" >> "$GITHUB_PATH"
+
+      - name: Validate triage agent discovery
+        run: opencode --pure debug agent triage | jq -e '.mode == "primary"'
 
       - name: Download attachments
         env:
@@ -149,40 +159,4 @@ jobs:
               }
             }
         run: |
-          opencode run -m opencode-go/deepseek-v4-flash --agent triage "Analyze issue #${{ steps.issue.outputs.number }}.
-
-          Run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
-          PROJECT: Python desktop automation (PyQt5 + OpenCV + PaddleOCR) for Limbus Company.
-
-          Deterministic reports are in /tmp/issue_analysis/.
-          Attachments are in /tmp/issue_assets/.
-
-          Required workflow:
-          1. Read issue body via: gh issue view ${{ steps.issue.outputs.number }}
-          2. Read ALL files in /tmp/issue_analysis/ first, then read ALL files in /tmp/issue_assets/.
-          3. Segment the log timeline by timestamp. Do NOT generalize from a single segment.
-          4. Explicitly report marker coverage (found/not found) for:
-             - shop markers
-             - team formation markers
-             - blank-click loop markers
-          5. If evidence conflicts with issue text or previous comments, call out the contradiction explicitly.
-          6. If evidence is insufficient or contradictory, say insufficient evidence and lower confidence. Do not force a strong root cause.
-
-          Post ONE comment containing:
-             - Overview: 1-2 sentence problem summary
-             - Evidence coverage: runtime version (latest log occurrence) and marker results
-             - Analysis: timeline-segmented root cause analysis with quoted log lines
-             - Fix: suggested fix or workaround
-             - Missing: what additional info would help
-             - Confidence: high/medium/low with brief rationale
-
-          Every non-trivial claim MUST cite concrete log lines.
-          Do NOT claim a stage is missing if related markers appear anywhere in provided logs.
-
-          7. Add exactly ONE label:
-             gh issue edit ${{ steps.issue.outputs.number }} --add-label bug
-             or: gh issue edit ${{ steps.issue.outputs.number }} --add-label enhancement
-          8. If /tmp/issue_assets/ has log files, YOU MUST read and analyze them. Do NOT skip them.
-
-          Do NOT: modify files, create branches/PRs, or ask questions."
+          opencode --pure run -m opencode-go/deepseek-v4-flash --agent triage "Triage issue #${{ steps.issue.outputs.number }} using the triage agent's canonical workflow. Deterministic reports are in /tmp/issue_analysis/ and attachments are in /tmp/issue_assets/. Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
