@@ -48,7 +48,7 @@ class TestHdrWarningGate(unittest.TestCase):
         )
         mediator_stub = SimpleNamespace(
             hdr_warning=signal,
-            warning_clear=SimpleNamespace(emit=mock.Mock()),
+            hdr_warning_clear=SimpleNamespace(emit=mock.Mock()),
         )
         screen_stub = SimpleNamespace(handle=SimpleNamespace(hwnd=123))
         info = HdrDisplayInfo(
@@ -67,7 +67,37 @@ class TestHdrWarningGate(unittest.TestCase):
             scheme._warn_if_game_monitor_hdr_enabled()
 
         self.assertEqual(len(signal.events), 1)
-        stop_check.assert_not_called()
+        stop_check.assert_called_once_with()
+
+    def test_stop_wins_when_acknowledgement_is_already_set(self):
+        signal = ImmediateSignal()
+        cfg_stub = SimpleNamespace(
+            simulator=False,
+            get_value=lambda key, default=None: True,
+        )
+        clear = mock.Mock()
+        mediator_stub = SimpleNamespace(
+            hdr_warning=signal,
+            hdr_warning_clear=SimpleNamespace(emit=clear),
+        )
+        screen_stub = SimpleNamespace(handle=SimpleNamespace(hwnd=123))
+        info = HdrDisplayInfo(456, r"\\.\DISPLAY1", color_space=12)
+        with (
+            mock.patch.object(scheme, "cfg", cfg_stub),
+            mock.patch.object(scheme, "mediator", mediator_stub),
+            mock.patch.object(scheme, "screen", screen_stub),
+            mock.patch.object(scheme.win32api, "MonitorFromWindow", return_value=456),
+            mock.patch.object(scheme, "get_monitor_hdr_info", return_value=info),
+            mock.patch.object(
+                scheme.auto,
+                "ensure_not_stopped",
+                side_effect=userStopError("stop"),
+            ),
+            self.assertRaises(userStopError),
+        ):
+            scheme._warn_if_game_monitor_hdr_enabled()
+
+        clear.assert_not_called()
 
     def test_stop_during_warning_closes_dialog_and_propagates(self):
         event = mock.Mock()
@@ -80,7 +110,7 @@ class TestHdrWarningGate(unittest.TestCase):
         clear = mock.Mock()
         mediator_stub = SimpleNamespace(
             hdr_warning=SimpleNamespace(emit=mock.Mock()),
-            warning_clear=SimpleNamespace(emit=clear),
+            hdr_warning_clear=SimpleNamespace(emit=clear),
         )
         screen_stub = SimpleNamespace(handle=SimpleNamespace(hwnd=123))
         info = HdrDisplayInfo(456, r"\\.\DISPLAY1", color_space=12)
@@ -100,4 +130,4 @@ class TestHdrWarningGate(unittest.TestCase):
         ):
             scheme._warn_if_game_monitor_hdr_enabled()
 
-        clear.assert_called_once_with()
+        clear.assert_called_once_with(event)

@@ -219,10 +219,7 @@ def init_game():
 
 
 def _warn_if_game_monitor_hdr_enabled() -> None:
-    if cfg.simulator:
-        return
-    get_value = getattr(cfg, "get_value", None)
-    if get_value is not None and not bool(get_value("experimental_hdr_warning", True)):
+    if cfg.simulator or not bool(cfg.get_value("experimental_hdr_warning", True)):
         return
 
     hwnd = getattr(getattr(screen, "handle", None), "hwnd", None)
@@ -248,9 +245,10 @@ def _warn_if_game_monitor_hdr_enabled() -> None:
     try:
         while not acknowledged.wait(0.1):
             auto.ensure_not_stopped()
+        auto.ensure_not_stopped()
     finally:
         if not acknowledged.is_set():
-            mediator.warning_clear.emit()
+            mediator.hdr_warning_clear.emit(acknowledged)
 
 
 def Resonate_with_Ahab():

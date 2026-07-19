@@ -1389,6 +1389,7 @@ class TestTeamQueueNormalization(unittest.TestCase):
             patch.object(script_task_scheme, "path_manager", path_manager_stub),
             patch.object(script_task_scheme, "_get_game_rendering_scale", return_value=None),
             patch.object(script_task_scheme, "init_game", lambda: calls.append(("init_game",))),
+            patch.object(script_task_scheme, "_warn_if_game_monitor_hdr_enabled"),
             patch.object(
                 script_task_scheme,
                 "wait_until_main_menu_after_launch",
@@ -1455,6 +1456,7 @@ class TestTeamQueueNormalization(unittest.TestCase):
             patch.object(script_task_scheme, "path_manager", path_manager_stub),
             patch.object(script_task_scheme, "_get_game_rendering_scale", return_value=None),
             patch.object(script_task_scheme, "init_game", lambda: calls.append(("init_game",))),
+            patch.object(script_task_scheme, "_warn_if_game_monitor_hdr_enabled"),
             patch.object(
                 script_task_scheme,
                 "wait_until_main_menu_after_launch",
@@ -1529,6 +1531,7 @@ class TestTeamQueueNormalization(unittest.TestCase):
             patch.object(script_task_scheme, "battle", battle_stub),
             patch.object(script_task_scheme, "_get_game_rendering_scale", return_value=None),
             patch.object(script_task_scheme, "init_game", lambda: calls.append(("init_game",))),
+            patch.object(script_task_scheme, "_warn_if_game_monitor_hdr_enabled"),
             patch.object(
                 script_task_scheme,
                 "wait_until_main_menu_after_launch",
@@ -1600,6 +1603,7 @@ class TestTeamQueueNormalization(unittest.TestCase):
             patch.object(script_task_scheme, "mediator", mediator_stub),
             patch.object(script_task_scheme, "path_manager", path_manager_stub),
             patch.object(script_task_scheme, "init_game", lambda: calls.append(("init_game",))),
+            patch.object(script_task_scheme, "_warn_if_game_monitor_hdr_enabled"),
             patch.object(
                 script_task_scheme,
                 "wait_until_main_menu_after_launch",
@@ -1666,6 +1670,7 @@ class TestTeamQueueNormalization(unittest.TestCase):
             patch.object(script_task_scheme, "mediator", mediator_stub),
             patch.object(script_task_scheme, "path_manager", path_manager_stub),
             patch.object(script_task_scheme, "init_game", lambda: calls.append(("init_game",))),
+            patch.object(script_task_scheme, "_warn_if_game_monitor_hdr_enabled"),
             patch.object(
                 script_task_scheme,
                 "wait_until_main_menu_after_launch",

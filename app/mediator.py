@@ -18,6 +18,7 @@ class Mediator(QObject):
     warning = Signal(str)
     warning_clear = Signal()
     hdr_warning = Signal(object)
+    hdr_warning_clear = Signal(object)
     finished_signal = Signal()
     script_finished = Signal()
     kill_signal = Signal()
