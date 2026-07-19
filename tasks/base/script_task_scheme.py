@@ -2,9 +2,12 @@ import platform
 import random
 from datetime import datetime
 from sys import exc_info
+from threading import Event
 from time import sleep, time
 from traceback import format_exception
 
+import win32api
+import win32con
 from playsound3 import playsound
 from PySide6.QtCore import QT_TRANSLATE_NOOP, QThread
 
@@ -15,6 +18,7 @@ from module.automation.obs_capture import disconnect_obs_capture, get_obs_captur
 from module.config import TeamSetting, cfg
 from module.decorator.decorator import begin_and_finish_time_log
 from module.game_and_screen import game_process, screen
+from module.game_and_screen.hdr import get_monitor_hdr_info
 from module.logger import log
 from module.my_error.my_error import (
     backMainWinError,
@@ -214,6 +218,41 @@ def init_game():
             screen.set_win()
 
 
+def _warn_if_game_monitor_hdr_enabled() -> None:
+    if cfg.simulator:
+        return
+    get_value = getattr(cfg, "get_value", None)
+    if get_value is not None and not bool(get_value("experimental_hdr_warning", True)):
+        return
+
+    hwnd = getattr(getattr(screen, "handle", None), "hwnd", None)
+    if not hwnd:
+        log.warning("游戏窗口句柄无效，跳过 HDR 检测")
+        return
+
+    try:
+        hmonitor = win32api.MonitorFromWindow(
+            hwnd,
+            win32con.MONITOR_DEFAULTTONEAREST,
+        )
+        info = get_monitor_hdr_info(int(hmonitor))
+    except Exception as exc:
+        log.warning(f"检测游戏显示器 HDR 状态失败: {exc}")
+        return
+
+    if info is None or not info.hdr_enabled:
+        return
+
+    acknowledged = Event()
+    mediator.hdr_warning.emit(acknowledged)
+    try:
+        while not acknowledged.wait(0.1):
+            auto.ensure_not_stopped()
+    finally:
+        if not acknowledged.is_set():
+            mediator.warning_clear.emit()
+
+
 def Resonate_with_Ahab():
     random_number = random.randint(1, 4)
     playsound(f"assets/audio/This_is_all_your_fault_{random_number}.mp3", block=False)
@@ -382,6 +421,7 @@ def script_task() -> None | int:
     start_time = time()
     # 获取（启动）游戏对游戏窗口进行设置
     init_game()
+    _warn_if_game_monitor_hdr_enabled()
 
     if getattr(cfg, "lab_screenshot_obs", False):
         obs = get_obs_capture()
