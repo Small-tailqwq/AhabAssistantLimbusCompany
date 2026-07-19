@@ -581,6 +581,16 @@ class SettingInterface(QWidget):
             config_name="experimental_keep_screen_awake",
             parent=self.experimental_group,
         )
+        self.hdr_warning_card = SwitchSettingCard(
+            FIF.BRIGHTNESS,
+            QT_TRANSLATE_NOOP("SwitchSettingCard", "HDR 检测警告"),
+            QT_TRANSLATE_NOOP(
+                "SwitchSettingCard",
+                "任务启动时检测游戏所在显示器的 HDR 状态；开启 HDR 时提示可能发生图像识别问题",
+            ),
+            config_name="experimental_hdr_warning",
+            parent=self.experimental_group,
+        )
         self.accelerator_switch_card = SwitchSettingCard(
             FIF.SPEED_HIGH,
             QT_TRANSLATE_NOOP("SwitchSettingCard", "模拟器启动加速器"),
@@ -705,6 +715,7 @@ class SettingInterface(QWidget):
         self.experimental_group.addSettingCard(self.accelerator_tap_x_card)
         self.experimental_group.addSettingCard(self.accelerator_tap_y_card)
         self.experimental_group.addSettingCard(self.accelerator_delay_card)
+        self.experimental_group.addSettingCard(self.hdr_warning_card)
         self.experimental_group.addSettingCard(self.keep_screen_awake_card)
 
         self.expand_layout.addWidget(self.game_setting_group)

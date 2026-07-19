@@ -2089,6 +2089,20 @@ Entering a formation code will overwrite your current team configuration.</trans
         <source>存在未保存的队伍设置</source>
         <translation>There are unsaved team settings</translation>
     </message>
+    <message>
+        <location filename="../app/my_app.py" line="535"/>
+        <source>检测到 HDR 已开启</source>
+        <translation>HDR Is Enabled</translation>
+    </message>
+    <message>
+        <location filename="../app/my_app.py" line="540"/>
+        <source>检测到游戏所在显示器已开启 HDR。开启 HDR 可能导致图像识别问题；如果运行中遇到识别异常，请先关闭 Windows HDR 后重试。
+
+如果不想再看到本通知，请在“设置 &gt; 实验性内容”中关闭“HDR 检测警告”。</source>
+        <translation>HDR is enabled on the display containing the game window. HDR may cause image recognition issues. If recognition fails, disable Windows HDR and try again.
+
+To stop seeing this notice, disable &quot;HDR detection warning&quot; under Settings &gt; Experimental.</translation>
+    </message>
 </context>
 <context>
     <name>MessageBoxConfirm</name>
@@ -2715,6 +2729,16 @@ These fields will be populated with default values. Do you wish to continue?</tr
         <location filename="../app/setting_interface.py" line="545"/>
         <source>启动游戏前检测加速是否生效（tun 接口），未生效时自动启动加速器并点击加速按钮</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../app/setting_interface.py" line="586"/>
+        <source>HDR 检测警告</source>
+        <translation>HDR detection warning</translation>
+    </message>
+    <message>
+        <location filename="../app/setting_interface.py" line="590"/>
+        <source>任务启动时检测游戏所在显示器的 HDR 状态；开启 HDR 时提示可能发生图像识别问题</source>
+        <translation>Checks HDR on the display containing the game window at task startup and warns about possible image recognition issues</translation>
     </message>
 </context>
 <context>

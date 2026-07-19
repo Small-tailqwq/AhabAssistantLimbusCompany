@@ -703,6 +703,9 @@ class ConfigModel(BaseModel):
     experimental_keep_screen_awake: bool
     """运行期间阻止系统与显示器休眠，任务结束自动恢复"""
 
+    experimental_hdr_warning: bool
+    """任务启动时检测游戏显示器 HDR 状态并提示潜在识别问题"""
+
     lab_simulator_launch_accelerator: bool
     """模拟器启动加速器：启动游戏前检测加速是否生效（通过 tun 接口），未生效时自动启动加速器并点击加速按钮"""
 
