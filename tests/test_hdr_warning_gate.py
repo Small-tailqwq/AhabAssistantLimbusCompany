@@ -40,6 +40,37 @@ class TestHdrWarningGate(unittest.TestCase):
 
         query.assert_not_called()
 
+    def test_hdr_query_failure_skips_warning_and_stop_check(self):
+        cfg_stub = SimpleNamespace(
+            simulator=False,
+            get_value=lambda key, default=None: True,
+        )
+        warning = mock.Mock()
+        clear = mock.Mock()
+        mediator_stub = SimpleNamespace(
+            hdr_warning=SimpleNamespace(emit=warning),
+            hdr_warning_clear=SimpleNamespace(emit=clear),
+        )
+        screen_stub = SimpleNamespace(handle=SimpleNamespace(hwnd=123))
+        with (
+            mock.patch.object(scheme, "cfg", cfg_stub),
+            mock.patch.object(scheme, "mediator", mediator_stub),
+            mock.patch.object(scheme, "screen", screen_stub),
+            mock.patch.object(scheme.win32api, "MonitorFromWindow", return_value=456),
+            mock.patch.object(
+                scheme,
+                "get_monitor_hdr_info",
+                side_effect=RuntimeError("query failed"),
+            ) as query,
+            mock.patch.object(scheme.auto, "ensure_not_stopped") as stop_check,
+        ):
+            scheme._warn_if_game_monitor_hdr_enabled()
+
+        query.assert_called_once_with(456)
+        warning.assert_not_called()
+        clear.assert_not_called()
+        stop_check.assert_not_called()
+
     def test_hdr_display_emits_warning_and_waits_for_acknowledgement(self):
         signal = ImmediateSignal()
         cfg_stub = SimpleNamespace(

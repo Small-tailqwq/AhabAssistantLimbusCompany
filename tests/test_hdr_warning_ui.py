@@ -5,6 +5,7 @@ from unittest import mock
 
 from PySide6.QtWidgets import QApplication
 
+import app.base_combination as base_combination_module
 import app.my_app as my_app_module
 import module.config.config_typing as config_typing_module
 from app.setting_interface import SettingInterface
@@ -116,7 +117,19 @@ class TestHdrWarningUi(unittest.TestCase):
         self.assertIn("experimental_hdr_warning: True", content)
 
     def test_setting_interface_adds_hdr_warning_to_experimental_group(self):
-        interface = SettingInterface()
+        original_get_value = base_combination_module.cfg.get_value
+
+        def get_value(key, *args, **kwargs):
+            if key == "experimental_hdr_warning":
+                return True
+            return original_get_value(key, *args, **kwargs)
+
+        with mock.patch.object(
+            base_combination_module.cfg,
+            "get_value",
+            side_effect=get_value,
+        ):
+            interface = SettingInterface()
         try:
             widgets = interface.experimental_group.cardLayout._ExpandLayout__widgets
             self.assertIn(interface.hdr_warning_card, widgets)
