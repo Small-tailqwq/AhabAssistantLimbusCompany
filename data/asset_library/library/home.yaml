@@ -160,6 +160,7 @@ assets:
   tags: []
   note: ''
   checksum: sha256:4e5fbde98122ca6ae0cb886387508047ac0bcd6fc728253ec89b3c8403312ede
+<<<<<<< Updated upstream
   status: missing
 - file: dark/share/home/back_assets.png
   business_name: ''
@@ -521,6 +522,8 @@ assets:
   note: ''
   checksum: sha256:2f0c799bbb0a9b691aeb3674e98c622dd4197e02fffaa936fd30972fdb051c99
   status: archived
+=======
+>>>>>>> Stashed changes
 - file: dark/share/home/back_assets.png
   business_name: ''
   tags: *id001
