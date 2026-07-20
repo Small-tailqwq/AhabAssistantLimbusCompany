@@ -126,8 +126,7 @@ class Logger(metaclass=SingletonMeta):
                 _root_logger.removeHandler(handler)
 
         if not self.logger.handlers:
-            # 控制台输出
-            console_handler = logging.StreamHandler()
+            # 格式化器（控制台输出与文件输出共用）
             console_formatter = TranslationFormatter(
                 "%(log_color)s[%(levelname)s] %(asctime)s [AALC] %(pathname)s:%(lineno)d: %(message)s",
                 log_colors={
@@ -138,8 +137,13 @@ class Logger(metaclass=SingletonMeta):
                     "CRITICAL": "red,bg_white",
                 },
             )
-            console_handler.setFormatter(console_formatter)
-            console_handler.setLevel(logging.DEBUG)
+
+            # 控制台输出（避免在 stderr 已关闭时产生 Logging error）
+            if sys.stderr is not None and hasattr(sys.stderr, "closed") and not sys.stderr.closed:
+                console_handler = logging.StreamHandler()
+                console_handler.setFormatter(console_formatter)
+                console_handler.setLevel(logging.DEBUG)
+                self.logger.addHandler(console_handler)
 
             # 创建日志目录
             os.makedirs("./logs", exist_ok=True)
@@ -155,6 +159,7 @@ class Logger(metaclass=SingletonMeta):
             file_formatter.no_color = True  # 输出到文件时不要加颜色符号
             debug_file_handler.setFormatter(file_formatter)
             debug_file_handler.setLevel(logging.DEBUG)
+            self.logger.addHandler(debug_file_handler)
 
             # 显示在 UI 窗口中的日志，写到 ring buffer，不落盘
             ui_log_formatter = TranslationFormatter("%(asctime)s - %(message)s", "%H:%M:%S", no_color=True)
@@ -162,11 +167,9 @@ class Logger(metaclass=SingletonMeta):
             ui_log_handler = UILogHandler(ui_log_dispatcher)
             ui_log_handler.setLevel(logging.INFO)
             ui_log_handler.setFormatter(ui_log_formatter)
+            self.logger.addHandler(ui_log_handler)
 
             self.logger.setLevel(logging.DEBUG)
-            self.logger.addHandler(console_handler)
-            self.logger.addHandler(debug_file_handler)
-            self.logger.addHandler(ui_log_handler)
 
     def get_logger(self) -> logging.Logger:
         return self.logger

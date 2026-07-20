@@ -111,6 +111,17 @@ class userStopError(Exception):
         return self.errorInfo
 
 
+class EmulatorCrashedError(Exception):
+    """模拟器进程崩溃或消失，无法继续执行"""
+
+    def __init__(self, ErrorInfo):
+        super().__init__(ErrorInfo)
+        self.errorInfo = ErrorInfo
+
+    def __str__(self):
+        return self.errorInfo
+
+
 class logTypeError(Exception):
     """日志级别不在可选范围内，或没有设置"""
 
