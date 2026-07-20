@@ -34,11 +34,13 @@ def main():
     mc.width = 0
     mc.height = 0
     mc.lib = None
+    mc.android_version = None
     mc.stop_checker = None
 
-    # 查找安装路径并加载 DLL
+    # 查找安装路径、读取实例版本并加载 DLL
     mc.mumu_control_api_backend()
     log.info(f"exe_path={mc.exe_path}")
+    mc.get_launch_status()
     mc.load_dll()
 
     # 直接连接已运行的模拟器（不启动）

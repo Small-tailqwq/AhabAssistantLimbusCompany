@@ -103,6 +103,11 @@ ignore = [
     "TRY300",      # try 中所有语句后都有 finally 时建议移出 — 与现有模式冲突
     "BLE001",      # 盲收 Exception — 绝大多数现有 except 是自动化容错可接受
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# CLI 诊断工具，print 是其预期输出方式
+"debug_tools/check_hdr.py" = ["T201"]
+
 [tool.ruff]
 line-length = 120
 target-version = "py312"

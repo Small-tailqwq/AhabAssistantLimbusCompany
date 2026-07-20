@@ -67,9 +67,6 @@ data/asset_library/scan_cache.json
 data/asset_library/thumbnails/
 assets/app/fonts/chars.txt
 
-# Gortex index data
-.gortex/
-
 # 临时清理目录
 _pending_cleanup/
 
