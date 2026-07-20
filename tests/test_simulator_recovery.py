@@ -146,7 +146,7 @@ class TestSimulatorRecovery(unittest.TestCase):
         self.assertTrue(result)
         self.assertEqual(calls, ["check_game_alive", "start_game"])
 
-    def test_init_game_marks_startup_wait_after_simulator_cold_start(self):
+    def test_init_game_starts_simulator_without_adb_alive_probe(self):
         calls = []
 
         class AutoStub:
@@ -158,8 +158,7 @@ class TestSimulatorRecovery(unittest.TestCase):
 
         class ConnectionDeviceStub:
             def check_game_alive(self):
-                calls.append(("check_game_alive",))
-                return False
+                raise AssertionError("init_game() must not call ADB game-alive probe in simulator mode")
 
             def start_game(self):
                 calls.append(("start_game",))
@@ -206,8 +205,7 @@ class TestSimulatorRecovery(unittest.TestCase):
 
         self.assertIn(("clear_startup_wait",), calls)
         self.assertIn(("mark_startup_wait",), calls)
-        self.assertLess(calls.index(("clear_startup_wait",)), calls.index(("check_game_alive",)))
-        self.assertLess(calls.index(("check_game_alive",)), calls.index(("start_game",)))
+        self.assertLess(calls.index(("clear_startup_wait",)), calls.index(("start_game",)))
         self.assertLess(calls.index(("start_game",)), calls.index(("mark_startup_wait",)))
 
     def test_should_wait_for_main_menu_after_simulator_start_detects_launch_state_once(self):
@@ -439,61 +437,7 @@ class TestSimulatorRecovery(unittest.TestCase):
 
         self.assertEqual(calls, ["safe_click"])
 
-    def test_retry_waits_for_main_menu_after_simulator_start_probe_detects_launch_chain(self):
-        calls = []
-
-        class AutoStub:
-            def get_restore_time(self):
-                return None
-
-        ensure_call_count = {"value": 0}
-
-        def ensure_started_once():
-            ensure_call_count["value"] += 1
-            if ensure_call_count["value"] > 1:
-                raise AssertionError("retry() should switch to launch wait instead of restarting the loop")
-            return True
-
-        with (
-            patch.object(retry_module, "cfg", self._make_simulator_cfg()),
-            patch.object(retry_module, "auto", AutoStub()),
-            patch.object(retry_module, "ensure_simulator_game_started", side_effect=ensure_started_once),
-            patch.object(retry_module, "check_times", return_value=False),
-            patch.object(retry_module, "sleep", lambda *_: None),
-            patch.object(retry_module, "should_wait_for_main_menu_after_simulator_start", return_value=True),
-            patch(
-                "tasks.base.back_init_menu.wait_until_main_menu_after_launch",
-                side_effect=lambda allow_restart=True: calls.append(("wait_main_menu", allow_restart)) or "main_menu",
-            ),
-        ):
-            result = retry_module.retry()
-
-        self.assertTrue(result)
-        self.assertIn(("wait_main_menu", True), calls)
-        self.assertEqual(ensure_call_count["value"], 1)
-
-    def test_retry_returns_false_when_launch_wait_times_out(self):
-        class AutoStub:
-            def get_restore_time(self):
-                return None
-
-        with (
-            patch.object(retry_module, "cfg", self._make_simulator_cfg()),
-            patch.object(retry_module, "auto", AutoStub()),
-            patch.object(retry_module, "ensure_simulator_game_started", return_value=True),
-            patch.object(retry_module, "check_times", return_value=False),
-            patch.object(retry_module, "sleep", lambda *_: None),
-            patch.object(retry_module, "should_wait_for_main_menu_after_simulator_start", return_value=True),
-            patch(
-                "tasks.base.back_init_menu.wait_until_main_menu_after_launch",
-                return_value="timeout",
-            ),
-        ):
-            result = retry_module.retry()
-
-        self.assertIs(result, False)
-
-    def test_retry_continues_runtime_recovery_when_start_probe_detects_runtime_ui(self):
+    def test_retry_does_not_probe_simulator_game_alive_on_hot_path(self):
         calls = []
 
         class AutoStub:
@@ -512,29 +456,23 @@ class TestSimulatorRecovery(unittest.TestCase):
                 calls.append(("click_element", target))
                 return False
 
-        ensure_call_count = {"value": 0}
-
-        def ensure_started_once():
-            ensure_call_count["value"] += 1
-            if ensure_call_count["value"] > 1:
-                raise AssertionError("retry() should continue the current recovery round")
-            return True
-
         with (
             patch.object(retry_module, "cfg", self._make_simulator_cfg()),
             patch.object(retry_module, "auto", AutoStub()),
-            patch.object(retry_module, "ensure_simulator_game_started", side_effect=ensure_started_once),
+            patch.object(
+                retry_module,
+                "ensure_simulator_game_started",
+                side_effect=AssertionError("retry() hot path must not call ADB game-alive probe"),
+            ),
             patch.object(retry_module, "check_times", return_value=False),
             patch.object(retry_module, "sleep", lambda *_: None),
-            patch.object(retry_module, "should_wait_for_main_menu_after_simulator_start", return_value=False),
         ):
             result = retry_module.retry()
 
         self.assertIsNone(result)
-        self.assertEqual(ensure_call_count["value"], 1)
         self.assertEqual(calls.count("take_screenshot"), 1)
 
-    def test_back_init_menu_waits_for_main_menu_after_simulator_start_probe_detects_launch_chain(self):
+    def test_back_init_menu_does_not_probe_simulator_game_alive_on_hot_path(self):
         calls = []
 
         class AutoStub:
@@ -543,68 +481,21 @@ class TestSimulatorRecovery(unittest.TestCase):
             def ensure_not_stopped(self):
                 calls.append(("ensure_not_stopped",))
 
-        ensure_call_count = {"value": 0}
-
-        def ensure_started_once():
-            ensure_call_count["value"] += 1
-            if ensure_call_count["value"] > 1:
-                raise AssertionError("back_init_menu() should switch to launch wait instead of restarting the loop")
-            return True
-
         with (
             patch.object(back_init_menu_module, "auto", AutoStub()),
             patch.object(retry_module, "cfg", self._make_simulator_cfg()),
             patch.object(retry_module, "sleep", lambda *_: None),
-            patch.object(back_init_menu_module, "ensure_simulator_game_started", side_effect=ensure_started_once),
-            patch.object(back_init_menu_module, "should_wait_for_main_menu_after_simulator_start", return_value=True),
-            patch.object(back_init_menu_module, "retry", return_value=False),
             patch.object(
-                back_init_menu_module,
-                "wait_until_main_menu_after_launch",
-                side_effect=lambda allow_restart=True: calls.append(("wait_main_menu", allow_restart)) or "main_menu",
+                retry_module,
+                "ensure_simulator_game_started",
+                side_effect=AssertionError("back_init_menu() hot path must not call ADB game-alive probe"),
             ),
+            patch.object(back_init_menu_module, "retry", return_value=False),
         ):
             result = back_init_menu_module.back_init_menu(allow_restart=False)
 
-        self.assertIs(result, True)
-        self.assertIn(("wait_main_menu", False), calls)
-        self.assertEqual(ensure_call_count["value"], 1)
-
-    def test_back_init_menu_continues_runtime_recovery_when_start_probe_detects_runtime_ui(self):
-        calls = []
-
-        class AutoStub:
-            model = "clam"
-
-            def ensure_not_stopped(self):
-                calls.append(("ensure_not_stopped",))
-
-        ensure_call_count = {"value": 0}
-
-        def ensure_started_once():
-            ensure_call_count["value"] += 1
-            if ensure_call_count["value"] > 1:
-                raise AssertionError("back_init_menu() should continue the current recovery round")
-            return True
-
-        with (
-            patch.object(back_init_menu_module, "auto", AutoStub()),
-            patch.object(retry_module, "cfg", self._make_simulator_cfg()),
-            patch.object(retry_module, "sleep", lambda *_: None),
-            patch.object(back_init_menu_module, "ensure_simulator_game_started", side_effect=ensure_started_once),
-            patch.object(back_init_menu_module, "should_wait_for_main_menu_after_simulator_start", return_value=False),
-            patch.object(back_init_menu_module, "retry", side_effect=lambda: calls.append(("retry",)) or False),
-            patch.object(
-                back_init_menu_module,
-                "wait_until_main_menu_after_launch",
-                side_effect=lambda allow_restart=True: calls.append(("wait_main_menu", allow_restart)) or "main_menu",
-            ),
-        ):
-            back_init_menu_module.back_init_menu(allow_restart=False)
-
-        self.assertNotIn(("wait_main_menu", False), calls)
-        self.assertIn(("retry",), calls)
-        self.assertEqual(ensure_call_count["value"], 1)
+        self.assertIs(result, False)
+        self.assertIn(("ensure_not_stopped",), calls)
 
     def test_restart_game_waits_for_main_menu_after_init_game(self):
         calls = []
@@ -655,7 +546,6 @@ class TestSimulatorRecovery(unittest.TestCase):
 
         with (
             patch.object(back_init_menu_module, "auto", AutoStub()),
-            patch.object(back_init_menu_module, "ensure_simulator_game_started", return_value=False),
             patch.object(back_init_menu_module, "retry", return_value=False),
         ):
             result = back_init_menu_module.back_init_menu(allow_restart=False)

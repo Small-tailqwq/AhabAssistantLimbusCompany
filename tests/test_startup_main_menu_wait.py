@@ -89,7 +89,6 @@ class TestStartupMainMenuWait(unittest.TestCase):
 
         with (
             patch.object(back_init_menu_module, "auto", AutoStub()),
-            patch.object(back_init_menu_module, "ensure_simulator_game_started", return_value=False),
             patch.object(back_init_menu_module, "handle_launch_state_once", return_value=True),
             patch.object(back_init_menu_module, "get_startup_wait_timeout_seconds", return_value=3),
             patch.object(back_init_menu_module, "sleep", lambda *_: None),
@@ -127,7 +126,6 @@ class TestStartupMainMenuWait(unittest.TestCase):
 
         with (
             patch.object(back_init_menu_module, "auto", auto_stub),
-            patch.object(back_init_menu_module, "ensure_simulator_game_started", return_value=False),
             patch.object(back_init_menu_module, "handle_launch_state_once", side_effect=handle_launch_state_once_stub),
             patch.object(back_init_menu_module, "_is_runtime_ui_visible", return_value=False),
             patch.object(back_init_menu_module, "get_startup_wait_timeout_seconds", return_value=3),
@@ -163,7 +161,6 @@ class TestStartupMainMenuWait(unittest.TestCase):
 
         with (
             patch.object(back_init_menu_module, "auto", auto_stub),
-            patch.object(back_init_menu_module, "ensure_simulator_game_started", return_value=False),
             patch.object(back_init_menu_module, "handle_launch_state_once", return_value=None),
             patch.object(back_init_menu_module, "_is_runtime_ui_visible", return_value=False),
             patch.object(back_init_menu_module, "get_startup_wait_timeout_seconds", return_value=3),
@@ -197,7 +194,6 @@ class TestStartupMainMenuWait(unittest.TestCase):
 
         with (
             patch.object(back_init_menu_module, "auto", AutoStub()),
-            patch.object(back_init_menu_module, "ensure_simulator_game_started", return_value=False),
             patch.object(
                 back_init_menu_module,
                 "handle_launch_state_once",
@@ -235,8 +231,8 @@ class TestStartupMainMenuWait(unittest.TestCase):
 
         with (
             patch.object(back_init_menu_module, "auto", AutoStub()),
-            patch.object(back_init_menu_module, "ensure_simulator_game_started", return_value=True),
-            patch.object(back_init_menu_module, "should_wait_for_main_menu_after_simulator_start", return_value=False),
+            patch.object(back_init_menu_module, "handle_launch_state_once", return_value=None),
+            patch.object(back_init_menu_module, "_is_runtime_ui_visible", return_value=True),
             patch.object(back_init_menu_module, "get_startup_wait_timeout_seconds", return_value=1),
             patch.object(back_init_menu_module, "sleep", lambda *_: actions.append(("sleep",))),
             patch.object(back_init_menu_module, "time", TimeSequence(0.0, 0.0, 0.5, 2.0)),
@@ -244,7 +240,8 @@ class TestStartupMainMenuWait(unittest.TestCase):
             result = back_init_menu_module.wait_until_main_menu_after_launch(allow_restart=False)
 
         self.assertEqual(result, "runtime_ui")
-        self.assertEqual(actions, [("ensure_not_stopped",)])
+        self.assertIn(("ensure_not_stopped",), actions)
+        self.assertIn(("take_screenshot",), actions)
 
     def test_wait_until_main_menu_after_launch_returns_runtime_ui_when_runtime_ui_visible(self):
         calls = []
@@ -267,7 +264,6 @@ class TestStartupMainMenuWait(unittest.TestCase):
 
         with (
             patch.object(back_init_menu_module, "auto", AutoStub()),
-            patch.object(back_init_menu_module, "ensure_simulator_game_started", return_value=False),
             patch.object(back_init_menu_module, "handle_launch_state_once", return_value=None),
             patch.object(back_init_menu_module, "_is_runtime_ui_visible", return_value=True),
             patch.object(back_init_menu_module, "get_startup_wait_timeout_seconds", return_value=1),
@@ -308,7 +304,6 @@ class TestStartupMainMenuWait(unittest.TestCase):
 
         with (
             patch.object(back_init_menu_module, "auto", AutoStub()),
-            patch.object(back_init_menu_module, "ensure_simulator_game_started", return_value=False),
             patch.object(back_init_menu_module, "handle_launch_state_once", return_value=None),
             patch.object(back_init_menu_module, "_is_runtime_ui_visible", return_value=False),
             patch.object(back_init_menu_module, "get_startup_wait_timeout_seconds", return_value=1),
@@ -319,6 +314,38 @@ class TestStartupMainMenuWait(unittest.TestCase):
 
         self.assertEqual(result, "timeout")
         self.assertIn(("key_press", "esc"), calls)
+
+    def test_wait_until_main_menu_after_launch_does_not_press_esc_on_known_launch_state(self):
+        calls = []
+
+        class FrozenScreenshot:
+            def tobytes(self):
+                return b"same-frame"
+
+        class AutoStub:
+            def __init__(self):
+                self.screenshot = FrozenScreenshot()
+
+            def ensure_not_stopped(self):
+                return None
+
+            def take_screenshot(self):
+                return self.screenshot
+
+            def key_press(self, key):
+                calls.append(("key_press", key))
+
+        with (
+            patch.object(back_init_menu_module, "auto", AutoStub()),
+            patch.object(back_init_menu_module, "handle_launch_state_once", return_value=True),
+            patch.object(back_init_menu_module, "get_startup_wait_timeout_seconds", return_value=1),
+            patch.object(back_init_menu_module, "sleep", lambda *_: None),
+            patch.object(back_init_menu_module, "time", TimeSequence(0.0, 0.0, 0.1, 0.2, 0.3, 1.1)),
+        ):
+            result = back_init_menu_module.wait_until_main_menu_after_launch(allow_restart=False)
+
+        self.assertEqual(result, "timeout")
+        self.assertEqual(calls, [])
 
     def test_wait_until_main_menu_after_launch_logs_halfway_once_and_timeout(self):
         log_messages = []
@@ -346,7 +373,6 @@ class TestStartupMainMenuWait(unittest.TestCase):
         with (
             patch.object(back_init_menu_module, "auto", AutoStub()),
             patch.object(back_init_menu_module, "log", LogStub()),
-            patch.object(back_init_menu_module, "ensure_simulator_game_started", return_value=False),
             patch.object(back_init_menu_module, "handle_launch_state_once", return_value=True),
             patch.object(back_init_menu_module, "get_startup_wait_timeout_seconds", return_value=30),
             patch.object(back_init_menu_module, "sleep", lambda *_: None),
@@ -392,7 +418,6 @@ class TestStartupMainMenuWait(unittest.TestCase):
 
         with (
             patch.object(back_init_menu_module, "auto", AutoStub()),
-            patch.object(back_init_menu_module, "ensure_simulator_game_started", return_value=False),
             patch.object(back_init_menu_module, "handle_launch_state_once", return_value=None),
             patch.object(back_init_menu_module, "_is_runtime_ui_visible", return_value=False),
             patch.object(
@@ -459,7 +484,6 @@ class TestStartupMainMenuWait(unittest.TestCase):
                 side_effect=lambda allow_restart=True: calls.append(("wait_main_menu", allow_restart))
                 or back_init_menu_module.StartupMainMenuWaitResult.RUNTIME_UI,
             ),
-            patch.object(back_init_menu_module, "ensure_simulator_game_started", return_value=False),
             patch.object(back_init_menu_module, "retry", side_effect=lambda: calls.append(("retry",)) or False),
         ):
             back_init_menu_module.mark_startup_main_menu_wait_pending()

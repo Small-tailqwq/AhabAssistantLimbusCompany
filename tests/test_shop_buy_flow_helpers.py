@@ -135,6 +135,19 @@ class TestShopBuyFlowHelpers(unittest.TestCase):
             2,
         )
 
+    def test_after_fuse_iv_skip_shop_does_not_mutate_source_team_setting(self):
+        # 回归测试：issue #801，合成四级后跳过商店会把 ignore_shop 全部勾选，
+        # 若 Shop 与 team_setting 共享同一个 list，该运行时修改会被持久化配置回写。
+        team_setting = make_team_setting(after_level_IV=True, after_level_IV_select=3)
+        original_ignore_shop = list(team_setting.ignore_shop)
+        shop = Shop(team_setting)
+
+        shop.after_fuse_IV()
+
+        self.assertTrue(all(shop.ignore_shop))
+        self.assertEqual(team_setting.ignore_shop, original_ignore_shop)
+        self.assertIsNot(shop.ignore_shop, team_setting.ignore_shop)
+
 
 if __name__ == "__main__":
     unittest.main()

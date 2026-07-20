@@ -1390,6 +1390,7 @@ class TestTeamQueueNormalization(unittest.TestCase):
             patch.object(script_task_scheme, "_get_game_rendering_scale", return_value=None),
             patch.object(script_task_scheme, "init_game", lambda: calls.append(("init_game",))),
             patch.object(script_task_scheme, "_warn_if_game_monitor_hdr_enabled"),
+            patch.object(script_task_scheme, "_consume_startup_main_menu_wait_pending", return_value=False),
             patch.object(
                 script_task_scheme,
                 "wait_until_main_menu_after_launch",
@@ -1409,6 +1410,69 @@ class TestTeamQueueNormalization(unittest.TestCase):
                 ("clear_img_cache",),
                 ("click_element", "battle/turn_assets.png", True),
                 ("ensure_not_stopped",),
+            ],
+        )
+
+    def test_script_task_waits_for_pending_startup_before_first_battle_probe(self):
+        calls = []
+
+        class AutoStub:
+            def clear_img_cache(self):
+                calls.append(("clear_img_cache",))
+
+            def click_element(self, target, *args, **kwargs):
+                calls.append(("click_element", target, kwargs.get("take_screenshot")))
+                return False
+
+            def ensure_not_stopped(self):
+                calls.append(("ensure_not_stopped",))
+
+        cfg_stub = type(
+            "CfgStub",
+            (),
+            {
+                "skip_enkephalin": False,
+                "simulator": True,
+                "simulator_type": 10,
+                "resonate_with_Ahab": False,
+                "daily_task": False,
+                "get_reward": False,
+                "buy_enkephalin": False,
+                "mirror": False,
+                "set_reduce_miscontact": False,
+                "lab_screenshot_obs": False,
+            },
+        )()
+        path_manager_stub = type(
+            "PathManagerStub",
+            (),
+            {"initialize_paths": lambda self: calls.append(("initialize_paths",)), "pic_path": []},
+        )()
+
+        with (
+            patch.object(script_task_scheme, "cfg", cfg_stub),
+            patch.object(script_task_scheme, "auto", AutoStub()),
+            patch.object(script_task_scheme, "path_manager", path_manager_stub),
+            patch.object(script_task_scheme, "init_game", lambda: calls.append(("init_game",))),
+            patch.object(script_task_scheme, "_consume_startup_main_menu_wait_pending", return_value=True),
+            patch.object(
+                script_task_scheme,
+                "wait_until_main_menu_after_launch",
+                side_effect=lambda: calls.append(("wait_main_menu",)) or "main_menu",
+            ),
+            patch.object(script_task_scheme, "send_toast", lambda *args, **kwargs: calls.append(("send_toast",))),
+            patch.object(script_task_scheme.platform, "system", return_value="Linux"),
+        ):
+            script_task_scheme.script_task()
+
+        self.assertEqual(
+            calls[:5],
+            [
+                ("init_game",),
+                ("initialize_paths",),
+                ("clear_img_cache",),
+                ("wait_main_menu",),
+                ("click_element", "battle/turn_assets.png", True),
             ],
         )
 
@@ -1457,6 +1521,7 @@ class TestTeamQueueNormalization(unittest.TestCase):
             patch.object(script_task_scheme, "_get_game_rendering_scale", return_value=None),
             patch.object(script_task_scheme, "init_game", lambda: calls.append(("init_game",))),
             patch.object(script_task_scheme, "_warn_if_game_monitor_hdr_enabled"),
+            patch.object(script_task_scheme, "_consume_startup_main_menu_wait_pending", return_value=False),
             patch.object(
                 script_task_scheme,
                 "wait_until_main_menu_after_launch",
@@ -1532,6 +1597,7 @@ class TestTeamQueueNormalization(unittest.TestCase):
             patch.object(script_task_scheme, "_get_game_rendering_scale", return_value=None),
             patch.object(script_task_scheme, "init_game", lambda: calls.append(("init_game",))),
             patch.object(script_task_scheme, "_warn_if_game_monitor_hdr_enabled"),
+            patch.object(script_task_scheme, "_consume_startup_main_menu_wait_pending", return_value=False),
             patch.object(
                 script_task_scheme,
                 "wait_until_main_menu_after_launch",
