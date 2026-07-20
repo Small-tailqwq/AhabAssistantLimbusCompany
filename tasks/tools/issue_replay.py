@@ -29,6 +29,7 @@ except ImportError:
     MarkdownIt = None
 
 from app import mediator
+from app.card.messagebox_custom import MessageBoxScroll
 from module.config import cfg
 from module.issue_manager import (
     IssueManager,
@@ -692,7 +693,11 @@ class IssueReplay(QWidget):
         if warnings:
             msg += "\n\n潜在问题:\n" + "\n".join(f"  [!] {w}" for w in warnings)
 
-        QMessageBox.information(self, "导入成功", msg)
+        if warnings:
+            box = MessageBoxScroll(self.tr("导入成功"), msg, self)
+            box.exec()
+        else:
+            QMessageBox.information(self, "导入成功", msg)
         self.log_edit.clear()
         self.preview_label.setText("")
         self.snapshot_combo.hide()
@@ -1037,7 +1042,11 @@ class IssueReplay(QWidget):
             msg = f"已刷新 issue{issue_id} 的日志和配置\nAALC 版本: {meta.get('version', '未知')}"
             if warnings:
                 msg += "\n\n潜在问题:\n" + "\n".join(f"  [!] {w}" for w in warnings)
-            QMessageBox.information(dialog, "重新导入成功", msg)
+            if warnings:
+                box = MessageBoxScroll(self.tr("重新导入成功"), msg, dialog)
+                box.exec()
+            else:
+                QMessageBox.information(dialog, "重新导入成功", msg)
             self._refresh_issue_list()
             dialog.close()
 

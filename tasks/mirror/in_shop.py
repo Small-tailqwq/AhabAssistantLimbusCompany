@@ -183,7 +183,7 @@ class Shop:
         self.max_keyword_refresh = team_setting.max_keyword_refresh
         self.max_normal_refresh = team_setting.max_normal_refresh
         self.reserve_upgrade_funds = team_setting.reserve_upgrade_funds
-        self.ignore_shop = team_setting.ignore_shop  # 忽略的商店楼层
+        self.ignore_shop = list(team_setting.ignore_shop)  # 忽略的商店楼层（运行时副本，避免合成四级后跳过商店的临时修改回写持久化配置）
 
         self.aggressive_also_enhance = team_setting.aggressive_also_enhance  # 激进合成期间也升级饰品
 

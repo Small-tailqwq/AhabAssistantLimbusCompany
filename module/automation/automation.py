@@ -17,7 +17,7 @@ from utils.singletonmeta import SingletonMeta
 
 from ..config import cfg
 from ..logger import log
-from ..my_error.my_error import userStopError
+from ..my_error.my_error import EmulatorCrashedError, userStopError
 from ..ocr import ocr
 from .human_kinematics import HumanKinematics
 from .input_handlers.input import AbstractInput
@@ -373,6 +373,9 @@ class Automation(metaclass=SingletonMeta):
                     # 截图失败时也节流，避免窗口异常时高速空转刷日志
                     self.last_screenshot_time = time.time()
                     return None
+            except EmulatorCrashedError as e:
+                log.error(f"模拟器已崩溃：{e}")
+                self.request_stop(str(e))
             except Exception as e:
                 log.error(f"截图失败:{e}")
                 self.last_screenshot_time = time.time()
