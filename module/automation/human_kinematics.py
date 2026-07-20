@@ -231,13 +231,14 @@ class HumanKinematics:
             points.append(final_point)
         return points
 
+
 class ValueNoise1D:
     def __init__(self):
         self.vertices = [random.uniform(-1.0, 1.0) for _ in range(256)]
-        
+
     def _smoothstep(self, t: float) -> float:
         return t * t * (3.0 - 2.0 * t)
-        
+
     def get(self, x: float) -> float:
         xi = int(math.floor(x))
         xf = x - xi
@@ -264,6 +265,235 @@ class ValueNoise1D:
         """Helper to inject the bionic curve into HumanKinematics namespace seamlessly."""
         pass
 
+
+class _TrajectoryType:
+    """轨迹类型枚举"""
+    STRAIGHT = "straight"      # 近似直线
+    ARC = "arc"                # 弧线（原有行为）
+    S_CURVE = "s_curve"        # S形轨迹（中途调整）
+    STAIRCASE = "staircase"    # 阶梯形轨迹（轴对齐移动）
+
+
+def _select_trajectory_type(dist: float, depth: int) -> str:
+    """
+    根据距离和深度选择轨迹类型。
+    短距离更倾向于直线，长距离允许更多样化的轨迹。
+    递归深度 > 0 时倾向于直线以避免修正轨迹过于复杂。
+    """
+    if depth > 0:
+        # 修正轨迹倾向于简单
+        return _TrajectoryType.STRAIGHT if random.random() < 0.7 else _TrajectoryType.ARC
+
+    rand = random.random()
+
+    if dist < 50:
+        # 短距离：60% 直线，30% 弧线，10% S形
+        if rand < 0.60:
+            return _TrajectoryType.STRAIGHT
+        elif rand < 0.90:
+            return _TrajectoryType.ARC
+        else:
+            return _TrajectoryType.S_CURVE
+    elif dist < 150:
+        # 中距离：25% 直线，45% 弧线，20% S形，10% 阶梯
+        if rand < 0.25:
+            return _TrajectoryType.STRAIGHT
+        elif rand < 0.70:
+            return _TrajectoryType.ARC
+        elif rand < 0.90:
+            return _TrajectoryType.S_CURVE
+        else:
+            return _TrajectoryType.STAIRCASE
+    else:
+        # 长距离：15% 直线，40% 弧线，30% S形，15% 阶梯
+        if rand < 0.15:
+            return _TrajectoryType.STRAIGHT
+        elif rand < 0.55:
+            return _TrajectoryType.ARC
+        elif rand < 0.85:
+            return _TrajectoryType.S_CURVE
+        else:
+            return _TrajectoryType.STAIRCASE
+
+
+def _compute_arc_controls(
+    start: np.ndarray,
+    delta: np.ndarray,
+    dist: float,
+    normal: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """计算弧线轨迹的控制点（优化后的弧度范围）。"""
+    # 弧度范围：5%-20%，比原来的 5%-25% 略微收敛
+    bulge = random.choice([-1.0, 1.0]) * random.uniform(0.05, 0.20) * dist
+    bulge = np.clip(bulge, -200.0, 200.0)
+
+    cp1_t = random.uniform(0.15, 0.40)
+    cp2_t = random.uniform(0.60, 0.85)
+    ctrl1 = start + delta * cp1_t + normal * bulge * random.uniform(0.6, 1.4)
+    ctrl2 = start + delta * cp2_t + normal * bulge * random.uniform(0.6, 1.4)
+
+    return ctrl1, ctrl2
+
+
+def _compute_straight_controls(
+    start: np.ndarray,
+    delta: np.ndarray,
+    dist: float,
+    normal: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """计算近似直线轨迹的控制点（极小弧度模拟自然抖动）。"""
+    # 弧度范围：0%-3%，几乎直线但有轻微自然偏移
+    bulge = random.uniform(-0.03, 0.03) * dist
+    bulge = np.clip(bulge, -15.0, 15.0)
+
+    cp1_t = random.uniform(0.25, 0.40)
+    cp2_t = random.uniform(0.60, 0.75)
+    ctrl1 = start + delta * cp1_t + normal * bulge
+    ctrl2 = start + delta * cp2_t + normal * bulge
+
+    return ctrl1, ctrl2
+
+
+def _compute_s_curve_controls(
+    start: np.ndarray,
+    delta: np.ndarray,
+    dist: float,
+    normal: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    计算 S 形轨迹的控制点。
+    通过让两个控制点向相反方向偏移，形成 S 形曲线。
+    """
+    # S 形弧度：较大但不过分
+    bulge_magnitude = random.uniform(0.08, 0.18) * dist
+    bulge_magnitude = np.clip(bulge_magnitude, -180.0, 180.0)
+
+    # 两个控制点向相反方向偏移
+    sign = random.choice([-1.0, 1.0])
+    cp1_t = random.uniform(0.20, 0.40)
+    cp2_t = random.uniform(0.60, 0.80)
+
+    ctrl1 = start + delta * cp1_t + normal * bulge_magnitude * sign
+    ctrl2 = start + delta * cp2_t - normal * bulge_magnitude * sign * random.uniform(0.6, 1.0)
+
+    return ctrl1, ctrl2
+
+
+def _compute_staircase_waypoints(
+    start: np.ndarray,
+    target: np.ndarray,
+    dist: float,
+) -> list[np.ndarray]:
+    """
+    生成阶梯形轨迹的中间途径点。
+    模拟人类"先水平后垂直"或"先垂直后水平"的移动习惯。
+    """
+    waypoints = [start.copy()]
+
+    # 随机选择移动顺序
+    horizontal_first = random.random() < 0.5
+
+    delta = target - start
+
+    if horizontal_first:
+        # 先水平移动，再垂直移动
+        mid_x = start[0] + delta[0] * random.uniform(0.5, 0.9)
+        mid_y = start[1]
+        # 添加轻微随机偏移
+        mid_y += random.uniform(-dist * 0.02, dist * 0.02)
+        waypoints.append(np.array([mid_x, mid_y]))
+    else:
+        # 先垂直移动，再水平移动
+        mid_x = start[0]
+        mid_y = start[1] + delta[1] * random.uniform(0.5, 0.9)
+        mid_x += random.uniform(-dist * 0.02, dist * 0.02)
+        waypoints.append(np.array([mid_x, mid_y]))
+
+    waypoints.append(target.copy())
+    return waypoints
+
+
+def _generate_segment_points(
+    segment_start: np.ndarray,
+    segment_end: np.ndarray,
+    steps: int,
+    noise_x: ValueNoise1D,
+    noise_y: ValueNoise1D,
+    max_noise: float,
+    noise_freq: float,
+    is_final_segment: bool = True,
+) -> tuple[list[tuple[int, int]], np.ndarray, float, float, int, int]:
+    """
+    生成单段轨迹的点序列。
+    返回: (点列表, 最终浮点位置, 累加器x, 累加器y, 整数位置x, 整数位置y)
+    """
+    delta = segment_end - segment_start
+    dist = float(np.linalg.norm(delta))
+
+    if dist < 1.0:
+        return [], segment_start.copy(), 0.0, 0.0, int(segment_start[0]), int(segment_start[1])
+
+    if dist > 0:
+        normal = np.array([-delta[1], delta[0]]) / dist
+    else:
+        normal = np.array([0.0, 1.0])
+
+    # 使用轻微弧度
+    bulge = random.uniform(-0.02, 0.02) * dist
+    bulge = np.clip(bulge, -10.0, 10.0)
+
+    ctrl1 = segment_start + delta * 0.3 + normal * bulge
+    ctrl2 = segment_start + delta * 0.7 + normal * bulge
+
+    points: list[tuple[int, int]] = []
+    acc_x, acc_y = 0.0, 0.0
+    pos_int_x, pos_int_y = int(segment_start[0]), int(segment_start[1])
+    prev_float = segment_start.copy()
+
+    for step in range(1, steps + 1):
+        tau = step / steps
+
+        # Minimum Jerk 时间规划
+        s_tau = 10.0 * (tau**3) - 15.0 * (tau**4) + 6.0 * (tau**5)
+
+        # 贝塞尔曲线
+        omt = 1.0 - s_tau
+        ideal_pos = (
+            (omt**3) * segment_start
+            + 3.0 * (omt**2) * s_tau * ctrl1
+            + 3.0 * omt * (s_tau**2) * ctrl2
+            + (s_tau**3) * segment_end
+        )
+
+        # 噪声
+        envelope = math.sin(tau * math.pi)
+        nx = noise_x.fractal(tau * noise_freq, octaves=3) * max_noise * envelope
+        ny = noise_y.fractal(tau * noise_freq, octaves=3) * max_noise * envelope
+
+        current_float_pos = ideal_pos + np.array([nx, ny])
+
+        step_delta_x = current_float_pos[0] - prev_float[0]
+        step_delta_y = current_float_pos[1] - prev_float[1]
+        prev_float = current_float_pos.copy()
+
+        acc_x += step_delta_x
+        acc_y += step_delta_y
+
+        if abs(acc_x) >= 1.0:
+            move_x = int(math.trunc(acc_x))
+            acc_x -= move_x
+            pos_int_x += move_x
+
+        if abs(acc_y) >= 1.0:
+            move_y = int(math.trunc(acc_y))
+            acc_y -= move_y
+            pos_int_y += move_y
+
+        points.append((pos_int_x, pos_int_y))
+
+    return points, prev_float, acc_x, acc_y, pos_int_x, pos_int_y
+
+
 def generate_bionic_curve(
     start_x: float,
     start_y: float,
@@ -276,9 +506,13 @@ def generate_bionic_curve(
 ) -> list[tuple[int, int]]:
     """
     绝对仿生的人类运动学轨迹生成算法 (WindMouse + MinJerk + Perlin)
-    1. 引入 Remainder Accumulator，防整形截断截断检测 (FFT 频域对抗)。
-    2. 使用 Minimum Jerk 进行理想位置坐标主导，替代受力模型的两段积分失控风险。
-    3. 引入深度参数 depth 阻断二次修正带来的无限递归过冲。
+
+    v2.0 优化:
+    1. 多样化轨迹类型：直线、弧线、S形、阶梯形，根据距离自适应分布。
+    2. 距离自适应策略：短距离更倾向直线，长距离允许更复杂的轨迹。
+    3. S形轨迹模拟人类中途调整，阶梯形模拟轴对齐移动习惯。
+    4. 保持 Minimum Jerk 时间规划和 Perlin 噪声的核心优势。
+    5. 引入深度参数 depth 阻断二次修正带来的无限递归过冲。
     """
     start = np.array([float(start_x), float(start_y)])
     target = np.array([float(end_x), float(end_y)])
@@ -295,91 +529,121 @@ def generate_bionic_curve(
         a = abs(random.gauss(0.1, 0.02))
         b = abs(random.gauss(0.18, 0.05))
         f_time = a + b * math.log2((dist / target_width) + 1.0)
-    
+
     # 2. Logistic 过冲测算 (限制递归层深)
     v_avg = dist / f_time
     is_overshoot = False
     actual_target = target.copy()
-    
+
     if depth == 0 and dist > 24.0:
-        p_overshoot = 1.0 / (1.0 + math.exp(-(0.01 * v_avg - 0.15 * target_width)))
+        # 降低过冲概率，使其更自然
+        p_overshoot = 1.0 / (1.0 + math.exp(-(0.008 * v_avg - 0.12 * target_width)))
         if random.random() < p_overshoot:
             is_overshoot = True
             cov = [[target_width**2, 0.0], [0.0, target_width**2]]
-            target_delta = np.clip(np.random.multivariate_normal([0.0, 0.0], cov), -target_width * 1.5, target_width * 1.5)
+            target_delta = np.clip(
+                np.random.multivariate_normal([0.0, 0.0], cov),
+                -target_width * 1.2,
+                target_width * 1.2,
+            )
             actual_target += target_delta
 
-    # 3. 驱动核心 (Minimum Jerk + 分形噪音)
-    steps = max(3, int(f_time * 100)) # e.g. 100Hz
-    
+    # 3. 轨迹类型选择
+    traj_type = _select_trajectory_type(dist, depth)
+
+    # 4. 驱动核心 (Minimum Jerk + 分形噪音)
+    steps = max(3, int(f_time * 100))  # 100Hz
+
     noise_x = ValueNoise1D()
     noise_y = ValueNoise1D()
     motor_tremor_scale = random.uniform(0.6, 1.4)
-    max_noise = min(dist * 0.08, 12.0) * motor_tremor_scale
-    
+    max_noise = min(dist * 0.06, 10.0) * motor_tremor_scale  # 略微降低噪声幅度
+
     points: list[tuple[int, int]] = []
-    
-    # 二维余数累加器 (Remainder Accumulator)
-    acc_x, acc_y = 0.0, 0.0
-    pos_int_x, pos_int_y = int(start[0]), int(start[1])
-    prev_float = start.copy()
-    
-    # 3. 计算宏观抛物线偏移 (Wrist/Elbow Pivot Arc)
-    # 人类手臂移动必然带着弧度，绝不会是完全两点一线的直线序列
-    # 计算路线法向量，随机确定外侧鼓包 (最高可偏离直线的 5% - 25%)
+
+    # 计算法向量
     if dist > 0:
         normal = np.array([-delta[1], delta[0]]) / dist
     else:
         normal = np.array([0.0, 1.0])
-        
-    bulge = random.choice([-1.0, 1.0]) * random.uniform(0.05, 0.25) * dist
-    bulge = np.clip(bulge, -250.0, 250.0)
-    
-    # 随机化两个非对称的控制点位置，打破死板的对称圆弧
-    cp1_t = random.uniform(0.1, 0.4)
-    cp2_t = random.uniform(0.6, 0.9)
-    ctrl1 = start + delta * cp1_t + normal * bulge * random.uniform(0.5, 1.5)
-    ctrl2 = start + delta * cp2_t + normal * bulge * random.uniform(0.5, 1.5)
 
     noise_freq = random.uniform(2.0, 5.0)
 
-    for step in range(steps + 1):
-        tau = step / steps
-        # Minimum Jerk 掌控物理加速度廓形 (时间规划)
-        s_tau = 10.0 * (tau**3) - 15.0 * (tau**4) + 6.0 * (tau**5)
-        
-        # 三阶 Bezier 赋予空间弧度，且完全拥抱 Minimum Jerk 的时间映射
-        omt = 1.0 - s_tau
-        ideal_pos = (omt**3) * start + 3.0 * (omt**2) * s_tau * ctrl1 + \
-                    3.0 * omt * (s_tau**2) * ctrl2 + (s_tau**3) * actual_target
-        
-        envelope = math.sin(tau * math.pi)
-        nx = noise_x.fractal(tau * noise_freq, octaves=3) * max_noise * envelope
-        ny = noise_y.fractal(tau * noise_freq, octaves=3) * max_noise * envelope
-        
-        current_float_pos = ideal_pos + np.array([nx, ny])
-        
-        # [极度关键] 必须是帧与帧之间的 Delta (导数)，绝不能是当前游标与目标的 Error，否则构成积分发散放大器！
-        step_delta_x = current_float_pos[0] - prev_float[0]
-        step_delta_y = current_float_pos[1] - prev_float[1]
-        prev_float = current_float_pos.copy()
-        
-        acc_x += step_delta_x
-        acc_y += step_delta_y
-        
-        if abs(acc_x) >= 1.0:
-            move_x = int(math.trunc(acc_x))
-            acc_x -= move_x
-            pos_int_x += move_x
-            
-        if abs(acc_y) >= 1.0:
-            move_y = int(math.trunc(acc_y))
-            acc_y -= move_y
-            pos_int_y += move_y
-            
-        # 必须帧帧推送（哪怕是重合静止像素），才能让驱动执行层感受到“停顿和极慢速”的时序分布！
-        points.append((pos_int_x, pos_int_y))
-            
+    if traj_type == _TrajectoryType.STAIRCASE:
+        # 阶梯形轨迹：分两段生成
+        waypoints = _compute_staircase_waypoints(start, actual_target, dist)
+
+        segment_steps = [int(steps * 0.5), int(steps * 0.5)]
+        segment_steps[-1] = steps - sum(segment_steps[:-1])  # 确保总步数正确
+
+        # 第一段
+        if len(waypoints) >= 2:
+            seg_points, prev_float, acc_x, acc_y, pos_int_x, pos_int_y = _generate_segment_points(
+                waypoints[0], waypoints[1], segment_steps[0],
+                noise_x, noise_y, max_noise, noise_freq, is_final_segment=False
+            )
+            points.extend(seg_points)
+
+            # 第二段
+            if len(waypoints) >= 3:
+                seg_points, _, _, _, _, _ = _generate_segment_points(
+                    waypoints[1], waypoints[2], segment_steps[1],
+                    noise_x, noise_y, max_noise, noise_freq, is_final_segment=True
+                )
+                points.extend(seg_points)
+    else:
+        # 其他轨迹类型：单段贝塞尔曲线
+        if traj_type == _TrajectoryType.STRAIGHT:
+            ctrl1, ctrl2 = _compute_straight_controls(start, delta, dist, normal)
+        elif traj_type == _TrajectoryType.S_CURVE:
+            ctrl1, ctrl2 = _compute_s_curve_controls(start, delta, dist, normal)
+        else:  # ARC
+            ctrl1, ctrl2 = _compute_arc_controls(start, delta, dist, normal)
+
+        # 二维余数累加器 (Remainder Accumulator)
+        acc_x, acc_y = 0.0, 0.0
+        pos_int_x, pos_int_y = int(start[0]), int(start[1])
+        prev_float = start.copy()
+
+        for step in range(steps + 1):
+            tau = step / steps
+            # Minimum Jerk 掌控物理加速度廓形 (时间规划)
+            s_tau = 10.0 * (tau**3) - 15.0 * (tau**4) + 6.0 * (tau**5)
+
+            # 三阶 Bezier 赋予空间弧度，且完全拥抱 Minimum Jerk 的时间映射
+            omt = 1.0 - s_tau
+            ideal_pos = (
+                (omt**3) * start
+                + 3.0 * (omt**2) * s_tau * ctrl1
+                + 3.0 * omt * (s_tau**2) * ctrl2
+                + (s_tau**3) * actual_target
+            )
+
+            envelope = math.sin(tau * math.pi)
+            nx = noise_x.fractal(tau * noise_freq, octaves=3) * max_noise * envelope
+            ny = noise_y.fractal(tau * noise_freq, octaves=3) * max_noise * envelope
+
+            current_float_pos = ideal_pos + np.array([nx, ny])
+
+            step_delta_x = current_float_pos[0] - prev_float[0]
+            step_delta_y = current_float_pos[1] - prev_float[1]
+            prev_float = current_float_pos.copy()
+
+            acc_x += step_delta_x
+            acc_y += step_delta_y
+
+            if abs(acc_x) >= 1.0:
+                move_x = int(math.trunc(acc_x))
+                acc_x -= move_x
+                pos_int_x += move_x
+
+            if abs(acc_y) >= 1.0:
+                move_y = int(math.trunc(acc_y))
+                acc_y -= move_y
+                pos_int_y += move_y
+
+            points.append((pos_int_x, pos_int_y))
+
     # 中转点收尾：确保无浮点误差偏移
     final_x_int = int(round(actual_target[0]))
     final_y_int = int(round(actual_target[1]))
@@ -389,7 +653,7 @@ def generate_bionic_curve(
     # 4. 二次修正回落
     if is_overshoot and depth == 0:
         corr_points = generate_bionic_curve(
-            final_x_int, final_y_int, target[0], target[1], 
+            final_x_int, final_y_int, target[0], target[1],
             target_width=max(target_width * 0.4, 2.0),
             depth=depth + 1
         )
@@ -399,5 +663,6 @@ def generate_bionic_curve(
             points.extend(corr_points)
 
     return points
+
 
 HumanKinematics.generate_bionic_curve = staticmethod(generate_bionic_curve)
