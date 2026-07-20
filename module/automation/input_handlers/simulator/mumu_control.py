@@ -110,16 +110,6 @@ class CaptureStd:
         self.stdout = b""
         self.stderr = b""
 
-    def _redirect_stdout(self, to):
-        sys.stdout.close()
-        os.dup2(to, self.fdout)
-        sys.stdout = os.fdopen(self.fdout, "w")
-
-    def _redirect_stderr(self, to):
-        sys.stderr.close()
-        os.dup2(to, self.fderr)
-        sys.stderr = os.fdopen(self.fderr, "w")
-
     def __enter__(self):
         self.fdout = sys.stdout.fileno()
         self.fderr = sys.stderr.fileno()
@@ -127,16 +117,33 @@ class CaptureStd:
         self.reader_err, self.writer_err = os.pipe()
         self.old_stdout = os.dup(self.fdout)
         self.old_stderr = os.dup(self.fderr)
+        self._saved_stdout = sys.stdout
+        self._saved_stderr = sys.stderr
 
-        file_out = os.fdopen(self.writer_out, "w")
-        file_err = os.fdopen(self.writer_err, "w")
-        self._redirect_stdout(to=file_out.fileno())
-        self._redirect_stderr(to=file_err.fileno())
+        os.dup2(self.writer_out, self.fdout)
+        os.dup2(self.writer_err, self.fderr)
+        self._stdout_file = os.fdopen(self.fdout, "w")
+        self._stderr_file = os.fdopen(self.fderr, "w")
+        sys.stdout = self._stdout_file
+        sys.stderr = self._stderr_file
+        os.close(self.writer_out)
+        os.close(self.writer_err)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self._redirect_stdout(to=self.old_stdout)
-        self._redirect_stderr(to=self.old_stderr)
+        sys.stdout = self._saved_stdout
+        sys.stderr = self._saved_stderr
+        # Explicitly close file objects before restoring FD mappings to prevent double-close
+        try:
+            self._stdout_file.close()
+        except Exception:
+            pass
+        try:
+            self._stderr_file.close()
+        except Exception:
+            pass
+        os.dup2(self.old_stdout, self.fdout)
+        os.dup2(self.old_stderr, self.fderr)
         os.close(self.old_stdout)
         os.close(self.old_stderr)
 
@@ -161,9 +168,10 @@ class CaptureStd:
 class CaptureNemuIpc(CaptureStd):
     instance = None
 
-    def __init__(self, logger):
+    def __init__(self, logger, log_level="error"):
         super().__init__()
         self.logger = logger
+        self.log_level = log_level
 
     def is_capturing(self):
         """
@@ -193,12 +201,12 @@ class CaptureNemuIpc(CaptureStd):
     def check_stdout(self):
         if not self.stdout:
             return
-        self.logger.info(f"NemuIpc stdout: {self.stdout}")
+        getattr(self.logger, self.log_level)(f"NemuIpc stdout: {self.stdout}")
 
     def check_stderr(self):
         if not self.stderr:
             return
-        self.logger.error(f"NemuIpc stderr: {self.stderr}")
+        getattr(self.logger, self.log_level)(f"NemuIpc stderr: {self.stderr}")
 
         # Calling an old MuMu12 player
         # Tested on 3.4.0
@@ -253,6 +261,7 @@ class MumuControl(AbstractInput):
         self.install_path = None
         self.nemu_folder = None
         self.mumu_version = None
+        self.android_version = None
         self.exe_path = None
         self.multi_instance_number = instance_number
         self.port = None
@@ -461,53 +470,67 @@ class MumuControl(AbstractInput):
                 )
                 return f"127.0.0.1:{int(self.multi_instance_number) * 32 + 16384}"
             log.debug(
-                f"get_mumu_adb_port 异常 (轮次{_depth+1}/{_MAX_DEPTH}): {type(e).__name__}: {e}, 触发 start() 重建后重试"
+                f"get_mumu_adb_port 异常 (轮次{_depth+1}/{_MAX_DEPTH}): {type(e).__name__}: {e}, 等待后重试"
             )
-            self.start()
+            time.sleep(3)
             return self.get_mumu_adb_port(multi_instance_number, _depth + 1)
 
     def start(self):
-        try:
+        # 预先处理后台保活（仅在首次）
+        self.check_stop_requested()
+        log.debug(f"开始启动MUMU模拟器实例编号{self.multi_instance_number}")
+        keptlive = self.get_app_keptlive()
+        if keptlive:
+            log.info("检测到启用了应用后台保活功能，即将关闭")
+            if self.get_launch_status() == "start_finished":
+                log.info("检测到模拟器处于启用状态，为关闭应用后台保活，需执行重启")
+                self.stop()
+            self.disable_app_keptlive()
+        else:
+            log.debug("未启用应用后台保活功能,可正常运行")
+        # 启动模拟器
+        command = [
+            self.exe_path,
+            "control",
+            "-v",
+            str(self.multi_instance_number),
+            "launch",
+        ]
+        run_as_user(command)
+
+        timeout_seconds = cfg.start_emulator_timeout
+        deadline = time.monotonic() + timeout_seconds
+        seen_started_state = False
+        last_connection_error = None
+
+        # MuMuManager 的启动状态只作为开始探测的信号；external_renderer_ipc
+        # 的共享内存可能稍后才可用，因此以 connect() 成功作为最终就绪条件。
+        while time.monotonic() < deadline:
             self.check_stop_requested()
-            log.debug(f"开始启动MUMU模拟器实例编号{self.multi_instance_number}")
-            keptlive = self.get_app_keptlive()
-            if keptlive:
-                log.info("检测到启用了应用后台保活功能，即将关闭")
-                if self.get_launch_status() == "start_finished":
-                    log.info("检测到模拟器处于启用状态，为关闭应用后台保活，需执行重启")
-                    self.stop()
-                self.disable_app_keptlive()
-            else:
-                log.debug("未启用应用后台保活功能,可正常运行")
-            # 使用mumumanager控制模拟器开启与关闭
-            command = [
-                self.exe_path,
-                "control",
-                "-v",
-                str(self.multi_instance_number),
-                "launch",
-            ]
-            run_as_user(command)
-            # 等待模拟器启动完成
-            for _ in range(cfg.start_emulator_timeout):
-                self.check_stop_requested()
-                time.sleep(1)
-                if self.get_launch_status() == "start_finished":
-                    log.debug("start: 模拟器启动状态确认为 start_finished")
-                    break
-            else:
-                log.warning(f"start: 模拟器启动等待超时 ({cfg.start_emulator_timeout}s), 状态可能仍为未启动")
-            self.check_stop_requested()
-            self.port = self.get_mumu_adb_port()
-            self.load_dll()
-            log.debug(f"MUMU模拟器编号{self.multi_instance_number}启动完成")
-            self.connect()
-        except userStopError:
-            raise
-        except Exception as e:
-            log.warning(f"start: 启动过程异常 ({type(e).__name__}: {e}), 触发 fallback 重试")
-            self.mumu_control_api_backend()
-            self.start()
+            if self.get_launch_status() != "start_finished":
+                time.sleep(min(1, max(0, deadline - time.monotonic())))
+                continue
+
+            if not seen_started_state:
+                log.debug("start: 模拟器启动状态确认为 start_finished，等待 Nemu IPC 就绪")
+                self.load_dll()
+                self.port = self.get_mumu_adb_port()
+                seen_started_state = True
+            try:
+                self.connect(log_level="debug")
+                log.debug(f"MUMU模拟器编号{self.multi_instance_number}启动完成")
+                return
+            except userStopError:
+                raise
+            except (NemuIpcError, asyncio.TimeoutError) as e:
+                last_connection_error = e
+                log.debug(f"start: Nemu IPC 尚未就绪 ({type(e).__name__}: {e})")
+                time.sleep(min(1, max(0, deadline - time.monotonic())))
+
+        if seen_started_state:
+            message = f"Mumu模拟器启动超时（{timeout_seconds}秒），等待 Nemu IPC 就绪"
+            raise RuntimeError(message) from last_connection_error
+        raise RuntimeError(f"Mumu模拟器启动超时（{timeout_seconds}秒），未检测到启动完成状态")
 
     def close_simulator(self):
         command = [
@@ -520,21 +543,26 @@ class MumuControl(AbstractInput):
         run_as_user(command)
 
     def stop(self):
-        try:
-            command = [
-                self.exe_path,
-                "control",
-                "-v",
-                str(self.multi_instance_number),
-                "shutdown",
-            ]
-            subprocess.run(command)
-            log.debug(f"MUMU模拟器编号{self.multi_instance_number}关闭完成")
-        except userStopError:
-            raise
-        except Exception:
-            self.mumu_control_api_backend()
-            self.stop()
+        for attempt in range(3):
+            try:
+                command = [
+                    self.exe_path,
+                    "control",
+                    "-v",
+                    str(self.multi_instance_number),
+                    "shutdown",
+                ]
+                subprocess.run(command)
+                log.debug(f"MUMU模拟器编号{self.multi_instance_number}关闭完成")
+                return
+            except userStopError:
+                raise
+            except Exception:
+                if attempt < 2:
+                    self.mumu_control_api_backend()
+                    time.sleep(1)
+                else:
+                    log.warning(f"MUMU模拟器编号{self.multi_instance_number}关闭失败（已重试3次）")
 
     def get_path(self):
         # 获取MuMuManager.exe所在的目录
@@ -666,6 +694,9 @@ class MumuControl(AbstractInput):
             log.warning(f"get_launch_status: 解析 info 失败，stdout={proc.stdout}")
             return "not_launched"
         try:
+            android_version = info.get("android_version")
+            if android_version:
+                self.android_version = android_version
             if "player_state" in info:
                 return info["player_state"]
             if info.get("is_android_started") or info.get("is_process_started"):
@@ -677,19 +708,41 @@ class MumuControl(AbstractInput):
 
     def load_dll(self):
         nemu_folder = os.path.dirname(self.install_path)
-        list_dll = [
-            os.path.abspath(os.path.join(nemu_folder, "./shell/sdk/external_renderer_ipc.dll")),
-            os.path.abspath(os.path.join(nemu_folder, "./nx_device/12.0/shell/sdk/external_renderer_ipc.dll")),
-        ]
+        list_dll = []
+        android_version = getattr(self, "android_version", None)
+        if android_version:
+            list_dll.append(
+                os.path.abspath(
+                    os.path.join(
+                        nemu_folder,
+                        "nx_device",
+                        android_version,
+                        "shell",
+                        "sdk",
+                        "external_renderer_ipc.dll",
+                    )
+                )
+            )
+        for candidate in (
+            os.path.join(nemu_folder, "shell", "sdk", "external_renderer_ipc.dll"),
+            os.path.join(nemu_folder, "nx_device", "12.0", "shell", "sdk", "external_renderer_ipc.dll"),
+        ):
+            candidate = os.path.abspath(candidate)
+            if candidate not in list_dll:
+                list_dll.append(candidate)
         lib_path = self.get_nemu_client_path()
         if lib_path:
-            list_dll.append(os.path.abspath(lib_path))
+            lib_path = os.path.abspath(lib_path)
+            if lib_path not in list_dll:
+                list_dll.append(lib_path)
         nx_device_root = os.path.join(nemu_folder, "nx_device")
         if os.path.isdir(nx_device_root):
             for entry in sorted(os.listdir(nx_device_root)):
-                candidate = os.path.join(nx_device_root, entry, "shell", "sdk", "external_renderer_ipc.dll")
-                if os.path.exists(candidate):
-                    list_dll.append(os.path.abspath(candidate))
+                candidate = os.path.abspath(
+                    os.path.join(nx_device_root, entry, "shell", "sdk", "external_renderer_ipc.dll")
+                )
+                if os.path.exists(candidate) and candidate not in list_dll:
+                    list_dll.append(candidate)
         ipc_dll = ""
         for ipc_dll in list_dll:
             if not os.path.exists(ipc_dll):
@@ -710,13 +763,18 @@ class MumuControl(AbstractInput):
         else:
             log.debug(f"ipc_dll={ipc_dll} 加载成功")
 
-    def connect(self):
+    def connect(self, *, log_level="warning"):
         if self.connect_id > 0:
             return
 
         self.nemu_folder = os.path.dirname(self.install_path)
 
-        connect_id = self.ev_run_sync(self.lib.nemu_connect, self.nemu_folder, self.multi_instance_number)
+        connect_id = self.ev_run_sync(
+            self.lib.nemu_connect,
+            self.nemu_folder,
+            self.multi_instance_number,
+            log_level=log_level,
+        )
         if connect_id == 0:
             raise NemuIpcError("连接失败，请检查nemu_folder是否正确，模拟器是否正在运行")
 
@@ -756,7 +814,7 @@ class MumuControl(AbstractInput):
         result = await asyncio.wait_for(self._ev.run_in_executor(None, func_wrapped), timeout=timeout)
         return result
 
-    def ev_run_sync(self, func, *args, **kwargs):
+    def ev_run_sync(self, func, *args, log_level="warning", **kwargs):
         """
         Args:
             func: Sync function to call
@@ -779,8 +837,9 @@ class MumuControl(AbstractInput):
                 err = True
         # Get to actual error message printed in std
         if err:
-            log.warning(f"调用 {func.__name__} 失败，结果={result}")
-            with CaptureNemuIpc(log):
+            getattr(log, log_level)(f"调用 {func.__name__} 失败，结果={result}")
+            stderr_log_level = "debug" if log_level == "debug" else "error"
+            with CaptureNemuIpc(log, log_level=stderr_log_level):
                 result = self._ev.run_until_complete(self.ev_run_async(func, *args, **kwargs))
 
         return result
