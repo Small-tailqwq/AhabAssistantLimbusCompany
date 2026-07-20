@@ -1,6 +1,5 @@
 import os
 from datetime import datetime
-from math import ceil
 from time import sleep
 
 from PIL import Image
@@ -43,7 +42,7 @@ def _debug_save_on_failure(money_bbox, ocr_result, in_heal=False):
             try:
                 auto.screenshot.crop(money_bbox).save(f"{debug_dir}/{ts}_{prefix}_crop.png")
             except Exception:
-                log.debug("保存调试截图裁剪区域失败", exc_info=True)
+                pass
     log.info(f"[商店调试] OCR失败, 原始结果: {ocr_result}, 坐标: {money_bbox}")
 
 
@@ -59,38 +58,8 @@ _MONEY_OCR_TRANSLATION = str.maketrans(
         "S": "5",
         "G": "6",
         "B": "8",
-        "h": "4",
     }
 )
-
-
-# E.G.O 饰品升级扫描区域（相对坐标，基于 1080p/2k 样本校准）
-_ENHANCE_SCAN_REGION_REL = {
-    "left": 0.5151,
-    "top": 0.3380,
-    "right": 0.8844,
-    "bottom": 0.7130,
-}
-
-
-def _filter_enhance_gift_scan_points(points, screen_size):
-    if not points or not screen_size:
-        return points
-
-    width, height = screen_size
-    if not width or not height:
-        return points
-
-    left = int(round(_ENHANCE_SCAN_REGION_REL["left"] * width))
-    top = int(round(_ENHANCE_SCAN_REGION_REL["top"] * height))
-    right = int(round(_ENHANCE_SCAN_REGION_REL["right"] * width))
-    bottom = int(round(_ENHANCE_SCAN_REGION_REL["bottom"] * height))
-
-    return [
-        point
-        for point in points
-        if left <= int(point[0]) <= right and top <= int(point[1]) <= bottom
-    ]
 
 
 def _extract_money_from_ocr_texts(texts):
@@ -104,24 +73,10 @@ def _extract_money_from_ocr_texts(texts):
 
     for text in cleaned_texts:
         normalized = text.translate(_MONEY_OCR_TRANSLATION)
-        if normalized.isdigit():
+        if normalized.isdigit() and any(ch.isdigit() for ch in normalized):
             return int(normalized)
 
     return None
-
-
-def _wait_for_keyword_refresh_confirm_to_clear(timeout_seconds=2.2, poll_interval=0.25):
-    """等待关键词刷新确认弹窗消失，避免因为检测过快导致误判。"""
-    poll_interval = max(float(poll_interval), 0.05)
-    timeout_seconds = max(float(timeout_seconds), poll_interval)
-    max_checks = max(1, int(ceil(timeout_seconds / poll_interval)))
-
-    for index in range(max_checks):
-        if auto.find_element("mirror/shop/refresh_keyword_confirm_assets.png", take_screenshot=True) is None:
-            return True
-        if index < max_checks - 1:
-            sleep(poll_interval)
-    return False
 
 
 def _retry_money_ocr_with_scaled_crop(money_bbox, scale=2):
@@ -131,15 +86,11 @@ def _retry_money_ocr_with_scaled_crop(money_bbox, scale=2):
     try:
         crop = auto.screenshot.crop(money_bbox)
         width, height = crop.size
-        try:
-            resampling = Image.Resampling.BICUBIC
-        except AttributeError:
-            resampling = Image.BICUBIC
+        resampling = getattr(getattr(Image, "Resampling", Image), "BICUBIC")
         enlarged = crop.resize((width * scale, height * scale), resample=resampling)
         result = ocr.run(enlarged)
         return list(result.txts or [])
     except Exception:
-        log.debug("OCR 放大裁剪识别失败", exc_info=True)
         return []
 
 
@@ -201,68 +152,47 @@ class Shop:
     class RestartGame(Exception):
         pass
 
-    def _should_try_refresh(self, my_remaining_money, threshold):
-        if my_remaining_money < 0:
-            return True
-        return my_remaining_money - self.reserve_upgrade_funds >= threshold
-
-    def _finalize_purchase_attempt(self):
-        auto.take_screenshot()
-        if auto.click_element("mirror/road_in_mir/ego_gift_get_confirm_assets.png"):
-            sleep(0.5)
-        auto.mouse_click_blank(times=3)
-        sleep(1)
-
-    def _finish_shop_refresh(self):
-        auto.mouse_click_blank()
-        sleep(3)
-        if retry() is False:
-            raise self.RestartGame()
-        if self.skill_replacement and self.replacement < 3:
-            self.replacement_skill()
-
     def _try_keyword_refresh(self):
+        auto.mouse_click_blank(times=3)
+        if not auto.click_element("mirror/shop/refresh_keyword_assets.png"):
+            return None
         sleep(1)
-
         if not auto.click_element(
             f"mirror/shop/keyword/keyword_{self.system}.png",
             take_screenshot=True,
         ):
+            auto.mouse_click_blank()
             return False
-
-        sleep(0.5)
-
-        if not auto.click_element("mirror/shop/refresh_keyword_confirm_assets.png", take_screenshot=True):
+        if not auto.click_element("mirror/shop/refresh_keyword_confirm_assets.png"):
+            auto.mouse_click_blank()
             return False
+        if not self._wait_for_keyword_refresh_dialog_to_close():
+            auto.mouse_click_blank()
+            return False
+        if retry() is False:
+            raise self.RestartGame()
+        if self.skill_replacement and self.replacement < 3:
+            self.replacement_skill()
+        return True
 
-        if _wait_for_keyword_refresh_confirm_to_clear():
-            self._finish_shop_refresh()
-            return True
-
-        for _ in range(2):
-            log.warning("关键词刷新确认未生效，重试中")
-            sleep(0.4)
-            if not auto.click_element(
-                f"mirror/shop/keyword/keyword_{self.system}.png",
-                take_screenshot=True,
-            ):
+    def _wait_for_keyword_refresh_dialog_to_close(self, max_checks=10):
+        for _ in range(max_checks):
+            auto.ensure_not_stopped()
+            if auto.take_screenshot() is None:
                 continue
-            sleep(0.4)
-            if not auto.click_element(
+            confirm_visible = auto.find_element(
                 "mirror/shop/refresh_keyword_confirm_assets.png",
-                take_screenshot=True,
-            ):
-                continue
-            if _wait_for_keyword_refresh_confirm_to_clear():
-                self._finish_shop_refresh()
+                threshold=0.8,
+                log_result=False,
+            )
+            keyword_visible = auto.find_element(
+                f"mirror/shop/keyword/keyword_{self.system}.png",
+                threshold=0.8,
+                log_result=False,
+            )
+            if not confirm_visible and not keyword_visible:
                 return True
-
-        return False
-
-    def _try_normal_refresh(self):
-        if auto.click_element("mirror/shop/refresh_assets.png"):
-            self._finish_shop_refresh()
-            return True
+            sleep(0.3)
         return False
 
     def ego_gift_to_power_up(self):
@@ -424,7 +354,7 @@ class Shop:
                 system_gift = sort_points(system_gift, complete_count)
                 while system_gift:
                     gift = system_gift.pop(0)
-                    auto.mouse_action_with_pos((gift[0], gift[1]), offset=True)
+                    auto.mouse_click(gift[0], gift[1])
                     sleep(1)
                     while auto.take_screenshot() is None:
                         continue
@@ -443,7 +373,8 @@ class Shop:
                         auto.mouse_click_blank(times=3)
                         continue
                     else:
-                        self._finalize_purchase_attempt()
+                        auto.mouse_click_blank(times=2)
+                        sleep(1)
 
             if self.second_system and self.second_system_action[1]:
                 if self.second_system_setting == 1 or (self.second_system_setting == 0 and self.fuse_IV is True):
@@ -455,7 +386,7 @@ class Shop:
                     system_gift = sort_points(system_gift, complete_count)
                     while system_gift:
                         gift = system_gift.pop(0)
-                        auto.mouse_action_with_pos((gift[0], gift[1]), offset=True)
+                        auto.mouse_click(gift[0], gift[1])
                         sleep(1)
                         while auto.take_screenshot() is None:
                             continue
@@ -474,30 +405,43 @@ class Shop:
                             auto.mouse_click_blank(times=3)
                             continue
                         else:
-                            self._finalize_purchase_attempt()
+                            auto.mouse_click_blank(times=2)
+                            sleep(1)
 
             if retry() is False:
                 raise self.RestartGame()
 
             my_remaining_money = self._get_cost()
 
-            if keyword_refresh_count < self.max_keyword_refresh and self._should_try_refresh(my_remaining_money, 300):
-                auto.mouse_click_blank(times=3)
-                if auto.click_element("mirror/shop/refresh_keyword_assets.png"):
-                    if self._try_keyword_refresh():
+            if keyword_refresh_count < self.max_keyword_refresh:
+                if my_remaining_money < 0 or my_remaining_money - self.reserve_upgrade_funds >= 300:
+                    keyword_refresh_result = self._try_keyword_refresh()
+                    if keyword_refresh_result:
                         keyword_refresh_count += 1
+                    if keyword_refresh_result is not None:
                         continue
 
-            if normal_refresh_count < self.max_normal_refresh and self._should_try_refresh(my_remaining_money, 200):
-                auto.mouse_click_blank(times=3)
-                if self._try_normal_refresh():
-                    normal_refresh_count += 1
-                    continue
+            if normal_refresh_count < self.max_normal_refresh:
+                if my_remaining_money < 0 or my_remaining_money - self.reserve_upgrade_funds >= 200:
+                    auto.mouse_click_blank(times=3)
+                    if auto.click_element("mirror/shop/refresh_assets.png"):
+                        normal_refresh_count += 1
+                        sleep(3)
+                        if retry() is False:
+                            raise self.RestartGame()
+                        if self.skill_replacement and self.replacement < 3:
+                            self.replacement_skill()
+                        continue
 
             if normal_refresh_count < self.max_normal_refresh and my_remaining_money >= 200:
                 auto.mouse_click_blank(times=3)
-                if self._try_normal_refresh():
+                if auto.click_element("mirror/shop/refresh_assets.png"):
                     normal_refresh_count += 1
+                    sleep(3)
+                    if retry() is False:
+                        raise self.RestartGame()
+                    if self.skill_replacement and self.replacement < 3:
+                        self.replacement_skill()
                     continue
 
             break
@@ -733,10 +677,10 @@ class Shop:
                 gift = auto.find_element(my_sell_system, find_type="image_with_multiple_targets")
                 if gift:
                     if isinstance(gift, list):
-                        log.debug(f"识别到{len(gift)}个{system_cn_zh.get(sell_system, sell_system)}饰品")
+                        log.debug(f"识别到{len(gift)}个{sell_system}饰品")
                         gift_list.extend(list(g) for g in gift)
                     elif isinstance(gift, tuple):
-                        log.debug(f"识别到1个{system_cn_zh.get(sell_system, sell_system)}饰品")
+                        log.debug(f"识别到1个{sell_system}饰品")
                         gift_list.append(gift)
             # 对饰品位置列表进行排序、去重处理
             my_list = processing_coordinates(gift_list)
@@ -1050,14 +994,12 @@ class Shop:
                     while auto.take_screenshot() is None:
                         continue
                     if auto.click_element("mirror/shop/fuse_gift_confirm_assets.png", model="normal"):
-                        sleep(0.5)
                         break
             else:
                 if auto.click_element(f"mirror/shop/keyword/keyword_{self.system}.png"):
                     while auto.take_screenshot() is None:
                         continue
                     if auto.click_element("mirror/shop/fuse_gift_confirm_assets.png", model="normal"):
-                        sleep(0.5)
                         break
             if auto.click_element("mirror/shop/fuse_to_select_keyword_assets.png"):
                 continue
@@ -1206,7 +1148,6 @@ class Shop:
         auto.model = "clam"
         system_level_IV = False
         second_system_level_IV = False
-        stale_count = 0
         while True:
             # 自动截图
             if auto.take_screenshot() is None:
@@ -1255,11 +1196,6 @@ class Shop:
                 find_type="image_with_multiple_targets",
             ):
                 gifts = sorted(gifts, key=lambda x: (x[1], x[0]))
-                raw_count = len(gifts)
-                screen_size = auto.screenshot.size if auto.screenshot is not None else None
-                gifts = _filter_enhance_gift_scan_points(gifts, screen_size)
-                if len(gifts) != raw_count:
-                    log.debug(f"升级扫描区域过滤：{raw_count} -> {len(gifts)}")
                 for gift in gifts:
                     if check_enhanced(gift) is False:
                         auto.mouse_click(gift[0], gift[1])
@@ -1279,11 +1215,6 @@ class Shop:
             #     continue
 
             if next_gift is False:
-                break
-
-            stale_count += 1
-            if stale_count > 2:
-                log.debug("连续多轮未找到可升级饰品，退出升级模块")
                 break
 
             loop_count -= 1
@@ -1427,8 +1358,6 @@ class Shop:
             auto.click_element("mirror/shop/skill_replacement_confirm_assets.png")
             if retry() is False:
                 raise self.RestartGame()
-        # 如果所有优先罪人都没有技能可替换，则点击返回按钮退出该界面
-        auto.click_element("mirror/shop/ID_skill_replace_search_return_assets.png")
 
     def replacement_skill(self):
         """
@@ -1476,7 +1405,6 @@ class Shop:
         fuse = False
         enhance = False
         skill = False
-        shop_exit_success = False
         try:
             while True:
                 # 忽略楼层商店的情况
@@ -1571,7 +1499,6 @@ class Shop:
                 if retry() is False:
                     raise self.RestartGame()
                 if auto.find_element("mirror/road_in_mir/legend_assets.png"):
-                    shop_exit_success = True
                     break
                 if auto.click_element("mirror/shop/leave_shop_confirm_assets.png"):
                     _shop_debug_save("leave_shop_confirm_clicked")
@@ -1581,10 +1508,9 @@ class Shop:
                     continue
                 if auto.click_element("mirror/shop/heal_sinner/heal_sinner_return_assets.png"):
                     continue
-            return shop_exit_success
         except self.RestartGame:
             log.error("执行商店操作期间出现错误，尝试重启游戏")
-            return False
+            return
 
     def _get_cost(self, in_heal=False) -> int:
         """获取当前剩余的经费"""
