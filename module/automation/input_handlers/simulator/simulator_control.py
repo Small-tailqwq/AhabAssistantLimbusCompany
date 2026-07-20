@@ -236,7 +236,7 @@ class SimulatorControl(AbstractInput):
                 target_serial = self.simulator_device.serial
 
                 # 通过序列号获取设备对象
-                self.simulator_control = MNTDevice(target_serial)
+                self.simulator_control = MNTDevice(target_serial, stop_checker=self.stop_checker)
 
                 # 提取分辨率（如 1080x1920）
                 size_output = self.simulator_device.shell(["wm", "size"])

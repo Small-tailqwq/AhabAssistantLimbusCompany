@@ -145,15 +145,15 @@ class MNTServer(object):
     @classmethod
     def _get_port(cls):
         """get a random port from port set"""
-        # 保持原有逻辑不变
         if not cls._PORT_SET:
             raise RuntimeError("No available ports in PORT_SET")
-        new_port = random.choice(list(cls._PORT_SET))
-        if is_port_using(new_port):
-            # 注意：这里应当避免无限递归，实际项目中建议加重试上限
-            return cls._get_port()
-        cls._PORT_SET.remove(new_port)  # 记得从集合中移除，防止重复分配
-        return new_port
+        max_attempts = 20
+        for _ in range(max_attempts):
+            new_port = random.choice(list(cls._PORT_SET))
+            if not is_port_using(new_port):
+                cls._PORT_SET.remove(new_port)
+                return new_port
+        raise RuntimeError("No available ports in PORT_SET")
 
     def _forward_port(self):
         """allow pc access minitouch with port"""

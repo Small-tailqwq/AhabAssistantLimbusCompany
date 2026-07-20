@@ -121,8 +121,9 @@ class MNTDevice(object):
         device.stop()
     """
 
-    def __init__(self, device_id):
+    def __init__(self, device_id, stop_checker=None):
         self.device_id = device_id
+        self.stop_checker = stop_checker
         self.server = None
         self.connection = None
         self.start()
@@ -134,16 +135,24 @@ class MNTDevice(object):
         self.start()
 
     def start(self):
-        # prepare for connection
-        try:
-            self.server = MNTServer(self.device_id)
-        except AssertionError:
-            import adbutils
+        max_retries = 3
+        for attempt in range(max_retries):
+            if callable(self.stop_checker):
+                self.stop_checker()
+            try:
+                self.server = MNTServer(self.device_id)
+                break
+            except AssertionError:
+                if attempt >= max_retries - 1:
+                    raise
+                import adbutils
 
-            adbutils.adb.kill_server()
-            self.start()
-        except Exception:
-            self.start()
+                adbutils.adb.kill_server()
+                time.sleep(0.5)
+            except Exception:
+                if attempt >= max_retries - 1:
+                    raise
+                time.sleep(0.5)
         # real connection
         self.connection = MNTConnection(self.server.port)
 

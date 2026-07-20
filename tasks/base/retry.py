@@ -205,12 +205,6 @@ def retry():
     if is_windows:
         saved_hwnd = screen.handle.hwnd
     while True:
-        if ensure_simulator_game_started():
-            start_time = time.time()
-            if should_wait_for_main_menu_after_simulator_start():
-                from tasks.base.back_init_menu import wait_until_main_menu_after_launch
-
-                return wait_until_main_menu_after_launch() == "main_menu"
         if is_windows and screen.handle.hwnd != saved_hwnd:
             # 句柄发生变化则重置初始时间, 以免误判卡死
             saved_hwnd = screen.handle.hwnd
