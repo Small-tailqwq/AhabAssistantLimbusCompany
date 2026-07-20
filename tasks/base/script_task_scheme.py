@@ -21,6 +21,7 @@ from module.game_and_screen import game_process, screen
 from module.game_and_screen.hdr import get_monitor_hdr_info
 from module.logger import log
 from module.my_error.my_error import (
+    EmulatorCrashedError,
     backMainWinError,
     cannotOperateGameError,
     netWorkUnstableError,
@@ -38,9 +39,12 @@ from module.system_actions import (
     get_after_completion_config,
 )
 from tasks.base.back_init_menu import (
+    StartupMainMenuWaitResult,
+    _consume_startup_main_menu_wait_pending,
     back_init_menu,
     clear_startup_main_menu_wait_pending,
     mark_startup_main_menu_wait_pending,
+    wait_until_main_menu_after_launch,
 )
 from tasks.base.make_enkephalin_module import (
     lunacy_to_enkephalin,
@@ -189,10 +193,8 @@ def init_game():
             )
 
             ensure_accelerator()
-            was_game_alive = MumuControl.connection_device.check_game_alive()
             MumuControl.connection_device.start_game()
-            if not was_game_alive:
-                mark_startup_main_menu_wait_pending()
+            mark_startup_main_menu_wait_pending()
         else:
             from module.automation.accelerator import ensure_accelerator
             from module.automation.input_handlers.simulator.simulator_control import (
@@ -200,10 +202,8 @@ def init_game():
             )
 
             ensure_accelerator()
-            was_game_alive = SimulatorControl.connection_device.check_game_alive()
             SimulatorControl.connection_device.start_game()
-            if not was_game_alive:
-                mark_startup_main_menu_wait_pending()
+            mark_startup_main_menu_wait_pending()
     else:
         stop_checker()
         was_game_alive = game_process.check_game_alive()
@@ -336,8 +336,6 @@ def Daily_task_wrapper(get_reward=None):
 
 def Buy_enkephalin():
     times = cfg.set_lunacy_to_enkephalin
-    if times == 0:
-        return
     auto.ensure_not_stopped()
     back_init_menu()
     lunacy_to_enkephalin(times=times)
@@ -432,6 +430,12 @@ def script_task() -> None | int:
     path_manager.initialize_paths()
     auto.clear_img_cache()
     log.debug(f"初始化图片路径: {path_manager.pic_path}")
+
+    if _consume_startup_main_menu_wait_pending():
+        log.info("已请求启动游戏，等待进入主界面")
+        wait_result = wait_until_main_menu_after_launch()
+        if wait_result == StartupMainMenuWaitResult.TIMEOUT:
+            raise cannotOperateGameError("启动后等待主界面超时")
 
     get_reward = None
     if auto.click_element("battle/turn_assets.png", take_screenshot=True):
@@ -532,6 +536,7 @@ class my_script_task(QThread):
             self._run()
         except (
             ConnectionError,
+            EmulatorCrashedError,
             userStopError,
             unableToFindTeamError,
             unexpectNumError,

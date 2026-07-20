@@ -9,9 +9,7 @@ from module.logger import log
 from tasks.base.retry import (
     _is_runtime_ui_visible,
     click_title_screen_safely,
-    ensure_simulator_game_started,
     retry,
-    should_wait_for_main_menu_after_simulator_start,
 )
 from tasks.mirror.reward_card import get_reward_card
 
@@ -105,11 +103,13 @@ def wait_until_main_menu_after_launch(*, allow_restart: bool = True) -> StartupM
                 log.info(f"启动后仍在等待进入主界面，已等待{int(now - start_time)}秒/{timeout_seconds}秒")
                 halfway_logged = True
             auto.ensure_not_stopped()
-            if ensure_simulator_game_started():
-                if not should_wait_for_main_menu_after_simulator_start():
-                    return StartupMainMenuWaitResult.RUNTIME_UI
-                continue
             if auto.take_screenshot() is None:
+                continue
+
+            # 启动中的连接/加载画面可以长时间静止；先处理这些已知状态，
+            # 再执行静帧兜底，避免误按 ESC 干扰登录或连接服务器。
+            if handle_launch_state_once():
+                sleep(0.5)
                 continue
 
             fingerprint = _screenshot_fingerprint()
@@ -130,9 +130,6 @@ def wait_until_main_menu_after_launch(*, allow_restart: bool = True) -> StartupM
             else:
                 _stale_count = 0
                 _last_fingerprint = fingerprint
-
-            if handle_launch_state_once():
-                continue
 
             if _is_runtime_ui_visible():
                 return StartupMainMenuWaitResult.RUNTIME_UI
@@ -184,14 +181,6 @@ def back_init_menu(*, allow_restart: bool = True) -> bool:
         if _is_retry_debug_enabled():
             log.info(f"[重试调试] 返回主界面 第{30 - loop_count}次循环, 模型={auto.model}")
 
-        if ensure_simulator_game_started():
-            if should_wait_for_main_menu_after_simulator_start():
-                wait_result = wait_until_main_menu_after_launch(allow_restart=allow_restart)
-                if wait_result == StartupMainMenuWaitResult.MAIN_MENU:
-                    return True
-                if wait_result == StartupMainMenuWaitResult.RUNTIME_UI:
-                    continue
-                return False
         if retry() is False:
             return False
 

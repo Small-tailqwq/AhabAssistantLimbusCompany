@@ -154,6 +154,37 @@ class MessageBoxEdit(MessageBox):
         self.titleLabel.setText(text)
 
 
+class MessageBoxScroll(MessageBox):
+    """带滚动区域的消息框，适用于长文本内容（如校验报错）。"""
+
+    def __init__(self, title: str, content: str, parent=None):
+        super().__init__(title, "", parent)
+
+        self.buttonLayout.removeWidget(self.yesButton)
+        self.buttonLayout.removeWidget(self.cancelButton)
+        self.textLayout.removeWidget(self.contentLabel)
+        self.contentLabel.clear()
+
+        self.contentLabel = BodyLabel(content, parent)
+        self.contentLabel.setObjectName("contentLabel")
+        self.contentLabel.setWordWrap(True)
+        FluentStyleSheet.DIALOG.apply(self.contentLabel)
+
+        self.scrollArea = ScrollArea(self.widget)
+        self.scrollArea.setWidgetResizable(True)
+        self.scrollArea.enableTransparentBackground()
+        self.scrollArea.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.scrollArea.setWidget(self.contentLabel)
+        self.scrollArea.setMaximumHeight(400)
+
+        self.textLayout.addWidget(self.scrollArea, 0, Qt.AlignTop)
+
+        self.yesButton.setText(self.tr("确认"))
+        self.cancelButton.setHidden(True)
+        self.buttonLayout.addWidget(self.yesButton, 1, Qt.AlignVCenter)
+        self.buttonGroup.setMinimumWidth(400)
+
+
 class MessageBoxWarning(MessageBox):
     def __init__(self, title: str, content: str, parent=None):
         super().__init__(title, content, parent)
