@@ -12,6 +12,7 @@ ACCELERATOR_PRESETS: dict[str, dict] = {
         "name": "自定义",
         "package": None,
         "acc_button_ids": [],
+        "acc_button_texts": [],
         "close_button_ids": [],
         "close_button_texts": [],
     },
@@ -22,10 +23,19 @@ ACCELERATOR_PRESETS: dict[str, dict] = {
         "acc_button_ids": [
             "com.nn.accelerator.box:id/acc_view2",
         ],
+        "acc_button_texts": [],
         "close_button_ids": [
             "com.nn.accelerator.box:id/iv_close",
         ],
         "close_button_texts": ["跳过", "我知道了"],
+    },
+    "clash_meta": {
+        "name": "Clash Meta",
+        "package": "com.github.metacubex.clash.meta",
+        "acc_button_ids": [],
+        "acc_button_texts": ["点此启动"],
+        "close_button_ids": [],
+        "close_button_texts": ["允许", "确定", "我知道了"],
     },
 }
 
@@ -73,7 +83,7 @@ def _check_acceleration_active(device) -> bool:
     try:
         result = device.shell("ls /sys/class/net/ 2>/dev/null")
         interfaces = (result or "").strip().split()
-        tun_interfaces = [i for i in interfaces if i.startswith("tun")]
+        tun_interfaces = [i for i in interfaces if i.startswith("tun") and not i.startswith("tunl")]
         if tun_interfaces:
             log.info(f"加速器：检测到加速已生效 (tun 接口: {', '.join(tun_interfaces)})")
             return True
@@ -204,6 +214,11 @@ def _find_acc_button_in_xml(ui_xml: str, preset: dict) -> tuple[int, int] | None
         center = _find_element_center(ui_xml, resource_id=rid)
         if center:
             log.info(f"加速器：自动检测到加速按钮 (resource-id: {rid})，坐标 {center}")
+            return center
+    for text in preset.get("acc_button_texts", []):
+        center = _find_element_center(ui_xml, text=text, clickable_only=False)
+        if center:
+            log.info(f"加速器：自动检测到加速按钮 (text: {text})，坐标 {center}")
             return center
     return None
 

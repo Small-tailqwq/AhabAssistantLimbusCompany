@@ -710,7 +710,7 @@ class ConfigModel(BaseModel):
     """模拟器启动加速器：启动游戏前检测加速是否生效（通过 tun 接口），未生效时自动启动加速器并点击加速按钮"""
 
     lab_simulator_accelerator_preset: str
-    """模拟器加速器预设："custom" 或 "leigod"。选择预设后自动填充包名和加速按钮检测规则"""
+    """模拟器加速器预设："custom" / "leigod" / "clash_meta"。选择预设后自动填充包名和加速按钮检测规则"""
 
     lab_simulator_accelerator_package: str
     """模拟器加速器包名，自定义预设时需要手动填写"""

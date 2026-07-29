@@ -609,6 +609,7 @@ class SettingInterface(QWidget):
             texts={
                 QT_TRANSLATE_NOOP("ComboBoxSettingCard", "自定义"): "custom",
                 QT_TRANSLATE_NOOP("ComboBoxSettingCard", "雷神加速器"): "leigod",
+                QT_TRANSLATE_NOOP("ComboBoxSettingCard", "Clash Meta"): "clash_meta",
             },
             parent=self.experimental_group,
         )

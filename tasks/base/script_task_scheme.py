@@ -386,22 +386,25 @@ def Mirror_task():
                 continue
         # 执行一次镜牢任务，根据执行结果进行处理
         mirror_result = onetime_mir_process(team_setting, team_num)
-        if mirror_result:
-            cfg.rotate_team_queue()
-            mir_times -= 1
-            if cfg.hard_mirror and cfg.auto_hard_mirror:
-                chance = cfg.hard_mirror_chance - 1
-                cfg.set_value("hard_mirror_chance", chance)
-                if chance == 0:
-                    cfg.set_value("hard_mirror", False)
+        if not mirror_result:
+            log.error("本次镜牢未能确认成功，停止后续镜牢，避免重复执行")
+            break
 
-            # 更新进度条
-            finish_times += 1
-            mediator.mirror_signal.emit(finish_times, mir_times)
-            msg = f"已完成 {finish_times} 次镜牢"
-            log.info(msg)
-            if finish_times == 1 and cfg.re_claim_rewards:  # 完成第一次镜牢后重新领取奖励
-                to_get_reward()
+        cfg.rotate_team_queue()
+        mir_times -= 1
+        if cfg.hard_mirror and cfg.auto_hard_mirror:
+            chance = cfg.hard_mirror_chance - 1
+            cfg.set_value("hard_mirror_chance", chance)
+            if chance == 0:
+                cfg.set_value("hard_mirror", False)
+
+        # 更新进度条
+        finish_times += 1
+        mediator.mirror_signal.emit(finish_times, mir_times)
+        msg = f"已完成 {finish_times} 次镜牢"
+        log.info(msg)
+        if finish_times == 1 and cfg.re_claim_rewards:  # 完成第一次镜牢后重新领取奖励
+            to_get_reward()
 
     mediator.mirror_bar_kill_signal.emit()
     if cfg.re_claim_rewards and finish_times > 1:

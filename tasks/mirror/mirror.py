@@ -764,6 +764,8 @@ class Mirror:
         main_loop_count = 20
         auto.model = "clam"
         failed = None
+        completion_confirmed = False
+        reward_claim_submitted = False
         while True:
             # 自动截图
             if auto.take_screenshot() is None:
@@ -779,6 +781,7 @@ class Mirror:
                 "mirror/claim_reward/clear_assets.png"
             ):
                 failed = False
+                completion_confirmed = True
                 log.debug("镜牢完成度100%，能够正常领取奖励")
             # 如果回到主界面，退出循环
             if auto.find_element("home/drive_assets.png"):
@@ -786,6 +789,7 @@ class Mirror:
             if auto.click_element("battle/battle_finish_confirm_assets.png"):
                 continue
             if auto.click_element("mirror/claim_reward/rewards_acquired_assets.png"):
+                reward_claim_submitted = True
                 continue
             if auto.click_element(
                 "mirror/claim_reward/claim_rewards_confirm_assets.png",
@@ -793,6 +797,7 @@ class Mirror:
                 model="clam",
                 take_screenshot=True,
             ):
+                reward_claim_submitted = True
                 continue
             if failed:
                 auto.mouse_click_blank()
@@ -802,6 +807,7 @@ class Mirror:
                 )
                 if auto.find_text_element("100", complete_mirror_bbox):
                     failed = False
+                    completion_confirmed = True
                     continue
                 if auto.click_element("mirror/claim_reward/claim_rewards_assets.png"):
                     sleep(1)
@@ -821,6 +827,7 @@ class Mirror:
                     continue
                 elif auto.click_element("mirror/claim_reward/claim_rewards_assets.png"):
                     sleep(1)
+                    self.pass_coins = None
                     if cfg.no_weekly_bonuses:
                         bonuses = auto.find_element(
                             "mirror/claim_reward/weekly_bonuses.png",
@@ -913,6 +920,9 @@ class Mirror:
                 auto.model = "aggressive"
                 log.debug("识别模式切换到激进模式")
             if main_loop_count < 0:
+                if completion_confirmed and reward_claim_submitted:
+                    log.warning("镜牢奖励页恢复超时，但已确认本轮完成并提交奖励领取，按已完成处理")
+                    break
                 raise cannotOperateGameError("镜牢奖励领取出错,请手动操作重试")
 
         if failed:

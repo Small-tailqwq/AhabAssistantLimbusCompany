@@ -122,9 +122,6 @@ def wait_until_main_menu_after_launch(*, allow_restart: bool = True) -> StartupM
                     log.warning(f"检测到截屏冻结（连续 {_stale_count} 轮画面不变），跳过本轮")
                     if _is_runtime_ui_visible():
                         return StartupMainMenuWaitResult.RUNTIME_UI
-                    if hasattr(auto, "key_press"):
-                        log.debug("截屏冻结且无运行时 UI 匹配，尝试按 ESC 导航")
-                        auto.key_press("esc")
                     sleep(0.5)
                     continue
             else:

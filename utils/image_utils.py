@@ -318,12 +318,20 @@ class ImageUtils:
                 )
             if bbox is not None and model != "aggressive":
                 screenshot_crop = screenshot[bbox[1] : bbox[3], bbox[0] : bbox[2]]
+                if (
+                    screenshot_crop.size == 0
+                    or screenshot_crop.shape[0] < template.shape[0]
+                    or screenshot_crop.shape[1] < template.shape[1]
+                ):
+                    return None, 0.0
                 result = cv2.matchTemplate(screenshot_crop, template, cv2.TM_CCOEFF_NORMED)
                 min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
                 h, w = template.shape[:2]
                 center = (bbox[0] + max_loc[0] + w // 2, bbox[1] + max_loc[1] + h // 2)
                 return center, max_val
             else:
+                if screenshot.shape[0] < template.shape[0] or screenshot.shape[1] < template.shape[1]:
+                    return None, 0.0
                 result = cv2.matchTemplate(screenshot, template, cv2.TM_CCOEFF_NORMED)
                 min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
                 h, w = template.shape[:2]

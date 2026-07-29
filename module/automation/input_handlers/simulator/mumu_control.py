@@ -88,6 +88,11 @@ class NemuIpcError(Exception):
     pass
 
 
+class EmulatorPortraitError(RuntimeError):
+    def __init__(self, width: int, height: int):
+        super().__init__(f"模拟器尚未切换至横屏，当前分辨率: {width} x {height}")
+
+
 NEMU_IPC_INPUT_RETRY_LIMIT = 10
 
 
@@ -888,8 +893,13 @@ class MumuControl(AbstractInput):
             if self.connect_id == 0:
                 self.connect()
 
-            if self.height == 0:
+            # Clash 等竖屏应用会让 MuMu 在游戏启动前暂时保持竖屏。
+            # 此时不能缓存该尺寸继续截图，否则游戏切回横屏后仍会按旧尺寸
+            # 请求 Nemu IPC，得到冻结或尺寸错误的画面。
+            if self.height == 0 or self.width <= self.height:
                 self.get_resolution()
+            if self.width <= self.height:
+                raise EmulatorPortraitError(self.width, self.height)
 
             # 动态超时：默认 0.3s，每次重试翻倍
             trial_timeout = timeout if timeout is not None else 0.3 * (2 ** trial)
