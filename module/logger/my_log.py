@@ -12,7 +12,8 @@ from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QApplication
 from ruamel.yaml import YAML
 
-from module import CONFIG_PATH, VERSION_PATH
+from module import CONFIG_PATH, LOG_DIR, VERSION_PATH
+from module.instance_context import get_instance_context
 from utils.singletonmeta import SingletonMeta
 
 
@@ -146,11 +147,17 @@ class Logger(metaclass=SingletonMeta):
                 self.logger.addHandler(console_handler)
 
             # 创建日志目录
-            os.makedirs("./logs", exist_ok=True)
+            os.makedirs(LOG_DIR, exist_ok=True)
 
             # debug日志文件，按文件大小切割
+            # Child Session 与 root 日志文件名区分，避免报障时混淆两份 debugLog.log。
+            log_file_name = (
+                "debugLog.child.log"
+                if get_instance_context().is_child_session
+                else "debugLog.log"
+            )
             debug_file_handler = SettingConcurrentRotatingFileHandler(
-                "./logs/debugLog.log",
+                str(Path(LOG_DIR) / log_file_name),
                 maxBytes=5 * 1024 * 1024,  # 每份 5 MB
                 backupCount=10,  # 最多保留 10 份
                 encoding="utf-8",

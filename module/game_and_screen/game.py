@@ -2,9 +2,9 @@ import os
 import webbrowser
 from time import sleep, time
 
-import psutil
-
 from module.config import cfg
+from module.instance_context import get_instance_context
+from module.session_process import iter_processes_by_name, process_sessions_by_name
 from utils.singletonmeta import SingletonMeta
 
 
@@ -18,15 +18,19 @@ class Game(metaclass=SingletonMeta):
         self.last_check_time = None
         self.check_in_short_time = 0
 
-    def check_game_alive(self):
-        for proc in psutil.process_iter(["name", "memory_info", "cpu_times"]):
-            try:
-                proc_name: str | None = proc.info["name"]
-                if proc_name is None or self.process_name not in proc_name:
-                    continue
+    def reload_runtime_config(self) -> None:
+        self.game_path = cfg.game_path
+        self.process_name = cfg.game_process_name
+        self.game_path_exists = True
+        self.last_check_time = None
+        self.check_in_short_time = 0
 
-                mem = proc.info.get("memory_info")
-                cpu = proc.info.get("cpu_times")
+    def check_game_alive(self):
+        for proc in iter_processes_by_name(self.process_name):
+            try:
+                proc_name = proc.name()
+                mem = proc.memory_info()
+                cpu = proc.cpu_times()
 
                 # 幽灵进程判定：几乎无内存占用 + 0 CPU 时间 = 进程尸体
                 if mem is not None and cpu is not None:
@@ -39,7 +43,7 @@ class Game(metaclass=SingletonMeta):
 
                 self.log.debug(f"游戏已启动：{proc_name}，进程ID：{proc.pid}")
                 return True
-            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            except Exception:
                 continue
         return False
 
@@ -72,6 +76,37 @@ class Game(metaclass=SingletonMeta):
                 self.game_path_exists = False
 
         try:
+            context = get_instance_context()
+            if context.is_child_session:
+                from module.game_and_screen.steam import launch_limbus_via_steam
+
+                launch_limbus_via_steam(context.current_session_id)
+                self.log.info(
+                    f"已通过 Child Session {context.current_session_id} 内的 Steam 启动游戏"
+                )
+                sleep(5)
+                foreign_games = [
+                    (process_id, session_id)
+                    for process_id, session_id in process_sessions_by_name(self.process_name)
+                    if session_id != context.current_session_id
+                ]
+                if foreign_games:
+                    locations = ", ".join(
+                        f"PID {process_id}/Session {session_id}"
+                        for process_id, session_id in foreign_games
+                    )
+                    from module.desktop_clone.messages import translate_message
+                    from module.game_and_screen.steam import SteamSessionConflictError
+
+                    raise SteamSessionConflictError(
+                        translate_message(
+                            "Steam 将《边狱公司》启动到了桌面分身之外，已拒绝继续自动化。"
+                            "请退出 Steam 和游戏后重试（{0}）。",
+                            locations,
+                        )
+                    )
+                return True
+
             # 调用系统打开该 URL（会触发 Steam 启动游戏）
             webbrowser.open(self.game_url)
             self.log.info("使用steam命令启动游戏")
@@ -80,6 +115,8 @@ class Game(metaclass=SingletonMeta):
                 os.startfile(self.game_path)
                 self.log.info(f"游戏启动：{self.game_path}")
             return True
-        except Exception as e:
-            self.log.exception(f"启动游戏时发生错误：{e}")
+        except Exception:
+            self.log.exception("启动游戏时发生错误")
+            if get_instance_context().is_child_session:
+                raise
         return False

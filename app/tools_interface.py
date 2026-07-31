@@ -13,6 +13,7 @@ from qfluentwidgets import FluentIcon as FIF
 from app.base_combination import BasePushSettingCard, BaseSettingCardGroup
 from app.card.messagebox_custom import BaseInfoBar
 from app.language_manager import LanguageManager
+from module.instance_context import get_instance_context
 from module.logger import log
 from tasks import tools
 
@@ -135,6 +136,18 @@ class ToolsInterface(ScrollArea):
             ),
             parent=self.tools_group,
         )
+        self.desktop_clone_card = None
+        if get_instance_context().is_root:
+            self.desktop_clone_card = BasePushSettingCard(
+                QT_TRANSLATE_NOOP("BasePushSettingCard", "管理"),
+                FIF.APPLICATION,
+                QT_TRANSLATE_NOOP("BasePushSettingCard", "桌面分身"),
+                QT_TRANSLATE_NOOP(
+                    "BasePushSettingCard",
+                    "配置并管理 Windows Child Session 桌面分身",
+                ),
+                parent=self.tools_group,
+            )
 
     def __initLayout(self):
         self.tools_group.addSettingCard(self.auto_battle_card)
@@ -145,6 +158,8 @@ class ToolsInterface(ScrollArea):
         self.tools_group.addSettingCard(self.skip_tutorial_card)
         self.tools_group.addSettingCard(self.ghub_manager_card)
         self.tools_group.addSettingCard(self.llc_localization_card)
+        if self.desktop_clone_card is not None:
+            self.tools_group.addSettingCard(self.desktop_clone_card)
 
         self.expand_layout.addWidget(self.tools_group)
 
@@ -176,6 +191,10 @@ class ToolsInterface(ScrollArea):
         self.llc_localization_card.clicked.connect(
             lambda: self._tool_start("llc_localization", self.llc_localization_card)
         )
+        if self.desktop_clone_card is not None:
+            self.desktop_clone_card.clicked.connect(
+                lambda: self._tool_start("desktop_clone", self.desktop_clone_card)
+            )
 
     def _tool_start(self, tool_name: str, card: BasePushSettingCard):
         if tool_name in self.tools:
@@ -295,3 +314,5 @@ class ToolsInterface(ScrollArea):
         self.skip_tutorial_card.retranslateUi()
         self.ghub_manager_card.retranslateUi()
         self.llc_localization_card.retranslateUi()
+        if self.desktop_clone_card is not None:
+            self.desktop_clone_card.retranslateUi()

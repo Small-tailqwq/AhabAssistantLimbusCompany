@@ -59,6 +59,7 @@ from module.after_completion_types import (
 )
 from module.config import cfg
 from module.font_manager import font_manager
+from module.instance_context import get_instance_context
 from module.logger import log
 from module.system_actions import (
     autodaily_exit_to_after_completion_config,
@@ -91,13 +92,17 @@ class TrayRoundMenu(RoundMenu):
 class MainWindow(FramelessWindow):
     def __init__(self, argv: list[str]):
         super().__init__()
+        self.instance_context = get_instance_context()
+        self.desktop_clone_client = None
+        self._desktop_clone_start_generation = 0
 
         # 应用全局字体配置
         apply_font_config()
 
         self.setTitleBar(StandardTitleBar(self))
         self.setWindowIcon(QIcon("./assets/logo/canary.ico"))
-        self.setWindowTitle(f"Ahab Assistant Limbus Company - {cfg.version}")
+        title_suffix = " - Desktop Clone" if self.instance_context.is_child_session else ""
+        self.setWindowTitle(f"Ahab Assistant Limbus Company - {cfg.version}{title_suffix}")
         self.setObjectName("MainWindow")
         setThemeColor("#9c080b")
         LanguageManager().register_component(self)
@@ -187,16 +192,22 @@ class MainWindow(FramelessWindow):
         self.show()
 
         # 开发模式下不检查更新
-        if os.environ.get("AALC_DEV_MODE") != "1" and getattr(sys, "frozen", False):
+        if (
+            self.instance_context.is_root
+            and os.environ.get("AALC_DEV_MODE") != "1"
+            and getattr(sys, "frozen", False)
+        ):
             check_update(self, flag=True)
 
         self.set_ring()
 
-        self.show_announcement_board()
+        if self.instance_context.is_root:
+            self.show_announcement_board()
 
         self.command_start(argv)
 
-        self.init_system_tray()
+        if self.instance_context.is_root:
+            self.init_system_tray()
 
         # 判断是否需要降低缩放以适配小屏幕
         screen_rect = self.screen().availableGeometry()  # 获取到的rect会经过缩放因子的缩放
@@ -375,6 +386,87 @@ class MainWindow(FramelessWindow):
             log.info("开始通过命令行参数启动程序")
             QTimer.singleShot(3000, mediator.finished_signal.emit)
 
+    def attach_desktop_clone_client(self, client) -> None:
+        if not self.instance_context.is_child_session:
+            raise RuntimeError("只能给 Child Session AALC 绑定桌面分身客户端")
+        self._desktop_clone_start_generation += 1
+        self.desktop_clone_client = client
+        client.command_received.connect(self._handle_desktop_clone_command)
+        mediator.script_started.connect(client.send_script_started)
+        mediator.script_finished_detail.connect(client.send_script_result)
+
+    def _handle_desktop_clone_command(self, command: str) -> None:
+        from module.desktop_clone.messages import translate_message
+
+        client = self.desktop_clone_client
+        if client is None:
+            return
+        interface_left = self.farming_interface.interface_left
+
+        if command == "reload-start":
+            self._desktop_clone_start_generation += 1
+            start_generation = self._desktop_clone_start_generation
+            if interface_left.my_script is not None:
+                client.send_error(translate_message("分身任务已经在运行"))
+                return
+            try:
+                cfg.just_load_config()
+                from module.automation import auto
+                from module.desktop_clone.profile import apply_child_runtime_overrides
+                from module.game_and_screen import game_process, screen
+
+                apply_child_runtime_overrides()
+                game_process.reload_runtime_config()
+                screen.reload_runtime_config()
+                auto.init_input()
+                interface_left.refresh_config_display()
+            except Exception as exc:
+                log.exception("Child Session 重新加载 root 配置失败")
+                client.send_error(
+                    translate_message("重新加载分身配置失败：{0}", exc)
+                )
+                return
+
+            def start_after_reload():
+                if (
+                    start_generation
+                    != self._desktop_clone_start_generation
+                    or client is not self.desktop_clone_client
+                    or interface_left.my_script is not None
+                ):
+                    return
+                interface_left.start_and_stop_tasks()
+                if interface_left.my_script is None:
+                    client.send_error(
+                        translate_message("分身任务未能通过启动前检查")
+                    )
+
+            QTimer.singleShot(100, start_after_reload)
+        elif command == "stop":
+            self._desktop_clone_start_generation += 1
+            if interface_left.my_script is not None:
+                interface_left.stop_script()
+            else:
+                client.send_stopped_before_start()
+        elif command == "toggle-pause":
+            if interface_left.my_script is None:
+                return
+            interface_left.pause_or_resume_tasks()
+            try:
+                from module.automation import auto
+
+                client.send_pause_state(auto.check_pause())
+            except Exception:
+                pass
+        elif command == "shutdown":
+            self._desktop_clone_start_generation += 1
+            if interface_left.my_script is not None:
+                client.send_error(
+                    translate_message("分身任务仍在运行，暂不退出 Child AALC")
+                )
+                return
+            self.close()
+
     def _apply_theme_styles(self):
         is_dark = isDarkTheme()
         mainWindow_style = get_main_window_style(is_dark)
@@ -426,6 +518,44 @@ class MainWindow(FramelessWindow):
                 e.ignore()
                 return
 
+        desktop_clone_controller = getattr(
+            self.farming_interface.interface_left,
+            "desktop_clone_controller",
+            None,
+        )
+        if (
+            desktop_clone_controller is not None
+            and desktop_clone_controller.is_lifecycle_active
+        ):
+            if not self.isVisible():
+                self.showNormal()
+                self.raise_()
+                self.activateWindow()
+            message_box = MessageBoxConfirm(
+                self.tr("桌面分身仍在运行"),
+                self.tr("退出 AALC 将停止分身任务并注销分身桌面，确定要继续吗？"),
+                self.window(),
+            )
+            if not message_box.exec():
+                e.ignore()
+                return
+            try:
+                stopped = desktop_clone_controller.shutdown_session(timeout=5.0)
+            except Exception as exc:
+                log.exception("退出时停止桌面分身失败")
+                stopped = False
+                stop_error = str(exc)
+            else:
+                stop_error = self.tr("Windows 尚未确认 Child Session 已注销。")
+            if not stopped:
+                MessageBoxWarning(
+                    self.tr("分身停止超时"),
+                    self.tr("桌面分身尚未完成清理，请稍后重试。\n{0}").format(stop_error),
+                    self.window(),
+                ).exec()
+                e.ignore()
+                return
+
         if self.tools_interface.tools:
             message_box = MessageBoxConfirm(
                 self.tr("有正在运行的工具"),
@@ -454,6 +584,14 @@ class MainWindow(FramelessWindow):
                 ).exec()
                 e.ignore()
                 return
+
+        desktop_clone_client = getattr(self, "desktop_clone_client", None)
+        if desktop_clone_client is not None:
+            desktop_clone_client.stop_client()
+            if not desktop_clone_client.wait(1000):
+                log.warning("桌面分身 IPC 线程未在 1 秒内退出")
+        elif desktop_clone_controller is not None:
+            desktop_clone_controller.stop_transport()
 
         return super().closeEvent(e)
 

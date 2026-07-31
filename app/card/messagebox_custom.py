@@ -113,6 +113,7 @@ class MessageBoxConfirm(MessageBox):
         self.contentLabel.linkActivated.connect(self.open_url)
         self.contentLabel.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         FluentStyleSheet.DIALOG.apply(self.contentLabel)
+        self.contentLabel.setWordWrap(True)  # 启用自动换行，避免长文本把弹窗撑宽
 
         self.buttonLayout.addWidget(self.cancelButton, 1, Qt.AlignVCenter)
         self.buttonLayout.addWidget(self.yesButton, 1, Qt.AlignVCenter)
@@ -183,6 +184,44 @@ class MessageBoxScroll(MessageBox):
         self.cancelButton.setHidden(True)
         self.buttonLayout.addWidget(self.yesButton, 1, Qt.AlignVCenter)
         self.buttonGroup.setMinimumWidth(400)
+
+
+class MessageBoxConfirmScroll(MessageBox):
+    """带滚动区域的双按钮消息框，适用于长文本确认场景（如风险提示）。"""
+
+    def __init__(self, title: str, content: str, parent=None):
+        super().__init__(title, "", parent)
+
+        self.buttonLayout.removeWidget(self.yesButton)
+        self.buttonLayout.removeWidget(self.cancelButton)
+        self.textLayout.removeWidget(self.contentLabel)
+        self.contentLabel.clear()
+
+        self.contentLabel = BodyLabel(content, parent)
+        self.contentLabel.setObjectName("contentLabel")
+        self.contentLabel.setOpenExternalLinks(True)
+        self.contentLabel.linkActivated.connect(self.open_url)
+        self.contentLabel.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        FluentStyleSheet.DIALOG.apply(self.contentLabel)
+        self.contentLabel.setWordWrap(True)
+
+        self.scrollArea = ScrollArea(self.widget)
+        self.scrollArea.setWidgetResizable(True)
+        self.scrollArea.enableTransparentBackground()
+        self.scrollArea.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.scrollArea.setWidget(self.contentLabel)
+        self.scrollArea.setMaximumHeight(400)
+
+        self.textLayout.addWidget(self.scrollArea, 0, Qt.AlignTop)
+
+        self.yesButton.setText(self.tr("确认"))
+        self.cancelButton.setText(self.tr("取消"))
+        self.buttonLayout.addWidget(self.cancelButton, 1, Qt.AlignVCenter)
+        self.buttonLayout.addWidget(self.yesButton, 1, Qt.AlignVCenter)
+        self.buttonGroup.setMinimumWidth(400)
+
+    def open_url(self, url):
+        QDesktopServices.openUrl(QUrl(url))
 
 
 class MessageBoxWarning(MessageBox):

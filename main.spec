@@ -29,7 +29,15 @@ add_data = list(set(yaml_add_data + onnx_add_data))
 a = Analysis(
     ["main.py"],
     pathex=[],
-    binaries=[],
+    binaries=[
+        # 桌面分身 C# RDP 宿主必须先经 scripts/build.py 编译（build.py 在
+        # PyInstaller 之前调用 compile_desktop_clone_host），直接运行
+        # `pyinstaller main.spec` 会因该文件不存在而 Analysis 失败。
+        (
+            str(Path("build/desktop_clone/AALC.DesktopCloneHost.exe")),
+            "desktop_clone",
+        ),
+    ],
     datas=add_data,
     hiddenimports=[],
     hookspath=[],

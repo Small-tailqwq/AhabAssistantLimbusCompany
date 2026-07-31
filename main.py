@@ -13,6 +13,65 @@ _ORIG_SSLKEYLOGFILE = os.environ.pop("SSLKEYLOGFILE", None)
 os.chdir(
     os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(os.path.abspath(__file__))
 )
+
+from module.instance_context import get_instance_context
+
+instance_context = get_instance_context()
+
+def _install_child_startup_crash_capture(profile_dir, context) -> None:
+    """Persist pre-logger failures of a Child Session instance.
+
+    The child is started by Task Scheduler with a hidden window, so stderr goes
+    nowhere. Anything that fails before ``Logger()`` — session mismatch, import
+    error, privilege rejection — exits silently and the controller can only sit
+    out its 120s connection timeout. Without this the failure is undiagnosable.
+    """
+    import datetime
+    import traceback
+
+    crash_file = profile_dir / "logs" / "child-startup-error.txt"
+
+    def _hook(exc_type, exc_value, exc_traceback):
+        try:
+            crash_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(crash_file, "a", encoding="utf-8") as handle:
+                handle.write(f"\n===== {datetime.datetime.now().isoformat()} =====\n")
+                handle.write(f"argv: {sys.argv}\n")
+                handle.write(
+                    f"session: current={context.current_session_id} "
+                    f"expected={context.expected_session_id}\n"
+                )
+                traceback.print_exception(exc_type, exc_value, exc_traceback, file=handle)
+        except Exception:
+            pass
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+
+    sys.excepthook = _hook
+
+    def _thread_hook(args) -> None:
+        _hook(args.exc_type, args.exc_value, args.exc_traceback)
+
+    threading.excepthook = _thread_hook
+
+
+if instance_context.is_child_session:
+    if instance_context.profile_dir is not None:
+        _install_child_startup_crash_capture(instance_context.profile_dir, instance_context)
+    else:
+        # 启动器漏传 --desktop-clone-profile 时 validate() 会抛 ValueError；
+        # 回退到默认 profile 路径，保证这次静默失败仍能落盘定位。
+        from pathlib import Path
+
+        local_app_data = os.environ.get("LOCALAPPDATA")
+        fallback_profile = (
+            Path(local_app_data) / "AALC" / "desktop-clone"
+            if local_app_data
+            else Path.cwd()
+        )
+        _install_child_startup_crash_capture(fallback_profile, instance_context)
+
+instance_context.validate()
+
 # 解决 Windows DPI 缩放问题
 from ctypes import c_void_p, windll
 
@@ -35,7 +94,8 @@ except (AttributeError, OSError):
 # 为 Windows 任务栏注册唯一 AppUserModelID，避免首次启动时任务栏使用 python.exe 默认图标。
 # 此 API 自 Windows 7 起可用，SetProcessDpiAwarenessContext 成功即保障可用。
 try:
-    windll.shell32.SetCurrentProcessExplicitAppUserModelID("AALC.MainWindow")
+    app_user_model_id = "AALC.ChildSession" if instance_context.is_child_session else "AALC.MainWindow"
+    windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_user_model_id)
 except Exception:
     pass
 
@@ -44,15 +104,24 @@ from module.logger.my_log import Logger
 
 Logger()
 
+from module.config import cfg
+
+if instance_context.is_child_session:
+    from module.desktop_clone.profile import apply_child_runtime_overrides
+
+    apply_child_runtime_overrides()
+
 from app.language_manager import LanguageManager
 from app.my_app import MainWindow
-from module.config import cfg
 
 
 # 获取管理员权限
 import pyuac
 
 if not pyuac.isUserAdmin():
+    if instance_context.is_child_session:
+        log.error("Child Session AALC 未以管理员权限启动，拒绝在错误权限上下文中重启")
+        sys.exit(1)
     try:
         pyuac.runAsAdmin(False)
         sys.exit(0)
@@ -108,8 +177,8 @@ if __name__ == "__main__":
     # 定义一个唯一的端口号（建议选择 1024-65535 之间的随机数）
     APP_PORT = 62333
 
-    # 1. 尝试发送参数给已有实例
-    if send_args_to_existing_instance(APP_PORT, sys.argv[1:]):
+    # Child Session 使用专用命名管道，不能参与 root 的固定端口单实例判断。
+    if instance_context.is_root and send_args_to_existing_instance(APP_PORT, sys.argv[1:]):
         sys.exit(0)
 
     # 2. 如果发送失败，说明是第一个实例，开始初始化
@@ -125,6 +194,20 @@ if __name__ == "__main__":
 
     # 创建主窗口
     ui = MainWindow(sys.argv)
+
+    desktop_clone_client = None
+    if instance_context.is_child_session:
+        from module.desktop_clone.client import (
+            DesktopCloneClient,
+            register_desktop_clone_client,
+        )
+        from module.logger.my_log import ui_log_dispatcher
+
+        desktop_clone_client = DesktopCloneClient(ui)
+        register_desktop_clone_client(desktop_clone_client)
+        desktop_clone_client.install_log_forwarding(ui_log_dispatcher)
+        ui.attach_desktop_clone_client(desktop_clone_client)
+        desktop_clone_client.start()
 
     # 3. 设置参数监听信号
     signaler = ArgumentSignaler()
@@ -142,11 +225,12 @@ if __name__ == "__main__":
 
     # 4. 在后台启动 Socket 服务器（非阻塞主线程）
     # 注意：这里需要捕获 bind 异常，防止极短时间内双击导致的竞争
-    try:
-        threading.Thread(target=start_socket_server, args=(APP_PORT, signaler), daemon=True).start()
-    except OSError:
-        # 如果走到这说明刚才的 bind 突然成功了但又瞬间失败，通常直接退出即可
-        sys.exit(1)
+    if instance_context.is_root:
+        try:
+            threading.Thread(target=start_socket_server, args=(APP_PORT, signaler), daemon=True).start()
+        except OSError:
+            # 如果走到这说明刚才的 bind 突然成功了但又瞬间失败，通常直接退出即可
+            sys.exit(1)
 
     QTimer.singleShot(50, lambda: lang_manager.set_language(lang))
 

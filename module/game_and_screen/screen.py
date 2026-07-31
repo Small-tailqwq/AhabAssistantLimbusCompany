@@ -27,6 +27,9 @@ class Handle:
     def __init__(self):
         self._enum_windows_list = []
 
+    def invalidate(self) -> None:
+        self._hwnd = 0
+
     def init_handle(self, title: str = "LimbusCompany", class_name: str = "UnityWndClass") -> int:
         """获取窗口句柄"""
         self._last_title = title
@@ -180,7 +183,19 @@ class Handle:
         """将窗口设为前台窗口"""
         if self.hwnd == 0:
             return
-        win32gui.SetForegroundWindow(self.hwnd)
+        if win32gui.GetForegroundWindow() == self.hwnd:
+            return
+        for _ in range(3):
+            try:
+                win32gui.SetForegroundWindow(self.hwnd)
+                return
+            except win32gui.error:
+                # 后台进程直接调用会被前台锁拒绝（GetLastError=0）。
+                # 注入一次无害的 ALT 键事件为本进程争取前台权限后重试。
+                win32api.keybd_event(win32con.VK_MENU, 0, 0, 0)
+                win32api.keybd_event(win32con.VK_MENU, 0, win32con.KEYEVENTF_KEYUP, 0)
+                sleep(0.2)
+        log.warning("SetForegroundWindow 连续被拒，窗口暂未置前，等待后续输入自然激活")
 
     def setMaximized(self, value: bool = True) -> None:
         """最大化窗口"""
@@ -323,6 +338,10 @@ class Screen(metaclass=SingletonMeta):
         self.game = game
         self.handle = Handle()
 
+    def reload_runtime_config(self) -> None:
+        self.title = cfg.game_title_name
+        self.handle.invalidate()
+
     def init_handle(self, stop_checker: Callable[[], None] | None = None) -> bool:
         try:
             if stop_checker is not None:
@@ -349,6 +368,10 @@ class Screen(metaclass=SingletonMeta):
                 return True
         except Exception as e:
             log.error(f"未能获取到游戏窗口: {e}")
+            from module.instance_context import get_instance_context
+
+            if get_instance_context().is_child_session:
+                raise
             self.game.start_game()
             return False
 
@@ -378,7 +401,10 @@ class Screen(metaclass=SingletonMeta):
                 self.adjust_win_size((int(self.set_win_size * 16 / 9), self.set_win_size))
                 self.adjust_win_position(self.set_win_position)
 
-        _set_win()
+        try:
+            _set_win()
+        except Exception as e:
+            log.error(f"设置窗口出错: {e}")
         while True:
             try:
                 width = self.handle.width(True)

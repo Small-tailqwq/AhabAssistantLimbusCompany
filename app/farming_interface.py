@@ -50,6 +50,7 @@ from module.automation import auto
 from module.config import TeamSetting, cfg
 from module.game_and_screen import screen
 from module.hotkey_listener import ExactGlobalHotKeys
+from module.instance_context import get_instance_context
 from module.logger import log
 from module.logger.my_log import ui_log_dispatcher
 from module.system_actions import (
@@ -407,12 +408,23 @@ class FarmingInterfaceLeft(QWidget):
         self.my_script = None
         self.then_info_bar = None
         self._stop_in_progress = False
+        self._desktop_clone_task_requested = False
+        self._desktop_clone_task_started_from_root = False
+        self.desktop_clone_controller = None
 
         self.__init_widget()
         self.__init_card()
         self.__init_layout()
 
         self.connect_mediator()
+        if get_instance_context().is_root:
+            from module.desktop_clone.controller import get_desktop_clone_controller
+
+            self.desktop_clone_controller = get_desktop_clone_controller()
+            self.desktop_clone_controller.script_started.connect(self._handle_desktop_clone_script_started)
+            self.desktop_clone_controller.script_finished.connect(self._handle_desktop_clone_script_finished)
+            self.desktop_clone_controller.error_occurred.connect(self._handle_desktop_clone_error)
+            self.desktop_clone_controller.pause_changed.connect(self._handle_desktop_clone_pause_changed)
 
         LanguageManager().register_component(self)
 
@@ -626,17 +638,53 @@ class FarmingInterfaceLeft(QWidget):
     def start_and_stop_tasks(self):
         # 设置按下启动与停止按钮时，其他模块的启用与停用
         current_text = self.link_start_button.get_text()
-        if current_text == "Link Start!":
-            # 启动前检查设置，防呆
-            if self.check_setting() is False:
+        if current_text != "Link Start!":
+            if (
+                getattr(self, "_desktop_clone_task_requested", False)
+                and getattr(self, "desktop_clone_controller", None) is not None
+            ):
+                if self._stop_in_progress:
+                    return
+                self._stop_in_progress = True
+                self.link_start_button.set_text(self.tr("停止中..."))
+                self.link_start_button.button.setEnabled(False)
+                self.desktop_clone_controller.request_task_stop()
+            else:
+                self.stop_script()
+            return
+
+        use_desktop_clone = (
+            get_instance_context().is_root
+            and bool(cfg.get_value("desktop_clone_enabled", False))
+        )
+        if use_desktop_clone:
+            if bool(cfg.get_value("simulator", False)):
+                mediator.warning.emit(self.tr("模拟器模式不支持桌面分身，请关闭其中一个功能"))
                 return
-            self._stop_in_progress = False
-            self.link_start_button.set_text("S t o p !")
-            self.sync_pause_resume_button()
-            self._disable_setting(self.parent())
-            self.create_and_start_script()
-        else:
-            self.stop_script()
+            if current_text == "Link Start!":
+                if self.check_setting() is False:
+                    return
+                from tasks.tools.desktop_clone import confirm_remote_control_risk
+
+                if not confirm_remote_control_risk(self.desktop_clone_controller, self):
+                    return
+                self._desktop_clone_task_requested = True
+                self._desktop_clone_task_started_from_root = True
+                self._stop_in_progress = False
+                self.link_start_button.set_text(self.tr("取消分身启动"))
+                self.link_start_button.button.setEnabled(True)
+                self._disable_setting(self.parent())
+                self.desktop_clone_controller.request_task_start()
+            return
+
+        # 启动前检查设置，防呆
+        if self.check_setting() is False:
+            return
+        self._stop_in_progress = False
+        self.link_start_button.set_text("S t o p !")
+        self.sync_pause_resume_button()
+        self._disable_setting(self.parent())
+        self.create_and_start_script()
 
     def _cleanup_after_script_stop(self):
         if cfg.set_reduce_miscontact and cfg.simulator is False:
@@ -738,6 +786,7 @@ class FarmingInterfaceLeft(QWidget):
             # 启动脚本线程
             self.my_script = my_script_task()
             self.my_script.start()
+            mediator.script_started.emit()
         except Exception as e:
             log.error(f"启动脚本失败: {e}")
             self.link_start_button.set_text("Link Start!")
@@ -779,6 +828,12 @@ class FarmingInterfaceLeft(QWidget):
             self.link_start_button.be_click()
 
     def pause_or_resume_tasks(self):
+        if (
+            getattr(self, "_desktop_clone_task_requested", False)
+            and getattr(self, "desktop_clone_controller", None) is not None
+        ):
+            self.desktop_clone_controller.request_pause_toggle()
+            return
         if self.link_start_button.get_text() == "Link Start!":
             self.reset_pause_resume_button()
             return
@@ -804,6 +859,57 @@ class FarmingInterfaceLeft(QWidget):
         except Exception as e:
             log.debug(f"重置暂停状态失败: {e}")
         self.pause_resume_button.setVisible(False)
+
+    def _restore_after_desktop_clone_task(self):
+        self.link_start_button.set_text("Link Start!")
+        self.link_start_button.button.setEnabled(True)
+        self._enable_setting(self.parent())
+        self.pause_resume_button.setVisible(False)
+        mediator.refresh_teams_order.emit()
+        mediator.mirror_bar_kill_signal.emit()
+        self._desktop_clone_task_requested = False
+        self._desktop_clone_task_started_from_root = False
+        self._stop_in_progress = False
+
+    def _handle_desktop_clone_script_started(self):
+        if self.my_script is not None:
+            log.warning("分身任务已启动，但主 AALC 的本地任务也在运行，无法接管主按钮")
+            return
+        if not self._desktop_clone_task_requested:
+            self._desktop_clone_task_requested = True
+            self._desktop_clone_task_started_from_root = False
+            self._disable_setting(self.parent())
+        self._stop_in_progress = False
+        self.link_start_button.set_text("S t o p !")
+        self.link_start_button.button.setEnabled(True)
+        self.pause_resume_button.set_text(self.tr("暂停"))
+        self.pause_resume_button.setVisible(True)
+
+    def _handle_desktop_clone_script_finished(self, outcome: str, detail: str):
+        if not self._desktop_clone_task_requested:
+            return
+        started_from_root = self._desktop_clone_task_started_from_root
+        self._restore_after_desktop_clone_task()
+        if outcome == "failed" and detail:
+            mediator.warning.emit(self.tr("分身任务异常结束：{0}").format(detail))
+        if (
+            outcome == "success"
+            and started_from_root
+            and ACTION_EXIT_AALC in cfg.get_value("after_completion_actions", [])
+        ):
+            if self.desktop_clone_controller.shutdown_session(timeout=5.0):
+                mediator.kill_signal.emit()
+            else:
+                mediator.warning.emit(self.tr("桌面分身未能安全注销，已取消退出 AALC"))
+
+    def _handle_desktop_clone_error(self, message: str):
+        if self._desktop_clone_task_requested:
+            self._restore_after_desktop_clone_task()
+        mediator.warning.emit(message)
+
+    def _handle_desktop_clone_pause_changed(self, paused: bool):
+        if self._desktop_clone_task_requested:
+            self.pause_resume_button.set_text(self.tr("继续" if paused else "暂停"))
 
     def connect_mediator(self):
         # 连接所有可能信号

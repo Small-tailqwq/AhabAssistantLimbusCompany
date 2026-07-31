@@ -14,6 +14,7 @@ if str(ROOT) not in sys.path:
 
 import PyInstaller.__main__
 
+from module.desktop_clone.host_build import compile_desktop_clone_host
 from module.update.update_protocol import (
     BOOTSTRAP_VERSION_PATH,
     DEFAULT_PROTECTED_PATHS,
@@ -38,6 +39,14 @@ parser.add_argument("--bridge-updater", action="store_true", help="Build legacy 
 parser.add_argument("--bootstrap-version", type=positive_int, default=2, help="Bootstrap protocol version")
 args = parser.parse_args()
 version = args.version
+
+# PySide6 不暴露 QAxBase.queryInterface；先编译只负责 RDP ActiveX 的窄宿主。
+try:
+    desktop_clone_host = compile_desktop_clone_host()
+except Exception:
+    print("Error: failed to build desktop clone host.", file=sys.stderr)
+    raise SystemExit(1) from None
+print(f"Desktop clone host ready: {desktop_clone_host.name}")
 
 # 清理旧的构建文件
 shutil.rmtree("./dist", ignore_errors=True)
