@@ -9,6 +9,22 @@ from utils.image_utils import ImageUtils
 from utils.path_manager import path_manager
 
 
+def _specific_theme_keywords_first(weights):
+    """让“深夜清扫复刻”等长关键词先于“清扫”参与子串匹配。"""
+    return dict(
+        sorted(
+            weights.items(),
+            key=lambda item: len(str(item[0]).replace(" ", "")),
+            reverse=True,
+        )
+    )
+
+
+def _unknown_theme_weight(theme_pack_list_zh, theme_pack_list_en):
+    """Return the configured fallback weight, retaining -5 for old configs."""
+    return int(theme_pack_list_zh.get("未知", theme_pack_list_en.get("unknown", -5)))
+
+
 @begin_and_finish_time_log(task_name="选择镜牢主题包")
 # 选择镜牢主题包
 def select_theme_pack(hard_switch=False, floor=None, team_num=None, use_custom_theme_pack_weight=False):
@@ -32,6 +48,8 @@ def select_theme_pack(hard_switch=False, floor=None, team_num=None, use_custom_t
         theme_pack_list_en = theme_list.get_effective_theme_pack_list(
             hard_switch, "en", team_num, use_custom_theme_pack_weight
         )
+    theme_pack_list_zh = _specific_theme_keywords_first(theme_pack_list_zh)
+    theme_pack_list_en = _specific_theme_keywords_first(theme_pack_list_en)
     refresh_times = 3
     difficulty = None
     if auto.find_element("mirror/road_in_mir/legend_assets.png", take_screenshot=True):
@@ -135,7 +153,9 @@ def select_theme_pack(hard_switch=False, floor=None, team_num=None, use_custom_t
                         theme_pack_weight = result.value
                         theme_pack_name = result.text
                     else:
-                        theme_pack_weight = -5
+                        theme_pack_weight = _unknown_theme_weight(
+                            theme_pack_list_zh, theme_pack_list_en
+                        )
                         theme_pack_name = "unknown"
 
                     weight_list.append(theme_pack_weight)  # 采用最大值的形式，权重越大，优先级越高
