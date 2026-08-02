@@ -125,6 +125,7 @@ THEME_PACK_HARD_NAME_MAP = {
     "bones bokgak": "肉斩骨断复刻",
     "sweep": "深夜清扫",
     "20": "奇迹复刻",  # 20 区奇迹困难复刻
+    "line": "号线",  # 轨道线 1~5 号线（统一权重）
     "spring": "切磋琢春",
     "unbound": "解放的",
     "tangling": "束缚的",
@@ -243,6 +244,7 @@ THEME_PACK_HARD_IMAGE_MAP = {
     # 原版与复刻共用“sweep/深夜清扫”权重，设置页只展示复刻封面。
     "sweep": "Nocturnal Sweeping BokGak.png",
     "20": "Miracle in District 20 BokGak.png",  # 20 区奇迹困难复刻
+    "line": "Line 1.png",  # 轨道线 1~5 号线（共用一个封面）
     "spring": "Spring Cultivation.png",
     "unbound": "Unbound Wrath.png",
     "tangling": "Tangling Lust.png",

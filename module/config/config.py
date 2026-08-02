@@ -987,9 +987,7 @@ class Theme_pack_list(metaclass=SingletonMeta):
             move(*migration)
 
         for section, obsolete_keys in (
-            ("theme_pack_list_hard", ("line",)),
             ("theme_pack_list_cn", ("unknown",)),
-            ("theme_pack_list_hard_cn", ("号线",)),
         ):
             values = config.get(section, {})
             for key in obsolete_keys:

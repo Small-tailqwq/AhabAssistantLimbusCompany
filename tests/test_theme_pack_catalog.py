@@ -33,10 +33,10 @@ class ThemePackCatalogTests(unittest.TestCase):
 
         self.assertNotIn("sweep", legacy["theme_pack_list"])
         self.assertEqual(legacy["theme_pack_list_hard"]["sweep"], 7)
-        self.assertNotIn("line", legacy["theme_pack_list_hard"])
+        self.assertEqual(legacy["theme_pack_list_hard"]["line"], 3)
         self.assertNotIn("清扫", legacy["theme_pack_list_cn"])
         self.assertEqual(legacy["theme_pack_list_hard_cn"]["深夜清扫"], 7)
-        self.assertNotIn("号线", legacy["theme_pack_list_hard_cn"])
+        self.assertEqual(legacy["theme_pack_list_hard_cn"]["号线"], 3)
 
     def test_existing_new_key_weight_wins_over_legacy_weight(self):
         legacy = copy.deepcopy(self.default)
@@ -54,6 +54,12 @@ class ThemePackCatalogTests(unittest.TestCase):
     def test_original_and_bokgak_share_one_weight_and_bokgak_cover(self):
         self.assertEqual(THEME_PACK_IMAGE_MAP["check"], "LCB Regular Checkup BokGak.png")
         self.assertEqual(THEME_PACK_HARD_IMAGE_MAP["sweep"], "Nocturnal Sweeping BokGak.png")
+
+    def test_line_packs_use_one_shared_key(self):
+        self.assertEqual(self.default["theme_pack_list_hard"]["line"], -5)
+        self.assertEqual(self.default["theme_pack_list_hard_cn"]["号线"], -5)
+        self.assertEqual(THEME_PACK_HARD_IMAGE_MAP["line"], "Line 1.png")
+        self.assertEqual(THEME_PACK_CN_HARD_IMAGE_MAP["号线"], "Line 1.png")
 
     def test_miracle_bokgak_is_active_hard_pack(self):
         legacy = copy.deepcopy(self.default)
