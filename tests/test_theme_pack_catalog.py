@@ -5,6 +5,7 @@ from pathlib import Path
 from ruamel.yaml import YAML
 
 from app.theme_pack_setting_interface import (
+    THEME_PACK_CN_HARD_IMAGE_MAP,
     THEME_PACK_CN_IMAGE_MAP,
     THEME_PACK_HARD_IMAGE_MAP,
     THEME_PACK_IMAGE_MAP,
@@ -53,6 +54,24 @@ class ThemePackCatalogTests(unittest.TestCase):
     def test_original_and_bokgak_share_one_weight_and_bokgak_cover(self):
         self.assertEqual(THEME_PACK_IMAGE_MAP["check"], "LCB Regular Checkup BokGak.png")
         self.assertEqual(THEME_PACK_HARD_IMAGE_MAP["sweep"], "Nocturnal Sweeping BokGak.png")
+
+    def test_miracle_bokgak_is_active_hard_pack(self):
+        legacy = copy.deepcopy(self.default)
+        legacy["theme_pack_list_hard"][20] = 6
+        legacy["theme_pack_list_hard_cn"]["奇迹复刻"] = 6
+
+        Theme_pack_list._migrate_theme_pack_catalog(legacy, self.default)
+
+        self.assertEqual(legacy["theme_pack_list_hard"][20], 6)
+        self.assertEqual(legacy["theme_pack_list_hard_cn"]["奇迹复刻"], 6)
+        self.assertEqual(self.default["theme_pack_list_hard"][20], 0)
+        self.assertEqual(self.default["theme_pack_list_hard_cn"]["奇迹复刻"], 0)
+        self.assertEqual(
+            THEME_PACK_HARD_IMAGE_MAP["20"], "Miracle in District 20 BokGak.png"
+        )
+        self.assertEqual(
+            THEME_PACK_CN_HARD_IMAGE_MAP["奇迹复刻"], "Miracle in District 20 BokGak.png"
+        )
 
     def test_unknown_fallback_uses_generated_cover_and_low_default_weight(self):
         self.assertEqual(self.default["theme_pack_list"]["unknown"], -5)
