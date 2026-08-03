@@ -924,75 +924,6 @@ class Theme_pack_list(metaclass=SingletonMeta):
 
         self.save_config(path=str(target_path), config_data=copy.deepcopy(self.config))
 
-    @staticmethod
-    def _migrate_theme_pack_catalog(config: dict, default_config: dict) -> None:
-        """将旧主题包 key 保值迁移到当前 NORMAL/HARD 与零协关键词。"""
-
-        def move(source_section, source_key, target_section, target_key):
-            source = config.get(source_section, {})
-            if source_key not in source:
-                return
-            value = source.pop(source_key)
-            target = config.setdefault(target_section, {})
-            target_default = default_config.get(target_section, {}).get(target_key)
-            if target_key not in target or target[target_key] == target_default:
-                target[target_key] = value
-
-        for key in ("unconf", "outcast", "spring", "unloving", "sweep"):
-            move("theme_pack_list", key, "theme_pack_list_hard", key)
-        for key in (
-            "extrenal",
-            "sanguine",
-            "dizzying",
-            "pang",
-            "sigh",
-            "supply",
-            "four",
-            "repressed",
-            "haze",
-            "witnessing",
-            "Text",
-            "Blade",
-            "Unsever",
-        ):
-            move("theme_pack_list_hard", key, "theme_pack_list", key)
-        move("theme_pack_list", "wrath", "theme_pack_list_hard", "unbound")
-
-        cn_moves = (
-            ("theme_pack_list_cn", "无作为", "theme_pack_list_hard_cn", "未曾面对"),
-            ("theme_pack_list_cn", "感情困惑", "theme_pack_list_cn", "情感困惑"),
-            ("theme_pack_list_cn", "无归属", "theme_pack_list_hard_cn", "无归属"),
-            ("theme_pack_list_cn", "琢春", "theme_pack_list_hard_cn", "切磋琢春"),
-            ("theme_pack_list_cn", "切琢", "theme_pack_list_hard_cn", "切琢"),
-            ("theme_pack_list_cn", "无慈悲", "theme_pack_list_hard_cn", "无法去爱"),
-            ("theme_pack_list_cn", "压抑的", "theme_pack_list_hard_cn", "解放的"),
-            ("theme_pack_list_cn", "空转", "theme_pack_list_cn", "情感沉溺"),
-            ("theme_pack_list_cn", "沉溺者", "theme_pack_list_cn", "空转"),
-            ("theme_pack_list_cn", "清扫", "theme_pack_list_hard_cn", "深夜清扫"),
-            ("theme_pack_list_cn", "巡礼", "theme_pack_list_cn", "善意的巡礼"),
-            ("theme_pack_list_hard_cn", "破坏性", "theme_pack_list_cn", "破坏性外力"),
-            ("theme_pack_list_hard_cn", "渗出的", "theme_pack_list_cn", "渗出的赤血"),
-            ("theme_pack_list_hard_cn", "缭乱的", "theme_pack_list_cn", "缭乱的波动"),
-            ("theme_pack_list_hard_cn", "沉于", "theme_pack_list_cn", "沉于苦痛"),
-            ("theme_pack_list_hard_cn", "叹息", "theme_pack_list_cn", "深沉叹息"),
-            ("theme_pack_list_hard_cn", "动力", "theme_pack_list_cn", "动力渐盈"),
-            ("theme_pack_list_hard_cn", "家族", "theme_pack_list_cn", "四大家族"),
-            ("theme_pack_list_hard_cn", "摇曳", "theme_pack_list_cn", "燃烧的摇曳"),
-            ("theme_pack_list_hard_cn", "观望", "theme_pack_list_cn", "不思观望"),
-            ("theme_pack_list_hard_cn", "刀与作", "theme_pack_list_cn", "刀与作品"),
-            ("theme_pack_list_hard_cn", "割舍", "theme_pack_list_cn", "无割舍"),
-            ("theme_pack_list_hard_cn", "教材", "theme_pack_list_cn", "教材"),
-        )
-        for migration in cn_moves:
-            move(*migration)
-
-        for section, obsolete_keys in (
-            ("theme_pack_list_cn", ("unknown",)),
-        ):
-            values = config.get(section, {})
-            for key in obsolete_keys:
-                values.pop(key, None)
-
     def _sync_team_weight_configs(self, default_config: dict) -> None:
         """初始化时同步全局与已存在的队伍主题包权重配置。"""
         global_loaded_config = self.load_config(self.theme_pack_list_path)
@@ -1001,11 +932,9 @@ class Theme_pack_list(metaclass=SingletonMeta):
             global_loaded_config = copy.deepcopy(default_config)
 
         if global_loaded_config:
-            original_global_config = copy.deepcopy(global_loaded_config)
-            self._migrate_theme_pack_catalog(global_loaded_config, default_config)
             merged_global_config = copy.deepcopy(default_config)
             self._update_config(merged_global_config, global_loaded_config)
-            if merged_global_config != original_global_config:
+            if merged_global_config != global_loaded_config:
                 self.save_config(path=self.theme_pack_list_path, config_data=merged_global_config)
 
         if not self.theme_pack_weight_path.exists():
@@ -1018,11 +947,9 @@ class Theme_pack_list(metaclass=SingletonMeta):
             if not loaded_config:
                 continue
 
-            original_loaded_config = copy.deepcopy(loaded_config)
-            self._migrate_theme_pack_catalog(loaded_config, default_config)
             merged_config = copy.deepcopy(default_config)
             self._update_config(merged_config, loaded_config)
-            if merged_config != original_loaded_config:
+            if merged_config != loaded_config:
                 self.save_config(path=str(team_weight_path), config_data=merged_config)
 
     def get_effective_theme_pack_list(
