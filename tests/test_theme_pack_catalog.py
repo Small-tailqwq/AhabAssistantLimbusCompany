@@ -143,6 +143,24 @@ class ThemePackCatalogTests(unittest.TestCase):
     def test_catalog_does_not_have_weight_migration(self):
         self.assertFalse(hasattr(Theme_pack_list, "_migrate_theme_pack_catalog"))
 
+    def test_user_config_merge_drops_keywords_removed_from_the_example(self):
+        """关键词改名后，用户配置里的旧关键词必须丢弃，否则会抢走同名系列卡包。"""
+        merged = {
+            "preferred_thresholds": 0,
+            "theme_pack_list": {"nagel": 0, "devoured": 0},
+            "theme_pack_list_hard": {"excessive": -5},
+        }
+        user_config = {
+            "preferred_thresholds": 2,
+            "theme_pack_list": {"nagel": 1, "und": 0, "glutton": 0},
+            "theme_pack_list_hard": {"excessive": -5},
+        }
+        Theme_pack_list._update_config(merged, user_config)
+
+        self.assertEqual(merged["preferred_thresholds"], 2)
+        self.assertEqual(merged["theme_pack_list"], {"nagel": 1, "devoured": 0})
+        self.assertEqual(merged["theme_pack_list_hard"], {"excessive": -5})
+
     def test_renamed_translations_keep_old_and_new_keys(self):
         """零协 2026-07-18 改名的两个主题包，新旧译名都要能命中且权重一致。"""
         base = self.default["theme_pack_list_cn"]
