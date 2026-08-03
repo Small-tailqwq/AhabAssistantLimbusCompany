@@ -41,7 +41,7 @@ class ThemePackCatalogTests(unittest.TestCase):
         expected_base = {
             "forgot",
             "gambl",
-            "und",
+            "nagel",
             "faith",
             "unconf",
             "workshop",
@@ -61,14 +61,14 @@ class ThemePackCatalogTests(unittest.TestCase):
             "addict",
             "seduct",
             "dolen",
-            "glutton",
+            "devoured",
             "cravi",
-            "gloom",
+            "degraded",
             "subserv",
             "nsignif",
             "judgment",
             "outcast",
-            "curshed",
+            "crushed",
             "automated",
             "spring",
             "unloving",
@@ -79,8 +79,8 @@ class ThemePackCatalogTests(unittest.TestCase):
             "warp",
             "violet",
             "dicers",
-            "wrath",
-            "sloth",
+            "repressed",
+            "treadwheel",
             "flood",
             "vain",
             "check",
@@ -90,7 +90,7 @@ class ThemePackCatalogTests(unittest.TestCase):
             "dusk",
             "thread",
             "compassion",
-            "memory",
+            "mnestic",
             "unknown",
         }
         expected_hard_increment = {
@@ -98,7 +98,7 @@ class ThemePackCatalogTests(unittest.TestCase):
             "b·e",
             "line",
             "seismic",
-            "extrenal",
+            "external",
             "thunder",
             "sanguine",
             "dizzying",
@@ -204,7 +204,7 @@ class ThemePackCatalogTests(unittest.TestCase):
             self.assertEqual(self._match(name, weights), key, name)
 
     def test_english_names_resolve_to_the_expected_weight_key(self):
-        """复刻包与原版共用一个短 key，困难本合并名单后也不会串权重。"""
+        """卡包名取自游戏 EN_MirrorDungeonTheme-1.json，短 key 不能抢走同名系列的另一个卡包。"""
         weights = _specific_theme_keywords_first(
             {
                 **{str(key): 0 for key in self.default["theme_pack_list"]},
@@ -212,6 +212,7 @@ class ThemePackCatalogTests(unittest.TestCase):
             }
         )
         expected = {
+            # 复刻包与原版共用一个短 key。
             "Miracle in District 20": "miracle",
             "Miracle in District 20 BokGak": "miracle",
             "Timekilling Time": "time",
@@ -220,9 +221,21 @@ class ThemePackCatalogTests(unittest.TestCase):
             "Murder on the WARP Express BokGak": "warp",
             "Yield My Flesh to Claim Their Bones": "bones",
             "Yield My Flesh to Claim Their Bones BokGak": "bones",
-            "Repressed Wrath": "wrath",
+            # 基础列表与 HARD 增量列表里的同名系列，各自归位。
+            "Nagel and Hammer": "nagel",
+            "Thunder and Lightning": "thunder",
+            "To be Crushed": "crushed",
+            "Crushers & Breakers": "crushers",
+            "Repressed Wrath": "repressed",
             "Unbound Wrath": "unbound",
-            "Experience Memory": "memory",
+            "Treadwheel Sloth": "treadwheel",
+            "Inert Sloth": "inert",
+            "Devoured Gluttony": "devoured",
+            "Excessive Gluttony": "excessive",
+            "Degraded Gloom": "degraded",
+            "Sunk Gloom": "sunk",
+            "Mnestic Experience": "mnestic",
+            "Crushing External Force": "external",
         }
         for name, key in expected.items():
             self.assertEqual(self._match(name, weights), key, name)
