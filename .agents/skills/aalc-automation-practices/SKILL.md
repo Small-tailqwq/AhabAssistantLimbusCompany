@@ -1,34 +1,34 @@
 ---
 name: aalc-automation-practices
-description: Apply AALC-specific conventions when implementing, debugging, or reviewing desktop automation, image or template matching, task orchestration, cooperative stopping, PySide6 UI, configuration, debug switches, or code structure in AhabAssistantLimbusCompany.
+description: 在 AhabAssistantLimbusCompany 中实现、调试或审阅桌面自动化、图片或模板匹配、任务编排、协作式停止、PySide6 UI、配置、调试开关或代码结构时，应用 AALC 特有约定。
 ---
 
-# AALC Automation Practices
+# AALC 自动化实践
 
-Before editing, read the target signature, callers, and similar repository implementations. Do not impose generic software-design preferences on desktop automation behavior that has been tuned against a real UI.
+修改前先读目标签名、调用方与仓库内同类实现。不要把通用软件设计偏好强加给针对真实 UI 调优过的桌面自动化行为。
 
-## Load by task
+## 按任务加载
 
-- For `auto.*`, `ImageUtils.*`, OCR, UI location, retries, or automation flow, read [references/automation-design.md](references/automation-design.md).
-- For task threads, start/stop, emulator waits, PySide6 UI, language/theme, or config, read [references/lifecycle-ui.md](references/lifecycle-ui.md).
-- For replaying a user screenshot, load `replay-matching` and its production-pipeline reference.
-- Before adding or changing `debug_*`, also read `.opencode/tools/debug_model_constitution.md`.
+- 涉及 `auto.*`、`ImageUtils.*`、OCR、UI 定位、重试或自动化流程：读 [references/automation-design.md](references/automation-design.md)。
+- 涉及任务线程、启动/停止、模拟器等待、PySide6 UI、语言/主题或配置：读 [references/lifecycle-ui.md](references/lifecycle-ui.md)。
+- 重放用户截图：加载 `replay-matching` 及其生产管线 reference。
+- 新增或修改 `debug_*` 前：再读 `.opencode/tools/debug_model_constitution.md`。
 
-Load only the matching reference.
+只加载匹配的那份 reference。
 
-## Core workflow
+## 核心工作流
 
-1. Establish the real failure state, UI hierarchy, and call chain.
-2. Inspect API defaults, search regions, template cropping, and similar code.
-3. Choose the smallest change that explains the root cause; do not stack parameters as trial and error.
-4. Keep the call graph flat unless a realistic reuse or semantic boundary justifies an abstraction.
-5. Run the most relevant syntax, lint, test, or replay verification.
-6. Review whether the diff is more complex than the failure and remove redundancy introduced by the change.
+1. 先确认真实的失败状态、UI 层级与调用链。
+2. 检查 API 默认值、搜索区域、模板裁剪与同类代码。
+3. 选择能解释根因的最小改动；不要靠堆参数试错。
+4. 除非存在真实的复用需求或语义边界，否则保持调用图扁平。
+5. 运行最相关的语法、lint、测试或重放验证。
+6. 复核 diff 是否比故障本身更复杂，并移除改动引入的多余内容。
 
-## Constraints
+## 约束
 
-- Do not re-instantiate project singletons.
-- Do not use user `config.yaml` as a template or synchronization target.
-- Do not replace cooperative stopping with forced thread termination.
-- Do not present general image-matching heuristics as facts without replay evidence.
-- Do not change unrelated legacy code.
+- 不重新实例化项目单例。
+- 不用用户 `config.yaml` 当模板或同步目标。
+- 不用强制线程终止替代协作式停止。
+- 没有重放证据时，不把通用图像匹配经验当作事实陈述。
+- 不顺手修改无关的遗留代码。

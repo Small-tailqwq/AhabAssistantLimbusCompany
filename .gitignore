@@ -10,6 +10,9 @@
 .atomcode/
 entities.json
 
+# 本地专有分析资料（不适用开源）
+.agents/skills/limbus-input-safety/
+
 AGENTS.md
 CLAUDE.md
 GEMINI.md

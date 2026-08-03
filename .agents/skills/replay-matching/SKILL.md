@@ -1,17 +1,17 @@
 ---
 name: replay-matching
-description: Replay AALC template matching from user screenshots against repository assets, verify logged similarity values, compare resolutions or matching models, diagnose bbox and crop failures, and reproduce the production ImageUtils pipeline. Use only when evidence includes a screenshot or a template-matching question.
+description: 用仓库资源重放用户截图上的 AALC 模板匹配，核验日志记录的相似度值、比较分辨率或匹配模型、诊断 bbox 与裁剪失败，并复现生产 ImageUtils 管线。仅在证据含截图或模板匹配问题时使用。
 ---
 
-# AALC Template Matching Replay
+# AALC 模板匹配重放
 
-Use `debug_tools/verify_matching.py` to reproduce project behavior. Preserve source screenshots and assets; write any derived images under an ignored `logs/<feature>_debug/` directory.
+用 `debug_tools/verify_matching.py` 复现项目行为。保留源截图与资源；派生图片一律写入已忽略的 `logs/<feature>_debug/` 目录。
 
-## Read the required pipeline reference
+## 先读必读的管线 reference
 
-Before interpreting replay values, read [references/pipeline.md](references/pipeline.md). It defines scale, `_assets.png` bbox cropping, channel handling, and model-specific search behavior.
+解读重放值之前，先读 [references/pipeline.md](references/pipeline.md)。它定义缩放、`_assets.png` 的 bbox 裁剪、通道处理与模型相关搜索行为。
 
-## Commands
+## 命令
 
 ```powershell
 uv run python debug_tools/verify_matching.py <screenshot>
@@ -22,26 +22,26 @@ uv run python debug_tools/verify_matching.py <problem.png> --compare <normal.png
 uv run python debug_tools/verify_matching.py <screenshot> --pixel X Y W H
 ```
 
-## Workflow
+## 工作流
 
-1. Record screenshot dimensions, language, theme, capture source, and issue version when known.
-2. Select exact asset keys from the relevant log or code path.
-3. Run `clam` and `aggressive` together when diagnosing search-region drift.
-4. Compare replay values, centers, and bounding boxes with the log, not only threshold pass/fail.
-5. If values differ, test capture quality, scale, template version, overlay, crop, and runtime/source-version mismatch.
-6. Tie conclusions to the production call chain and the incident's source version.
+1. 已知时记录截图尺寸、语言、主题、采集来源与 issue 版本。
+2. 从相关日志或代码路径选择精确的资源键。
+3. 诊断搜索区域漂移时同时跑 `clam` 与 `aggressive`。
+4. 与日志对比的是重放值、中心点与包围盒，而不只是阈值通过/失败。
+5. 值不一致时依次检查采集质量、缩放、模板版本、覆盖层、裁剪与运行/源版本不匹配。
+6. 结论必须关联生产调用链与事件发生的源版本。
 
-## Interpretation
+## 解读
 
-| Pattern | Investigation direction |
+| 模式 | 调查方向 |
 |---|---|
-| `clam < threshold`, `aggressive >= threshold` | bbox search region or scaled-position drift |
-| both below threshold | template, UI version, language, theme, overlay, or capture quality mismatch |
-| models return different centers | constrained search found a different local maximum |
-| replay differs from log | runtime screenshot source, compression, scaling, or version mismatch |
+| `clam < threshold`、`aggressive >= threshold` | bbox 搜索区域或缩放后位置漂移 |
+| 两者都低于阈值 | 模板、UI 版本、语言、主题、覆盖层或采集质量不匹配 |
+| 模型返回不同中心点 | 受限搜索找到了不同的局部最大值 |
+| 重放与日志不一致 | 运行截图来源、压缩、缩放或版本不匹配 |
 
-These are starting hypotheses. Inspect the actual image and pipeline before claiming root cause.
+这些只是起点假设。声称根因前先检查实际图片与管线。
 
-## Output
+## 输出
 
-Report the screenshot, asset key, scale, models, thresholds, returned values/centers, production path, and any unresolved difference from runtime evidence. Never substitute raw OpenCV matching results for project results.
+报告截图、资源键、缩放、模型、阈值、返回值/中心点、生产路径，以及与运行证据之间未解决的差异。绝不用裸 OpenCV 匹配结果替代项目结果。

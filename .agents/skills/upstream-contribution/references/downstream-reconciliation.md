@@ -1,32 +1,32 @@
-# Downstream Reconciliation
+# 下游核对
 
-Use the final upstream repository state as the source of truth. The originally submitted branch is not authoritative after maintainer edits, squash merges, alternative fixes, or conflict resolutions.
+以最终上游仓库状态为事实来源。维护者编辑、squash 合并、替代修复或冲突解决后，原始提交分支不再权威。
 
-## Identify the final upstream behavior
+## 识别最终上游行为
 
-Fetch upstream and obtain the final PR state. For a merged PR, record the merge, squash, or rebased commit SHA and inspect its complete patch. For a closed PR, search upstream for an alternative commit that satisfies the behavior contract.
+Fetch upstream 并取得最终 PR 状态。已合并 PR 记录 merge、squash 或 rebase 提交 SHA 并检查其完整补丁。已关闭 PR 在上游搜索满足行为契约的替代提交。
 
-Compare:
+对比四项：
 
-1. original downstream behavior and test;
-2. submitted contribution branch;
-3. final upstream implementation;
-4. current downstream branch.
+1. 原下游行为与测试；
+2. 已提交的贡献分支；
+3. 最终上游实现；
+4. 当前下游分支。
 
-## Reconciliation outcomes
+## 核对结果
 
-| Outcome | Action |
+| 结果 | 行动 |
 |---|---|
-| Downstream is behaviorally equivalent to final upstream | record equivalence; no duplicate commit |
-| Upstream refined or corrected the submitted fix | use `downstream-sync` to port the final upstream delta |
-| Upstream implemented an alternative fix | evaluate and port that behavior rather than preserving local authorship |
-| PR closed and no upstream fix exists | retain downstream fix if valid; record rejection reason and remaining divergence |
-| Downstream contains obsolete scaffolding after upstream-native rewrite | create a focused downstream cleanup with regression coverage |
+| 下游与最终上游行为等价 | 记录等价；不重复提交 |
+| 上游改进了提交的修复 | 用 `downstream-sync` 移植最终上游 delta |
+| 上游实现了替代修复 | 评估并移植该行为，而不是保留本地署名 |
+| PR 关闭且上游无修复 | 下游修复有效则保留；记录拒绝理由与剩余分歧 |
+| 上游原生重写后下游含过时脚手架 | 创建带回归覆盖的聚焦下游清理 |
 
-Use patch identity and behavior comparison, not commit title or author, to decide whether a fix already exists.
+用补丁身份与行为对比决定修复是否已存在，而不是提交标题或作者。
 
-## Verification
+## 验证
 
-Run the original regression oracle against current downstream after reconciliation. Also run checks required by any upstream refinement. Confirm that config, debug, release, or compatibility code intentionally retained downstream is still necessary.
+核对后在当前下游上运行原回归验证基准。还要运行任何上游改进要求的检查。确认有意保留下游的配置、调试、发布或兼容代码仍然必要。
 
-The final report must state which upstream SHA was compared, which downstream SHA was verified, and whether any fork-only difference remains by design.
+最终报告必须说明对比了哪个上游 SHA、验证了哪个下游 SHA，以及是否按设计保留了任何 fork 专属差异。

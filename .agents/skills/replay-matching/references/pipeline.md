@@ -1,61 +1,61 @@
-# Template Matching Replay Pipeline
+# 模板匹配重放管线
 
-## Required production-equivalent path
+## 必需的生产等价路径
 
-Reproduce `find_element()` → `find_image_element()` → `ImageUtils.match_template()` rather than calling raw OpenCV matching.
-
-```python
-# 1. Derive scale from the actual screenshot.
-scale = screenshot_np.shape[0] / 1440.0
-
-# 2. Load the repository asset through the same language/theme resolution used by production.
-# 3. Resize the template consistently with the production loader.
-# 4. Convert channels as ImageUtils expects.
-# 5. Crop transparent/text assets with their production bbox rule.
-# 6. Call ImageUtils.match_template(screen_np, template, bbox, model=model).
-```
-
-Read the current implementations before reproducing details:
-
-- `utils/image_utils.py`: `load_image`, `get_bbox`, `crop`, `match_template`, and normalization helpers;
-- `module/automation/automation.py`: `find_element`, `find_image_element`, and template loading;
-- `debug_tools/verify_matching.py`: supported CLI replay path.
-
-The code is authoritative if it differs from old issue notes.
-
-## Scale
-
-Use screenshot height, not configured window size:
+复现 `find_element()` → `find_image_element()` → `ImageUtils.match_template()`，而不是调用裸 OpenCV 匹配。
 
 ```python
+# 1. 从实际截图推导缩放。
+scale = screenshot_np.shape[0] / 1440.0
+
+# 2. 通过生产使用的同一语言/主题解析加载仓库资源。
+# 3. 与生产加载器一致地缩放模板。
+# 4. 按 ImageUtils 预期转换通道。
+# 5. 用生产 bbox 规则裁剪透明/文字资源。
+# 6. 调用 ImageUtils.match_template(screen_np, template, bbox, model=model)。
+```
+
+复现细节前先读当前实现：
+
+- `utils/image_utils.py`：`load_image`、`get_bbox`、`crop`、`match_template` 与归一化辅助函数；
+- `module/automation/automation.py`：`find_element`、`find_image_element` 与模板加载；
+- `debug_tools/verify_matching.py`：支持的 CLI 重放路径。
+
+代码与旧 issue 笔记不一致时以代码为准。
+
+## 缩放
+
+用截图高度，而不是配置的窗口尺寸：
+
+```python
 scale = screenshot_np.shape[0] / 1440.0
 ```
 
-`cfg.set_win_size` can differ from the captured PNG or runtime frame. Record nonstandard aspect ratios or additional borders because height-only scaling may not explain them.
+`cfg.set_win_size` 可能与采集的 PNG 或运行帧不同。记录非标准宽高比或额外边框，因为仅按高度缩放可能无法解释它们。
 
-## `_assets.png` bbox behavior
+## `_assets.png` 的 bbox 行为
 
-Templates with transparent or empty surroundings must follow the production bbox/crop path. Skipping it can make background dominate similarity and can also change the reported center.
+带透明或空白周边的模板必须走生产 bbox/裁剪路径。跳过它可能让背景主导相似度，也会改变报告的中心点。
 
-Do not blindly apply a filename rule copied from this reference. Confirm the current loader's condition and returned bbox in the incident's source version.
+不要盲目套用本 reference 复制的文件名规则。在事件发生的源版本中确认当前加载器的条件与返回的 bbox。
 
-## Matching models
+## 匹配模型
 
-Model names control the search area in `ImageUtils.match_template()`:
+模型名控制 `ImageUtils.match_template()` 中的搜索区域：
 
-- `clam`: narrow search around expected bbox;
-- `normal`: broader bounded search;
-- `aggressive`: unrestricted or broadest search.
+- `clam`：在预期 bbox 附近窄搜索；
+- `normal`：较宽的有界搜索；
+- `aggressive`：无限制或最宽搜索。
 
-Verify exact expansion values in current source rather than hardcoding remembered pixel counts in a diagnosis.
+诊断中不要硬编码记忆的像素值，读当前源码核验精确扩展值。
 
-## Channel and capture differences
+## 通道与采集差异
 
-Check RGB/BGR/gray conversion, alpha removal, resizing interpolation, screenshot backend, compression, DPI scaling, emulator borders, and overlays. A manually saved screenshot can differ from a runtime `PrintWindow`, OBS, or emulator frame even at the same nominal resolution.
+检查 RGB/BGR/灰度转换、alpha 移除、缩放插值、截图后端、压缩、DPI 缩放、模拟器边框与覆盖层。即使名义分辨率相同，手动保存的截图也可能不同于运行时 `PrintWindow`、OBS 或模拟器帧。
 
-## Reproduction record
+## 复现记录
 
-Capture:
+记录：
 
 ```text
 Incident version/source:

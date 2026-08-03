@@ -4,7 +4,6 @@ description: |
   requests. Uses GitHub event context and dispatches only named review specialists.
 mode: primary
 temperature: 0.1
-steps: 35
 tools:
   write: false
   edit: false

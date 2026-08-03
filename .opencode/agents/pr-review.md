@@ -4,7 +4,6 @@ description: |
   workflow, dispatches named specialist subagents by changed domain, and returns one verdict.
 mode: primary
 temperature: 0.1
-steps: 45
 tools:
   write: false
   edit: false

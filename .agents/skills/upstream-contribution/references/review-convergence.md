@@ -1,10 +1,10 @@
-# Review Convergence
+# 审阅收敛
 
-Use this protocol before turning reviewer output into another code change. The objective is not to minimize review; it is to make every iteration traceable to the behavior contract and prevent sequential reviewers from widening the patch by accident.
+在把审阅者输出变成又一处代码改动前使用本协议。目标不是减少审阅，而是让每次迭代都可追溯到行为契约，防止连续审阅者意外扩大补丁。
 
-## Freeze the decision boundary
+## 冻结决策边界
 
-Before the first implementation review, record:
+首次实现审阅前记录：
 
 ```text
 Contract revision:
@@ -15,42 +15,42 @@ User decisions and validation exceptions:
 Current base/head:
 ```
 
-A reviewer may reveal that the contract is unsafe or incomplete, but cannot silently expand it. A change to timeout ownership, retry semantics, lifecycle ownership, public signatures, dependencies, configuration, or the set of required behaviors is a contract change and requires a scope decision before more code is written.
+审阅者可以揭示契约不安全或不完整，但不能静默扩张它。改变超时归属、重试语义、生命周期归属、公开签名、依赖、配置或必需行为集合都属于契约变更，在写更多代码前需要范围决策。
 
-Record a user-approved verification exception once. For example, if the user explicitly chooses not to add an upstream test, keep `no automated regression coverage` as a validation gap; do not let each reviewer rediscover it as a new defect or describe it as covered.
+用户批准的验证例外只记录一次。例如用户明确选择不添加上游测试时，把 `no automated regression coverage` 保留为验证缺口；不要让每位审阅者把它重新发现为新缺陷或描述为已覆盖。
 
-## Maintain one finding ledger
+## 维护单一发现台账
 
-Give every finding a stable ID and retain it across reviewers and head SHAs:
+给每条发现分配稳定的 ID 并跨审阅者与 head SHA 保留：
 
-| Field | Required content |
+| 字段 | 必需内容 |
 |---|---|
-| ID | Stable identifier such as `RV-01` |
-| First seen | Reviewed head SHA and reviewer |
-| Claim | Concrete trigger and impact |
-| Evidence | Changed line, directly affected call path, API contract, or reproduction |
-| Contract relation | Required behavior, necessary dependency, non-goal, or unrelated |
-| Classification | In-scope defect, scope-expanding dependency, pre-existing/unrelated, duplicate, suggestion, or invalid |
-| Decision | Fix, clarify, reject with evidence, split to follow-up, or ask user |
-| State | Open, fixed-awaiting-review, verified, superseded, or reopened |
+| ID | 稳定的标识符，如 `RV-01` |
+| 首次出现 | 已审阅 head SHA 与审阅者 |
+| 主张 | 具体触发条件与影响 |
+| 证据 | 被改行、直接受影响的调用路径、API 契约或复现 |
+| 契约关系 | 必需行为、必要依赖、非目标或无关 |
+| 分类 | 范围内缺陷、范围扩张依赖、既有/无关、重复、建议或无效 |
+| 决定 | 修复、澄清、有证据地拒绝、拆到后续或询问用户 |
+| 状态 | 开放、已修复待审、已验证、被取代或重开 |
 
-Do not erase rejected, superseded, or verified findings. A later reviewer sees their evidence and disposition instead of restating them from scratch. Reopen an item only when the current diff or new source/runtime evidence invalidates the prior decision; record that evidence in the same ledger entry.
+不抹除被拒绝、被取代或已验证的发现。后续审阅者看到的是它们的证据与处置，而不是从头复述。只有当前 diff 或新的源码/运行证据推翻先前决定时才重开条目；把该证据记在同一台账条目中。
 
-## Triage before implementation
+## 实施前分诊
 
-For each proposed finding, inspect the full changed definition, direct callers, current upstream signature, and relevant adjacent pattern. Then apply these eligibility rules:
+对每条拟议发现，检查完整变更定义、直接调用方、当前上游签名与相关相邻模式。然后应用资格规则：
 
-1. **In-scope defect:** a changed line or directly changed behavior has a reachable failure that violates the frozen contract or upstream contract. Fix it.
-2. **Scope-expanding dependency:** the required behavior cannot be correct without changing an excluded responsibility. Stop and choose whether to expand, split, or narrow the behavior contract before editing.
-3. **Pre-existing or unrelated:** the path existed before the contribution and the current diff neither invokes it in a new way nor relies on a property it violates. It cannot block this contribution; record it as a possible follow-up.
-4. **Suggestion:** a non-required alternative or preference. Accept only when it simplifies the current patch without widening scope.
-5. **Invalid or duplicate:** evidence does not support the claim, or the ledger already covers it. Reject or link it; do not create another implementation task.
+1. **范围内缺陷：** 被改行或直接变更的行为存在违反冻结契约或上游契约的可达失败。修复它。
+2. **范围扩张依赖：** 所需行为不改变被排除的职责就无法正确。先停下，选择扩张、拆分还是收窄行为契约，再编辑。
+3. **既有或无关：** 路径在贡献之前就存在，且当前 diff 既没有新方式调用它，也没有依赖它违反的性质。它不能阻断本贡献；记录为可能的后续项。
+4. **建议：** 非必需的替代或偏好。只有简化当前补丁且不扩大范围时才接受。
+5. **无效或重复：** 证据不支持主张，或台账已覆盖。拒绝或关联；不另建实现任务。
 
-Reviewer severity does not bypass this classification. A claimed High issue can still be pre-existing, speculative, or scope-expanding rather than an immediate patch instruction.
+审阅者严重度不绕过此分类。声称 High 的问题仍可能是既有的、臆测的或范围扩张的，而不是立即执行的补丁指令。
 
-## Impact note before every review fix
+## 每次修复前记录影响说明
 
-Before dispatching an implementation task, write:
+派发实现任务前写：
 
 ```text
 Finding IDs addressed:
@@ -62,33 +62,33 @@ Contract or non-goals changed: yes/no
 Validation to rerun:
 ```
 
-If `Contract or non-goals changed` is yes, do not dispatch the fix. Obtain the scope decision first. This specifically prevents a local bounded wait from gradually becoming a hard deadline for an entire launch transaction without deliberate approval.
+`Contract or non-goals changed` 为 yes 时不要派发修复，先取得范围决策。这专门防止本地有界等待在未经刻意批准的情况下逐渐变成整个启动事务的硬性截止。
 
-## Re-review package
+## 复审包
 
-Every re-review receives all of the following:
+每次复审都收到以下全部内容：
 
-- frozen contract revision and user exceptions;
-- original base, previously reviewed SHA, and current head SHA;
-- complete current branch diff;
-- delta since the previously reviewed SHA;
-- finding ledger with prior decisions and evidence;
-- checks executed for the current head.
+- 冻结的契约修订版与用户例外；
+- 原始 base、先前已审阅 SHA 与当前 head SHA；
+- 完整当前分支 diff；
+- 自先前已审阅 SHA 以来的 delta；
+- 带先前决定与证据的发现台账；
+- 为当前 head 执行的检查。
 
-Ask reviewers to verify fixed findings, interaction effects, and genuinely new defects. A new finding must name the changed or directly affected behavior that makes it eligible. Reviewers must not reopen a rejected or verified finding without new evidence.
+请审阅者核验已修复发现、交互效应与真正的新缺陷。新发现必须点名使其合格的变更或直接受影响行为。没有新证据，审阅者不得重开被拒绝或已验证的发现。
 
-## Convergence stop condition
+## 收敛停止条件
 
-Stop dispatching additional code fixes and return to the contract decision when either condition occurs:
+满足以下任一条件时停止派发更多代码修复并回到契约决策：
 
-- two consecutive re-reviews each introduce a new blocker that requires widening an architectural boundary; or
-- a proposed fix reverses a design decision made by an earlier review round.
+- 连续两轮复审各自引入需要放宽架构边界的新阻断项；或
+- 某提议修复推翻早先审阅轮次做出的设计决定。
 
-At that point, preserve the worktree and evidence. Do not automatically reset, revert, or add another fix commit. Present the smallest choices:
+此时保留 worktree 与证据。不要自动 reset、revert 或追加修复提交。给出最小选择：
 
-1. rewrite from the frozen behavior contract;
-2. explicitly expand the contract and validation scope;
-3. split the dependency into a separate contribution;
-4. defer or close the contribution with the unresolved reason.
+1. 从冻结行为契约重写；
+2. 显式扩张契约与验证范围；
+3. 把依赖拆成独立贡献；
+4. 带未解决理由延后或关闭贡献。
 
-After a choice, supersede affected ledger entries, create a new contract revision, and perform one complete branch review. The contribution is review-converged only when no eligible blocking item remains, the full current diff has been reviewed, and verification gaps are stated accurately.
+选择后取代受影响的台账条目、创建新契约修订版，并做一次完整分支审阅。只有不存在合格阻断项、完整当前 diff 已审阅且验证缺口被准确陈述时，贡献才算审阅收敛。

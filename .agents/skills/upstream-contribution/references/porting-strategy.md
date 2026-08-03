@@ -1,48 +1,48 @@
-# Porting Strategy
+# 移植策略
 
-Choose a strategy from evidence, not convenience.
+从证据选策略，不从便利选。
 
-## Decision table
+## 决策表
 
-| Condition | Strategy | Method |
+| 条件 | 策略 | 方法 |
 |---|---|---|
-| Whole commit is single-purpose; paths, APIs, dependencies, defaults, tests, and style match upstream | exact transfer | `git cherry-pick -n <commit>`, then inspect every hunk |
-| Core logic matches but a small number of names, signatures, paths, or tests differ | adapt | apply without committing, then rewrite the mismatches |
-| Commit is mixed, fork-only concerns are interwoven, or upstream responsibilities differ | behavior rewrite | implement from the behavior contract in upstream code |
-| Failure or expected behavior is not established | stop | collect evidence before choosing code |
+| 整个提交单一目的；路径、API、依赖、默认值、测试与风格都匹配上游 | exact 搬运 | `git cherry-pick -n <commit>`，然后逐 hunk 检查 |
+| 核心逻辑匹配，但少量名称、签名、路径或测试不同 | adapt | 免提交应用，再改写不匹配处 |
+| 提交混合、fork 专属关注点交织或上游职责不同 | 行为重写 | 按行为契约在上游代码中实现 |
+| 失败或预期行为未确定 | 停止 | 先收集证据再选代码 |
 
-Exact transfer is the exception. Similar filenames or a clean cherry-pick do not prove semantic compatibility.
+exact 搬运是例外。相似文件名或干净的 cherry-pick 不能证明语义兼容。
 
-## Compatibility questions
+## 兼容性问题
 
-Before exact transfer, answer yes to all of these:
+exact 搬运前，以下全部回答为是：
 
-- Does upstream expose the same API with the same semantics and default values?
-- Do imported symbols exist upstream at the same responsibility boundary?
-- Are configuration keys and lifecycle rules shared?
-- Does upstream use the same error, logging, translation, and resource-loading patterns?
-- Are tests written with the same framework and fixtures?
-- Is every hunk required by the behavior contract?
+- 上游是否以相同语义与默认值暴露同一 API？
+- 导入的符号是否存在于上游同一职责边界？
+- 配置键与生命周期规则是否共享？
+- 上游是否使用相同的错误、日志、翻译与资源加载模式？
+- 测试是否使用同一框架与 fixture 编写？
+- 每个 hunk 是否都是行为契约所需？
 
-Any uncertain answer changes the strategy to adapt or rewrite.
+任何不确定答案都把策略改为 adapt 或 rewrite。
 
-## Mixed commits
+## 混合提交
 
-Do not cherry-pick a mixed commit and then trust a visual cleanup. First classify hunks. Apply only the behavior-bearing portions, or rewrite them manually. Preserve a provenance map in the report:
+不要 cherry-pick 混合提交后再相信视觉清理。先分类 hunk。只应用承载行为的部分，或手工重写。报告中保留溯源映射：
 
 ```text
 downstream <commit>:path:lines -> upstream path:function -> ported/adapted/excluded
 ```
 
-## Tests
+## 测试
 
-Tests are part of the behavior port when upstream supports them.
+上游支持时，测试是行为移植的一部分。
 
-- Prefer a focused regression test that demonstrates the original failure.
-- Rewrite fixtures and imports to use upstream conventions.
-- Do not import fork-only debug helpers just to reuse a downstream test.
-- If reliable automation is impossible, document the manual oracle and why an automated test was not added.
+- 优先添加展示原始失败的聚焦回归测试。
+- 按上游约定重写 fixture 与导入。
+- 不要仅为复用下游测试而导入 fork 专属调试辅助。
+- 无法可靠自动化时，记录手动验证基准及未添加自动化测试的原因。
 
-## Dependency and configuration changes
+## 依赖与配置变更
 
-Do not add a dependency, config key, feature flag, debug switch, or generalized abstraction unless the behavior contract truly requires it and upstream has no simpler local pattern. These changes expand maintenance scope and require explicit justification in the PR.
+除非行为契约确实需要且上游没有更简单的本地模式，否则不新增依赖、配置键、功能开关、调试开关或通用抽象。这类变更扩大维护范围，需要在 PR 中给出明确理由。

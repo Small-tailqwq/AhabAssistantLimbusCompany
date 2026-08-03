@@ -16,9 +16,17 @@
 - 代码审阅及复审：加载 `code-review`；不可用时读取 `.agents/skills/code-review/SKILL.md`。
 - 新增/修改 `debug_*`：再读取 `.opencode/tools/debug_model_constitution.md`。
 
-Skills 内容使用英文编写（LLM 处理效率更高），仅面向用户的输出模板保留中文。
+Skills 内容使用中文编写；代码符号、命令、文件路径与协议术语（如 finding ID、Block/Warning、exact/adapt/rewrite）保留英文，以便与仓库工具链对齐。
 
 Skill 正文只读任务所需 reference，不要因“可能有用”提前展开。
+
+SKILL.md 正文一旦加载就常驻上下文到会话结束，因此只放热路径；失败处理、回滚、复审协议、报告模板等低频内容放 `references/`。正文受 180 行预算约束，由 `check_agent_guidance.py` 强制。
+
+## 多 harness 共用 skills
+
+`.agents/skills/` 是唯一真实来源。Codex、pi、OpenCode 直接读取该目录；Claude Code 只读 `.claude/skills/`，但会跟随链接。克隆仓库后运行一次 `uv run python .\scripts\link_skills.py` 建立链接（Windows 无开发者模式时用目录联接，POSIX 用相对符号链接）。
+
+`.claude/` 已被忽略，链接是本地产物，不提交也不手工编辑；新增或重命名 skill 后重跑该脚本。`check_agent_guidance.py` 在链接目录存在时校验漂移。
 
 ## 快速命令
 
@@ -36,6 +44,7 @@ uv run python .\scripts\translation_files_compile.py
 uv run python .\scripts\check_i18n.py --update
 uv run python .\scripts\export-requirements-from-uv-lock.py
 uv run python .\scripts\check_agent_guidance.py
+uv run python .\scripts\link_skills.py
 ```
 
 调试工具位于 `.opencode/tools/`：`log_analyzer.py`、`mirror_analyzer.py`、`log_viewer.py`、`match_viewer.py`。模板匹配重放工具：`debug_tools/verify_matching.py`。可复用临时验证脚本放 `debug_tools/`，不纳入 CI。调试截图和中间图统一写入 `logs/<feature>_debug/` 等已忽略目录，不落到仓库根目录或未忽略的 `debug_*` 目录。
@@ -56,7 +65,7 @@ uv run python .\scripts\check_agent_guidance.py
 | 任务线程 | `tasks/base/script_task_scheme.py` |
 | 自动化/单例 | `module/` |
 | 图片 | `assets/images/default/{en,zh_cn,share}/`、`assets/images/dark/` |
-| Agent 指引 | `.agents/skills/`（共享 skill）、`.opencode/agents/`（OpenCode 专用代理） |
+| Agent 指引 | `.agents/skills/`（共享 skill 唯一来源）、`.claude/skills/`（生成的链接）、`.opencode/agents/`（OpenCode 专用代理） |
 
 ## 核心不变量
 

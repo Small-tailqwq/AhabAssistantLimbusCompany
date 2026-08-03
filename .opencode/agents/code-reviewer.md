@@ -5,7 +5,6 @@ description: |
 mode: subagent
 hidden: true
 temperature: 0.2
-steps: 30
 tools:
   write: false
   edit: false

@@ -1,36 +1,36 @@
 ---
 name: canary-release
-description: Prepare, publish, verify, repair, or roll back an AALC canary prerelease, including isolated release work, version and changelog updates, build and update-protocol checks, tags, GitHub Actions, release notes, artifact inventory, channel behavior, and post-release reporting. Use for any canary release operation.
+description: 准备、发布、验证、修复或回滚 AALC 金丝雀预发布版本，包括隔离发布工作区、版本与更新日志更新、构建与更新协议检查、tag、GitHub Actions、发布说明、产物清单、通道行为与发布后报告。任何 canary 发布操作都使用本技能。
 ---
 
-# AALC Canary Release
+# AALC Canary 发布
 
-Treat a canary as a stateful release transaction. A tag or an uploaded archive alone is not completion; the release must be consumable through the intended channel and its artifacts and notes must match the tagged source.
+把 canary 当作有状态的发布事务。仅有 tag 或已上传的压缩包不算完成；发布必须能通过既定通道被消费，且产物与说明必须匹配打 tag 的源码。
 
-## Authority and safety
+## 权限与安全
 
-- Inspect the original workspace before changing git state. Preserve unrelated changes.
-- Prefer a named release branch in an isolated worktree when the workspace is dirty or release preparation is more than a one-file edit.
-- Never print or commit tokens. Use authenticated `gh` or a credential helper.
-- Pushing, tagging, editing a release, deleting assets/tags, and rerunning remote workflows are external writes. Execute only the authorized scope.
-- Show the exact branch, commit, tag, remote, and release mutation before the first irreversible or externally visible step.
+- 改动 git 状态前先检查原工作区；保留无关改动。
+- 工作区脏或发布准备超过单文件编辑时，优先在隔离 worktree 中建命名发布分支。
+- 绝不打印或提交 token。使用已认证的 `gh` 或凭据助手。
+- push、打 tag、编辑 Release、删除产物/tag、重跑远端工作流都属于外部写入，只执行已授权的范围。
+- 在第一步不可逆或外部可见操作之前，展示精确的分支、提交、tag、remote 与发布变更。
 
-## Preflight
+## 预检
 
-1. Confirm the target version, previous release tag, target commit, and release channel.
-2. Inspect `git status --short`, remotes, existing tags, and existing release with the same version.
-3. Confirm user-visible changes and known risks.
-4. Verify current release policy from repository workflows and build scripts rather than memory.
-5. Keep the current `bootstrap_version` unless update-protocol compatibility actually changes.
-6. Generate protocol sidecars through build scripts; never hand-edit them.
+1. 确认目标版本、上一个发布 tag、目标提交与发布通道。
+2. 检查 `git status --short`、remotes、已有 tag，以及同版本是否已有 Release。
+3. 确认用户可见变更与已知风险。
+4. 从仓库工作流与构建脚本确认当前发布策略，不要凭记忆。
+5. 除非更新协议兼容性确实变化，否则保持当前 `bootstrap_version`。
+6. 协议 sidecar 通过构建脚本生成，绝不手改。
 
-Common release-source files are `assets/config/version.txt` and `CHANGELOG.md`. Do not modify user `config.yaml`.
+常见发布源文件是 `assets/config/version.txt` 与 `CHANGELOG.md`。不要修改用户 `config.yaml`。
 
-## Prepare and review
+## 准备与审阅
 
-Update only the release-scoped files. If code or workflows require a release-blocking fix, keep that change separately reviewable.
+只更新发布范围内的文件。若代码或工作流需要发布阻断性修复，把该改动单独留作可审阅项。
 
-Inspect the exact release diff, then run checks selected by the touched areas:
+检查精确的发布 diff，然后按触及区域选择检查：
 
 ```powershell
 uv run python -m py_compile scripts\build.py
@@ -38,92 +38,47 @@ uv run python .\scripts\build.py --version dev
 uv run python .\scripts\check_i18n.py --update
 ```
 
-If `scripts/build.py` changes, its console output must remain ASCII for Windows cp1252 CI. Run `code-review` on release code or workflow changes before committing.
+若 `scripts/build.py` 有改动，其控制台输出必须保持 ASCII 以兼容 Windows cp1252 CI。提交前对发布代码或工作流改动运行 `code-review`。
 
-## Commit and tag gate
+## 提交与打 tag 关口
 
-Before pushing:
+push 之前：
 
-- show version and previous tag;
-- show `git diff --stat` and version/changelog diff;
-- show planned Chinese commit message and annotated tag;
-- confirm the target remote and source commit;
-- obtain any external-write confirmation not already granted.
+- 展示版本与上一个 tag；
+- 展示 `git diff --stat` 及版本/更新日志 diff；
+- 展示计划的中文提交信息与附注 tag；
+- 确认目标 remote 与源提交；
+- 取得尚未授予的外部写入确认。
 
-Create the annotated tag only on the verified release commit. Verify `git rev-parse <tag>^{commit}` before push. Push the branch and tag without force.
+只在已验证的发布提交上创建附注 tag。push 前用 `git rev-parse <tag>^{commit}` 验证。不带 force 地推送分支与 tag。
 
-## Follow CI to the matching SHA
+## 跟进 CI 到匹配的 SHA
 
-Monitor the workflow triggered by the target tag and verify it is building the expected commit. A successful unrelated run does not count.
+监控目标 tag 触发的工作流，确认它构建的是预期提交。一次成功的无关运行不算数。
 
-On failure:
+失败时检查失败任务与日志，判断原因是源码、环境、凭据还是发布状态；通过已审阅的提交与新的有意 tag 状态修复源码，并重跑本地检查与匹配的远端工作流。不要静默重定向已发布的 tag。
 
-1. inspect the failing job and logs;
-2. determine whether the failure is source, environment, credentials, or release-state related;
-3. repair source through a reviewed commit and new intentional tag state—do not silently retarget a published tag;
-4. rerun local checks and the matching remote workflow.
+## 验证 GitHub Release
 
-## Verify the GitHub Release
+一个可消费的 canary 必须满足：
 
-For a consumable canary, verify:
+- release tag 与目标提交匹配；
+- release 标记为 prerelease；
+- 恰好存在一个 `AALC_<version>.7z`；
+- 恰好存在一个 `AALC.update_manifest.json`；
+- 稳定专属的校验和策略在适用处仍然满足；
+- 没有重复、过期或错误版本的产物；
+- manifest 与压缩包来自匹配的工作流运行；
+- canary 通道能发现该 prerelease，同时 stable 过滤保持不变。
 
-- release tag and target commit match;
-- release is marked prerelease;
-- exactly one `AALC_<version>.7z` exists;
-- exactly one `AALC.update_manifest.json` exists;
-- stable-only checksum policy remains satisfied where applicable;
-- no duplicate, stale, or wrong-version asset is present;
-- manifest and archive came from the matching workflow run;
-- canary channel can discover the prerelease while stable filtering remains unchanged.
+这些检查全部通过前不要对外宣布。
 
-Do not announce the release until these checks pass.
+## 发布说明与最终报告
 
-## Release notes
+GitHub Release body 是用户可见的事实来源，必须与 `CHANGELOG.md` 一致。用 notes 文件配合 `gh release edit`，避免 shell 转义错误。
 
-The GitHub Release body is the user-visible source of truth and must agree with `CHANGELOG.md`. Use a notes file with `gh release edit` to avoid shell escaping errors.
+读 [references/release-notes.md](references/release-notes.md) 了解要求的标题、正文格式与最终报告结构。
 
-Title:
+## 恢复
 
-```text
-vX.Y.Z-canary.N — 金丝雀预览版
-```
-
-Body:
-
-```markdown
-### 新功能
-- feat: <用户可见变更>
-
-### 修复
-- fix: <用户可见修复>
-
-### 其他
-- refactor/chore/docs: <必要说明>
-
-[查看完整变更](https://github.com/Small-tailqwq/AhabAssistantLimbusCompany/compare/<prev_tag>...<new_tag>)
-```
-
-Omit empty categories. For a single category, the list may stand alone. Do not add a top-level heading. The compare link is mandatory. Avoid `#n` shorthand because fork issue numbers can resolve ambiguously; use full URLs or `本地 issue N`.
-
-## Recovery and rollback
-
-- Duplicate or wrong asset: do not delete until the exact release and asset are identified and deletion is authorized.
-- Published tag points to wrong commit: stop distribution and report; tag replacement is destructive and requires explicit approval.
-- Canary visible to stable users: fix release metadata or channel filtering before announcement.
-- Manifest mismatch: regenerate from build scripts and create a traceable corrected release state.
-- Bad canary behavior: document rollback or previous known-good version in the release body and report channel impact.
-
-## Final report
-
-```markdown
-## Canary 发布结果
-- Version / tag / commit：
-- Release URL：
-- Workflow run and result：
-- Artifact inventory：
-- Prerelease/channel verification：
-- Release notes / changelog consistency：
-- Local checks：
-- Repairs or rollback state：
-- Remaining follow-up：
-```
+产物、tag、manifest 或通道状态异常时，先读 [references/recovery.md](references/recovery.md) 再进行任何删除或 tag 变更。

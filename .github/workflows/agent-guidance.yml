@@ -12,6 +12,7 @@ on:
       - ".github/workflows/issue-analyze.yml"
       - "scripts/build_pr_review_context.py"
       - "scripts/check_agent_guidance.py"
+      - "scripts/link_skills.py"
   push:
     branches: [main]
     paths:
@@ -24,6 +25,7 @@ on:
       - ".github/workflows/issue-analyze.yml"
       - "scripts/build_pr_review_context.py"
       - "scripts/check_agent_guidance.py"
+      - "scripts/link_skills.py"
 
 permissions:
   contents: read

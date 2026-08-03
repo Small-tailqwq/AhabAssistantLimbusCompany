@@ -1,27 +1,27 @@
 ---
 name: downstream-sync
-description: Bring selected upstream AALC fixes or refinements back into the downstream fork, including patch-identity screening, isolated worktree integration, exact/adapt/rewrite selection, pre-commit validation and review, one-logical-fix commits, and reconciliation of the final upstream result after an upstream contribution. Use for fork-from-upstream synchronization without merging unrelated upstream history.
+description: 把精选的上游 AALC 修复或改进回流到下游 fork，包括补丁身份筛选、隔离 worktree 集成、exact/adapt/rewrite 选择、提交前验证与审阅、单逻辑修复提交，以及上游贡献完成后对最终上游结果的核对。在不合并无关上游历史的前提下做 fork 同步时使用。
 ---
 
-# AALC Downstream Sync
+# AALC 下游回流
 
-Port upstream behavior into the fork without erasing intentional downstream differences. Commit identity, author, and title are hints only; patch identity and current behavior determine whether work is missing.
+把上游行为移植进 fork，且不抹掉有意的下游差异。提交身份、作者与标题只是线索；补丁身份与当前行为才决定工作是否缺失。
 
-## Required outcome
+## 必需结果
 
-- Candidate commits are derived from the fetched upstream graph.
-- Already-equivalent fixes are excluded by patch and behavior checks.
-- Integration occurs on a named branch in an isolated worktree.
-- Each commit contains one logical upstream fix or one inseparable dependency group.
-- Relevant checks and `code-review` pass before each commit.
-- The original downstream workspace remains untouched until an explicit integration choice is made.
+- 候选提交派生自已 fetch 的上游图谱。
+- 已等价的修复通过补丁与行为检查排除。
+- 集成发生在隔离 worktree 的命名分支上。
+- 每个提交只含一个逻辑上游修复或一个不可拆分的依赖组。
+- 每个提交前通过相关检查与 `code-review`。
+- 做出明确集成选择前，原下游工作区保持不动。
 
-## Preflight and isolation
+## 预检与隔离
 
-1. Inspect `git status --short`, remotes, current branch, and existing worktrees.
-2. Fetch upstream without switching the original workspace.
-3. Determine the downstream base commit explicitly.
-4. Create a named branch and worktree:
+1. 检查 `git status --short`、remotes、当前分支与已有 worktree。
+2. 不切换原工作区地 fetch upstream。
+3. 明确确定下游 base 提交。
+4. 创建命名分支与 worktree：
 
 ```powershell
 $branch = "downstream-sync/<short-name>"
@@ -29,9 +29,9 @@ $path = ".worktrees/downstream-sync/<short-name>"
 git worktree add -b $branch $path HEAD
 ```
 
-Verify the branch name, base SHA, and clean status. If the original workspace is dirty, do not merge or switch it later without agreeing on how those changes will be preserved.
+验证分支名、base SHA 与干净状态。原工作区脏时，未先商定这些改动如何保留，不得稍后合并或切换它。
 
-## Phase 1: Build candidate inventory
+## 阶段 1：构建候选清单
 
 ```powershell
 git merge-base HEAD upstream/main
@@ -39,7 +39,7 @@ git log --no-merges --oneline <merge-base>..upstream/main
 git cherry -v HEAD upstream/main
 ```
 
-For each likely fix, record:
+为每个疑似修复记录：
 
 ```text
 Upstream SHA and title:
@@ -51,44 +51,40 @@ Current downstream behavior already equivalent:
 Candidate status:
 ```
 
-Do not skip a commit only because its author or title resembles a prior contribution. Squash merges, maintainer rewrites, and alternative fixes change identity. Use `git patch-id --stable` where useful, then inspect behavior and tests.
+不能只因作者或标题像先前贡献就跳过某提交。squash 合并、维护者重写与替代修复都会改变身份。需要时用 `git patch-id --stable`，然后检查行为与测试。
 
-## Phase 2: Select the integration strategy
+## 阶段 2：选择集成策略
 
-Use the same evidence-based strategy as `upstream-contribution`:
+- **exact**：上游提交单一目的，且与下游结构干净匹配；
+- **adapt**：核心补丁兼容，但下游配置、API 或布局需要本地调整；
+- **rewrite**：历史或职责分化，或只应保留上游行为。
 
-- **exact:** upstream commit is single-purpose and cleanly matches downstream structure;
-- **adapt:** core patch is compatible but downstream config, APIs, or layout require local changes;
-- **rewrite:** histories or responsibilities diverge, or only the upstream behavior should be retained.
+选择不明显时读 `.agents/skills/upstream-contribution/references/porting-strategy.md`。无冲突的 cherry-pick 不能证明语义契合。
 
-Read `.agents/skills/upstream-contribution/references/porting-strategy.md` when the choice is not obvious. A conflict-free cherry-pick does not prove semantic fit.
+上游回归测试兼容时保留，需要时适配到下游 fixture。不要把 `tests/` 一刀切排除。
 
-Keep upstream regression tests when compatible. Adapt them to downstream fixtures when needed. Do not exclude `tests/` categorically.
+## 阶段 3：应用单个逻辑修复
 
-## Phase 3: Apply one logical fix
-
-Work on one candidate or inseparable dependency group at a time:
+一次只处理一个候选或不可拆分依赖组：
 
 ```powershell
 git cherry-pick -n <upstream-commit>
 ```
 
-For adapt or rewrite, edit the worktree so the final diff expresses upstream behavior through downstream-native APIs. Remove unrelated upstream refactors, release metadata, and paths that do not belong in the fork.
+adapt 或 rewrite 时编辑 worktree，使最终 diff 通过下游原生 API 表达上游行为。移除不属于 fork 的无关上游重构、发布元数据与路径。
 
-Inspect both staged and unstaged state. Stage explicit paths, never a blanket mixed-worktree `git add -A`.
+同时检查暂存与未暂存状态。只暂存明确路径，绝不用一刀切的 `git add -A` 混入 worktree 状态。
 
-## Phase 4: Validate before commit
+## 阶段 4：提交前验证
 
-Before committing each logical fix:
+1. 读完整变更函数与受影响调用方。
+2. 运行回归测试或回归验证基准。
+3. 运行针对性语法与 Ruff 检查。
+4. 按变更路径选择自动化或 i18n 领域运行 `code-review`。
+5. 检查 `git diff --cached --stat` 与 `git diff --cached`。
+6. 确认没有无关的上游发布、配置、品牌或 CI 改动被暂存。
 
-1. read complete changed functions and affected callers;
-2. run the regression test or behavioral oracle;
-3. run targeted syntax and Ruff checks;
-4. run `code-review` with automation or i18n specialists selected by changed domain;
-5. inspect `git diff --cached --stat` and `git diff --cached`;
-6. confirm no unrelated upstream release, config, branding, or CI change is staged.
-
-Commit only after these checks. Use a Chinese downstream commit message and retain upstream provenance in the body:
+以上检查通过才提交。提交信息用中文，正文保留上游溯源：
 
 ```text
 上游回流: <简短标题>
@@ -99,9 +95,7 @@ Strategy: exact | adapt | rewrite
 <行为和适配说明>
 ```
 
-## Phase 5: Review the complete sync branch
-
-After all candidate commits:
+## 阶段 5：审阅完整回流分支
 
 ```powershell
 git log --oneline <downstream-base>..HEAD
@@ -109,34 +103,20 @@ git diff <downstream-base>...HEAD --stat
 git diff <downstream-base>...HEAD
 ```
 
-Run `code-review` on the complete branch and rerun tests affected by interactions between commits. Confirm that each commit remains independently understandable and that later commits do not silently undo earlier fixes.
+对完整分支运行 `code-review`，并重跑受提交间交互影响的测试。确认每个提交仍可独立理解，且后续提交没有静默撤销先前修复。
 
-## Phase 6: Integrate deliberately
+## 阶段 6：审慎集成
 
-Report the sync branch and validation before altering the original downstream branch. If the user authorized local integration and the original workspace is clean, integrate using the repository's chosen merge, fast-forward, or cherry-pick policy. If it is dirty, stop with the worktree branch intact and request a preservation choice.
+改动原下游分支前先报告回流分支与验证结果。用户授权本地集成且原工作区干净时，按仓库选定的 merge、fast-forward 或 cherry-pick 策略集成。工作区脏时停下，保留 worktree 分支并请求保留方案。
 
-Never push or open a PR unless the user authorized that external write.
+未经用户授权，绝不 push 或开 PR（外部写入）。
 
-## Upstream-contribution reconciliation mode
+## 条件模式
 
-When invoked after an upstream PR:
+- 上游 PR 到达终态后：读 [references/reconciliation.md](references/reconciliation.md)。
+- 出现冲突、依赖缺失、验证失败、部分历史移植或原工作区脏时：读 [references/failure-handling.md](references/failure-handling.md)。
 
-1. identify the final upstream merge/squash/rebase SHA, not merely the submitted head;
-2. compare final upstream code with current downstream behavior;
-3. port maintainer refinements or alternative fixes that downstream lacks;
-4. avoid duplicating behavior already present in the original downstream commit;
-5. run the original regression oracle in downstream;
-6. record intentional remaining fork differences.
-
-## Failure handling
-
-- Conflict: stop, inspect base/upstream/downstream behavior, and resolve per file; never blanket-select one side.
-- Missing dependency: either include the minimal dependency in the same group or rewrite without it.
-- Validation failure: do not commit; fix or abort only the in-progress application.
-- Partial prior port: separate already-present behavior from missing behavior and commit only the missing delta.
-- Dirty original workspace: leave it untouched and keep the validated worktree branch for later integration.
-
-## Final report
+## 最终报告
 
 ```markdown
 ## 上游回流结果

@@ -7,6 +7,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SKILL_ROOT = ROOT / ".agents" / "skills"
 NAME_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+# Tighter than the 500-line Agent Skills disclosure limit: a SKILL.md body stays in
+# context for the rest of the session, so cold-path detail belongs in references/.
+SKILL_LINE_BUDGET = 180
 MARKDOWN_LINK_PATTERN = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 
 
@@ -80,8 +83,11 @@ def validate_skill(path: Path, seen_names: dict[str, Path], problems: list[str])
         problems.append(f"{relative}: description exceeds 1024 characters")
 
     lines = read_text(path).splitlines()
-    if len(lines) > 500:
-        problems.append(f"{relative}: SKILL.md exceeds the 500-line disclosure limit")
+    if len(lines) > SKILL_LINE_BUDGET:
+        problems.append(
+            f"{relative}: SKILL.md exceeds the {SKILL_LINE_BUDGET}-line budget; "
+            "move cold-path detail into references/"
+        )
 
     for link in MARKDOWN_LINK_PATTERN.findall(read_text(path)):
         target = link.split("#", 1)[0]
@@ -211,8 +217,8 @@ def validate_review_convergence(problems: list[str]) -> None:
     )
     for fragment in (
         "references/review-convergence.md",
-        "stable finding IDs",
-        "two consecutive re-reviews",
+        "稳定的 finding ID",
+        "连续两轮复审",
     ):
         if fragment not in upstream_skill:
             problems.append(
@@ -228,10 +234,10 @@ def validate_review_convergence(problems: list[str]) -> None:
         / "review-convergence.md"
     )
     for fragment in (
-        "## Maintain one finding ledger",
-        "## Triage before implementation",
-        "## Impact note before every review fix",
-        "## Convergence stop condition",
+        "## 维护单一发现台账",
+        "## 实施前分诊",
+        "## 每次修复前记录影响说明",
+        "## 收敛停止条件",
     ):
         if fragment not in convergence:
             problems.append(
@@ -240,11 +246,47 @@ def validate_review_convergence(problems: list[str]) -> None:
             )
 
     review_skill = read_text(ROOT / ".agents" / "skills" / "code-review" / "SKILL.md")
-    for fragment in ("stable finding IDs", "scope decision", "new evidence"):
-        if fragment not in review_skill:
+    if "references/pr-protocol.md" not in review_skill:
+        problems.append(
+            ".agents/skills/code-review/SKILL.md: missing 'references/pr-protocol.md'"
+        )
+
+    pr_protocol = read_text(
+        ROOT / ".agents" / "skills" / "code-review" / "references" / "pr-protocol.md"
+    )
+    for fragment in ("稳定的 finding ID", "范围决策", "新证据"):
+        if fragment not in pr_protocol:
             problems.append(
-                f".agents/skills/code-review/SKILL.md: missing {fragment!r}"
+                f"code-review/references/pr-protocol.md: missing {fragment!r}"
             )
+
+
+def validate_skill_links(problems: list[str]) -> None:
+    """Check .claude/skills mirrors .agents/skills.
+
+    Only runs when the link directory already exists. `.claude` is gitignored,
+    so a fresh clone and CI have no links to verify and must stay green; a
+    developer who has run link_skills.py gets drift reported.
+    """
+    if not (ROOT / ".claude" / "skills").is_dir():
+        return
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    try:
+        import link_skills  # pyright: ignore[reportMissingImports]
+    except ImportError:
+        problems.append("scripts/link_skills.py: missing skill link helper")
+        return
+
+    missing, stale, orphaned = link_skills.plan(link_skills.discover_skills())
+    for name in missing:
+        problems.append(f".claude/skills/{name}: missing link to .agents/skills")
+    for name in stale:
+        problems.append(f".claude/skills/{name}: link does not point at .agents/skills")
+    for name in orphaned:
+        problems.append(f".claude/skills/{name}: orphaned link with no shared skill")
+    if missing or stale or orphaned:
+        problems.append("run: uv run python scripts/link_skills.py")
 
 
 def main() -> int:
@@ -260,6 +302,7 @@ def main() -> int:
     validate_guidance_paths(problems)
     validate_opencode_ci(problems)
     validate_review_convergence(problems)
+    validate_skill_links(problems)
 
     if problems:
         lines = ["Agent guidance validation failed:"]

@@ -1,62 +1,62 @@
-# Upstream-Native Style Review
+# 上游原生风格审阅
 
-Use this checklist on the staged diff and again on the full branch diff. The comparison baseline is the target upstream tree, not the downstream fork.
+在暂存 diff 与完整分支 diff 上各使用本清单。比较基线是目标上游树，不是下游 fork。
 
-## Read context first
+## 先读上下文
 
-For each changed function or class:
+对每个变更的函数或类：
 
-1. read the full definition;
-2. read direct callers and the API signature being invoked;
-3. read two or more adjacent upstream examples that solve a similar problem;
-4. inspect upstream tests for naming and fixture patterns;
-5. compare the proposed code with upstream `main`, not with a stale local copy.
+1. 读完整定义；
+2. 读直接调用方与被调用的 API 签名；
+3. 读两个以上解决相似问题的相邻上游示例；
+4. 检查上游测试的命名与 fixture 模式；
+5. 与上游 `main` 对比拟议代码，而不是过期的本地副本。
 
-## Redundancy and code flavor
+## 冗余与代码味道
 
-Actively remove these porting artifacts unless the upstream code around them establishes the same pattern:
+主动移除以下移植痕迹，除非其周围的上游代码建立了相同模式：
 
-- explicit keyword arguments whose values equal the callee's defaults;
-- one-use locals introduced only to rename a literal, default, or direct expression;
-- underscore-prefixed one-use variables, constants, parameters, or helpers with no real reuse or abstraction value;
-- wrapper helpers that forward unchanged arguments to a single call site;
-- defensive branches for states the upstream API makes impossible;
-- comments that narrate obvious code or explain downstream history instead of upstream intent;
-- copied type annotations, logging, exception handling, or naming conventions that differ from adjacent upstream code;
-- expanded configuration or feature flags where upstream uses an existing default behavior.
+- 值与 callee 默认值相等的显式关键字参数；
+- 仅为重命名字面量、默认值或直接表达式而引入的单次使用局部变量；
+- 无真实复用或抽象价值的下划线前缀一次性变量、常量、参数或辅助函数；
+- 向单一调用点原样转发参数的包装辅助函数；
+- 上游 API 使状态不可能的防御性分支；
+- 叙述显而易见代码或解释下游历史而非上游意图的注释；
+- 与相邻上游代码不同的照搬类型注解、日志、异常处理或命名约定；
+- 上游用既有默认行为时扩张的配置或功能开关。
 
-An underscore prefix does not make a disposable name harmless. Ask whether deleting the name and using the existing default or expression makes the upstream code clearer.
+下划线前缀不会让一次性命名变得无害。问自己：删除该命名并直接使用既有默认值或表达式，是否让上游代码更清晰？
 
-## API and lifecycle fit
+## API 与生命周期契合
 
-Verify:
+核验：
 
-- called arguments match the current upstream signature and semantics;
-- omitted arguments intentionally use upstream defaults;
-- error and retry behavior matches upstream call sites;
-- singleton, configuration, UI signal, translation, resource-loading, and cooperative-stop patterns match upstream reality;
-- no downstream-only import, config key, debug switch, release channel, asset path, issue archive, agent tool, or local script enters the diff;
-- no downstream refactor is carried merely because the fix was originally implemented inside it.
+- 调用参数匹配当前上游签名与语义；
+- 省略的参数有意使用上游默认值；
+- 错误与重试行为匹配上游调用点；
+- 单例、配置、UI 信号、翻译、资源加载与协作式停止模式匹配上游现实；
+- 没有下游专属导入、配置键、调试开关、发布通道、资源路径、issue 归档、agent 工具或本地脚本进入 diff；
+- 没有只因修复最初实现于其中而带入的下游重构。
 
-## Scope and test fit
+## 范围与测试契合
 
-Verify:
+核验：
 
-- every changed line traces to the behavior contract, regression test, or necessary upstream adaptation;
-- automated tests are retained or rewritten when upstream supports them;
-- test names describe behavior rather than the downstream incident;
-- generated files are changed only through their upstream generator;
-- changelog and release metadata follow upstream policy rather than downstream policy.
+- 每个被改行都追溯到行为契约、回归测试或必要的上游适配；
+- 上游支持时保留或重写自动化测试；
+- 测试名描述行为而不是下游事件；
+- 生成文件只经其上游生成器修改；
+- 更新日志与发布元数据遵循上游策略而非下游策略。
 
-## Review output
+## 审阅输出
 
-Record each item as one of:
+逐项记录为：
 
-- `blocking`: fork contamination, incorrect upstream behavior, or confirmed regression;
-- `simplify`: redundant or non-native construction that should be removed before PR;
-- `accepted`: difference justified by upstream context;
-- `unverified`: context or runtime evidence still missing.
+- `blocking`：fork 污染、错误的上游行为或已确认回归；
+- `simplify`：PR 前应移除的冗余或非原生构造；
+- `accepted`：由上游上下文证明合理的差异；
+- `unverified`：仍缺上下文或运行证据。
 
-Do not approve while any `blocking` or unexplained `unverified` item remains.
+存在任何 `blocking` 或无法解释的 `unverified` 项时不批准。
 
-For re-review, preserve each item's stable finding ID and prior disposition. A newly reported blocker must identify the changed or directly affected path that makes it part of this contribution. Record pre-existing or unrelated concerns as follow-up observations rather than widening the patch.
+复审保留每项的稳定 finding ID 与先前处置。新报告的阻断项必须点名使其属于本贡献的变更或直接受影响路径。既有或无关关注点记为后续观察，不扩大补丁。

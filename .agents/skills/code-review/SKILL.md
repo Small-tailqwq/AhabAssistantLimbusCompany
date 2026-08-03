@@ -1,153 +1,106 @@
 ---
 name: code-review
-description: Review AALC uncommitted changes, staged diffs, commits, branches, pull requests, upstream contributions, or downstream sync branches for confirmed defects, regressions, automation safety, i18n drift, upstream-style mismatch, unnecessary defaults, one-use underscore variables, and maintainability risks. Use for initial review and every re-review after changes or feedback.
+description: 审阅 AALC 未提交改动、暂存 diff、提交、分支、pull request、上游贡献或下游同步分支，确认缺陷、回归、自动化安全、i18n 漂移、上游风格不匹配、多余默认参数、一次性下划线变量与可维护性风险。首次审阅及每次改动或收到反馈后的复审都使用本技能。
 ---
 
-# AALC Code Review
+# AALC 代码审阅
 
-Act as the review coordinator. Establish the target, collect enough source context, route domains to named specialist reviewers, verify findings, deduplicate them, and issue one evidence-based verdict. Do not treat a raw diff or a passing test as sufficient review context.
+先确定目标，读足够源码来判断改动，逐条对照源码核实发现，最后给出基于证据的单一裁决。裸 diff 或通过测试都不构成充分的审阅上下文。
 
-## Resolve the target
+## 按目标缩放协议
 
-| Intent | Evidence to collect |
+| 目标 | 协议 |
 |---|---|
-| Uncommitted work | `git status --short`, unstaged and staged stats/diffs |
-| Staged work | `git diff --cached --stat` and full staged diff |
-| Commit | `git show --stat <sha>` and full patch |
-| Branch | base/head SHAs, commit list, three-dot stat and full diff |
-| Pull request | PR metadata, base/head SHAs, full PR diff, checks, prior reviews and unresolved threads |
-| Re-review | prior reviewed SHA, current SHA, delta since prior review, full current diff, stable finding ledger and prior decisions |
+| 未提交或暂存 diff | 就地审阅。跳过 finding ID、台账与完整报告模板。 |
+| 提交、分支、pull request 或任何复审 | 加载 [references/pr-protocol.md](references/pr-protocol.md) 并完整执行。 |
 
-If no target is specified, review both staged and unstaged changes. Preserve unrelated user work and perform no edits unless the user separately asks for fixes.
+只有当 diff 既触及该领域又大到单个上下文装不下时，才分发给专项审阅者。单文件改动不需要 subagent。
 
-## Build review context
+## 确定目标
 
-Before dispatching reviewers:
-
-1. identify the stated intent and expected behavior;
-2. read the full changed definitions, not only patch fragments;
-3. read direct callers, API signatures, config schemas, tests, or generators that determine correctness;
-4. distinguish changed behavior from pre-existing code;
-5. note verification already performed and gaps still open.
-
-For very large diffs, batch by coherent subsystem or behavior. Diff size controls batching depth, not which domain reviewers apply.
-
-## Domain-based reviewer routing
-
-Always run the general correctness review. Add specialists when their domain is touched:
-
-| Reviewer | Select when |
+| 意图 | 需收集的证据 |
 |---|---|
-| `code-reviewer` | Always |
-| `automation-reviewer` | `module/automation/**`, `module/game_and_screen/**`, `tasks/**`, `app/my_app.py`, config mutation, input, retry/wait, task lifecycle, singleton, or stop behavior |
-| `i18n-reviewer` | user-visible UI strings, QWidget lifecycle, translations, localized images, `assets/config/config.example.yaml`, or translation scripts |
+| 未提交工作 | `git status --short`、未暂存与暂存的 stat/diff |
+| 暂存工作 | `git diff --cached --stat` 与完整暂存 diff |
+| 提交 | `git show --stat <sha>` 与完整补丁 |
+| 分支 | base/head SHA、提交列表、三点 stat 与完整 diff |
+| Pull request | PR 元数据、base/head SHA、完整 PR diff、检查、历史审阅与未解决线程 |
 
-For upstream contributions, also provide `.agents/skills/upstream-contribution/references/upstream-style-review.md` to the general reviewer and require comparison with the upstream target tree.
+未指定目标时，同时审阅暂存与未暂存改动。保留无关的用户工作，除非用户另行要求修复，否则不做任何编辑。
 
-In OpenCode, invoke the custom agents by their exact names. Do not dispatch a `general` agent and ask it to impersonate a named reviewer. In another environment, use equivalent dedicated reviewers when available; otherwise perform the domain checklist synchronously and state that fallback.
+## 构建审阅上下文
 
-Pass each reviewer:
+1. 识别声明的意图与预期行为。
+2. 读完整变更定义，而不只是补丁片段。
+3. 读决定正确性的直接调用方、API 签名、配置 schema、测试或生成器。
+4. 区分行为变更与既有代码。
+5. 记录已执行的验证与仍开放的缺口。
 
-- target and base/head SHAs;
-- intent or behavior contract;
-- changed-path list and complete diff;
-- locations of the full source context already identified;
-- relevant prior findings for a re-review;
-- only the domain-specific reference it needs.
+超大 diff 按连贯子系统或行为分批。diff 大小决定分批深度，不决定哪些领域适用。
 
-## Review generated and non-code files proportionally
+## 专项路由
 
-Do not ignore a file merely because it is generated or binary:
+`.opencode/agents/` 定义了 `code-reviewer`、`automation-reviewer` 与 `i18n-reviewer`。它们仅存在于 OpenCode，支撑 GitHub Actions 的 PR 审阅；其他环境看不到它们。
 
-- lockfiles: verify they correspond to intentional dependency-manifest changes and flag unexplained churn;
-- compiled translations: verify the source translation and generator relationship rather than line-reviewing binary output;
-- images: verify key, language/theme placement, dimensions, and code references when the change depends on them;
-- changelog/release metadata: check accuracy when part of release scope;
-- minified or bundled output: verify source/generator provenance and unexpected inclusion;
-- CI, build scripts, example config, migrations, and update manifests: review as behavior-bearing artifacts.
+- 在 OpenCode 中按精确名称调用。不要派发通用 `general` agent 去冒充具名审阅者。
+- 在其他环境就地应用领域清单并注明。只有 diff 规模确实需要时才派发 subagent。
 
-## Coordinator verification
+只有 diff 触及该领域时才选择它：
 
-For every proposed finding:
-
-1. locate the changed line or directly impacted behavior;
-2. reproduce the trigger path from source, test, or specification;
-3. reject speculative, pre-existing, or preference-only comments;
-4. calibrate severity by user impact and reachability;
-5. merge duplicates while preserving the clearest trigger and fix direction.
-
-For a re-review, also verify that a new finding is caused by a changed line, newly affected behavior, or a newly evidenced interaction. A pre-existing path that the diff does not newly invoke, change, or rely on is not an eligible blocker.
-
-Do not suppress a concrete defect because it crosses reviewer domains. Assign it to the most relevant domain and keep one finding.
-
-## AALC-specific checks
-
-Confirm changed code respects project invariants, including:
-
-- singleton reuse and `cfg.set_value()` versus `cfg.unsaved_set_value()` semantics;
-- mediator-based cross-component communication;
-- cooperative stop propagation and bounded waiting;
-- PySide6 UI, translation, and theme lifecycle;
-- image loading and template-matching pipeline;
-- config typing/example synchronization;
-- ASCII-only output in `scripts/build.py`;
-- no explicit repetition of API defaults without a concrete reason.
-
-For ported code, additionally check one-use underscore-prefixed variables, constants, parameters, and helpers; wrapper-only abstractions; downstream-only scaffolding; and mismatch with adjacent target-tree naming, logging, error handling, or test style.
-
-## Guidance freshness
-
-When a change alters package management, test/build workflow, required environment, directory structure, CI/CD, cross-module contracts, or durable project invariants, assess whether `AGENTS.md`, skills, agents, or mechanical checks need an update. Use `agent-guidance-health` for substantive guidance changes; do not inflate `AGENTS.md` with one-off details.
-
-## Re-review protocol
-
-On every PR or branch update:
-
-1. retain stable finding IDs and verify which prior items are fixed, still present, superseded, disputed, or rejected with evidence;
-2. review the delta for regressions introduced by the fix;
-3. review the complete current diff for interaction effects;
-4. require every genuinely new finding to identify its changed or directly affected trigger path;
-5. bind the result to the current head SHA;
-6. do not repeat unchanged prose as a new finding or reopen a settled item without new evidence—update its existing state instead.
-
-If a proposed correction widens timeout/retry semantics, lifecycle ownership, public APIs, dependencies, configuration, or explicit non-goals, classify it as a scope decision before asking an implementer to change code. Reviewer severity alone does not authorize scope expansion.
-
-A re-review is required after conflict resolution, maintainer edits, rebase, or any pushed fix that changes reviewed code.
-
-## Verdict matrix
-
-| Highest remaining result | Verdict |
+| 领域 | 选择条件 |
 |---|---|
-| Confirmed Critical or High defect | **Block** |
-| Confirmed Medium production risk, or a repeated pattern of Medium defects | **Warning** |
-| Only Low/Suggestion items or non-blocking verification gaps | **Approve with comments** |
-| No actionable findings and verification is adequate for the risk | **Approve** |
+| 自动化 | `module/automation/**`、`module/game_and_screen/**`、`tasks/**`、`app/my_app.py`、配置变更、输入、重试/等待、任务生命周期、单例或停止行为 |
+| i18n | 用户可见 UI 字符串、QWidget 生命周期、翻译、本地化图片、`assets/config/config.example.yaml` 或翻译脚本 |
 
-If verification is materially incomplete, do not use plain **Approve**. Human override instructions may change the merge decision, but record the unresolved technical risk.
+上游贡献还要读 `.agents/skills/upstream-contribution/references/upstream-style-review.md`，并与上游目标树对比。
 
-## Output
+## 逐条核实发现
+
+1. 定位被改行或直接受影响的行为。
+2. 从源码、测试或规格复现触发路径。
+3. 拒绝臆测、既有问题或纯偏好类评论。
+4. 按用户影响与可达性校准严重度。
+5. 合并重复项，保留最清晰的触发条件与修复方向。
+
+具体缺陷不因跨领域而掩盖。归到最相关领域并保留一条发现。
+
+## AALC 检查
+
+项目不变量在 `AGENTS.md`（核心不变量、生命周期与停止、发布不变量）。对照它们核实 diff，而不是复述。
+
+审阅专属增补项：
+
+- 与 callee 默认值相等且无具体理由的显式关键字参数；
+- 只使用一次的下划线前缀变量、常量、参数或辅助函数，以及只有单个调用点的包装辅助函数；
+- downstream 专属脚手架，或移植代码与相邻目标树在命名、日志、错误处理、测试风格上的不匹配；
+- 生成与非代码文件按承载行为的产物审阅：diff 含 lockfile、编译翻译、图片、发布元数据、CI/构建脚本或更新 manifest 时读 [references/non-code-files.md](references/non-code-files.md)。
+
+改动涉及包管理、测试/构建流程、必需环境、目录结构、CI/CD、跨模块契约或持久不变量时，评估 `AGENTS.md`、skills 或机械检查是否需要同步更新。
+
+## 收敛
+
+审阅有界。满足以下任一条件即停止并报告，而不是再开一轮：
+
+- 连续两轮没有产生已确认的 Critical 或 High 发现；
+- 某轮发现需要架构扩展，或推翻先前审阅决定；
+- 同一文件已修三轮，发现数量仍未下降。
+
+然后把剩余项按严重度列成清单交给用户。审阅者严重度本身不授权再修一轮，"再多过一遍更稳妥"不构成继续的理由。
+
+修复只触及上一轮已清文件的，绝不重新派发整套审阅者。每轮审阅本轮 delta 及其影响上下文；台账延续前几轮对完整 diff 已建立的覆盖。
+
+## 裁决
+
+已确认 Critical 或 High 缺陷 → **Block**。已确认 Medium 生产风险或成片 Medium → **Warning**。只有 Low/Suggestion → **Approve with comments**。无待办项且验证与该风险相称 → **Approve**。
+
+验证明显不完整时绝不用裸 **Approve**。人工可推翻合并决定，但要记录未解决的技术风险。
+
+## 输出
 
 ```markdown
-## 审阅概览
-- 目标与 base/head：
-- 意图与风险面：
-- 实际调度：
-- 已读上下文：
-- 已执行验证：
-
-## 发现
-- [RV-01] [Critical/High/Medium/Low/Suggestion] `文件:行` [领域] — 触发条件、影响、证据和修复方向。
-
-## 复审状态
-- [RV-01] 已修复 / 仍存在 / 新增 / 不再适用：
-
-## 指引保鲜
-- 无需更新，或应更新的常驻规则 / skill / 检查：
-
-## 验证缺口与假设
-- 只列影响结论的内容。
+- [Critical/High/Medium/Low/Suggestion] `文件:行` [领域] — 触发条件、影响、证据和修复方向。
 
 **裁决：Block / Warning / Approve with comments / Approve**
 ```
 
-When there are no findings, say so explicitly and still report meaningful verification gaps and the reviewed head SHA.
+无发现时明确说明，并只列影响结论的验证缺口。提交、分支、PR 或复审使用 `references/pr-protocol.md` 的完整报告。

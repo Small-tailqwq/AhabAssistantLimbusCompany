@@ -1,10 +1,10 @@
-# Git Isolation and Branch Topology
+# Git 隔离与分支拓扑
 
-Use this reference before creating or changing a contribution worktree.
+创建或改动贡献 worktree 前使用本文件。
 
-## Preflight
+## 预检
 
-Inspect without changing the original workspace:
+不改变原工作区地检查：
 
 ```powershell
 git status --short
@@ -15,17 +15,17 @@ git fetch upstream
 git rev-parse upstream/main
 ```
 
-Confirm the intended topology rather than assuming remote names:
+确认预期拓扑，而不是假设 remote 名：
 
-- the downstream fork is normally pushed through `origin`;
-- the contribution target is normally `upstream/main`;
-- the PR head branch must exist on a remote from which upstream accepts PRs.
+- 下游 fork 通常经 `origin` 推送；
+- 贡献目标通常是 `upstream/main`；
+- PR head 分支必须存在于上游接受 PR 的某个 remote 上。
 
-If remotes do not match that topology, report the actual URLs and ask before adding or rewriting remotes.
+remote 与拓扑不符时报告实际 URL，并在添加或改写 remote 前询问。
 
-## Worktree creation
+## 创建 worktree
 
-Choose a unique slug. Create both a branch and a worktree in one command:
+选择唯一 slug。一条命令同时创建分支与 worktree：
 
 ```powershell
 $branch = "upstream-contrib/<slug>"
@@ -33,15 +33,15 @@ $worktree = ".worktrees/upstream-contribution/<slug>"
 git worktree add -b $branch $worktree upstream/main
 ```
 
-Never use this form for contribution work:
+贡献工作绝不使用这种形式：
 
 ```powershell
 git worktree add <path> upstream/main
 ```
 
-It checks out the remote-tracking commit with detached `HEAD`, leaving no named branch to push.
+它会把 remote 跟踪提交检出为游离 `HEAD`，不留下可推送的命名分支。
 
-Verify the result from inside the worktree:
+在 worktree 内验证结果：
 
 ```powershell
 git -C $worktree branch --show-current
@@ -50,24 +50,24 @@ git -C $worktree merge-base --is-ancestor upstream/main HEAD
 git -C $worktree status --short
 ```
 
-## Base updates
+## base 更新
 
-Before the PR exists, prefer recreating an untouched contribution branch from the latest upstream base. After commits exist, fetch and inspect divergence before rebasing. Rebase or force-push changes remote history; obtain the authority required by the current task and never hide the rewrite.
+PR 存在前，优先从最新上游 base 重建未改动的贡献分支。已有提交后，rebase 前先 fetch 并检查分歧。Rebase 或 force-push 会改写远端历史；取得当前任务要求的授权，绝不隐藏改写。
 
-Do not merge downstream `main` into a contribution branch. A contribution branch must contain only upstream base history plus upstream-compatible contribution commits.
+不要把下游 `main` 合并进贡献分支。贡献分支必须只含上游 base 历史加上游兼容的贡献提交。
 
-## Conflict handling
+## 冲突处理
 
-On cherry-pick, rebase, or merge conflicts:
+cherry-pick、rebase 或合并冲突时：
 
-1. stop and list the conflicting paths;
-2. read base, upstream, and intended behavior;
-3. resolve each conflict by the behavior contract and upstream code shape;
-4. run the same review and checks as a hand-written change;
-5. never select all `ours` or all `theirs` as a shortcut.
+1. 停下并列出冲突路径；
+2. 读 base、upstream 与预期行为；
+3. 按行为契约与上游代码形态逐冲突解决；
+4. 像手写改动一样运行同样的审阅与检查；
+5. 绝不用全部 `ours` 或全部 `theirs` 走捷径。
 
-Abort only the in-progress operation when necessary; do not reset or clean the user's original workspace.
+必要时只中止进行中的操作；不要 reset 或 clean 用户的原工作区。
 
-## Cleanup
+## 清理
 
-Worktree cleanup is optional and occurs only after the branch is no longer needed. Show the exact worktree path and confirm it contains no unique unpushed work before removal. Do not delete ignored worktrees merely because the PR merged.
+worktree 清理可选，且只在分支不再需要后进行。展示精确 worktree 路径，确认其中没有唯一的未推送工作再移除。不要因为 PR 已合并就删除被忽略的 worktree。
