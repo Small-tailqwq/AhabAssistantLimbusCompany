@@ -196,6 +196,264 @@
     </message>
 </context>
 <context>
+    <name>AssetDetailPanel</name>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="271"/>
+        <source>业务名:</source>
+        <translation>Business name:</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="277"/>
+        <source>文件名:</source>
+        <translation>File name:</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="283"/>
+        <source>标签:</source>
+        <translation>Tags:</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="299"/>
+        <source>备注:</source>
+        <translation>Note:</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="307"/>
+        <source>替换图片</source>
+        <translation>Replace Image</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="311"/>
+        <source>历史版本</source>
+        <translation>Version History</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="320"/>
+        <source>选择新图片</source>
+        <translation>Select New Image</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="347"/>
+        <source>(无)</source>
+        <translation>(None)</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="357"/>
+        <source>历史版本 ({0})</source>
+        <translation>Version History ({0})</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="361"/>
+        <source>[已丢失] {0}</source>
+        <translation>[Missing] {0}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="371"/>
+        <source>历史版本 (0)</source>
+        <translation>Version History (0)</translation>
+    </message>
+</context>
+<context>
+    <name>AssetGridWidget</name>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="174"/>
+        <source>在文件管理器中打开</source>
+        <translation>Open in File Explorer</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="175"/>
+        <source>复制路径</source>
+        <translation>Copy Path</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="177"/>
+        <source>标记为已删除</source>
+        <translation>Mark as Missing</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="178"/>
+        <source>从回收站恢复</source>
+        <translation>Restore from Recycle</translation>
+    </message>
+</context>
+<context>
+    <name>AssetManager</name>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="42"/>
+        <source>资产管理</source>
+        <translation type="unfinished">Asset manager</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="71"/>
+        <source>搜索业务名/备注/路径...</source>
+        <translation>Search business name / note / path...</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="78"/>
+        <source>全部标签</source>
+        <translation>All Tags</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="79"/>
+        <source>通用</source>
+        <translation>General</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="80"/>
+        <source>中</source>
+        <translation>CN</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="81"/>
+        <source>英</source>
+        <translation>EN</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="82"/>
+        <source>亮色</source>
+        <translation>Light</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="83"/>
+        <source>暗色</source>
+        <translation>Dark</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="89"/>
+        <source>刷新扫描</source>
+        <translation>Rescan</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="91"/>
+        <source>清除缩略图缓存</source>
+        <translation>Clear Thumbnail Cache</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="120"/>
+        <location filename="../tasks/tools/asset_manager.py" line="191"/>
+        <source>就绪</source>
+        <translation type="unfinished">Ready</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="143"/>
+        <source>正在清除缩略图缓存...</source>
+        <translation>Clearing thumbnail cache...</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="148"/>
+        <source>缩略图缓存已清除，正在重新生成...</source>
+        <translation>Thumbnail cache cleared, regenerating...</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="156"/>
+        <source>正在扫描资产...</source>
+        <translation>Scanning assets...</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="174"/>
+        <source>正在加载缩略图...</source>
+        <translation>Loading thumbnails...</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="182"/>
+        <source>新增 {0}</source>
+        <translation>{0} added</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="184"/>
+        <source>变更 {0}</source>
+        <translation>{0} changed</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="186"/>
+        <source>丢失 {0}</source>
+        <translation>{0} missing</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="196"/>
+        <source>扫描失败: {0}</source>
+        <translation>Scan failed: {0}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="205"/>
+        <source>共 {0} 个资产  |  筛选结果 {1}</source>
+        <translation>{0} assets total  |  {1} filtered</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="273"/>
+        <source>添加标签</source>
+        <translation>Add Tag</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="273"/>
+        <source>输入新标签:</source>
+        <translation>Enter new tag:</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="289"/>
+        <source>删除标签</source>
+        <translation>Remove Tag</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="289"/>
+        <source>选择要删除的标签:</source>
+        <translation>Select tag to remove:</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="309"/>
+        <source>确认替换</source>
+        <translation>Confirm Replacement</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="310"/>
+        <source>将 &quot;{0}&quot; 替换为
+&quot;{1}&quot;?
+
+旧文件将存档到回收站。</source>
+        <translation>Replace "{0}" with
+"{1}"?
+
+The old file will be archived to the recycle bin.</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="334"/>
+        <source>已替换: {0}</source>
+        <translation>Replaced: {0}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="353"/>
+        <source>已恢复到 v{0}: {1}</source>
+        <translation>Restored to v{0}: {1}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="355"/>
+        <source>恢复失败</source>
+        <translation>Restore Failed</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="355"/>
+        <source>无法恢复指定的版本，文件可能已丢失。</source>
+        <translation>Unable to restore the specified version. The file may have been lost.</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="359"/>
+        <source>已永久删除 v{0}</source>
+        <translation>Permanently deleted v{0}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="374"/>
+        <source>从回收站恢复</source>
+        <translation>Restore from Recycle</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_manager.py" line="375"/>
+        <source>将恢复 v{0} ({1})?
+当前 Missing 标记将被清除。</source>
+        <translation>Restore v{0} ({1})?
+The current Missing marker will be cleared.</translation>
+    </message>
+</context>
+<context>
     <name>AutoDailyView</name>
     <message>
         <location filename="../app/base_combination.py" line="1138"/>
@@ -1284,6 +1542,104 @@ Right-click to set as permanent</translation>
     </message>
 </context>
 <context>
+    <name>CategoryTree</name>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="49"/>
+        <source>全部</source>
+        <translation>All</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="50"/>
+        <source>主界面</source>
+        <translation>Main UI</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="51"/>
+        <source>体力</source>
+        <translation>Enkephalin</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="52"/>
+        <source>战斗</source>
+        <translation>Battle</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="53"/>
+        <source>邮件</source>
+        <translation type="unfinished">Mail</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="54"/>
+        <source>场景/过场</source>
+        <translation>Scenes/Cutscenes</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="55"/>
+        <source>基础通用</source>
+        <translation>Base</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="56"/>
+        <source>日常事件</source>
+        <translation>Daily Events</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="57"/>
+        <source>镜牢</source>
+        <translation>Mirror Dungeon</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="58"/>
+        <source>  寻路</source>
+        <translation>  Pathfinding</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="59"/>
+        <source>  商店</source>
+        <translation>  Shop</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="60"/>
+        <source>  事件</source>
+        <translation>  Events</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="61"/>
+        <source>  结算/奖励</source>
+        <translation>  Rewards/Settlement</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="62"/>
+        <source>  主题包</source>
+        <translation>  Theme Packs</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="63"/>
+        <source>  通用UI</source>
+        <translation>  General UI</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="64"/>
+        <source>队伍</source>
+        <translation>Teams</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="65"/>
+        <source>通行证</source>
+        <translation>Pass</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="66"/>
+        <source>反射</source>
+        <translation>Luxcavation</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="67"/>
+        <source>未分类</source>
+        <translation>Uncategorized</translation>
+    </message>
+</context>
+<context>
     <name>CheckBoxWithButton</name>
     <message>
         <location filename="../app/farming_interface.py" line="431"/>
@@ -1828,6 +2184,191 @@ Entering a formation code will overwrite your current team configuration.</trans
     <message>
         <source>当前选择后会永久保存</source>
         <translation type="vanished">The current selection will be saved permanently.</translation>
+    </message>
+</context>
+<context>
+    <name>GHubManager</name>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="284"/>
+        <source>使用流程：
+1. 检测 DLL — 确认当前罗技驱动 DLL 是否可用
+2. 启动 G HUB — 若 DLL 不可用则自动恢复更新通道并启动 G HUB
+3. 封锁更新 — DLL 就绪后建议锁定版本，防止自动升级导致不兼容
+
+注意：G HUB 启动后可能弹出更新提示，关闭即可，不影响 DLL 使用。</source>
+        <translation>How to use:
+1. Check DLL — confirm the current Logitech driver DLL is usable
+2. Launch G HUB — if the DLL is unavailable, automatically restore the update channel and launch G HUB
+3. Block updates — once the DLL is ready, locking the version is recommended to prevent auto-upgrade incompatibility
+
+Note: G HUB may show an update prompt after launch; close it, it does not affect DLL usage.</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="291"/>
+        <source>使用流程：
+1. 检测 DLL — 确认当前雷蛇驱动 DLL 是否能正常控制鼠标
+
+注意：雷蛇驱动无需额外启动或封锁更新，仅需验证 DLL 可用性。</source>
+        <translation>How to use:
+1. Check DLL — confirm the current Razer driver DLL can control the mouse properly
+
+Note: Razer driver needs no extra launch or update blocking; only DLL usability needs verification.</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="293"/>
+        <source>驱动 DLL 管理器</source>
+        <translation type="unfinished">Driver DLL manager</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="307"/>
+        <source>罗技</source>
+        <translation>Logitech</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="308"/>
+        <source>雷蛇</source>
+        <translation>Razer</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="323"/>
+        <location filename="../tasks/tools/ghub_manager.py" line="391"/>
+        <source>DLL 状态：❓ 未检测</source>
+        <translation>DLL status: ❓ Not checked</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="327"/>
+        <source>更新封锁：⋯ 读取中</source>
+        <translation>Update block: ⋯ Reading</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="332"/>
+        <source>检测 DLL</source>
+        <translation>Check DLL</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="336"/>
+        <source>启动 G HUB</source>
+        <translation>Launch G HUB</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="340"/>
+        <source>封锁更新</source>
+        <translation>Block Updates</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="344"/>
+        <source>恢复更新</source>
+        <translation>Restore Updates</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="362"/>
+        <source>DLL 状态：{0} {1}</source>
+        <translation>DLL status: {0} {1}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="364"/>
+        <source>DLL 状态：{0} 可用</source>
+        <translation>DLL status: {0} Available</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="367"/>
+        <source>DLL 状态：✘ 不可用</source>
+        <translation>DLL status: ✘ Unavailable</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="372"/>
+        <source>已封锁</source>
+        <translation>Blocked</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="373"/>
+        <source>未封锁</source>
+        <translation>Not blocked</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="373"/>
+        <source>更新封锁：{0} {1}</source>
+        <translation>Update block: {0} {1}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="430"/>
+        <source>路径未配置</source>
+        <translation>Path not configured</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="434"/>
+        <source>文件不存在</source>
+        <translation>File does not exist</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="447"/>
+        <source>G HUB 未安装</source>
+        <translation>G HUB Not Installed</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="448"/>
+        <source>未找到 G HUB: {0}
+请先安装 Logitech G HUB</source>
+        <translation>G HUB not found: {0}
+Please install Logitech G HUB first</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="453"/>
+        <source>就绪</source>
+        <translation>Ready</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="453"/>
+        <source>不可用</source>
+        <translation>Unavailable</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="459"/>
+        <source>确认封锁更新</source>
+        <translation>Confirm Update Block</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="468"/>
+        <source>即将执行以下操作：
+  - 终止 G HUB 进程
+  - 禁用 LGHUBUpdaterService
+  - 改名 lghub_updater.exe 封锁
+  - 清理 depots 目录
+  - 添加 HOSTS 封锁规则
+
+确认继续？</source>
+        <translation>The following actions will be performed:
+  - Terminate the G HUB process
+  - Disable LGHUBUpdaterService
+  - Rename lghub_updater.exe to block it
+  - Clean the depots directory
+  - Add HOSTS block rules
+
+Continue?</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="482"/>
+        <source>确认恢复更新</source>
+        <translation>Confirm Update Restore</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="490"/>
+        <source>即将执行以下操作：
+  - 恢复 lghub_updater.exe
+  - 恢复 depots 目录
+  - 启用 LGHUBUpdaterService
+  - 移除 HOSTS 封锁规则
+
+恢复后 G HUB 可自动更新到最新版本，可能因版本变更导致罗技 DLL 失效。
+确认继续？</source>
+        <translation>The following actions will be performed:
+  - Restore lghub_updater.exe
+  - Restore the depots directory
+  - Enable LGHUBUpdaterService
+  - Remove HOSTS block rules
+
+After restoration, G HUB can auto-update to the latest version, which may invalidate the Logitech DLL due to version changes.
+Continue?</translation>
     </message>
 </context>
 <context>
@@ -2539,7 +3080,7 @@ To stop seeing this notice, disable &quot;HDR detection warning&quot; under Sett
     <message>
         <location filename="../app/team_setting_card.py" line="1248"/>
         <source>&lt;div style=&quot;font-size: 15px; line-height: 1.6;&quot;&gt;知道你们想要什么&lt;br&gt;2026-06 蜘蛛巢良秀专武在泛用-3级-4行-8列&lt;/div&gt;</source>
-        <translation>&lt;div style=&quot;font-size: 15px; line-height: 1.6;&quot;&gt;We know what you want&lt;br&gt;2026-06 Ryoshu's exclusive EGO in Spider Nest at General - Tier 4 - Row 8 - Column 8&lt;/div&gt;</translation>
+        <translation>&lt;div style=&quot;font-size: 15px; line-height: 1.6;&quot;&gt;We know what you want&lt;br&gt;2026-06 Ryoshu&apos;s exclusive EGO in Spider Nest at General - Tier 4 - Row 8 - Column 8&lt;/div&gt;</translation>
     </message>
 </context>
 <context>
@@ -2699,6 +3240,24 @@ These fields will be populated with default values. Do you wish to continue?</tr
         <location filename="../app/page_card.py" line="662"/>
         <source>镜 牢 进 度 ( 困 难 ) </source>
         <translation>Hard Mode Mirror Progress</translation>
+    </message>
+</context>
+<context>
+    <name>PreviewDialog</name>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="403"/>
+        <source>图片预览</source>
+        <translation>Image Preview</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="427"/>
+        <source>适应窗口</source>
+        <translation>Fit to Window</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="430"/>
+        <source>原始大小</source>
+        <translation>Original Size</translation>
     </message>
 </context>
 <context>
@@ -3542,6 +4101,64 @@ Upon saving, weights for configurations in other languages ​​(if any) will b
     </message>
 </context>
 <context>
+    <name>TutorialSkipWindow</name>
+    <message>
+        <location filename="../tasks/tools/tutorial_skip.py" line="675"/>
+        <source>跳过新手提示</source>
+        <translation>Skip Tutorial Prompts</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/tutorial_skip.py" line="683"/>
+        <source>操作选项</source>
+        <translation>Action</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/tutorial_skip.py" line="685"/>
+        <source>关闭新手提示</source>
+        <translation>Disable Tutorial Prompts</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/tutorial_skip.py" line="687"/>
+        <source>恢复新手提示</source>
+        <translation>Restore Tutorial Prompts</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/tutorial_skip.py" line="695"/>
+        <source>目标平台</source>
+        <translation>Target Platform</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/tutorial_skip.py" line="697"/>
+        <source>自动检测</source>
+        <translation>Auto Detect</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/tutorial_skip.py" line="709"/>
+        <source>开始执行</source>
+        <translation>Start</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/tutorial_skip.py" line="714"/>
+        <source>状态：就绪</source>
+        <translation>Status: Ready</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/tutorial_skip.py" line="756"/>
+        <source>状态：处理中...</source>
+        <translation>Status: Processing...</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/tutorial_skip.py" line="775"/>
+        <source>状态：完成</source>
+        <translation>Status: Done</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/tutorial_skip.py" line="777"/>
+        <source>状态：失败</source>
+        <translation>Status: Failed</translation>
+    </message>
+</context>
+<context>
     <name>UpdateThread</name>
     <message>
         <location filename="../module/update/check_update.py" line="135"/>
@@ -3590,6 +4207,49 @@ Update Logs:</translation>
     </message>
 </context>
 <context>
+    <name>VersionHistoryDialog</name>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="459"/>
+        <source>历史版本 — {0}</source>
+        <translation>Version History — {0}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="474"/>
+        <source>切换到此版本</source>
+        <translation>Switch to This Version</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="478"/>
+        <source>删除此版本</source>
+        <translation>Delete This Version</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="483"/>
+        <source>关闭</source>
+        <translation type="unfinished">Close</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="520"/>
+        <source>确认切换版本</source>
+        <translation>Confirm Version Switch</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="521"/>
+        <source>当前文件将存档为新版本，并恢复为 v{0}。是否继续？</source>
+        <translation>The current file will be archived as a new version and restored to v{0}. Continue?</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="537"/>
+        <source>确认删除</source>
+        <translation>Confirm Deletion</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/asset_library/widgets.py" line="538"/>
+        <source>将永久删除 v{0}，不可撤销。是否继续？</source>
+        <translation>v{0} will be permanently deleted and cannot be undone. Continue?</translation>
+    </message>
+</context>
+<context>
     <name>WindowsToast</name>
     <message>
         <location filename="../app/windows_toast.py" line="155"/>
@@ -3610,6 +4270,34 @@ Update Logs:</translation>
         <location filename="../tasks/base/script_task_scheme.py" line="488"/>
         <source>所有任务已完成</source>
         <translation>All Tasks Done</translation>
+    </message>
+</context>
+<context>
+    <name>_DllCheckWorker</name>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="521"/>
+        <source>文件不存在</source>
+        <translation>File does not exist</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="538"/>
+        <source>device_open 失败</source>
+        <translation>device_open failed</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="558"/>
+        <source>可用</source>
+        <translation>Available</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="562"/>
+        <source>鼠标移动未生效</source>
+        <translation>Mouse movement did not take effect</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/ghub_manager.py" line="566"/>
+        <source>检测异常</source>
+        <translation>Check error</translation>
     </message>
 </context>
 </TS>

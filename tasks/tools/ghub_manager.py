@@ -272,22 +272,25 @@ class GHubDisableUpdatesWorker(GHubWorker):
 
 
 class GHubManager(QWidget):
-    _LOGITECH_INSTRUCTION = (
-        "使用流程：\n"
-        "1. 检测 DLL — 确认当前罗技驱动 DLL 是否可用\n"
-        "2. 启动 G HUB — 若 DLL 不可用则自动恢复更新通道并启动 G HUB\n"
-        "3. 封锁更新 — DLL 就绪后建议锁定版本，防止自动升级导致不兼容\n\n"
-        "注意：G HUB 启动后可能弹出更新提示，关闭即可，不影响 DLL 使用。"
-    )
-    _RAZER_INSTRUCTION = (
-        "使用流程：\n"
-        "1. 检测 DLL — 确认当前雷蛇驱动 DLL 是否能正常控制鼠标\n\n"
-        "注意：雷蛇驱动无需额外启动或封锁更新，仅需验证 DLL 可用性。"
-    )
+    def _logitech_instruction(self) -> str:
+        return self.tr(
+            "使用流程：\n"
+            "1. 检测 DLL — 确认当前罗技驱动 DLL 是否可用\n"
+            "2. 启动 G HUB — 若 DLL 不可用则自动恢复更新通道并启动 G HUB\n"
+            "3. 封锁更新 — DLL 就绪后建议锁定版本，防止自动升级导致不兼容\n\n"
+            "注意：G HUB 启动后可能弹出更新提示，关闭即可，不影响 DLL 使用。"
+        )
+
+    def _razer_instruction(self) -> str:
+        return self.tr(
+            "使用流程：\n"
+            "1. 检测 DLL — 确认当前雷蛇驱动 DLL 是否能正常控制鼠标\n\n"
+            "注意：雷蛇驱动无需额外启动或封锁更新，仅需验证 DLL 可用性。"
+        )
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("驱动 DLL 管理器")
+        self.setWindowTitle(self.tr("驱动 DLL 管理器"))
         self.setMinimumSize(480, 420)
         self.setAttribute(Qt.WA_DeleteOnClose, True)
         self._worker = None
@@ -301,8 +304,8 @@ class GHubManager(QWidget):
         layout = QVBoxLayout()
 
         driver_layout = QHBoxLayout()
-        self.logitech_radio = QRadioButton("罗技")
-        self.razer_radio = QRadioButton("雷蛇")
+        self.logitech_radio = QRadioButton(self.tr("罗技"))
+        self.razer_radio = QRadioButton(self.tr("雷蛇"))
         self.logitech_radio.setChecked(True)
         self.driver_group = QButtonGroup(self)
         self.driver_group.addButton(self.logitech_radio)
@@ -313,32 +316,32 @@ class GHubManager(QWidget):
         driver_layout.addStretch()
         layout.addLayout(driver_layout)
 
-        self.instruction_label = QLabel(self._LOGITECH_INSTRUCTION)
+        self.instruction_label = QLabel(self._logitech_instruction())
         self.instruction_label.setWordWrap(True)
         layout.addWidget(self.instruction_label)
 
-        self.dll_status_label = QLabel("DLL 状态：❓ 未检测")
+        self.dll_status_label = QLabel(self.tr("DLL 状态：❓ 未检测"))
         self.dll_status_label.setStyleSheet(get_status_label_style())
         layout.addWidget(self.dll_status_label)
 
-        self.block_status_label = QLabel("更新封锁：⋯ 读取中")
+        self.block_status_label = QLabel(self.tr("更新封锁：⋯ 读取中"))
         self.block_status_label.setStyleSheet(get_status_label_style())
         layout.addWidget(self.block_status_label)
 
         btn_layout = QHBoxLayout()
-        self.check_btn = QPushButton("检测 DLL")
+        self.check_btn = QPushButton(self.tr("检测 DLL"))
         self.check_btn.clicked.connect(self._on_check_dll)
         btn_layout.addWidget(self.check_btn)
 
-        self.start_btn = QPushButton("启动 G HUB")
+        self.start_btn = QPushButton(self.tr("启动 G HUB"))
         self.start_btn.clicked.connect(self._on_start_ghub)
         btn_layout.addWidget(self.start_btn)
 
-        self.disable_btn = QPushButton("封锁更新")
+        self.disable_btn = QPushButton(self.tr("封锁更新"))
         self.disable_btn.clicked.connect(self._on_disable_updates)
         btn_layout.addWidget(self.disable_btn)
 
-        self.enable_btn = QPushButton("恢复更新")
+        self.enable_btn = QPushButton(self.tr("恢复更新"))
         self.enable_btn.clicked.connect(self._on_enable_updates)
         btn_layout.addWidget(self.enable_btn)
 
@@ -355,19 +358,24 @@ class GHubManager(QWidget):
 
     def _set_dll_status(self, ok: bool, detail: str = ""):
         icon = "✔" if ok else "✘"
-        text = f"DLL 状态：{icon} {detail}" if detail else f"DLL 状态：{icon} 可用" if ok else "DLL 状态：✘ 不可用"
+        if detail:
+            text = self.tr("DLL 状态：{0} {1}").format(icon, detail)
+        elif ok:
+            text = self.tr("DLL 状态：{0} 可用").format(icon)
+        else:
+            text = self.tr("DLL 状态：✘ 不可用")
         self.dll_status_label.setText(text)
 
     def _refresh_block_status(self):
         blocked = cfg.get_value("ghub_updates_blocked", False)
         icon = "🔒" if blocked else "🔓"
-        label = "已封锁" if blocked else "未封锁"
-        self.block_status_label.setText(f"更新封锁：{icon} {label}")
+        label = self.tr("已封锁") if blocked else self.tr("未封锁")
+        self.block_status_label.setText(self.tr("更新封锁：{0} {1}").format(icon, label))
 
     def _on_driver_type_changed(self):
         if self.logitech_radio.isChecked():
             self._driver_type = "logitech"
-            self.instruction_label.setText(self._LOGITECH_INSTRUCTION)
+            self.instruction_label.setText(self._logitech_instruction())
             self.block_status_label.setVisible(True)
             self.start_btn.setVisible(True)
             self.disable_btn.setVisible(True)
@@ -375,12 +383,12 @@ class GHubManager(QWidget):
             self._refresh_block_status()
         else:
             self._driver_type = "razer"
-            self.instruction_label.setText(self._RAZER_INSTRUCTION)
+            self.instruction_label.setText(self._razer_instruction())
             self.block_status_label.setVisible(False)
             self.start_btn.setVisible(False)
             self.disable_btn.setVisible(False)
             self.enable_btn.setVisible(False)
-        self.dll_status_label.setText("DLL 状态：❓ 未检测")
+        self.dll_status_label.setText(self.tr("DLL 状态：❓ 未检测"))
 
     def _apply_theme_style(self):
         apply_tool_window_theme(self, "GHubManager")
@@ -419,11 +427,11 @@ class GHubManager(QWidget):
             driver_name = "雷蛇"
 
         if not dll_path:
-            self._set_dll_status(False, "路径未配置")
+            self._set_dll_status(False, self.tr("路径未配置"))
             self.log_text.append(f"{driver_name} DLL 路径未配置，请在设置中指定 DLL 路径")
             return
         if not os.path.exists(dll_path):
-            self._set_dll_status(False, "文件不存在")
+            self._set_dll_status(False, self.tr("文件不存在"))
             self.log_text.append(f"DLL 文件不存在: {dll_path}")
             return
 
@@ -434,24 +442,30 @@ class GHubManager(QWidget):
 
     def _on_start_ghub(self):
         if not os.path.exists(LGHUB_EXE):
-            QMessageBox.warning(self, "G HUB 未安装", f"未找到 G HUB: {LGHUB_EXE}\n请先安装 Logitech G HUB")
+            QMessageBox.warning(
+                self,
+                self.tr("G HUB 未安装"),
+                self.tr("未找到 G HUB: {0}\n请先安装 Logitech G HUB").format(LGHUB_EXE),
+            )
             return
         self.log_text.append("正在启动 G HUB...")
         worker = GHubStartWorker()
-        worker.dll_ready.connect(lambda ok: self._set_dll_status(ok, "就绪" if ok else "不可用"))
+        worker.dll_ready.connect(lambda ok: self._set_dll_status(ok, self.tr("就绪") if ok else self.tr("不可用")))
         self._run_worker(worker)
 
     def _on_disable_updates(self):
         reply = QMessageBox.question(
             self,
-            "确认封锁更新",
-            "即将执行以下操作：\n"
-            "  - 终止 G HUB 进程\n"
-            "  - 禁用 LGHUBUpdaterService\n"
-            "  - 改名 lghub_updater.exe 封锁\n"
-            "  - 清理 depots 目录\n"
-            "  - 添加 HOSTS 封锁规则\n\n"
-            "确认继续？",
+            self.tr("确认封锁更新"),
+            self.tr(
+                "即将执行以下操作：\n"
+                "  - 终止 G HUB 进程\n"
+                "  - 禁用 LGHUBUpdaterService\n"
+                "  - 改名 lghub_updater.exe 封锁\n"
+                "  - 清理 depots 目录\n"
+                "  - 添加 HOSTS 封锁规则\n\n"
+                "确认继续？"
+            ),
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
@@ -465,13 +479,15 @@ class GHubManager(QWidget):
     def _on_enable_updates(self):
         reply = QMessageBox.question(
             self,
-            "确认恢复更新",
-            "即将执行以下操作：\n"
-            "  - 恢复 lghub_updater.exe\n"
-            "  - 恢复 depots 目录\n"
-            "  - 启用 LGHUBUpdaterService\n"
-            "  - 移除 HOSTS 封锁规则\n\n"
-            "恢复后 G HUB 可自动更新到最新版本，可能因版本变更导致罗技 DLL 失效。\n确认继续？",
+            self.tr("确认恢复更新"),
+            self.tr(
+                "即将执行以下操作：\n"
+                "  - 恢复 lghub_updater.exe\n"
+                "  - 恢复 depots 目录\n"
+                "  - 启用 LGHUBUpdaterService\n"
+                "  - 移除 HOSTS 封锁规则\n\n"
+                "恢复后 G HUB 可自动更新到最新版本，可能因版本变更导致罗技 DLL 失效。\n确认继续？"
+            ),
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
@@ -502,7 +518,7 @@ class _DllCheckWorker(GHubWorker):
     def run(self):
         if not self._dll_path or not os.path.exists(self._dll_path):
             self.log_line.emit("DLL 文件不存在")
-            self.dll_detected.emit(False, "文件不存在")
+            self.dll_detected.emit(False, self.tr("文件不存在"))
             self.finished.emit(False, "DLL 未找到")
             return
 
@@ -519,7 +535,7 @@ class _DllCheckWorker(GHubWorker):
             device_open.restype = ctypes.c_bool
             if not device_open():
                 self.log_line.emit("  device_open() 返回 False，DLL 不可用")
-                self.dll_detected.emit(False, "device_open 失败")
+                self.dll_detected.emit(False, self.tr("device_open 失败"))
                 self.finished.emit(False, "device_open 失败")
                 return
 
@@ -539,15 +555,15 @@ class _DllCheckWorker(GHubWorker):
 
             if p2.x == p1.x + 3:
                 self.log_line.emit("  move(3,0) 验证通过，DLL 正常工作")
-                self.dll_detected.emit(True, "可用")
+                self.dll_detected.emit(True, self.tr("可用"))
                 self.finished.emit(True, "DLL 正常工作")
             else:
                 self.log_line.emit("  move(3,0) 未生效，驱动异常")
-                self.dll_detected.emit(False, "鼠标移动未生效")
+                self.dll_detected.emit(False, self.tr("鼠标移动未生效"))
                 self.finished.emit(False, "鼠标移动未生效")
         except Exception as e:
             self.log_line.emit(f"  DLL 检测异常: {e}")
-            self.dll_detected.emit(False, "检测异常")
+            self.dll_detected.emit(False, self.tr("检测异常"))
             self.finished.emit(False, f"DLL 检测失败: {e}")
         finally:
             if dll is not None:

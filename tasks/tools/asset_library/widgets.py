@@ -5,7 +5,7 @@ import subprocess
 import sys
 
 import pyperclip
-from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtCore import QT_TRANSLATE_NOOP, QSize, Qt, Signal
 from PySide6.QtGui import (
     QDragEnterEvent,
     QDropEvent,
@@ -46,25 +46,25 @@ class CategoryTree(QTreeWidget):
     category_selected = Signal(str)
 
     CATEGORIES = {
-        "全部": None,
-        "主界面": "home",
-        "体力": "enkephalin",
-        "战斗": "battle",
-        "邮件": "mail",
-        "场景/过场": "scenes",
-        "基础通用": "base",
-        "日常事件": "event",
-        "镜牢": None,
-        "  寻路": "mirror_road",
-        "  商店": "mirror_shop",
-        "  事件": "mirror_event",
-        "  结算/奖励": "mirror_reward",
-        "  主题包": "mirror_theme_pack",
-        "  通用UI": "mirror_ui",
-        "队伍": "teams",
-        "通行证": "pass",
-        "反射": "luxcavation",
-        "未分类": "uncategorized",
+        QT_TRANSLATE_NOOP("CategoryTree", "全部"): None,
+        QT_TRANSLATE_NOOP("CategoryTree", "主界面"): "home",
+        QT_TRANSLATE_NOOP("CategoryTree", "体力"): "enkephalin",
+        QT_TRANSLATE_NOOP("CategoryTree", "战斗"): "battle",
+        QT_TRANSLATE_NOOP("CategoryTree", "邮件"): "mail",
+        QT_TRANSLATE_NOOP("CategoryTree", "场景/过场"): "scenes",
+        QT_TRANSLATE_NOOP("CategoryTree", "基础通用"): "base",
+        QT_TRANSLATE_NOOP("CategoryTree", "日常事件"): "event",
+        QT_TRANSLATE_NOOP("CategoryTree", "镜牢"): None,
+        QT_TRANSLATE_NOOP("CategoryTree", "  寻路"): "mirror_road",
+        QT_TRANSLATE_NOOP("CategoryTree", "  商店"): "mirror_shop",
+        QT_TRANSLATE_NOOP("CategoryTree", "  事件"): "mirror_event",
+        QT_TRANSLATE_NOOP("CategoryTree", "  结算/奖励"): "mirror_reward",
+        QT_TRANSLATE_NOOP("CategoryTree", "  主题包"): "mirror_theme_pack",
+        QT_TRANSLATE_NOOP("CategoryTree", "  通用UI"): "mirror_ui",
+        QT_TRANSLATE_NOOP("CategoryTree", "队伍"): "teams",
+        QT_TRANSLATE_NOOP("CategoryTree", "通行证"): "pass",
+        QT_TRANSLATE_NOOP("CategoryTree", "反射"): "luxcavation",
+        QT_TRANSLATE_NOOP("CategoryTree", "未分类"): "uncategorized",
     }
 
     def __init__(self, parent=None):
@@ -75,7 +75,7 @@ class CategoryTree(QTreeWidget):
 
         for label, key in self.CATEGORIES.items():
             item = QTreeWidgetItem(self)
-            item.setText(0, label)
+            item.setText(0, self.tr(label))
             item.setData(0, Qt.UserRole, key or "")
             item.setFlags(item.flags() & ~Qt.ItemIsDropEnabled)
 
@@ -171,11 +171,11 @@ class AssetGridWidget(QListWidget):
         asset = item.data(Qt.UserRole)
         menu = QMenu(self)
 
-        open_action = menu.addAction("在文件管理器中打开")
-        copy_action = menu.addAction("复制路径")
+        open_action = menu.addAction(self.tr("在文件管理器中打开"))
+        copy_action = menu.addAction(self.tr("复制路径"))
         menu.addSeparator()
-        mark_missing_action = menu.addAction("标记为已删除")
-        restore_action = menu.addAction("从回收站恢复")
+        mark_missing_action = menu.addAction(self.tr("标记为已删除"))
+        restore_action = menu.addAction(self.tr("从回收站恢复"))
 
         chosen = menu.exec(self.mapToGlobal(pos))
 
@@ -268,19 +268,19 @@ class AssetDetailPanel(QWidget):
         layout.addWidget(self.preview)
 
         # Business name
-        layout.addWidget(QLabel("业务名:"))
+        layout.addWidget(QLabel(self.tr("业务名:")))
         self.business_edit = QLineEdit()
         self.business_edit.textChanged.connect(lambda t: self.business_changed.emit(t))
         layout.addWidget(self.business_edit)
 
         # File name (read-only)
-        layout.addWidget(QLabel("文件名:"))
+        layout.addWidget(QLabel(self.tr("文件名:")))
         self.file_label = QLabel()
         self.file_label.setWordWrap(True)
         layout.addWidget(self.file_label)
 
         # Tags
-        layout.addWidget(QLabel("标签:"))
+        layout.addWidget(QLabel(self.tr("标签:")))
         tags_layout = QHBoxLayout()
         self.tag_label = QLabel()
         self.tag_label.setWordWrap(True)
@@ -296,7 +296,7 @@ class AssetDetailPanel(QWidget):
         layout.addLayout(tags_layout)
 
         # Note
-        layout.addWidget(QLabel("备注:"))
+        layout.addWidget(QLabel(self.tr("备注:")))
         self.note_edit = QTextEdit()
         self.note_edit.setMaximumHeight(120)
         self.note_edit.textChanged.connect(lambda: self.note_changed.emit(self.note_edit.toPlainText()))
@@ -304,11 +304,11 @@ class AssetDetailPanel(QWidget):
 
         # Buttons
         btn_layout = QHBoxLayout()
-        self.replace_btn = QPushButton("替换图片")
+        self.replace_btn = QPushButton(self.tr("替换图片"))
         self.replace_btn.clicked.connect(self._pick_replacement)
         btn_layout.addWidget(self.replace_btn)
 
-        self.history_btn = QPushButton("历史版本")
+        self.history_btn = QPushButton(self.tr("历史版本"))
         self.history_btn.clicked.connect(self.history_requested.emit)
         btn_layout.addWidget(self.history_btn)
         layout.addLayout(btn_layout)
@@ -317,7 +317,7 @@ class AssetDetailPanel(QWidget):
 
     def _pick_replacement(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "选择新图片", "", "Images (*.png *.webp *.jpg *.jpeg *.bmp)"
+            self, self.tr("选择新图片"), "", "Images (*.png *.webp *.jpg *.jpeg *.bmp)"
         )
         if path:
             self.replace_requested.emit(path)
@@ -344,7 +344,7 @@ class AssetDetailPanel(QWidget):
 
         self.file_label.setText(asset.get("file", ""))
         tags = asset.get("tags", [])
-        self.tag_label.setText(", ".join(tags) if tags else "(无)")
+        self.tag_label.setText(", ".join(tags) if tags else self.tr("(无)"))
 
         self.note_edit.blockSignals(True)
         self.note_edit.setText(asset.get("note", ""))
@@ -354,11 +354,11 @@ class AssetDetailPanel(QWidget):
         recycle = RecycleManager()
         count = recycle.get_version_count(key)
         self.history_btn.setEnabled(count > 0)
-        self.history_btn.setText(f"历史版本 ({count})" if count > 0 else "历史版本 (0)")
+        self.history_btn.setText(self.tr("历史版本 ({0})").format(count))
 
         status = asset.get("status")
         if status == "missing":
-            self.file_label.setText(f"[已丢失] {asset['file']}")
+            self.file_label.setText(self.tr("[已丢失] {0}").format(asset["file"]))
 
     def clear(self):
         self._current_asset = None
@@ -368,7 +368,7 @@ class AssetDetailPanel(QWidget):
         self.file_label.clear()
         self.tag_label.clear()
         self.note_edit.clear()
-        self.history_btn.setText("历史版本 (0)")
+        self.history_btn.setText(self.tr("历史版本 (0)"))
         self.history_btn.setEnabled(False)
 
     def _open_preview(self):
@@ -400,7 +400,7 @@ class ZoomableGraphicsView(QGraphicsView):
 class PreviewDialog(QDialog):
     def __init__(self, image_path: str, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("图片预览")
+        self.setWindowTitle(self.tr("图片预览"))
         self.resize(800, 600)
 
         layout = QVBoxLayout(self)
@@ -424,10 +424,10 @@ class PreviewDialog(QDialog):
         self._zoom_label = QLabel("100%")
         bar.addWidget(self._zoom_label)
         bar.addStretch()
-        fit_btn = QPushButton("适应窗口")
+        fit_btn = QPushButton(self.tr("适应窗口"))
         fit_btn.clicked.connect(self._fit_to_window)
         bar.addWidget(fit_btn)
-        orig_btn = QPushButton("原始大小")
+        orig_btn = QPushButton(self.tr("原始大小"))
         orig_btn.clicked.connect(self._original_size)
         bar.addWidget(orig_btn)
         layout.addLayout(bar)
@@ -456,7 +456,7 @@ class VersionHistoryDialog(QDialog):
         self.asset = asset
         self.asset_key = _asset_key_from_path(asset["file"])
 
-        self.setWindowTitle(f"历史版本 — {asset.get('business_name', asset['file'])}")
+        self.setWindowTitle(self.tr("历史版本 — {0}").format(asset.get("business_name", asset["file"])))
         self.resize(500, 400)
 
         layout = QVBoxLayout(self)
@@ -471,16 +471,16 @@ class VersionHistoryDialog(QDialog):
         layout.addWidget(self.preview_label)
 
         btn_layout = QHBoxLayout()
-        self.restore_btn = QPushButton("切换到此版本")
+        self.restore_btn = QPushButton(self.tr("切换到此版本"))
         self.restore_btn.clicked.connect(self._restore)
         btn_layout.addWidget(self.restore_btn)
 
-        self.delete_btn = QPushButton("删除此版本")
+        self.delete_btn = QPushButton(self.tr("删除此版本"))
         self.delete_btn.clicked.connect(self._delete)
         btn_layout.addWidget(self.delete_btn)
 
         btn_layout.addStretch()
-        close_btn = QPushButton("关闭")
+        close_btn = QPushButton(self.tr("关闭"))
         close_btn.clicked.connect(self.accept)
         btn_layout.addWidget(close_btn)
         layout.addLayout(btn_layout)
@@ -517,8 +517,8 @@ class VersionHistoryDialog(QDialog):
 
         reply = QMessageBox.question(
             self,
-            "确认切换版本",
-            f"当前文件将存档为新版本，并恢复为 v{ver['version']}。是否继续？",
+            self.tr("确认切换版本"),
+            self.tr("当前文件将存档为新版本，并恢复为 v{0}。是否继续？").format(ver["version"]),
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
@@ -534,8 +534,8 @@ class VersionHistoryDialog(QDialog):
 
         reply = QMessageBox.warning(
             self,
-            "确认删除",
-            f"将永久删除 v{ver['version']}，不可撤销。是否继续？",
+            self.tr("确认删除"),
+            self.tr("将永久删除 v{0}，不可撤销。是否继续？").format(ver["version"]),
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )

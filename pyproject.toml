@@ -83,6 +83,10 @@ files = [
     "app/theme_pack_setting_interface.py",
     "tasks/tools/infinite_battle.py",
     "tasks/tools/issue_replay.py",
+    "tasks/tools/ghub_manager.py",
+    "tasks/tools/tutorial_skip.py",
+    "tasks/tools/asset_manager.py",
+    "tasks/tools/asset_library/widgets.py",
     "i18n/myapp_en.ts",
 ]
 

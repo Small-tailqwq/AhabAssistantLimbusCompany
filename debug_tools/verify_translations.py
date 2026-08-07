@@ -6,32 +6,33 @@ t = QTranslator()
 assert t.load("myapp_en", "i18n"), "load failed"
 app.installTranslator(t)
 
-html_src = '<div style="font-size: 15px; line-height: 1.6;">知道你们想要什么<br>2026-06 蜘蛛巢良秀专武在泛用-3级-4行-8列</div>'
-
 tests = [
-    ("SwitchSettingCard", "调试模式"),
-    ("SwitchSettingCard", "镜牢寻路调试"),
-    ("SwitchSettingCard", "启用罗技驱动模拟"),
-    ("BasePushSettingCard", "零协汉化更新"),
-    ("BasePushSettingCard", "(未设置)"),
-    ("MainWindow", "停止超时"),
-    ("MainWindow", "脚本仍在收尾，请稍后再尝试退出程序。"),
-    ("Nav", "调试"),
-    ("NormalTextButton", "暂停"),
-    ("FarmingInterfaceLeft", "停止中..."),
-    ("SettingInterface", "选择游戏路径"),
-    ("CustomizeSettingsModule", "起始之星"),
-    ("VersionCard", "最新版本: {version}"),
-    ("PageMirror", "已成功从文件创建队伍 {0}"),
-    ("ObserveEgoGiftModule", "启用观测"),
-    ("ObserveEgoGiftModule", html_src),
-    ("BaseCheckBox", "简单键盘寻路（始终按↑键，避免鼠标拖动）"),
-    ("InfiniteBattles", "主线模式(测试)"),
+    ("GHubManager", "驱动 DLL 管理器"),
+    ("GHubManager", "检测 DLL"),
+    ("GHubManager", "DLL 状态：❓ 未检测"),
+    ("GHubManager", "DLL 状态：{0} {1}"),
+    ("GHubManager", "未找到 G HUB: {0}\n请先安装 Logitech G HUB"),
+    ("_DllCheckWorker", "鼠标移动未生效"),
+    ("TutorialSkipWindow", "跳过新手提示"),
+    ("TutorialSkipWindow", "状态：处理中..."),
+    ("AssetManager", "资产管理"),
+    ("AssetManager", "共 {0} 个资产  |  筛选结果 {1}"),
+    ("AssetManager", '将 "{0}" 替换为\n"{1}"?\n\n旧文件将存档到回收站。'),
+    ("CategoryTree", "镜牢"),
+    ("CategoryTree", "  寻路"),
+    ("CategoryTree", "未分类"),
+    ("AssetDetailPanel", "历史版本 ({0})"),
+    ("AssetDetailPanel", "[已丢失] {0}"),
+    ("AssetGridWidget", "在文件管理器中打开"),
+    ("PreviewDialog", "适应窗口"),
+    ("VersionHistoryDialog", "历史版本 — {0}"),
+    ("VersionHistoryDialog", "当前文件将存档为新版本，并恢复为 v{0}。是否继续？"),
 ]
 failed = 0
 for ctx, s in tests:
     r = app.translate(ctx, s)
     ok = r != s
     failed += 0 if ok else 1
-    print(f"{'OK  ' if ok else 'FAIL'} [{ctx}] {s[:40]!r} -> {r[:70]!r}")
+    print(f"{'OK  ' if ok else 'FAIL'} [{ctx}] {s[:30]!r} -> {r[:50]!r}")
 print("全部通过" if failed == 0 else f"{failed} 条失败")
+

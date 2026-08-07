@@ -39,7 +39,7 @@ class AssetManager(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAttribute(Qt.WA_DeleteOnClose)
-        self.setWindowTitle("资产管理")
+        self.setWindowTitle(self.tr("资产管理"))
         self.setWindowIcon(QIcon("./assets/logo/canary.ico"))
         self.resize(1200, 750)
         self.setMinimumSize(900, 550)
@@ -68,18 +68,27 @@ class AssetManager(QWidget):
         # --- Top bar ---
         top_bar = QHBoxLayout()
         self.search_bar = QLineEdit()
-        self.search_bar.setPlaceholderText("搜索业务名/备注/路径...")
+        self.search_bar.setPlaceholderText(self.tr("搜索业务名/备注/路径..."))
         self.search_bar.setClearButtonEnabled(True)
         top_bar.addWidget(self.search_bar, 1)
 
         self.tag_filter = QComboBox()
-        self.tag_filter.addItems(["全部标签", "通用", "中", "英", "亮色", "暗色"])
+        self.tag_filter.addItems(
+            [
+                self.tr("全部标签"),
+                self.tr("通用"),
+                self.tr("中"),
+                self.tr("英"),
+                self.tr("亮色"),
+                self.tr("暗色"),
+            ]
+        )
         self.tag_filter.setCurrentIndex(0)
         top_bar.addWidget(self.tag_filter)
 
-        self.refresh_btn = QPushButton("刷新扫描")
+        self.refresh_btn = QPushButton(self.tr("刷新扫描"))
         top_bar.addWidget(self.refresh_btn)
-        self.clear_thumb_btn = QPushButton("清除缩略图缓存")
+        self.clear_thumb_btn = QPushButton(self.tr("清除缩略图缓存"))
         top_bar.addWidget(self.clear_thumb_btn)
         main_layout.addLayout(top_bar)
 
@@ -108,7 +117,7 @@ class AssetManager(QWidget):
 
         # --- Status bar ---
         self.status_bar = QStatusBar()
-        self.status_bar.showMessage("就绪")
+        self.status_bar.showMessage(self.tr("就绪"))
         main_layout.addWidget(self.status_bar)
 
     def _connect_signals(self):
@@ -131,12 +140,12 @@ class AssetManager(QWidget):
 
     def _clear_thumb_cache(self):
         self.clear_thumb_btn.setEnabled(False)
-        self.status_bar.showMessage("正在清除缩略图缓存...")
+        self.status_bar.showMessage(self.tr("正在清除缩略图缓存..."))
         self.grid.cleanup()
         if os.path.exists(THUMB_CACHE_DIR):
             import shutil
             shutil.rmtree(THUMB_CACHE_DIR, ignore_errors=True)
-        self.status_bar.showMessage("缩略图缓存已清除，正在重新生成...")
+        self.status_bar.showMessage(self.tr("缩略图缓存已清除，正在重新生成..."))
         self._do_refresh_grid()
         self.clear_thumb_btn.setEnabled(True)
 
@@ -144,7 +153,7 @@ class AssetManager(QWidget):
         self.refresh_btn.setEnabled(False)
         self.progress_bar.setVisible(True)
         self.progress_bar.setRange(0, 100)
-        self.status_bar.showMessage("正在扫描资产...")
+        self.status_bar.showMessage(self.tr("正在扫描资产..."))
 
         self.worker = ScanWorker(self.model)
         self.worker.progress.connect(self._on_scan_progress)
@@ -162,7 +171,7 @@ class AssetManager(QWidget):
         changed = len(diff.get("changed", []))
         deleted = len(diff.get("deleted", []))
 
-        self.status_bar.showMessage("正在加载缩略图...")
+        self.status_bar.showMessage(self.tr("正在加载缩略图..."))
         self._do_refresh_grid()
 
         self.progress_bar.setVisible(False)
@@ -170,21 +179,21 @@ class AssetManager(QWidget):
 
         msg_parts = []
         if added:
-            msg_parts.append(f"新增 {added}")
+            msg_parts.append(self.tr("新增 {0}").format(added))
         if changed:
-            msg_parts.append(f"变更 {changed}")
+            msg_parts.append(self.tr("变更 {0}").format(changed))
         if deleted:
-            msg_parts.append(f"丢失 {deleted}")
+            msg_parts.append(self.tr("丢失 {0}").format(deleted))
 
         if msg_parts:
             self.status_bar.showMessage(", ".join(msg_parts))
         else:
-            self.status_bar.showMessage("就绪")
+            self.status_bar.showMessage(self.tr("就绪"))
 
     def _on_scan_error(self, error_msg):
         self.progress_bar.setVisible(False)
         self.refresh_btn.setEnabled(True)
-        self.status_bar.showMessage(f"扫描失败: {error_msg}")
+        self.status_bar.showMessage(self.tr("扫描失败: {0}").format(error_msg))
         log.error(f"AssetManager scan error: {error_msg}")
 
     # --- Grid refresh ---
@@ -193,7 +202,7 @@ class AssetManager(QWidget):
         self._do_refresh_grid()
         total = self._total_count()
         assets = getattr(self, "_cached_asset_count", 0)
-        self.status_bar.showMessage(f"共 {total} 个资产  |  筛选结果 {assets}")
+        self.status_bar.showMessage(self.tr("共 {0} 个资产  |  筛选结果 {1}").format(total, assets))
 
     def _do_refresh_grid(self):
         from PySide6.QtWidgets import QApplication
@@ -261,7 +270,7 @@ class AssetManager(QWidget):
             return
         existing = list(self._current_asset.get("tags") or [])
 
-        tag, ok = QInputDialog.getText(self, "添加标签", "输入新标签:")
+        tag, ok = QInputDialog.getText(self, self.tr("添加标签"), self.tr("输入新标签:"))
         if ok and tag.strip():
             existing.append(tag.strip())
             self.model.update_asset(self._current_asset["file"], tags=existing)
@@ -277,7 +286,7 @@ class AssetManager(QWidget):
             return
 
         tag, ok = QInputDialog.getItem(
-            self, "删除标签", "选择要删除的标签:", existing, 0, False
+            self, self.tr("删除标签"), self.tr("选择要删除的标签:"), existing, 0, False
         )
         if ok and tag in existing:
             existing.remove(tag)
@@ -297,8 +306,8 @@ class AssetManager(QWidget):
 
         reply = QMessageBox.question(
             self,
-            "确认替换",
-            f"将 \"{current_file}\" 替换为\n\"{filepath}\"?\n\n旧文件将存档到回收站。",
+            self.tr("确认替换"),
+            self.tr('将 "{0}" 替换为\n"{1}"?\n\n旧文件将存档到回收站。').format(current_file, filepath),
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
@@ -322,7 +331,7 @@ class AssetManager(QWidget):
         self._refresh_grid()
         self.detail.set_asset(self._current_asset)
 
-        self.status_bar.showMessage(f"已替换: {current_file}")
+        self.status_bar.showMessage(self.tr("已替换: {0}").format(current_file))
 
     def _on_history(self):
         if not self._current_asset:
@@ -341,13 +350,13 @@ class AssetManager(QWidget):
             if updated:
                 self.detail.set_asset(updated)
                 self._current_asset = updated
-            self.status_bar.showMessage(f"已恢复到 v{version}: {restored_path}")
+            self.status_bar.showMessage(self.tr("已恢复到 v{0}: {1}").format(version, restored_path))
         else:
-            QMessageBox.warning(self, "恢复失败", "无法恢复指定的版本，文件可能已丢失。")
+            QMessageBox.warning(self, self.tr("恢复失败"), self.tr("无法恢复指定的版本，文件可能已丢失。"))
 
     def _on_version_delete(self, asset_key: str, version: int):
         self.recycle.permanently_delete(asset_key, version)
-        self.status_bar.showMessage(f"已永久删除 v{version}")
+        self.status_bar.showMessage(self.tr("已永久删除 v{0}").format(version))
 
     def _on_context_menu(self, action_data, _item):
         action, asset = action_data
@@ -362,8 +371,10 @@ class AssetManager(QWidget):
                 latest = versions[-1]
                 reply = QMessageBox.question(
                     self,
-                    "从回收站恢复",
-                    f"将恢复 v{latest['version']} ({latest.get('reason', '')})?\n当前 Missing 标记将被清除。",
+                    self.tr("从回收站恢复"),
+                    self.tr("将恢复 v{0} ({1})?\n当前 Missing 标记将被清除。").format(
+                        latest["version"], latest.get("reason", "")
+                    ),
                     QMessageBox.Yes | QMessageBox.No,
                     QMessageBox.No,
                 )

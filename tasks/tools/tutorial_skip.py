@@ -672,7 +672,7 @@ class TutorialSkipWindow(QWidget):
         qconfig.themeChanged.connect(self._apply_theme_style)
 
     def setup_ui(self):
-        self.setWindowTitle("跳过新手提示")
+        self.setWindowTitle(self.tr("跳过新手提示"))
         self.setWindowIcon(QIcon("./assets/logo/canary.ico"))
         self.resize(600, 480)
         self.setMinimumSize(480, 360)
@@ -680,11 +680,11 @@ class TutorialSkipWindow(QWidget):
         layout = QVBoxLayout()
 
         # ── 操作选项 ──
-        action_group = QGroupBox("操作选项")
+        action_group = QGroupBox(self.tr("操作选项"))
         action_layout = QHBoxLayout()
-        self.disable_radio = QRadioButton("关闭新手提示")
+        self.disable_radio = QRadioButton(self.tr("关闭新手提示"))
         self.disable_radio.setChecked(True)
-        self.restore_radio = QRadioButton("恢复新手提示")
+        self.restore_radio = QRadioButton(self.tr("恢复新手提示"))
         action_layout.addWidget(self.disable_radio)
         action_layout.addWidget(self.restore_radio)
         action_layout.addStretch()
@@ -692,9 +692,9 @@ class TutorialSkipWindow(QWidget):
         layout.addWidget(action_group)
 
         # ── 目标平台 ──
-        platform_group = QGroupBox("目标平台")
+        platform_group = QGroupBox(self.tr("目标平台"))
         platform_layout = QHBoxLayout()
-        self.auto_radio = QRadioButton("自动检测")
+        self.auto_radio = QRadioButton(self.tr("自动检测"))
         self.auto_radio.setChecked(True)
         self.win_radio = QRadioButton("Windows")
         self.android_radio = QRadioButton("Android")
@@ -706,12 +706,12 @@ class TutorialSkipWindow(QWidget):
         layout.addWidget(platform_group)
 
         # ── 执行按钮 ──
-        self.start_button = QPushButton("开始执行")
+        self.start_button = QPushButton(self.tr("开始执行"))
         self.start_button.clicked.connect(self.toggle_patch)
         layout.addWidget(self.start_button)
 
         # ── 状态标签 ──
-        self.status_label = QLabel("状态：就绪")
+        self.status_label = QLabel(self.tr("状态：就绪"))
         self._apply_theme_style()
         layout.addWidget(self.status_label)
 
@@ -753,7 +753,7 @@ class TutorialSkipWindow(QWidget):
         self.worker.start()
 
         self.start_button.setEnabled(False)
-        self.status_label.setText("状态：处理中...")
+        self.status_label.setText(self.tr("状态：处理中..."))
 
     def _on_log(self, msg):
         self.log_text.append(msg)
@@ -772,9 +772,9 @@ class TutorialSkipWindow(QWidget):
                 parts.append("注册表同步完成")
             self.log_text.append("")
             self.log_text.append(f"✓ {action}完成：{'，'.join(parts)}")
-            self.status_label.setText("状态：完成")
+            self.status_label.setText(self.tr("状态：完成"))
         else:
-            self.status_label.setText("状态：失败")
+            self.status_label.setText(self.tr("状态：失败"))
             self.log_text.append("")
             self.log_text.append(f"✗ 操作失败：{'；'.join(result.errors)}")
             self.log_text.append("请检查游戏是否已运行、模拟器是否已连接")
