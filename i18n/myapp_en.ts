@@ -410,8 +410,8 @@
 &quot;{1}&quot;?
 
 旧文件将存档到回收站。</source>
-        <translation>Replace "{0}" with
-"{1}"?
+        <translation>Replace &quot;{0}&quot; with
+&quot;{1}&quot;?
 
 The old file will be archived to the recycle bin.</translation>
     </message>
@@ -2405,7 +2405,19 @@ Continue?</translation>
 <context>
     <name>InfiniteBattles</name>
     <message>
+        <location filename="../tasks/tools/infinite_battle.py" line="127"/>
+        <source>自动战斗</source>
+        <translation type="unfinished">Auto Battle</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/infinite_battle.py" line="145"/>
+        <location filename="../tasks/tools/infinite_battle.py" line="200"/>
+        <source>状态：初始化中...</source>
+        <translation>Status: Initializing...</translation>
+    </message>
+    <message>
         <location filename="../tasks/tools/infinite_battle.py" line="153"/>
+        <location filename="../tasks/tools/infinite_battle.py" line="214"/>
         <source>开始战斗</source>
         <translation>Battle Start</translation>
     </message>
@@ -2435,6 +2447,11 @@ Continue?</translation>
         <translation>Status: In combat...</translation>
     </message>
     <message>
+        <location filename="../tasks/tools/infinite_battle.py" line="215"/>
+        <source>状态：已停止</source>
+        <translation>Status: Stopped</translation>
+    </message>
+    <message>
         <location filename="../tasks/tools/infinite_battle.py" line="248"/>
         <source>状态：正在战斗...</source>
         <translation>Status: Currently in battle...</translation>
@@ -2445,6 +2462,11 @@ Continue?</translation>
         <translation>Combat operations execution</translation>
     </message>
     <message>
+        <location filename="../tasks/tools/infinite_battle.py" line="259"/>
+        <source>状态：错误 - {0}...</source>
+        <translation>Status: Error - {0}...</translation>
+    </message>
+    <message>
         <location filename="../tasks/tools/infinite_battle.py" line="157"/>
         <source>不处理事件</source>
         <translation>Do not handle events</translation>
@@ -2453,9 +2475,237 @@ Continue?</translation>
 <context>
     <name>IssueReplay</name>
     <message>
+        <location filename="../tasks/tools/issue_replay.py" line="282"/>
+        <source>日志复现工具</source>
+        <translation type="unfinished">Log replay tool</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="431"/>
+        <source>导入日志</source>
+        <translation>Import Log</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="435"/>
+        <location filename="../tasks/tools/issue_replay.py" line="660"/>
+        <source>选择日志文件</source>
+        <translation>Select Log File</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="437"/>
+        <source>导入</source>
+        <translation type="unfinished">Import</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="449"/>
+        <source>在此粘贴日志内容，或拖拽 .log / .txt 文件到此处...</source>
+        <translation>Paste log content here, or drag a .log / .txt file into this area...</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="462"/>
+        <source>配置快照:</source>
+        <translation>Config Snapshot:</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="474"/>
+        <source>问题列表</source>
+        <translation>Issue List</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="479"/>
+        <source>ID</source>
+        <translation>ID</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="479"/>
+        <source>名称</source>
+        <translation>Name</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="479"/>
+        <source>版本</source>
+        <translation>Version</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="479"/>
+        <source>导入时间</source>
+        <translation>Imported At</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="480"/>
+        <source>修改时间</source>
+        <translation>Modified At</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="501"/>
+        <source>开发者批注:</source>
+        <translation>Developer Notes:</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="522"/>
+        <source>加载此配置到AALC</source>
+        <translation>Load This Config into AALC</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="526"/>
+        <location filename="../tasks/tools/issue_replay.py" line="764"/>
+        <source>重命名</source>
+        <translation>Rename</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="530"/>
+        <source>删除</source>
+        <translation type="unfinished">Delete</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="534"/>
+        <source>编辑批注</source>
+        <translation>Edit Notes</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="538"/>
+        <source>追加日志</source>
+        <translation>Append Log</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="552"/>
+        <source>状态</source>
+        <translation>Status</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="555"/>
+        <location filename="../tasks/tools/issue_replay.py" line="739"/>
+        <source>● 当前使用: 开发者配置</source>
+        <translation>● Currently Using: Developer Config</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="560"/>
+        <source>恢复我的配置</source>
+        <translation>Restore My Config</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="638"/>
+        <location filename="../tasks/tools/issue_replay.py" line="639"/>
+        <location filename="../tasks/tools/issue_replay.py" line="692"/>
+        <source>未知</source>
+        <translation>Unknown</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="640"/>
+        <source>AALC 版本: {0}</source>
+        <translation>AALC Version: {0}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="641"/>
+        <source>游戏分辨率: {0}</source>
+        <translation>Game Resolution: {0}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="642"/>
+        <source>找到 {0} 个配置快照</source>
+        <translation>Found {0} config snapshot(s)</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="650"/>
+        <source>快照 #{0} ({1} 个配置项)</source>
+        <translation>Snapshot #{0} ({1} config items)</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="672"/>
+        <location filename="../tasks/tools/issue_replay.py" line="717"/>
+        <location filename="../tasks/tools/issue_replay.py" line="729"/>
+        <location filename="../tasks/tools/issue_replay.py" line="753"/>
+        <source>错误</source>
+        <translation>Error</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="672"/>
+        <source>读取日志文件失败:
+{0}</source>
+        <translation>Failed to read log file:
+{0}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="677"/>
+        <source>提示</source>
+        <translation>Notice</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="677"/>
+        <source>请先粘贴日志内容或选择日志文件</source>
+        <translation>Please paste log content or select a log file first</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="689"/>
+        <source>导入失败</source>
+        <translation type="unfinished">Import Failed</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="689"/>
+        <source>未能在日志中找到任何配置快照</source>
+        <translation>No config snapshots found in the log</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="692"/>
+        <source>已导入为 issue{0}
+AALC 版本: {1}</source>
+        <translation>Imported as issue{0}
+AALC Version: {1}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="694"/>
+        <source>
+
+潜在问题:
+{0}</source>
+        <translation>
+
+Potential issues:
+{0}</translation>
+    </message>
+    <message>
         <location filename="../tasks/tools/issue_replay.py" line="697"/>
+        <location filename="../tasks/tools/issue_replay.py" line="700"/>
         <source>导入成功</source>
         <translation type="unfinished">Import successful</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="717"/>
+        <source>找不到 issue{0} 的配置文件</source>
+        <translation>Config file for issue{0} not found</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="729"/>
+        <source>加载配置文件失败:
+{0}</source>
+        <translation>Failed to load config file:
+{0}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="734"/>
+        <source>● 当前使用: 重放模式 - {0}</source>
+        <translation>● Currently Using: Replay Mode - {0}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="753"/>
+        <source>恢复配置文件失败:
+{0}</source>
+        <translation>Failed to restore config file:
+{0}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="769"/>
+        <source>新名称:</source>
+        <translation>New name:</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="773"/>
+        <source>确定</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="774"/>
+        <source>取消</source>
+        <translation type="unfinished">Cancel</translation>
     </message>
     <message>
         <location filename="../tasks/tools/issue_replay.py" line="1046"/>
@@ -2469,6 +2719,122 @@ Continue?</translation>
         <location filename="../app/base_combination.py" line="1490"/>
         <source>设置快捷键</source>
         <translation>Set Shortcut</translation>
+    </message>
+</context>
+<context>
+    <name>LLCLocalizationWindow</name>
+    <message>
+        <location filename="../tasks/tools/llc_localization.py" line="208"/>
+        <source>零协汉化更新</source>
+        <translation type="unfinished">Zero Association patch update</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/llc_localization.py" line="216"/>
+        <source>版本信息</source>
+        <translation type="unfinished">Version info</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/llc_localization.py" line="219"/>
+        <source>当前版本: -</source>
+        <translation>Current version: -</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/llc_localization.py" line="220"/>
+        <source>最新版本: -</source>
+        <translation>Latest version: -</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/llc_localization.py" line="221"/>
+        <source>状态: 正在检查...</source>
+        <translation>Status: Checking...</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/llc_localization.py" line="231"/>
+        <source>更新日志将在这里显示...</source>
+        <translation>Release notes will be shown here...</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/llc_localization.py" line="232"/>
+        <source>更新日志:</source>
+        <translation>Release Notes:</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/llc_localization.py" line="237"/>
+        <source>日志:</source>
+        <translation>Log:</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/llc_localization.py" line="242"/>
+        <source>开始更新</source>
+        <translation>Start Update</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/llc_localization.py" line="255"/>
+        <source>汉化文件来自 &lt;a href=&quot;https://github.com/LocalizeLimbusCompany/LocalizeLimbusCompany&quot;&gt;LocalizeLimbusCompany&lt;/a&gt;，采用 &lt;a href=&quot;https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh-hans&quot;&gt;CC BY-NC-SA 4.0&lt;/a&gt; 协议</source>
+        <translation>Localization files from &lt;a href="https://github.com/LocalizeLimbusCompany/LocalizeLimbusCompany"&gt;LocalizeLimbusCompany&lt;/a&gt;, under the &lt;a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh-hans"&gt;CC BY-NC-SA 4.0&lt;/a&gt; license</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/llc_localization.py" line="277"/>
+        <source>当前版本: {0}</source>
+        <translation>Current version: {0}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/llc_localization.py" line="280"/>
+        <source>最新版本: {0}</source>
+        <translation>Latest version: {0}</translation>
+    </message>
+</context>
+<context>
+    <name>LLCLocalizationWorker</name>
+    <message>
+        <location filename="../tasks/tools/llc_localization.py" line="74"/>
+        <source>发生错误: {0}</source>
+        <translation>An error occurred: {0}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/llc_localization.py" line="87"/>
+        <source>请先在设置中配置正确的游戏路径</source>
+        <translation>Please configure the correct game path in Settings first</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/llc_localization.py" line="96"/>
+        <source>未安装</source>
+        <translation>Not installed</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/llc_localization.py" line="105"/>
+        <source>网络错误，无法连接 GitHub</source>
+        <translation>Network error, cannot connect to GitHub</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/llc_localization.py" line="113"/>
+        <source>GitHub 返回了异常响应</source>
+        <translation>GitHub returned an unexpected response</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/llc_localization.py" line="127"/>
+        <source>✓ 已是最新版本 ({0})</source>
+        <translation>✓ Already up to date ({0})</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/llc_localization.py" line="132"/>
+        <source>⚡ 有新版本: {0}</source>
+        <translation>⚡ New version available: {0}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/llc_localization.py" line="153"/>
+        <source>下载失败</source>
+        <translation>Download failed</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/llc_localization.py" line="177"/>
+        <source>解压失败</source>
+        <translation>Extraction failed</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/llc_localization.py" line="186"/>
+        <source>✓ 更新完成 ({0})</source>
+        <translation>✓ Update complete ({0})</translation>
     </message>
 </context>
 <context>
@@ -3263,6 +3629,17 @@ These fields will be populated with default values. Do you wish to continue?</tr
 <context>
     <name>ProductionModule</name>
     <message>
+        <location filename="../tasks/tools/production_module.py" line="223"/>
+        <source>自动换饼</source>
+        <translation>Auto Enkephalin Exchange</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/production_module.py" line="240"/>
+        <location filename="../tasks/tools/production_module.py" line="287"/>
+        <source>状态：初始化中...</source>
+        <translation>Status: Initializing...</translation>
+    </message>
+    <message>
         <location filename="../tasks/tools/production_module.py" line="249"/>
         <source>开始任务</source>
         <translation>Strat Task</translation>
@@ -3276,6 +3653,26 @@ These fields will be populated with default values. Do you wish to continue?</tr
         <location filename="../tasks/tools/production_module.py" line="285"/>
         <source>中止工作</source>
         <translation>Stop Task</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/production_module.py" line="293"/>
+        <source>状态：工作中...</source>
+        <translation>Status: Working...</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/production_module.py" line="298"/>
+        <source>状态：已停止</source>
+        <translation>Status: Stopped</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/production_module.py" line="323"/>
+        <source>状态：正在生产...</source>
+        <translation>Status: Producing...</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/production_module.py" line="334"/>
+        <source>状态：错误 - {0}...</source>
+        <translation>Status: Error - {0}...</translation>
     </message>
 </context>
 <context>
@@ -4298,6 +4695,49 @@ Update Logs:</translation>
         <location filename="../tasks/tools/ghub_manager.py" line="566"/>
         <source>检测异常</source>
         <translation>Check error</translation>
+    </message>
+</context>
+<context>
+    <name>_DropableTextEdit</name>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="70"/>
+        <source>已选择: {0}</source>
+        <translation>Selected: {0}</translation>
+    </message>
+</context>
+<context>
+    <name>_MarkdownEditSidecar</name>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="176"/>
+        <source>编辑批注 — issue{0}</source>
+        <translation>Edit Notes — issue{0}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="192"/>
+        <source>Markdown 源码</source>
+        <translation>Markdown Source</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="202"/>
+        <source>预览</source>
+        <translation>Preview</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="212"/>
+        <source>保存 (Ctrl+S)</source>
+        <translation>Save (Ctrl+S)</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="274"/>
+        <source>保存失败</source>
+        <translation>Save Failed</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/issue_replay.py" line="274"/>
+        <source>保存批注失败:
+{0}</source>
+        <translation>Failed to save notes:
+{0}</translation>
     </message>
 </context>
 </TS>

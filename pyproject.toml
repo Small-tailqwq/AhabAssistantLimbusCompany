@@ -87,6 +87,10 @@ files = [
     "tasks/tools/tutorial_skip.py",
     "tasks/tools/asset_manager.py",
     "tasks/tools/asset_library/widgets.py",
+    "tasks/tools/issue_replay.py",
+    "tasks/tools/infinite_battle.py",
+    "tasks/tools/llc_localization.py",
+    "tasks/tools/production_module.py",
     "i18n/myapp_en.ts",
 ]
 

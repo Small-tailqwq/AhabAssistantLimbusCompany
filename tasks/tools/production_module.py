@@ -220,7 +220,7 @@ class ProductionModule(QWidget):
 
     def setup_ui(self):
         """配置窗口的基本属性和界面元素。"""
-        self.setWindowTitle("自动换饼")
+        self.setWindowTitle(self.tr("自动换饼"))
         self.resize(600, 400)
         self.setWindowIcon(QIcon("./assets/logo/canary.ico"))
 
@@ -237,7 +237,7 @@ class ProductionModule(QWidget):
         layout.addWidget(self.instruction_label)
 
         # 添加状态显示标签
-        self.status_label = QLabel("状态：初始化中...")
+        self.status_label = QLabel(self.tr("状态：初始化中..."))
         self._apply_theme_style()
         qconfig.themeChanged.connect(self._apply_theme_style)
         layout.addWidget(self.status_label)
@@ -284,18 +284,18 @@ class ProductionModule(QWidget):
             stop_msg = self.tr("中止工作")
             self.start_stop_button.setText(stop_msg)
             self.log_text.append("正在初始化游戏...")
-            self.status_label.setText("状态：初始化中...")
+            self.status_label.setText(self.tr("状态：初始化中..."))
             self.kill_game_box.setDisabled(True)
 
     def on_initialization_complete(self):
         """当初始化完成时调用"""
         self.log_text.append("游戏初始化完成，开始工作")
-        self.status_label.setText("状态：工作中...")
+        self.status_label.setText(self.tr("状态：工作中..."))
 
     def on_production_finished(self):
         self.log_text.append("工作线程已停止")
         self.start_stop_button.setText(self.start_msg)
-        self.status_label.setText("状态：已停止")
+        self.status_label.setText(self.tr("状态：已停止"))
 
     def stop_production(self):
         """停止工作工作线程"""
@@ -320,7 +320,7 @@ class ProductionModule(QWidget):
 
     def on_production_executed(self):
         """当执行生产时调用"""
-        self.status_label.setText("状态：正在生产...")
+        self.status_label.setText(self.tr("状态：正在生产..."))
         # 避免日志过多，只偶尔记录
         import time
 
@@ -331,7 +331,7 @@ class ProductionModule(QWidget):
 
     def on_error_occurred(self, error_msg):
         """当发生错误时调用"""
-        self.status_label.setText(f"状态：错误 - {error_msg[:50]}...")
+        self.status_label.setText(self.tr("状态：错误 - {0}...").format(error_msg[:50]))
         self.log_text.append(f"错误: {error_msg}")
         log.error(f"生产错误: {error_msg}")
 

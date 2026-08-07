@@ -124,7 +124,7 @@ class InfiniteBattles(QWidget):
 
     def setup_ui(self):
         """配置窗口的基本属性和界面元素。"""
-        self.setWindowTitle("自动战斗")
+        self.setWindowTitle(self.tr("自动战斗"))
         self.resize(600, 400)
         self.setWindowIcon(QIcon("./assets/logo/canary.ico"))
 
@@ -142,7 +142,7 @@ class InfiniteBattles(QWidget):
         layout.addWidget(self.instruction_label)
 
         # 添加状态显示标签
-        self.status_label = QLabel("状态：初始化中...")
+        self.status_label = QLabel(self.tr("状态：初始化中..."))
         self._apply_theme_style()
         qconfig.themeChanged.connect(self._apply_theme_style)
         layout.addWidget(self.status_label)
@@ -197,7 +197,7 @@ class InfiniteBattles(QWidget):
             self.worker.start()
             self.start_stop_button.setText(self.tr("停止战斗"))
             self.log_text.append("正在初始化游戏...")
-            self.status_label.setText("状态：初始化中...")
+            self.status_label.setText(self.tr("状态：初始化中..."))
             self.defense_box.setDisabled(True)
             self.defense_on_turn1_box.setDisabled(True)
             self.not_choose_event_box.setDisabled(True)
@@ -211,8 +211,8 @@ class InfiniteBattles(QWidget):
     def on_battle_finished(self):
         auto.clear_stop_request()
         self.log_text.append("战斗线程已停止")
-        self.start_stop_button.setText("开始战斗")
-        self.status_label.setText("状态：已停止")
+        self.start_stop_button.setText(self.tr("开始战斗"))
+        self.status_label.setText(self.tr("状态：已停止"))
         self.defense_box.setDisabled(False)
         self.defense_on_turn1_box.setDisabled(False)
         self.not_choose_event_box.setDisabled(False)
@@ -256,7 +256,7 @@ class InfiniteBattles(QWidget):
 
     def on_error_occurred(self, error_msg):
         """当发生错误时调用"""
-        self.status_label.setText(f"状态：错误 - {error_msg[:50]}...")
+        self.status_label.setText(self.tr("状态：错误 - {0}...").format(error_msg[:50]))
         self.log_text.append(f"错误: {error_msg}")
         log.error(f"战斗错误: {error_msg}")
 

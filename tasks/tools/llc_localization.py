@@ -71,7 +71,7 @@ class LLCLocalizationWorker(QThread):
         except Exception as e:
             self.log_message.emit(f"错误: {e}")
             self.status_type.emit("error")
-            self.status_text.emit(f"发生错误: {e}")
+            self.status_text.emit(self.tr("发生错误: {0}").format(e))
             self.operation_finished.emit(False)
 
     def _emit_log(self, msg: str):
@@ -84,7 +84,7 @@ class LLCLocalizationWorker(QThread):
             self._emit_log(f"游戏路径无效: {cfg.game_path}")
             self._emit_log("请先在「设置」中正确配置游戏启动路径")
             self.status_type.emit("error")
-            self.status_text.emit("请先在设置中配置正确的游戏路径")
+            self.status_text.emit(self.tr("请先在设置中配置正确的游戏路径"))
             self.operation_finished.emit(False)
             return
 
@@ -93,7 +93,7 @@ class LLCLocalizationWorker(QThread):
             self._emit_log(f"检测到已安装版本: {installed}")
         else:
             self._emit_log("未检测到已安装版本")
-        self.current_version.emit(installed if installed else "未安装")
+        self.current_version.emit(installed if installed else self.tr("未安装"))
 
         self._emit_log("正在查询零协最新版本...")
         try:
@@ -102,7 +102,7 @@ class LLCLocalizationWorker(QThread):
         except requests.RequestException as e:
             self._emit_log(f"查询 GitHub 失败: {e}")
             self.status_type.emit("error")
-            self.status_text.emit("网络错误，无法连接 GitHub")
+            self.status_text.emit(self.tr("网络错误，无法连接 GitHub"))
             self.operation_finished.emit(False)
             return
         try:
@@ -110,7 +110,7 @@ class LLCLocalizationWorker(QThread):
         except ValueError as e:
             self._emit_log(f"解析 GitHub 响应失败: {e}")
             self.status_type.emit("error")
-            self.status_text.emit("GitHub 返回了异常响应")
+            self.status_text.emit(self.tr("GitHub 返回了异常响应"))
             self.operation_finished.emit(False)
             return
 
@@ -124,12 +124,12 @@ class LLCLocalizationWorker(QThread):
         if installed == latest_tag:
             self._emit_log("已是最新版本，无需更新")
             self.status_type.emit("ok")
-            self.status_text.emit(f"✓ 已是最新版本 ({latest_tag})")
+            self.status_text.emit(self.tr("✓ 已是最新版本 ({0})").format(latest_tag))
             self.operation_finished.emit(True)
             return
 
         self.status_type.emit("update")
-        self.status_text.emit(f"⚡ 有新版本: {latest_tag}")
+        self.status_text.emit(self.tr("⚡ 有新版本: {0}").format(latest_tag))
 
         if not self._do_update:
             self.operation_finished.emit(True)
@@ -150,7 +150,7 @@ class LLCLocalizationWorker(QThread):
         except requests.RequestException as e:
             self._emit_log(f"下载失败: {e}")
             self.status_type.emit("error")
-            self.status_text.emit("下载失败")
+            self.status_text.emit(self.tr("下载失败"))
             self.operation_finished.emit(False)
             return
 
@@ -174,7 +174,7 @@ class LLCLocalizationWorker(QThread):
         except Exception as e:
             self._emit_log(f"解压失败: {e}")
             self.status_type.emit("error")
-            self.status_text.emit("解压失败")
+            self.status_text.emit(self.tr("解压失败"))
             self.operation_finished.emit(False)
             return
 
@@ -183,7 +183,7 @@ class LLCLocalizationWorker(QThread):
         self._emit_log(f"更新完成！当前版本: {tag}")
         self.current_version.emit(tag)
         self.status_type.emit("ok")
-        self.status_text.emit(f"✓ 更新完成 ({tag})")
+        self.status_text.emit(self.tr("✓ 更新完成 ({0})").format(tag))
         self.operation_finished.emit(True)
 
     @staticmethod
@@ -205,7 +205,7 @@ class LLCLocalizationWindow(QWidget):
         self._auto_check()
 
     def setup_ui(self):
-        self.setWindowTitle("零协汉化更新")
+        self.setWindowTitle(self.tr("零协汉化更新"))
         self.setWindowIcon(QIcon("./assets/logo/canary.ico"))
         self.resize(600, 400)
         self.setMinimumSize(480, 320)
@@ -213,12 +213,12 @@ class LLCLocalizationWindow(QWidget):
         layout = QVBoxLayout(self)
         layout.setSpacing(8)
 
-        version_group = QGroupBox("版本信息")
+        version_group = QGroupBox(self.tr("版本信息"))
         vg_layout = QVBoxLayout(version_group)
 
-        self.current_label = QLabel("当前版本: -")
-        self.latest_label = QLabel("最新版本: -")
-        self.status_label = QLabel("状态: 正在检查...")
+        self.current_label = QLabel(self.tr("当前版本: -"))
+        self.latest_label = QLabel(self.tr("最新版本: -"))
+        self.status_label = QLabel(self.tr("状态: 正在检查..."))
 
         vg_layout.addWidget(self.current_label)
         vg_layout.addWidget(self.latest_label)
@@ -228,28 +228,30 @@ class LLCLocalizationWindow(QWidget):
         self.notes_edit = QTextEdit()
         self.notes_edit.setReadOnly(True)
         self.notes_edit.setMaximumHeight(120)
-        self.notes_edit.setPlaceholderText("更新日志将在这里显示...")
-        layout.addWidget(QLabel("更新日志:"))
+        self.notes_edit.setPlaceholderText(self.tr("更新日志将在这里显示..."))
+        layout.addWidget(QLabel(self.tr("更新日志:")))
         layout.addWidget(self.notes_edit)
 
         self.log_edit = QTextEdit()
         self.log_edit.setReadOnly(True)
-        layout.addWidget(QLabel("日志:"))
+        layout.addWidget(QLabel(self.tr("日志:")))
         layout.addWidget(self.log_edit)
 
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
-        self.update_btn = QPushButton("开始更新")
+        self.update_btn = QPushButton(self.tr("开始更新"))
         self.update_btn.clicked.connect(self._on_update_clicked)
         self.update_btn.setVisible(False)
         btn_layout.addWidget(self.update_btn)
         layout.addLayout(btn_layout)
 
         self.attribution_label = QLabel(
-            '汉化文件来自 <a href="https://github.com/LocalizeLimbusCompany/LocalizeLimbusCompany">'
-            "LocalizeLimbusCompany</a>，采用 "
-            '<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh-hans">'
-            "CC BY-NC-SA 4.0</a> 协议"
+            self.tr(
+                '汉化文件来自 <a href="https://github.com/LocalizeLimbusCompany/LocalizeLimbusCompany">'
+                "LocalizeLimbusCompany</a>，采用 "
+                '<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh-hans">'
+                "CC BY-NC-SA 4.0</a> 协议"
+            )
         )
         self.attribution_label.setOpenExternalLinks(True)
         self.attribution_label.setAlignment(Qt.AlignCenter)
@@ -272,10 +274,10 @@ class LLCLocalizationWindow(QWidget):
         self.worker = LLCLocalizationWorker()
         self.worker.log_message.connect(self._append_log)
         self.worker.current_version.connect(
-            lambda v: self.current_label.setText(f"当前版本: {v}")
+            lambda v: self.current_label.setText(self.tr("当前版本: {0}").format(v))
         )
         self.worker.latest_version.connect(
-            lambda v: self.latest_label.setText(f"最新版本: {v}")
+            lambda v: self.latest_label.setText(self.tr("最新版本: {0}").format(v))
         )
         self.worker.status_text.connect(self.status_label.setText)
         self.worker.status_type.connect(self._on_status_type)

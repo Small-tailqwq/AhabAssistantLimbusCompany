@@ -67,7 +67,7 @@ class _DropableTextEdit(QTextEdit):
             with open(path, "r", encoding="utf-8") as f:
                 self.setPlainText(f.read())
             if self._filename_label is not None:
-                self._filename_label.setText(f"已选择: {path}")
+                self._filename_label.setText(self.tr("已选择: {0}").format(path))
             event.acceptProposedAction()
         except Exception as e:
             log.warning(f"拖入文件读取失败: {path}, {e}")
@@ -173,7 +173,7 @@ class _MarkdownEditSidecar(QWidget):
         self._on_save = on_save
         self._parent_window = parent
         self._snapped = True
-        self.setWindowTitle(f"编辑批注 — issue{issue_id}")
+        self.setWindowTitle(self.tr("编辑批注 — issue{0}").format(issue_id))
         self.setWindowIcon(QIcon("./assets/logo/canary.ico"))
         self.resize(760, 520)
 
@@ -189,7 +189,7 @@ class _MarkdownEditSidecar(QWidget):
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
         left_layout.setContentsMargins(0, 0, 0, 0)
-        left_layout.addWidget(QLabel("Markdown 源码"))
+        left_layout.addWidget(QLabel(self.tr("Markdown 源码")))
         self._edit = QTextEdit()
         self._edit.setPlainText(initial_text)
         self._edit.textChanged.connect(self._on_text_changed)
@@ -199,7 +199,7 @@ class _MarkdownEditSidecar(QWidget):
         right_widget = QWidget()
         right_layout = QVBoxLayout(right_widget)
         right_layout.setContentsMargins(0, 0, 0, 0)
-        right_layout.addWidget(QLabel("预览"))
+        right_layout.addWidget(QLabel(self.tr("预览")))
         self._preview = QTextEdit()
         self._preview.setReadOnly(True)
         right_layout.addWidget(self._preview)
@@ -209,7 +209,7 @@ class _MarkdownEditSidecar(QWidget):
 
         bottom_row = QHBoxLayout()
         bottom_row.addStretch()
-        btn_save = QPushButton("保存 (Ctrl+S)")
+        btn_save = QPushButton(self.tr("保存 (Ctrl+S)"))
         btn_save.clicked.connect(self._do_save)
         bottom_row.addWidget(btn_save)
 
@@ -271,7 +271,7 @@ class _MarkdownEditSidecar(QWidget):
             self._on_save(self._issue_id, self._edit.toPlainText())
             self.close()
         except Exception as e:
-            QMessageBox.warning(self, "保存失败", f"保存批注失败:\n{e}")
+            QMessageBox.warning(self, self.tr("保存失败"), self.tr("保存批注失败:\n{0}").format(e))
 
 
 class IssueReplay(QWidget):
@@ -279,7 +279,7 @@ class IssueReplay(QWidget):
         super().__init__()
         self.setAcceptDrops(False)
         self.setAttribute(Qt.WA_DeleteOnClose, True)
-        self.setWindowTitle("日志复现工具")
+        self.setWindowTitle(self.tr("日志复现工具"))
         self.setWindowIcon(QIcon("./assets/logo/canary.ico"))
         self.resize(900, 640)
 
@@ -428,13 +428,13 @@ class IssueReplay(QWidget):
         main_layout.addWidget(self._build_status_bar())
 
     def _build_import_area(self) -> QGroupBox:
-        group = QGroupBox("导入日志")
+        group = QGroupBox(self.tr("导入日志"))
         layout = QVBoxLayout(group)
 
         top_row = QHBoxLayout()
-        btn_select = QPushButton("选择日志文件")
+        btn_select = QPushButton(self.tr("选择日志文件"))
         btn_select.clicked.connect(self._on_select_log_file)
-        btn_import = QPushButton("导入")
+        btn_import = QPushButton(self.tr("导入"))
 
         btn_import.clicked.connect(self._on_import)
         top_row.addStretch()
@@ -446,7 +446,7 @@ class IssueReplay(QWidget):
         self.log_edit = QTextEdit()
         self.log_edit.setAcceptDrops(False)
         self.log_edit.viewport().setAcceptDrops(False)
-        self.log_edit.setPlaceholderText("在此粘贴日志内容，或拖拽 .log / .txt 文件到此处...")
+        self.log_edit.setPlaceholderText(self.tr("在此粘贴日志内容，或拖拽 .log / .txt 文件到此处..."))
         self.log_edit.setMaximumHeight(120)
         self.log_edit.textChanged.connect(self._on_log_text_changed)
         layout.addWidget(self.log_edit)
@@ -459,7 +459,7 @@ class IssueReplay(QWidget):
         self._snapshot_widget = QWidget()
         snapshot_row = QHBoxLayout(self._snapshot_widget)
         snapshot_row.setContentsMargins(0, 0, 0, 0)
-        snapshot_row.addWidget(QLabel("配置快照:"))
+        snapshot_row.addWidget(QLabel(self.tr("配置快照:")))
         self.snapshot_combo = QComboBox()
         self.snapshot_combo.setMinimumWidth(240)
         self.snapshot_combo.hide()
@@ -471,12 +471,12 @@ class IssueReplay(QWidget):
         return group
 
     def _build_issue_list(self) -> QGroupBox:
-        group = QGroupBox("问题列表")
+        group = QGroupBox(self.tr("问题列表"))
         layout = QVBoxLayout(group)
 
         self.issue_table = QTableWidget(0, 5)
         self.issue_table.setHorizontalHeaderLabels(
-            ["ID", "名称", "版本", "导入时间", "修改时间"]
+            [self.tr("ID"), self.tr("名称"), self.tr("版本"), self.tr("导入时间"), self.tr("修改时间")]
         )
         self.issue_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.issue_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -498,7 +498,7 @@ class IssueReplay(QWidget):
         self.issue_table.customContextMenuRequested.connect(self._on_issue_context_menu)
         layout.addWidget(self.issue_table)
 
-        self.issue_notes_label = QLabel("开发者批注:")
+        self.issue_notes_label = QLabel(self.tr("开发者批注:"))
         self.issue_notes_label.hide()
         layout.addWidget(self.issue_notes_label)
 
@@ -519,23 +519,23 @@ class IssueReplay(QWidget):
         layout = QHBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        self.btn_load_config = QPushButton("加载此配置到AALC")
+        self.btn_load_config = QPushButton(self.tr("加载此配置到AALC"))
         self.btn_load_config.clicked.connect(self._on_load_config)
         self.btn_load_config.setEnabled(False)
 
-        self.btn_rename = QPushButton("重命名")
+        self.btn_rename = QPushButton(self.tr("重命名"))
         self.btn_rename.clicked.connect(self._on_rename)
         self.btn_rename.setEnabled(False)
 
-        self.btn_delete = QPushButton("删除")
+        self.btn_delete = QPushButton(self.tr("删除"))
         self.btn_delete.clicked.connect(self._on_delete)
         self.btn_delete.setEnabled(False)
 
-        self.btn_notes = QPushButton("编辑批注")
+        self.btn_notes = QPushButton(self.tr("编辑批注"))
         self.btn_notes.clicked.connect(self._on_edit_notes)
         self.btn_notes.setEnabled(False)
 
-        self.btn_append_log = QPushButton("追加日志")
+        self.btn_append_log = QPushButton(self.tr("追加日志"))
         self.btn_append_log.clicked.connect(self._on_append_log)
         self.btn_append_log.setEnabled(False)
 
@@ -549,15 +549,15 @@ class IssueReplay(QWidget):
         return widget
 
     def _build_status_bar(self) -> QGroupBox:
-        group = QGroupBox("状态")
+        group = QGroupBox(self.tr("状态"))
         layout = QHBoxLayout(group)
 
-        self.status_label = QLabel("● 当前使用: 开发者配置")
+        self.status_label = QLabel(self.tr("● 当前使用: 开发者配置"))
         self.status_label.setStyleSheet("color: #4CAF50; font-weight: bold;")
         layout.addWidget(self.status_label)
         layout.addStretch()
 
-        self.btn_restore = QPushButton("恢复我的配置")
+        self.btn_restore = QPushButton(self.tr("恢复我的配置"))
         self.btn_restore.clicked.connect(self._on_restore_config)
         self.btn_restore.setVisible(False)
         layout.addWidget(self.btn_restore)
@@ -635,11 +635,11 @@ class IssueReplay(QWidget):
         self._preview_snapshots = find_config_snapshots(text)
 
         parts = []
-        ver = self._preview_meta.get("version", "未知")
-        res = self._preview_meta.get("resolution", "未知")
-        parts.append(f"AALC 版本: {ver}")
-        parts.append(f"游戏分辨率: {res}")
-        parts.append(f"找到 {len(self._preview_snapshots)} 个配置快照")
+        ver = self._preview_meta.get("version", self.tr("未知"))
+        res = self._preview_meta.get("resolution", self.tr("未知"))
+        parts.append(self.tr("AALC 版本: {0}").format(ver))
+        parts.append(self.tr("游戏分辨率: {0}").format(res))
+        parts.append(self.tr("找到 {0} 个配置快照").format(len(self._preview_snapshots)))
 
         self.preview_label.setText("  ".join(parts))
 
@@ -647,7 +647,7 @@ class IssueReplay(QWidget):
             self.snapshot_combo.clear()
             for i, snap in enumerate(self._preview_snapshots):
                 field_count = len(snap)
-                self.snapshot_combo.addItem(f"快照 #{i + 1} ({field_count} 个配置项)")
+                self.snapshot_combo.addItem(self.tr("快照 #{0} ({1} 个配置项)").format(i + 1, field_count))
             self.snapshot_combo.show()
             self._snapshot_widget.setVisible(True)
         else:
@@ -657,7 +657,7 @@ class IssueReplay(QWidget):
     def _on_select_log_file(self):
         path, _ = QFileDialog.getOpenFileName(
             self,
-            "选择日志文件",
+            self.tr("选择日志文件"),
             "",
             "日志文件 (*.log *.txt);;所有文件 (*)",
         )
@@ -669,12 +669,12 @@ class IssueReplay(QWidget):
             self.log_edit.setPlainText(text)
         except Exception as e:
             log.error(f"读取日志文件失败: {e}")
-            QMessageBox.warning(self, "错误", f"读取日志文件失败:\n{e}")
+            QMessageBox.warning(self, self.tr("错误"), self.tr("读取日志文件失败:\n{0}").format(e))
 
     def _on_import(self):
         text = self.log_edit.toPlainText().strip()
         if not text:
-            QMessageBox.warning(self, "提示", "请先粘贴日志内容或选择日志文件")
+            QMessageBox.warning(self, self.tr("提示"), self.tr("请先粘贴日志内容或选择日志文件"))
             return
 
         config_index = 0
@@ -686,18 +686,18 @@ class IssueReplay(QWidget):
         )
 
         if issue_id is None:
-            QMessageBox.warning(self, "导入失败", "未能在日志中找到任何配置快照")
+            QMessageBox.warning(self, self.tr("导入失败"), self.tr("未能在日志中找到任何配置快照"))
             return
 
-        msg = f"已导入为 issue{issue_id}\nAALC 版本: {meta.get('version', '未知')}"
+        msg = self.tr("已导入为 issue{0}\nAALC 版本: {1}").format(issue_id, meta.get("version", self.tr("未知")))
         if warnings:
-            msg += "\n\n潜在问题:\n" + "\n".join(f"  [!] {w}" for w in warnings)
+            msg += self.tr("\n\n潜在问题:\n{0}").format("\n".join(f"  [!] {w}" for w in warnings))
 
         if warnings:
             box = MessageBoxScroll(self.tr("导入成功"), msg, self)
             box.exec()
         else:
-            QMessageBox.information(self, "导入成功", msg)
+            QMessageBox.information(self, self.tr("导入成功"), msg)
         self.log_edit.clear()
         self.preview_label.setText("")
         self.snapshot_combo.hide()
@@ -714,7 +714,7 @@ class IssueReplay(QWidget):
 
         config_path = self._manager.get_config_path(issue_id)
         if not config_path.exists():
-            QMessageBox.warning(self, "错误", f"找不到 issue{issue_id} 的配置文件")
+            QMessageBox.warning(self, self.tr("错误"), self.tr("找不到 issue{0} 的配置文件").format(issue_id))
             return
 
         try:
@@ -726,17 +726,17 @@ class IssueReplay(QWidget):
             log.info(f"已热加载 issue{issue_id} 的配置文件，写盘已暂停")
         except Exception as e:
             log.error(f"加载 issue 配置失败: {e}")
-            QMessageBox.warning(self, "错误", f"加载配置文件失败:\n{e}")
+            QMessageBox.warning(self, self.tr("错误"), self.tr("加载配置文件失败:\n{0}").format(e))
 
     def _update_status_for_replay(self, issue_id: str):
         rec = self._manager.get_issue(issue_id)
         name = rec.name if rec else issue_id
-        self.status_label.setText(f"● 当前使用: 重放模式 - {name}")
+        self.status_label.setText(self.tr("● 当前使用: 重放模式 - {0}").format(name))
         self.status_label.setStyleSheet("color: #FF9800; font-weight: bold;")
         self.btn_restore.setVisible(True)
 
     def _update_status_for_dev(self):
-        self.status_label.setText("● 当前使用: 开发者配置")
+        self.status_label.setText(self.tr("● 当前使用: 开发者配置"))
         self.status_label.setStyleSheet("color: #4CAF50; font-weight: bold;")
         self.btn_restore.setVisible(False)
 
@@ -750,7 +750,7 @@ class IssueReplay(QWidget):
             log.info("已恢复开发者配置文件，写盘已恢复")
         except Exception as e:
             log.error(f"恢复配置失败: {e}")
-            QMessageBox.warning(self, "错误", f"恢复配置文件失败:\n{e}")
+            QMessageBox.warning(self, self.tr("错误"), self.tr("恢复配置文件失败:\n{0}").format(e))
 
     def _on_rename(self):
         issue_id = self._current_issue_id()
@@ -761,17 +761,17 @@ class IssueReplay(QWidget):
             return
 
         dialog = QWidget(self, Qt.WindowType.Dialog)
-        dialog.setWindowTitle("重命名")
+        dialog.setWindowTitle(self.tr("重命名"))
         dialog.setFixedSize(360, 120)
         layout = QVBoxLayout(dialog)
 
         edit = QLineEdit(rec.name)
-        layout.addWidget(QLabel("新名称:"))
+        layout.addWidget(QLabel(self.tr("新名称:")))
         layout.addWidget(edit)
 
         btn_layout = QHBoxLayout()
-        btn_ok = QPushButton("确定")
-        btn_cancel = QPushButton("取消")
+        btn_ok = QPushButton(self.tr("确定"))
+        btn_cancel = QPushButton(self.tr("取消"))
         btn_layout.addStretch()
         btn_layout.addWidget(btn_ok)
         btn_layout.addWidget(btn_cancel)

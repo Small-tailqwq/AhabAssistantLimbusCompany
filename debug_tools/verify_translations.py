@@ -27,6 +27,15 @@ tests = [
     ("PreviewDialog", "适应窗口"),
     ("VersionHistoryDialog", "历史版本 — {0}"),
     ("VersionHistoryDialog", "当前文件将存档为新版本，并恢复为 v{0}。是否继续？"),
+    ("InfiniteBattles", "状态：错误 - {0}..."),
+    ("IssueReplay", "日志复现工具"),
+    ("IssueReplay", "已导入为 issue{0}\nAALC 版本: {1}"),
+    ("IssueReplay", "● 当前使用: 重放模式 - {0}"),
+    ("LLCLocalizationWindow", "零协汉化更新"),
+    ("LLCLocalizationWindow", "状态: 正在检查..."),
+    ("LLCLocalizationWorker", "✓ 更新完成 ({0})"),
+    ("ProductionModule", "自动换饼"),
+    ("_MarkdownEditSidecar", "编辑批注 — issue{0}"),
 ]
 failed = 0
 for ctx, s in tests:
