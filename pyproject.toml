@@ -81,6 +81,8 @@ files = [
     "tasks/base/script_task_scheme.py",
     "tasks/tools/production_module.py",
     "app/theme_pack_setting_interface.py",
+    "tasks/tools/infinite_battle.py",
+    "tasks/tools/issue_replay.py",
     "i18n/myapp_en.ts",
 ]
 

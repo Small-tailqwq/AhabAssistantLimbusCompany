@@ -36,7 +36,14 @@ def check_ts_file(ts_path: str) -> list[str]:
             continue
 
         msg_match = re.search(r'<source>(.*?)</source>', block)
-        trans_empty = re.search(r'<translation\s*/>|<translation></translation>', block)
+        # lupdate 生成的空翻译有两种形态：
+        #   <translation type="unfinished"></translation>
+        #   <translation type="unfinished"/> 或 <translation/>
+        # 有 type="unfinished" 但带非空文本的条目 lrelease 也会编译，不算缺失
+        trans_empty = re.search(
+            r'<translation\s*/>|<translation></translation>|<translation[^>]*type="unfinished"[^>]*>\s*</translation>',
+            block,
+        )
         if msg_match and trans_empty:
             untranslated.append(f"  [{current_context}] {msg_match.group(1)}")
 

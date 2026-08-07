@@ -753,7 +753,7 @@ class FarmingInterfaceLeft(QWidget):
                 return
             self._stop_in_progress = True
             log.debug("正在请求脚本线程安全停止...")
-            self.link_start_button.set_text("停止中...")
+            self.link_start_button.set_text(self.tr("停止中..."))
             self.link_start_button.button.setEnabled(False)
             self.my_script.stop()
 

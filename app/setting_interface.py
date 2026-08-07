@@ -823,7 +823,7 @@ class SettingInterface(QWidget):
         )
 
     def __onGamePathCardClicked(self):
-        game_path, _ = QFileDialog.getOpenFileName(self, "选择游戏路径", "", "Game Executable (LimbusCompany.exe)")
+        game_path, _ = QFileDialog.getOpenFileName(self, self.tr("选择游戏路径"), "", "Game Executable (LimbusCompany.exe)")
         if not game_path or cfg.game_path == game_path or not game_path.endswith("LimbusCompany.exe"):
             return
         cfg.set_value("game_path", game_path)
@@ -912,14 +912,14 @@ class SettingInterface(QWidget):
         self.__refreshExperimentalCardVisibility()
 
     def __onLogitechDllPathCardClicked(self):
-        dll_path, _ = QFileDialog.getOpenFileName(self, "选择罗技驱动 DLL", "", "DLL Files (*.dll)")
+        dll_path, _ = QFileDialog.getOpenFileName(self, self.tr("选择罗技驱动 DLL"), "", "DLL Files (*.dll)")
         if not dll_path or cfg.get_value("logitech_dll_path") == dll_path:
             return
         cfg.set_value("logitech_dll_path", dll_path)
         self.logitech_dll_path_card.setContent(dll_path)
 
     def __onRazerDllPathCardClicked(self):
-        dll_path, _ = QFileDialog.getOpenFileName(self, "选择雷蛇驱动 DLL", "", "DLL Files (*.dll)")
+        dll_path, _ = QFileDialog.getOpenFileName(self, self.tr("选择雷蛇驱动 DLL"), "", "DLL Files (*.dll)")
         if not dll_path or cfg.get_value("razer_dll_path") == dll_path:
             return
         cfg.set_value("razer_dll_path", dll_path)

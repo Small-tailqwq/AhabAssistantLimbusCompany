@@ -768,7 +768,9 @@ class PageMirror(PageCard):
             missing_text = "\n- ".join(missing_fields)
             w = MessageBox(
                 self.tr("缺少字段"),
-                self.tr(f"配置文件中缺少以下字段：\n- {missing_text}\n\n将使用默认值填充这些字段。是否继续？"),
+                self.tr(
+                    "配置文件中缺少以下字段：\n- {0}\n\n将使用默认值填充这些字段。是否继续？"
+                ).format(missing_text),
                 self,
             )
             w.yesButton.setText(self.tr("继续"))
@@ -805,7 +807,7 @@ class PageMirror(PageCard):
 
             InfoBar.success(
                 title=self.tr("导入成功"),
-                content=self.tr(f"已成功从文件创建队伍 {team_num}"),
+                content=self.tr("已成功从文件创建队伍 {0}").format(team_num),
                 orient=Qt.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP,
@@ -814,7 +816,7 @@ class PageMirror(PageCard):
             )
         except Exception as e:
             log.error(f"Failed to create team from file: {e}")
-            MessageBox(self.tr("创建失败"), self.tr(f"创建队伍时出错：{str(e)}"), self).exec()
+            MessageBox(self.tr("创建失败"), self.tr("创建队伍时出错：{0}").format(str(e)), self).exec()
 
     def remove_team_card(self, target: str):
         try:
