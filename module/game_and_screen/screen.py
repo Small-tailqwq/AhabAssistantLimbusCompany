@@ -7,7 +7,9 @@ import win32gui
 
 from app import mediator
 from module.config import cfg
+from module.instance_context import get_instance_context
 from module.logger import log
+from module.my_error.my_error import userStopError
 from utils.singletonmeta import SingletonMeta
 
 if TYPE_CHECKING:
@@ -26,6 +28,9 @@ class Handle:
 
     def __init__(self):
         self._enum_windows_list = []
+
+    def invalidate(self) -> None:
+        self._hwnd = 0
 
     def init_handle(self, title: str = "LimbusCompany", class_name: str = "UnityWndClass") -> int:
         """获取窗口句柄"""
@@ -180,7 +185,25 @@ class Handle:
         """将窗口设为前台窗口"""
         if self.hwnd == 0:
             return
-        win32gui.SetForegroundWindow(self.hwnd)
+        if not get_instance_context().is_child_session:
+            win32gui.SetForegroundWindow(self.hwnd)
+            return
+        if win32gui.GetForegroundWindow() == self.hwnd:
+            return
+        from module.automation import auto
+
+        for _ in range(3):
+            auto.ensure_not_stopped()
+            try:
+                win32gui.SetForegroundWindow(self.hwnd)
+                return
+            except win32gui.error:
+                # 后台进程直接调用会被前台锁拒绝（GetLastError=0）。
+                # 注入一次无害的 ALT 键事件为本进程争取前台权限后重试。
+                win32api.keybd_event(win32con.VK_MENU, 0, 0, 0)
+                win32api.keybd_event(win32con.VK_MENU, 0, win32con.KEYEVENTF_KEYUP, 0)
+                sleep(0.2)
+        log.warning("SetForegroundWindow 连续被拒，窗口暂未置前，等待后续输入自然激活")
 
     def setMaximized(self, value: bool = True) -> None:
         """最大化窗口"""
@@ -323,6 +346,10 @@ class Screen(metaclass=SingletonMeta):
         self.game = game
         self.handle = Handle()
 
+    def reload_runtime_config(self) -> None:
+        self.title = cfg.game_title_name
+        self.handle.invalidate()
+
     def init_handle(self, stop_checker: Callable[[], None] | None = None) -> bool:
         try:
             if stop_checker is not None:
@@ -349,6 +376,10 @@ class Screen(metaclass=SingletonMeta):
                 return True
         except Exception as e:
             log.error(f"未能获取到游戏窗口: {e}")
+            from module.instance_context import get_instance_context
+
+            if get_instance_context().is_child_session:
+                raise
             self.game.start_game()
             return False
 
@@ -362,6 +393,8 @@ class Screen(metaclass=SingletonMeta):
 
     def set_win(self) -> None:
         """设置窗口大小与位置"""
+        child_session = get_instance_context().is_child_session
+        deadline = monotonic() + 10.0
 
         def _set_win():
             # 如果窗口最小化或不可见，先将其恢复
@@ -378,8 +411,22 @@ class Screen(metaclass=SingletonMeta):
                 self.adjust_win_size((int(self.set_win_size * 16 / 9), self.set_win_size))
                 self.adjust_win_position(self.set_win_position)
 
-        _set_win()
+        try:
+            _set_win()
+        except userStopError:
+            raise
+        except Exception as e:
+            if not get_instance_context().is_child_session:
+                raise
+            log.error(f"设置窗口出错: {e}")
         while True:
+            if child_session:
+                from module.automation import auto
+                from module.desktop_clone.messages import translate_message
+
+                auto.ensure_not_stopped()
+                if monotonic() >= deadline:
+                    raise RuntimeError(translate_message("桌面分身游戏窗口在 10 秒内未达到目标大小"))
             try:
                 width = self.handle.width(True)
                 height = self.handle.height(True)
@@ -388,8 +435,12 @@ class Screen(metaclass=SingletonMeta):
                     sleep(1)
                 else:
                     break
+            except userStopError:
+                raise
             except Exception as e:
                 log.error(f"设置窗口出错: {e}")
+                if child_session:
+                    sleep(0.1)
 
     def reduce_miscontact(self, pos_style: str) -> None:
         """通过调整窗口置顶减少误触"""
@@ -499,14 +550,18 @@ class Screen(metaclass=SingletonMeta):
     def check_win_size(self, set_win_size: int) -> None:
         """检查窗口大小是否合适，若不合适则切换全屏再切换回窗口模式"""
         try:
-            screen_width, screen_height = self.handle.monitor_size(
-                not cfg.background_click  # 前台模式使用工作区大小
-            )
+            if get_instance_context().is_child_session:
+                # The fixed RDP desktop includes its taskbar in the negotiated size.
+                screen_width, screen_height = self.handle.monitor_size()
+            else:
+                screen_width, screen_height = self.handle.monitor_size(
+                    not cfg.background_click
+                )
             if cfg.win_input_type != "window_move":
                 if screen_width < set_win_size * 16 / 9 or screen_height < set_win_size:
                     log.error("屏幕分辨率过低，请重新设定分辨率，或考虑使用后台增强模式")
                     log.debug(f"窗口所在的屏幕分辨率: {screen_width}x{screen_height}")
-                    if not cfg.background_click:
+                    if not cfg.background_click and not get_instance_context().is_child_session:
                         screen_width, screen_height = self.handle.monitor_size(False)
                         if screen_width >= set_win_size * 16 / 9 and screen_height >= set_win_size:
                             log.info("当前屏幕全尺寸可考虑使用后台输入模式")

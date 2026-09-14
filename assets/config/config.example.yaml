@@ -74,6 +74,12 @@ obs_password: "" # OBS WebSocket 密码（未设置密码则留空）
 obs_source_name: "" # OBS 中捕获游戏窗口的源名称（必填）
 obs_image_format: "jpg" # OBS 截图编码格式，推荐 jpg；png 更稳但通常更慢
 obs_image_quality: 80 # OBS 截图压缩质量，0 压缩更高，100 压缩更低；仅对有损格式生效
+desktop_clone_enabled: False # 从主界面启动任务时，改为在 Windows Child Session 桌面分身中运行
+desktop_clone_show_on_start: True # 创建桌面分身时自动显示 RDP 桌面窗口
+desktop_clone_suppress_autoruns: True # 创建桌面分身时临时抑制 Run 键自启动（实验性）：登录窗口期设置 Explorer 策略、分身就绪后恢复；启动文件夹与登录类计划任务不受影响
+desktop_clone_toolbar_items: ["mute", "input"] # 分身窗口顶部显示的快捷工具；可选 mute（关闭声音）、input（关闭输入）
+desktop_clone_sync_logs: True # 将分身 AALC 的 INFO 及以上日志同步到主控日志面板
+desktop_clone_ignore_remote_control_warning: False # 启动桌面分身时不再提示正在运行的远程控制软件（如 UU远程、ToDesk）风险
 lab_simulator_launch_accelerator: False # 模拟器启动加速器：启动游戏前检测加速是否生效
 lab_simulator_accelerator_preset: custom # 模拟器加速器预设："custom" 或 "leigod"
 lab_simulator_accelerator_package: "" # 模拟器加速器包名，自定义预设时需要手动填写

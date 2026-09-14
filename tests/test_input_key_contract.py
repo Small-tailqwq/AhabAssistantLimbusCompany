@@ -1,10 +1,17 @@
+import ctypes
 import unittest
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, call, patch
 
 import module.automation.input_handlers.input as input_module
 from module.automation.input_handlers import AbstractInput
-from module.automation.input_handlers.input import WINDOWS_KEY_CODES, BackgroundInput, WinAbstractInput, WindowMoveInput
+from module.automation.input_handlers.input import (
+    WINDOWS_KEY_CODES,
+    BackgroundInput,
+    ChildSessionInput,
+    WinAbstractInput,
+    WindowMoveInput,
+)
 from module.automation.input_handlers.keys import (
     UnsupportedKeyError,
     normalize_key,
@@ -122,6 +129,40 @@ class InputKeyContractTest(unittest.TestCase):
                     input_cls._key_down_impl(input_handler, backend_key)
 
                 self.assertEqual(post_message.call_args.args[2], expected_wparam)
+
+    def test_child_input_uses_send_input_virtual_keys(self):
+        input_handler = object.__new__(ChildSessionInput)
+
+        with patch.object(input_module, "_send_keyboard_input") as send_keyboard_input:
+            ChildSessionInput._key_down_impl(input_handler, input_module.win32con.VK_UP)
+            ChildSessionInput._key_up_impl(input_handler, input_module.win32con.VK_UP)
+
+        self.assertEqual(
+            send_keyboard_input.call_args_list,
+            [
+                call(input_module.win32con.VK_UP),
+                call(input_module.win32con.VK_UP, key_up=True),
+            ],
+        )
+
+    def test_child_input_waits_until_game_is_foreground(self):
+        handle = SimpleNamespace(hwnd=123, isMinimized=False, setForeground=Mock())
+        fake_screen = SimpleNamespace(handle=handle)
+        input_handler = object.__new__(ChildSessionInput)
+
+        with (
+            patch("module.game_and_screen.screen", fake_screen),
+            patch.object(input_module.win32gui, "GetForegroundWindow", side_effect=[0, 123]),
+            patch.object(input_module, "sleep") as sleep_mock,
+        ):
+            ChildSessionInput.set_active(input_handler)
+
+        handle.setForeground.assert_called_once_with()
+        sleep_mock.assert_called_once_with(0.02)
+
+    def test_send_input_structure_matches_native_windows_size(self):
+        expected_size = 40 if ctypes.sizeof(ctypes.c_void_p) == 8 else 28
+        self.assertEqual(ctypes.sizeof(input_module._Input), expected_size)
 
     def test_android_backend_maps_insert_key(self):
         self.assertEqual(resolve_backend_key("insert", ANDROID_KEYEVENT_CODES, "android_keyevent"), 124)

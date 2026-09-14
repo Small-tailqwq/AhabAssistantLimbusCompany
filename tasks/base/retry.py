@@ -3,7 +3,6 @@ import platform
 import time
 from time import sleep
 
-import psutil
 import win32process
 
 from module.automation import auto
@@ -155,23 +154,20 @@ def kill_game():
             SimulatorControl.connection_device.close_current_app()
         return
     if platform.system() == "Windows":
+        from module.session_process import process_belongs_to_session, terminate_processes
+
         _, pid = win32process.GetWindowThreadProcessId(screen.handle.hwnd)
-        os.system(f"taskkill /F /PID {pid}")
+        if process_belongs_to_session(pid):
+            os.system(f"taskkill /F /PID {pid}")
+        else:
+            log.error(f"拒绝终止其他 Windows Session 的游戏进程：PID {pid}")
+            terminate_processes(cfg.game_process_name)
     sleep(10)
     wait_start = time.time()
     while True:
-        game_running = False
-        for proc in psutil.process_iter(["name"]):
-            try:
-                # 获取进程的可执行文件名（如 "notepad.exe"）
-                proc_name = proc.info["name"]
-                # 仅当遍历后找不到任何游戏进程时，才认为游戏已退出
-                if proc_name and cfg.game_process_name.lower() in proc_name.lower():
-                    game_running = True
-                    break
-            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                # 忽略已终止、无权限或僵尸进程
-                continue
+        from module.session_process import process_is_running
+
+        game_running = process_is_running(cfg.game_process_name)
         if not game_running:
             break
         if time.time() - wait_start > 30:

@@ -20,7 +20,9 @@ class Mediator(QObject):
     hdr_warning = Signal(object)
     hdr_warning_clear = Signal(object)
     finished_signal = Signal()
+    script_started = Signal()
     script_finished = Signal()
+    script_finished_detail = Signal(object)
     kill_signal = Signal()
     pause_resume = Signal()
     # 任务线程通过信号请求主窗口抢回前台，避免跨层直接操作 UI。

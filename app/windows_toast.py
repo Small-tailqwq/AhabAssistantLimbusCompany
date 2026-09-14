@@ -246,6 +246,39 @@ def _test_template_toast(title, msg, app_id, on_activated):
     toaster.show_toast(toast)
 
 
+def _forward_toast_to_root(
+    title: str,
+    msg: str | list[str],
+    template: TemplateToast,
+) -> bool:
+    """Child Session 内把通知透传给 root AALC 在主会话展示。
+
+    本地 WinRT toast 在 Child Session 中不可用（0x803E0105 通知平台不可用），
+    只能由主会话的 root AALC 展示。管道未连接或转发失败时静默跳过，
+    通知不是关键路径，不应影响任务线程。返回 True 表示已处理（含跳过），
+    返回 False 表示调用方应走本地展示路径。
+    """
+    from module.desktop_clone.client import get_desktop_clone_client
+    from module.instance_context import get_instance_context
+
+    if not get_instance_context().is_child_session:
+        return False
+    client = get_desktop_clone_client()
+    if client is None:
+        log.debug("Child Session 尚未连接 root AALC，跳过通知转发")
+        return True
+    template_name = (
+        "normal" if template is TemplateToast.NormalTemplate else "test"
+    )
+    lines = msg if isinstance(msg, list) else [msg]
+    try:
+        client.send_toast(template_name, title, lines)
+        return True
+    except Exception as e:
+        log.debug(f"透传通知给 root AALC 失败: {type(e)}: {e}")
+        return True
+
+
 def send_toast(
     title: str,
     msg: str | list[str],
@@ -279,6 +312,8 @@ def send_toast(
             for index, content in enumerate(msg):
                 msg[index] = QApplication.translate("WindowsToast", content)
 
+        if _forward_toast_to_root(title, msg, template):
+            return True
         return _send_template_toast(title, msg, app_name, app_id, icon_path, template, on_activated, **kwargs)
 
     try:

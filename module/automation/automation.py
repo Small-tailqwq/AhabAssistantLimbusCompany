@@ -97,10 +97,12 @@ class Automation(metaclass=SingletonMeta):
                 log.debug("使用后台点击模块")
                 self.input_handler = BackgroundInput()
             elif input_type == "foreground":
-                from .input_handlers.input import Input
+                from module.instance_context import get_instance_context
+
+                from .input_handlers.input import ChildSessionInput, Input
 
                 log.debug("使用前台点击模块")
-                self.input_handler = Input()
+                self.input_handler = ChildSessionInput() if get_instance_context().is_child_session else Input()
             elif input_type == "window_move":
                 from .input_handlers.input import WindowMoveInput
 

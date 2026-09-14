@@ -1479,6 +1479,21 @@ Right-click to set as permanent</translation>
         <source>运行中</source>
         <translation>Running</translation>
     </message>
+    <message>
+        <location filename="../app/tools_interface.py" line="142"/>
+        <source>管理</source>
+        <translation>Manage</translation>
+    </message>
+    <message>
+        <location filename="../app/tools_interface.py" line="144"/>
+        <source>桌面分身</source>
+        <translation>Desktop Clone</translation>
+    </message>
+    <message>
+        <location filename="../app/tools_interface.py" line="148"/>
+        <source>配置并管理 Windows Child Session 桌面分身</source>
+        <translation>Configure and manage the Windows Child Session desktop clone</translation>
+    </message>
 </context>
 <context>
     <name>BaseSettingCardGroup</name>
@@ -2184,6 +2199,31 @@ Entering a formation code will overwrite your current team configuration.</trans
     <message>
         <source>当前选择后会永久保存</source>
         <translation type="vanished">The current selection will be saved permanently.</translation>
+    </message>
+    <message>
+        <location filename="../app/farming_interface.py" line="662"/>
+        <source>模拟器模式不支持桌面分身，请关闭其中一个功能</source>
+        <translation>Emulator mode does not support Desktop Clone. Disable one of them.</translation>
+    </message>
+    <message>
+        <location filename="../app/farming_interface.py" line="682"/>
+        <source>取消分身启动</source>
+        <translation>Cancel Clone Startup</translation>
+    </message>
+    <message>
+        <location filename="../app/farming_interface.py" line="893"/>
+        <source>暂停</source>
+        <translation>Pause</translation>
+    </message>
+    <message>
+        <location filename="../app/farming_interface.py" line="902"/>
+        <source>分身任务异常结束：{0}</source>
+        <translation>Desktop clone task ended with an error: {0}</translation>
+    </message>
+    <message>
+        <location filename="../app/farming_interface.py" line="911"/>
+        <source>桌面分身未能安全注销，已取消退出 AALC</source>
+        <translation>The desktop clone could not be logged off safely. Exiting AALC was cancelled.</translation>
     </message>
 </context>
 <context>
@@ -3156,6 +3196,33 @@ Potential issues:
         <translation>HDR is enabled on the display containing the game window. HDR may cause image recognition issues. If recognition fails, disable Windows HDR and try again.
 
 To stop seeing this notice, disable &quot;HDR detection warning&quot; under Settings &gt; Experimental.</translation>
+    </message>
+    <message>
+        <location filename="../app/my_app.py" line="535"/>
+        <source>桌面分身仍在运行</source>
+        <translation>Desktop Clone Is Still Running</translation>
+    </message>
+    <message>
+        <location filename="../app/my_app.py" line="536"/>
+        <source>退出 AALC 将停止分身任务并注销分身桌面，确定要继续吗？</source>
+        <translation>Exiting AALC will stop the clone task and log off the cloned desktop. Continue?</translation>
+    </message>
+    <message>
+        <location filename="../app/my_app.py" line="550"/>
+        <source>Windows 尚未确认 Child Session 已注销。</source>
+        <translation>Windows has not confirmed that the Child Session was logged off.</translation>
+    </message>
+    <message>
+        <location filename="../app/my_app.py" line="552"/>
+        <source>分身停止超时</source>
+        <translation>Desktop Clone Stop Timed Out</translation>
+    </message>
+    <message>
+        <location filename="../app/my_app.py" line="553"/>
+        <source>桌面分身尚未完成清理，请稍后重试。
+{0}</source>
+        <translation>Desktop clone cleanup is not complete. Try again later.
+{0}</translation>
     </message>
 </context>
 <context>
@@ -4738,6 +4805,849 @@ Update Logs:</translation>
 {0}</source>
         <translation>Failed to save notes:
 {0}</translation>
+    </message>
+</context>
+<context>
+    <name>DesktopCloneMessages</name>
+    <message>
+        <source>桌面分身游戏窗口在 10 秒内未达到目标大小</source>
+        <translation>The desktop clone game window did not reach the target size within 10 seconds</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="13"/>
+        <source>桌面分身尚未启动</source>
+        <translation>Desktop clone has not started</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="14"/>
+        <source>正在创建 Windows Child Session</source>
+        <translation>Creating Windows Child Session</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="15"/>
+        <source>正在同步配置并启动分身任务</source>
+        <translation>Syncing configuration and starting clone task</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="16"/>
+        <source>正在取消分身启动</source>
+        <translation>Cancelling desktop clone startup</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="17"/>
+        <source>正在请求分身任务安全停止</source>
+        <translation>Requesting a safe stop for the clone task</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="18"/>
+        <source>桌面分身已停止</source>
+        <translation>Desktop clone stopped</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="19"/>
+        <source>桌面分身尚未确认注销</source>
+        <translation>Desktop clone logoff has not been confirmed</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="23"/>
+        <source>桌面分身 IPC 写入不完整：{0}/{1}</source>
+        <translation>Desktop clone IPC write was incomplete: {0}/{1}</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="24"/>
+        <source>分身 AALC 已就绪</source>
+        <translation>Clone AALC is ready</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="25"/>
+        <source>分身任务运行中</source>
+        <translation>Clone task is running</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="26"/>
+        <source>分身任务已停止</source>
+        <translation>Clone task stopped</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="27"/>
+        <source>分身任务已完成</source>
+        <translation>Clone task completed</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="28"/>
+        <source>分身任务已结束：{0}</source>
+        <translation>Clone task ended: {0}</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="32"/>
+        <source>Child Session {0} 已连接，正在启动 AALC</source>
+        <translation>Child Session {0} connected; starting AALC</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="33"/>
+        <source>启动桌面分身失败：{0}</source>
+        <translation>Failed to start desktop clone: {0}</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="34"/>
+        <source>同步桌面分身配置失败：{0}</source>
+        <translation>Failed to sync desktop clone configuration: {0}</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="38"/>
+        <source>在 Child Session 启动 AALC 失败：{0}</source>
+        <translation>Failed to start AALC in the Child Session: {0}</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="39"/>
+        <source>同步分身任务状态失败：{0}</source>
+        <translation>Failed to sync clone task state: {0}</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="40"/>
+        <source>请求分身任务停止失败：{0}</source>
+        <translation>Failed to request clone task stop: {0}</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="44"/>
+        <source>切换分身任务暂停状态失败：{0}</source>
+        <translation>Failed to toggle clone task pause state: {0}</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="48"/>
+        <source>RDP 桌面分身宿主意外退出（exit={0}）</source>
+        <translation>RDP desktop clone host exited unexpectedly (exit={0})</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="52"/>
+        <source>RDP 桌面分身意外断开（reason={0}）</source>
+        <translation>RDP desktop clone disconnected unexpectedly (reason={0})</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="56"/>
+        <source>RDP 宿主上报了错误 Child Session：reported={0}, actual={1}</source>
+        <translation>RDP host reported the wrong Child Session: reported={0}, actual={1}</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="61"/>
+        <source>桌面分身在 {0} 秒内未完成登录，已终止 RDP 宿主并清理 Child Session。若出现凭据窗口，请注销 Windows 后重新登录再试</source>
+        <translation>The desktop clone did not finish logging in within {0} seconds. The RDP host was terminated and the Child Session was cleaned up. If a credentials prompt appeared, sign out of Windows, sign back in, and retry.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="65"/>
+        <source>RDP 已连接，正在等待 Windows 完成 Child Session 登录</source>
+        <translation>RDP connected; waiting for Windows to finish logging in to the Child Session</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="78"/>
+        <source>桌面分身仍有残留会话，请先执行“停止任务并注销分身”</source>
+        <translation>A desktop clone session is still present. Use “Stop Task and Log Off Clone” first.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="86"/>
+        <source>检测到已有 Child Session；AALC 不会接管或注销其他程序创建的会话</source>
+        <translation>An existing Child Session was detected. AALC will not take over or log off a session created by another program.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="90"/>
+        <source>模拟器模式不需要且不支持桌面分身</source>
+        <translation>Emulator mode does not need or support Desktop Clone</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="94"/>
+        <source>《边狱公司》已在主桌面运行，请先退出游戏后再启动桌面分身。</source>
+        <translation>Limbus Company is running on the main desktop. Exit the game before starting Desktop Clone.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="99"/>
+        <source>Steam 将《边狱公司》启动到了桌面分身之外，已拒绝继续自动化。请退出 Steam 和游戏后重试（{0}）。</source>
+        <translation>Steam started Limbus Company outside the cloned desktop, so automation was refused. Exit Steam and the game, then try again ({0}).</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="103"/>
+        <source>Child AALC 尚未连接，无法停止任务</source>
+        <translation>Child AALC is not connected, so the task cannot be stopped</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="107"/>
+        <source>取消分身启动时未能确认 Child Session 已注销</source>
+        <translation>Child Session logoff could not be confirmed while cancelling clone startup</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="108"/>
+        <source>Child AALC 意外断开</source>
+        <translation>Child AALC disconnected unexpectedly</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="112"/>
+        <source>RDP 桌面分身宿主连接已断开</source>
+        <translation>RDP desktop clone host connection was lost</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="116"/>
+        <source>检测到非 AALC 管理的 Child Session {0}，为避免注销其中的程序，AALC 不会接管。</source>
+        <translation>Child Session {0} is not managed by AALC. To avoid logging off its programs, AALC will not take it over.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="120"/>
+        <source>RDP 宿主可用：{0}。</source>
+        <translation>RDP host available: {0}.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="121"/>
+        <source>RDP 宿主不可用：{0}</source>
+        <translation>RDP host unavailable: {0}</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="122"/>
+        <source>Steam 可用：{0}。</source>
+        <translation>Steam available: {0}.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="123"/>
+        <source>Steam 不可用：{0}</source>
+        <translation>Steam unavailable: {0}</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="124"/>
+        <source>桌面分身仅支持 Windows。</source>
+        <translation>Desktop Clone is only supported on Windows.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="128"/>
+        <source>Windows Home 未列入首发支持范围。</source>
+        <translation>Windows Home is not supported in the initial release.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="132"/>
+        <source>当前进程没有管理员权限，无法启用 Child Session。</source>
+        <translation>The current process is not elevated and cannot enable Child Sessions.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="136"/>
+        <source>Child Session API 可用，当前状态：{0}。</source>
+        <translation>Child Session API available; current state: {0}.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="137"/>
+        <source>已启用</source>
+        <translation>enabled</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="138"/>
+        <source>未启用</source>
+        <translation>disabled</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="142"/>
+        <source>Child Session API 不可用：{0}</source>
+        <translation>Child Session API unavailable: {0}</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="143"/>
+        <source>RDP 端口：{0}。</source>
+        <translation>RDP port: {0}.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="151"/>
+        <source>自动启用 Windows 远程桌面需要管理员权限。</source>
+        <translation>Administrator privileges are required to enable Windows Remote Desktop automatically.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="155"/>
+        <source>Windows 未返回唯一的远程桌面服务配置。</source>
+        <translation>Windows did not return a unique Remote Desktop service configuration.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="160"/>
+        <source>无法自动启用 Windows 远程桌面（WMI 错误 {0}）。该设置可能受组策略管理。</source>
+        <translation>Could not enable Windows Remote Desktop automatically (WMI error {0}). This setting may be managed by Group Policy.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="164"/>
+        <source>Windows 未确认远程桌面已经启用；该设置可能受组策略管理。</source>
+        <translation>Windows did not confirm that Remote Desktop was enabled. This setting may be managed by Group Policy.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="168"/>
+        <source>已启用 Windows 远程桌面，但 RDP 本机端口 {0} 未开始监听。</source>
+        <translation>Windows Remote Desktop was enabled, but local RDP port {0} did not begin listening.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="172"/>
+        <source>RDP 本机端口 {0} 未监听，请检查 Remote Desktop Services。</source>
+        <translation>Local RDP port {0} is not listening. Check Remote Desktop Services.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="173"/>
+        <source>UU远程</source>
+        <translation>UU Remote</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="174"/>
+        <source>MuMu远程</source>
+        <translation>MuMu Remote</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="175"/>
+        <source>、</source>
+        <translation>, </translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="190"/>
+        <source>未找到 Steam.exe；桌面分身必须通过 Steam 完成账户验证</source>
+        <translation>Steam.exe was not found. Desktop Clone must use Steam for account authentication.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="195"/>
+        <source>Steam 已在其他 Windows Session 运行，无法保证登录态和游戏进程进入桌面分身。请完全退出 Steam 后重试（{0}）。</source>
+        <translation>Steam is running in another Windows Session, so its login and game process cannot be guaranteed to enter the cloned desktop. Exit Steam completely, then try again ({0}).</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="199"/>
+        <source>启动 RDP Child Session 失败：{0}</source>
+        <translation>Failed to start RDP Child Session: {0}</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="203"/>
+        <source>读取 RDP Child Session 状态失败：{0}</source>
+        <translation>Failed to read RDP Child Session state: {0}</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="204"/>
+        <source>断开 RDP 失败：{0}</source>
+        <translation>Failed to disconnect RDP: {0}</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="205"/>
+        <source>停止 RDP ActiveX 失败：{0}</source>
+        <translation>Failed to stop RDP ActiveX: {0}</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="209"/>
+        <source>注销 Child Session 失败（Win32 错误 {0}）</source>
+        <translation>Failed to log off Child Session (Win32 error {0})</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="213"/>
+        <source>读取 Child Session 失败（Win32 错误 {0}）</source>
+        <translation>Failed to read Child Session (Win32 error {0})</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="217"/>
+        <source>当前 Child Session 已不属于 AALC，拒绝注销。</source>
+        <translation>The current Child Session is no longer owned by AALC; logoff was refused.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="221"/>
+        <source>RDP 宿主尚未确认 Child Session 所有权，拒绝注销。</source>
+        <translation>The RDP host has not confirmed ownership of the Child Session and refuses to log it off.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="225"/>
+        <source>RDP 登录完成后的 Child Session 与连接期间观察值不一致。</source>
+        <translation>The Child Session after RDP login does not match the session observed while connecting.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="229"/>
+        <source>RDP ActiveX 未确认已停止，拒绝报告 Child Session 注销完成。</source>
+        <translation>RDP ActiveX did not confirm that it stopped; refusing to report the Child Session as logged off.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="233"/>
+        <source>检测到已有 Child Session，AALC 拒绝接管。</source>
+        <translation>An existing Child Session was detected; AALC refused to take it over.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="237"/>
+        <source>启动前无法确认 Child Session 为空。</source>
+        <translation>Could not confirm that no Child Session existed before startup.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="238"/>
+        <source>分身任务已经在运行</source>
+        <translation>The clone task is already running</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="242"/>
+        <source>重新加载分身配置失败：{0}</source>
+        <translation>Failed to reload desktop clone configuration: {0}</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="246"/>
+        <source>分身任务未能通过启动前检查</source>
+        <translation>The clone task did not pass its pre-start checks</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="250"/>
+        <source>分身任务仍在运行，暂不退出 Child AALC</source>
+        <translation>The clone task is still running; Child AALC will not exit yet</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="254"/>
+        <source>Windows 尚未确认 Child Session 已注销</source>
+        <translation>Windows has not confirmed that the Child Session was logged off</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="258"/>
+        <source>{0}（Win32 错误 {1}）</source>
+        <translation>{0} (Win32 error {1})</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="262"/>
+        <source>无法启用 Windows Child Session</source>
+        <translation>Unable to enable Windows Child Sessions</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="266"/>
+        <source>无法禁用 Windows Child Session</source>
+        <translation>Unable to disable Windows Child Sessions</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="270"/>
+        <source>无法读取 Windows Child Session 状态</source>
+        <translation>Unable to read Windows Child Session state</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="274"/>
+        <source>无法取得 Windows Child Session ID</source>
+        <translation>Unable to get Windows Child Session ID</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="278"/>
+        <source>无法注销 Child Session {0}</source>
+        <translation>Unable to log off Child Session {0}</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="280"/>
+        <source>关闭声音</source>
+        <translation>Mute Audio</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="281"/>
+        <source>关闭输入</source>
+        <translation>Block Input</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="282"/>
+        <source>[分身] {0}</source>
+        <translation>[Clone] {0}</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="286"/>
+        <source>[日志同步] 队列已丢弃较早的 {0} 条日志</source>
+        <translation>[Log Sync] Dropped {0} older log entries from the queue</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="290"/>
+        <source>[日志同步] 管道断开期间丢失 {0} 条日志</source>
+        <translation>[Log sync] Lost {0} log lines while the pipe was disconnected</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="291"/>
+        <source>Child AALC 意外断开（peer_pid={0}）</source>
+        <translation>Child AALC disconnected unexpectedly (peer_pid={0})</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="295"/>
+        <source>Child AALC 意外断开（peer_pid={0}）；分身启动崩溃记录：
+{1}</source>
+        <translation>Child AALC disconnected unexpectedly (peer_pid={0}); child startup crash log:
+{1}</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="300"/>
+        <source>桌面分身在 {0} 秒内未完成登录，已终止 RDP 宿主并清理 Child Session。若出现凭据窗口，请注销 Windows 后重新登录再试；分身启动崩溃记录：
+{1}</source>
+        <translation>Desktop clone did not finish logging in within {0} seconds. The RDP host was terminated and the Child Session cleaned up. If a credential prompt appeared, sign out of Windows and sign in again; child startup crash log:
+{1}</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="316"/>
+        <source>RDP ActiveX 未接受 ConnectToChildSession=true。</source>
+        <translation>RDP ActiveX did not accept ConnectToChildSession=true.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="320"/>
+        <source>无法读取 Windows Child Session 启用状态。</source>
+        <translation>Unable to read the Windows Child Session enabled state.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="324"/>
+        <source>Windows Child Session 尚未启用。</source>
+        <translation>Windows Child Sessions are not enabled.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="330"/>
+        <source>Windows Child Session 已在本次登录后启用。请注销 Windows 并重新登录后再启动桌面分身；不要在凭据窗口中输入密码。</source>
+        <translation>Windows Child Sessions were enabled after this sign-in. Sign out of Windows and sign in again before starting Desktop Clone; do not enter a password in the credential prompt.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="336"/>
+        <source>Windows Child Session 已成功启用。请注销 Windows 并重新登录一次，使免凭据登录生效；重新登录后无需再次设置。</source>
+        <translation>Windows Child Sessions were enabled successfully. Sign out of Windows and sign in again once to activate passwordless sign-in; no further setup is needed afterward.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="340"/>
+        <source>无法读取当前 Windows 登录标识</source>
+        <translation>Unable to read the current Windows logon identifier</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="344"/>
+        <source>无法取得 LOCALAPPDATA，不能记录 Child Session 初始化状态</source>
+        <translation>LOCALAPPDATA is unavailable, so the Child Session initialization state cannot be recorded</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="348"/>
+        <source>Winlogon 正在显示拒绝断开现有会话对话框。</source>
+        <translation>Winlogon is showing the dialog that refuses to disconnect the existing session.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="352"/>
+        <source>Winlogon 正在显示无权限对话框。</source>
+        <translation>Winlogon is showing an insufficient-permissions dialog.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="356"/>
+        <source>Winlogon 已静默终止登录。</source>
+        <translation>Winlogon silently terminated the sign-in.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="357"/>
+        <source>RDP 登录被拒绝。</source>
+        <translation>RDP sign-in was denied.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="361"/>
+        <source>RDP 登录凭据无效；Child Session 未完成免凭据登录。</source>
+        <translation>The RDP credentials are invalid; the Child Session did not complete passwordless sign-in.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="362"/>
+        <source>Windows 密码已过期。</source>
+        <translation>The Windows password has expired.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="363"/>
+        <source>RDP 登录处理失败。</source>
+        <translation>RDP sign-in processing failed.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="367"/>
+        <source>RDP 登录阶段发生错误。</source>
+        <translation>An error occurred during the RDP sign-in stage.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="371"/>
+        <source>RDP 客户端发生致命错误。</source>
+        <translation>The RDP client encountered a fatal error.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="372"/>
+        <source>RDP 连接失败。</source>
+        <translation>The RDP connection failed.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="373"/>
+        <source>Windows 未返回 Child Session ID</source>
+        <translation>Windows did not return a Child Session ID</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="374"/>
+        <source>Child AALC 尚未连接</source>
+        <translation>Child AALC is not connected yet</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="375"/>
+        <source>分身任务结果缺少状态增量</source>
+        <translation>The child task result is missing its state delta</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="376"/>
+        <source>分身状态增量字段不合法</source>
+        <translation>Invalid fields in the child state delta</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="377"/>
+        <source>分身队伍队列不合法</source>
+        <translation>Invalid child team queue</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="378"/>
+        <source>分身状态字段 {0} 类型不合法</source>
+        <translation>Invalid type for child state field {0}</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="379"/>
+        <source>无法解码远端错误信息</source>
+        <translation>Unable to decode the remote error message</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="383"/>
+        <source>RDP 宿主上报了无效的 Child Session ID：{0}</source>
+        <translation>The RDP host reported an invalid Child Session ID: {0}</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="82"/>
+        <source>桌面分身正在停止，请等待注销完成后重试</source>
+        <translation>Desktop Clone is stopping. Wait for logoff to finish, then try again.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="69"/>
+        <source>桌面分身首次初始化尚未完成，{0} 秒后自动重试（{1}/3）</source>
+        <translation>Desktop Clone initialization is not complete. Retrying automatically in {0} seconds ({1}/3).</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="74"/>
+        <source>RDP Child Session 连接失败（stage={0}, code={1}, extended={2}）：{3}</source>
+        <translation>RDP Child Session connection failed (stage={0}, code={1}, extended={2}): {3}</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="147"/>
+        <source>Windows 远程桌面当前未启用；启动分身时可确认由 AALC 自动开启。</source>
+        <translation>Windows Remote Desktop is currently disabled. AALC can enable it after confirmation when Desktop Clone starts.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="181"/>
+        <source>检测到正在运行的远程控制软件：{0}。Child Session 会成为新的活动桌面，远程控制画面可能被切换到分身；确认风险后可以继续启动。</source>
+        <translation>Running remote-control software detected: {0}. The Child Session becomes a new active desktop, so the remote-control view may switch to the clone. You may continue after accepting this risk.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="186"/>
+        <source>检测到远程控制后台服务：{0}。这类服务通常常驻且难以彻底退出，不会阻止桌面分身启动。</source>
+        <translation>Background remote-control services detected: {0}. Such services usually stay resident and are hard to exit completely, so they do not block Desktop Clone.</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="279"/>
+        <source>AALC 桌面分身</source>
+        <translation>AALC Desktop Clone</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="304"/>
+        <source>正在创建 AALC 桌面分身...</source>
+        <translation>Creating AALC Desktop Clone...</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="308"/>
+        <source>AALC 桌面分身已断开</source>
+        <translation>AALC Desktop Clone disconnected</translation>
+    </message>
+    <message>
+        <location filename="../module/desktop_clone/messages.py" line="312"/>
+        <source>RDP 已连接，但 Windows 未返回 Child Session ID。</source>
+        <translation>RDP connected, but Windows did not return a Child Session ID.</translation>
+    </message>
+</context>
+<context>
+    <name>DesktopCloneWindow</name>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="40"/>
+        <source>远程控制软件风险提示</source>
+        <translation>Remote-Control Software Risk</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="46"/>
+        <source>无视风险继续</source>
+        <translation>Continue Anyway</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="58"/>
+        <source>开启 Windows 远程桌面</source>
+        <translation>Enable Windows Remote Desktop</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="65"/>
+        <source>桌面分身需要 Windows 远程桌面服务，但当前尚未开启。AALC 可以立即开启远程桌面及其防火墙例外；这会允许符合 Windows 权限规则的设备通过网络请求远程连接。是否开启并继续？</source>
+        <translation>Desktop clone requires Windows Remote Desktop, which is currently disabled. AALC can enable Remote Desktop and its firewall exception now. This allows devices permitted by Windows security rules to request remote connections over the network. Enable it and continue?</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="70"/>
+        <source>开启并继续</source>
+        <translation>Enable and Continue</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="79"/>
+        <source>远程桌面开启失败</source>
+        <translation>Failed to Enable Remote Desktop</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="83"/>
+        <source>AALC 未能开启 Windows 远程桌面：{0}</source>
+        <translation>AALC could not enable Windows Remote Desktop: {0}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="122"/>
+        <location filename="../tasks/tools/desktop_clone.py" line="405"/>
+        <source>AALC 桌面分身</source>
+        <translation>AALC Desktop Clone</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="144"/>
+        <location filename="../tasks/tools/desktop_clone.py" line="411"/>
+        <source>在独立的 Windows Child Session 中运行第二个 AALC 与 Steam 游戏。主桌面启动按钮会在开启功能后自动转交给分身。</source>
+        <translation>Run a second AALC and the Steam game in a separate Windows Child Session. When enabled, the main Start button automatically delegates tasks to the clone.</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="149"/>
+        <location filename="../tasks/tools/desktop_clone.py" line="412"/>
+        <source>从主界面启动时使用桌面分身</source>
+        <translation>Use Desktop Clone from the main screen</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="153"/>
+        <location filename="../tasks/tools/desktop_clone.py" line="413"/>
+        <source>创建分身时自动显示桌面窗口</source>
+        <translation>Show the cloned desktop when it starts</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="158"/>
+        <location filename="../tasks/tools/desktop_clone.py" line="414"/>
+        <source>窗口顶部快捷工具</source>
+        <translation>Top Toolbar Shortcuts</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="163"/>
+        <location filename="../tasks/tools/desktop_clone.py" line="415"/>
+        <source>显示“关闭声音”</source>
+        <translation>Show “Mute Audio”</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="170"/>
+        <location filename="../tasks/tools/desktop_clone.py" line="416"/>
+        <source>显示“关闭输入”</source>
+        <translation>Show “Block Input”</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="177"/>
+        <location filename="../tasks/tools/desktop_clone.py" line="417"/>
+        <source>将分身日志同步到主控日志面板</source>
+        <translation>Sync clone logs to the main log panel</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="184"/>
+        <location filename="../tasks/tools/desktop_clone.py" line="420"/>
+        <source>不再提示远程控制软件风险（风险自负）</source>
+        <translation>Stop warning about remote-control software (at your own risk)</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="200"/>
+        <location filename="../tasks/tools/desktop_clone.py" line="421"/>
+        <source>兼容性检查</source>
+        <translation>Compatibility Check</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="201"/>
+        <location filename="../tasks/tools/desktop_clone.py" line="422"/>
+        <source>启动分身</source>
+        <translation>Start Clone</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="202"/>
+        <location filename="../tasks/tools/desktop_clone.py" line="423"/>
+        <source>显示桌面</source>
+        <translation>Show Desktop</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="203"/>
+        <location filename="../tasks/tools/desktop_clone.py" line="424"/>
+        <source>隐藏桌面</source>
+        <translation>Hide Desktop</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="210"/>
+        <location filename="../tasks/tools/desktop_clone.py" line="425"/>
+        <source>停止任务并注销分身</source>
+        <translation>Stop Task and Log Off Clone</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="211"/>
+        <location filename="../tasks/tools/desktop_clone.py" line="426"/>
+        <source>打开日志目录</source>
+        <translation>Open log folder</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="313"/>
+        <source>=== 桌面分身兼容性检查 ===</source>
+        <translation>=== Desktop Clone Compatibility Check ===</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="317"/>
+        <source>警告：{0}</source>
+        <translation>Warning: {0}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="320"/>
+        <source>结果：可用</source>
+        <translation>Result: Available</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="322"/>
+        <source>结果：需要设置（启动时可尝试自动开启）</source>
+        <translation>Result: Setup required (automatic setup is available at startup)</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="324"/>
+        <source>结果：不可用</source>
+        <translation>Result: Unavailable</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="332"/>
+        <source>分身日志目录：{0}；主控日志目录：{1}</source>
+        <translation>Child log folder: {0}; root log folder: {1}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="342"/>
+        <source>停止并注销桌面分身</source>
+        <translation>Stop and Log Off Desktop Clone</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="343"/>
+        <source>此操作会停止分身任务并关闭分身桌面中的所有程序，确定继续吗？</source>
+        <translation>This stops the clone task and closes every program in the cloned desktop. Continue?</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="360"/>
+        <source>桌面分身已注销</source>
+        <translation>Desktop clone logged off</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="361"/>
+        <source>桌面分身注销失败：{0}</source>
+        <translation>Failed to log off desktop clone: {0}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="382"/>
+        <location filename="../tasks/tools/desktop_clone.py" line="430"/>
+        <source>状态：{0}</source>
+        <translation>Status: {0}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="395"/>
+        <source>错误：{0}</source>
+        <translation>Error: {0}</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="398"/>
+        <source>分身桌面已显示</source>
+        <translation>Cloned desktop shown</translation>
+    </message>
+    <message>
+        <location filename="../tasks/tools/desktop_clone.py" line="398"/>
+        <source>分身桌面已隐藏</source>
+        <translation>Cloned desktop hidden</translation>
+    </message>
+</context>
+<context>
+    <name>MessageBoxConfirmScroll</name>
+    <message>
+        <location filename="../app/card/messagebox_custom.py" line="217"/>
+        <source>确认</source>
+        <translation type="unfinished">Confirm</translation>
+    </message>
+    <message>
+        <location filename="../app/card/messagebox_custom.py" line="218"/>
+        <source>取消</source>
+        <translation type="unfinished">Cancel</translation>
     </message>
 </context>
 </TS>

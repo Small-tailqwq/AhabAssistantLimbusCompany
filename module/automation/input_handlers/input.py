@@ -1,4 +1,6 @@
+import ctypes
 import random
+from ctypes import wintypes
 from time import sleep, time
 from typing import overload
 
@@ -105,6 +107,70 @@ MESSAGE_KEY_WPARAMS = {
     win32con.VK_LMENU: win32con.VK_MENU,
     win32con.VK_RMENU: win32con.VK_MENU,
 }
+
+_INPUT_KEYBOARD = 1
+_KEYEVENTF_EXTENDEDKEY = 0x0001
+_KEYEVENTF_KEYUP = 0x0002
+
+
+class _MouseInput(ctypes.Structure):
+    _fields_ = [
+        ("dx", wintypes.LONG),
+        ("dy", wintypes.LONG),
+        ("mouseData", wintypes.DWORD),
+        ("dwFlags", wintypes.DWORD),
+        ("time", wintypes.DWORD),
+        ("dwExtraInfo", wintypes.WPARAM),
+    ]
+
+
+class _KeyboardInput(ctypes.Structure):
+    _fields_ = [
+        ("wVk", wintypes.WORD),
+        ("wScan", wintypes.WORD),
+        ("dwFlags", wintypes.DWORD),
+        ("time", wintypes.DWORD),
+        ("dwExtraInfo", wintypes.WPARAM),
+    ]
+
+
+class _HardwareInput(ctypes.Structure):
+    _fields_ = [
+        ("uMsg", wintypes.DWORD),
+        ("wParamL", wintypes.WORD),
+        ("wParamH", wintypes.WORD),
+    ]
+
+
+class _InputUnion(ctypes.Union):
+    _fields_ = [
+        ("mi", _MouseInput),
+        ("ki", _KeyboardInput),
+        ("hi", _HardwareInput),
+    ]
+
+
+class _Input(ctypes.Structure):
+    _anonymous_ = ("union",)
+    _fields_ = [("type", wintypes.DWORD), ("union", _InputUnion)]
+
+
+_user32 = ctypes.WinDLL("user32", use_last_error=True)
+_user32.SendInput.argtypes = (wintypes.UINT, ctypes.POINTER(_Input), ctypes.c_int)
+_user32.SendInput.restype = wintypes.UINT
+
+
+def _send_keyboard_input(vk: int, *, key_up: bool = False) -> None:
+    flags = _KEYEVENTF_KEYUP if key_up else 0
+    if vk in EXTENDED_KEY_VKS:
+        flags |= _KEYEVENTF_EXTENDEDKEY
+    input_event = _Input(
+        type=_INPUT_KEYBOARD,
+        ki=_KeyboardInput(wVk=vk, dwFlags=flags),
+    )
+    ctypes.set_last_error(0)
+    if _user32.SendInput(1, ctypes.byref(input_event), ctypes.sizeof(_Input)) != 1:
+        raise ctypes.WinError(ctypes.get_last_error())
 
 
 class WinAbstractInput(AbstractInput):
@@ -353,6 +419,35 @@ class Input(WinAbstractInput, metaclass=SingletonMeta):
                 log.error("pyautogui 直接输入失败")
                 return
         pyautogui.hotkey("ctrl", "v")
+
+
+class ChildSessionInput(Input):
+    """Keep the Child Session foreground keyboard adapter separate from root input."""
+
+    KEY_BACKEND = "windows-send-input"
+    KEY_CODES = WINDOWS_KEY_CODES
+
+    def _key_down_impl(self, backend_key: int):
+        _send_keyboard_input(backend_key)
+
+    def _key_up_impl(self, backend_key: int):
+        _send_keyboard_input(backend_key, key_up=True)
+
+    def set_active(self):
+        """将游戏窗口设置为输入焦点以让 Unity 接受输入事件"""
+        from module.game_and_screen import screen
+
+        hwnd = screen.handle.hwnd
+        if hwnd:
+            if screen.handle.isMinimized:
+                screen.handle.set_window_transparent()
+                screen.handle.restore()
+                sleep(0.5)
+            screen.handle.setForeground()
+            deadline = time() + 0.3
+            while win32gui.GetForegroundWindow() != hwnd and time() < deadline:
+                self.check_stop_requested()
+                sleep(0.02)
 
 
 class BackgroundInput(WinAbstractInput, metaclass=SingletonMeta):

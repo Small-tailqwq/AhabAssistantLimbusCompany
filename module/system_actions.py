@@ -173,13 +173,14 @@ def _action_exit_game() -> None:
                 if ret == 0:
                     log.info("已执行：退出游戏")
                     return
-        # 兜底：按进程名结束
+        # 兜底仍按当前 Windows Session 过滤，不能误杀主/分身另一侧的游戏。
+        from module.session_process import terminate_processes
+
         game_process_name = cfg.get_value("game_process_name", "")
-        ret = _run_command(["taskkill", "/F", "/IM", game_process_name])
-        if ret == 0:
-            log.info("已执行：退出游戏（进程名兜底）")
+        if terminate_processes(game_process_name):
+            log.info("已执行：退出游戏（当前 Session 进程兜底）")
         else:
-            log.warning("退出游戏失败：未找到可关闭进程或权限不足")
+            log.warning("退出游戏失败：当前 Session 中仍有游戏进程")
     except Exception:
         log.exception("退出游戏失败")
 

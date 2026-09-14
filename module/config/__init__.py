@@ -1,6 +1,7 @@
 import os
 
 from module import (
+    CONFIG_BACKUP_PATH,
     CONFIG_PATH,
     EXAMPLE_PATH,
     THEME_PACK_LIST_EXAMPLE_PATH,
@@ -11,7 +12,13 @@ from module import (
 from module.config.config import Config, Theme_pack_list
 from module.config.config_typing import ConfigModel, TeamSetting
 
-cfg = Config(VERSION_PATH, EXAMPLE_PATH, CONFIG_PATH)
+cfg = Config(VERSION_PATH, EXAMPLE_PATH, CONFIG_PATH, backup_path=CONFIG_BACKUP_PATH)
+
+from module.instance_context import get_instance_context
+
+if get_instance_context().is_child_session:
+    # Child Session 使用 root 生成的只读运行快照，避免两个进程互相覆盖配置。
+    cfg.set_save_suspended(True, source="desktop-clone")
 
 # 复制当前环境变量，以便在不修改原始环境变量的情况下进行后续操作
 cfg.env = os.environ.copy()

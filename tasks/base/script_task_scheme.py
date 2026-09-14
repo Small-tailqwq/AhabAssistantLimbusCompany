@@ -564,6 +564,9 @@ class my_script_task(QThread):
             auto.clear_stop_request()
             disconnect_obs_capture()
             mediator.script_finished.emit()
+            detail_signal = getattr(mediator, "script_finished_detail", None)
+            if detail_signal is not None:
+                detail_signal.emit(self.exception)
 
     def _run(self):
         keep_awake_enabled = bool(cfg.get_value("experimental_keep_screen_awake", False))

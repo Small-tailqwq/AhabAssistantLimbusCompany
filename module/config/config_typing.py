@@ -706,6 +706,24 @@ class ConfigModel(BaseModel):
     experimental_hdr_warning: bool
     """任务启动时检测游戏显示器 HDR 状态并提示潜在识别问题"""
 
+    desktop_clone_enabled: bool
+    """从主界面启动任务时，改为在 Windows Child Session 中运行"""
+
+    desktop_clone_show_on_start: bool
+    """创建桌面分身时自动显示 RDP 桌面窗口"""
+
+    desktop_clone_suppress_autoruns: bool
+    """创建桌面分身时临时抑制 Run 键自启动（实验性）：登录窗口期设置 Explorer 策略、分身就绪后恢复；启动文件夹与登录触发的计划任务不受影响"""
+
+    desktop_clone_toolbar_items: list[str]
+    """分身窗口顶部显示的快捷工具；可选 mute（关闭声音）、input（关闭输入）"""
+
+    desktop_clone_sync_logs: bool
+    """将分身 AALC 的 INFO 及以上日志同步到主控日志面板"""
+
+    desktop_clone_ignore_remote_control_warning: bool
+    """启动桌面分身时不再提示正在运行的远程控制软件（如 UU远程、ToDesk）风险"""
+
     lab_simulator_launch_accelerator: bool
     """模拟器启动加速器：启动游戏前检测加速是否生效（通过 tun 接口），未生效时自动启动加速器并点击加速按钮"""
 
