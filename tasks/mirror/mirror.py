@@ -497,7 +497,7 @@ class Mirror:
                             floor_time = time.time() - self.floor_times[floor_num - 1]
                             msg = f"启动后第{self.floor}层卡包"
                         else:
-                            floor_time = time.time() - self.floor_times[0]
+                            floor_time = time.time() - start_time
                             msg = f"启动后第{self.floor}层卡包，该楼层时间不完整"
                         to_log_with_time(msg, floor_time)
                     self.floor_times[floor_num] = time.time()

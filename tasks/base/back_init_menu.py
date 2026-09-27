@@ -196,8 +196,11 @@ def back_init_menu(*, allow_restart: bool = True) -> bool:
             _stale_count = 0
             _last_fingerprint = fingerprint
 
-        if auto.click_element("home/window_assets.png") and auto.find_element("home/mail_assets.png", model="normal"):
-            return True
+        if auto.click_element("home/window_assets.png"):
+            if auto.find_element("home/mail_assets.png", model="normal", take_screenshot=True):
+                return True
+            # 玻璃窗切页后重新观察，避免旧过渡帧落到 ESC 兜底并打开主界面菜单。
+            continue
 
         if auto.find_element("base/notification_close_assets.png"):
             from datetime import datetime

@@ -134,15 +134,19 @@ def to_get_reward():
         back_init_menu()
 
     if "daily_weekly" in actions and "pass_level" in actions:
-        claim_pass_missions()
+        if not claim_pass_missions():
+            raise cannotOperateGameError("无法领取日常/周常奖励")
         if open_battle_pass_page():
             claim_pass_level_rewards()
         back_init_menu()
     elif "daily_weekly" in actions:
-        claim_pass_missions()
+        if not claim_pass_missions():
+            raise cannotOperateGameError("无法领取日常/周常奖励")
         back_init_menu()
     elif "pass_level" in actions:
-        if open_pass_page() and open_battle_pass_page():
+        if not open_pass_page():
+            raise cannotOperateGameError("无法打开通行证页面")
+        if open_battle_pass_page():
             claim_pass_level_rewards()
         back_init_menu()
 

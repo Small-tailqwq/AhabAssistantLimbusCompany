@@ -3,13 +3,14 @@ from time import sleep
 
 import cv2
 import numpy as np
+
 from module.automation import auto
 from module.decorator.decorator import begin_and_finish_time_log
 from module.logger import log
 from module.ocr import ocr
 from tasks.base.retry import retry
-from utils.image_utils import ImageUtils
 
+PASS_HOME_ENTRY_BBOX = (1860, 350, 2460, 590)
 PASS_TASKS_RIGHT_COLUMN_BBOX = (1180, 300, 1500, 1260)
 PASS_ROW_ACTION_PADDING = (150, 18, 25, 18)
 PASS_CLAIM_ORANGE_THRESHOLD = 0.12
@@ -94,7 +95,8 @@ def orange_pixel_ratio(image):
         (hsv[:, :, 0] > 5)
         & (hsv[:, :, 0] < 35)
         & (hsv[:, :, 1] > 80)
-        & (hsv[:, :, 2] > 120)
+        # 可领取行的橙棕色底板亮度低于亮色边框，不能只统计边框和数字。
+        & (hsv[:, :, 2] > 60)
     )
     return float(np.mean(orange_mask))
 
@@ -249,10 +251,11 @@ def open_pass_page():
     """打开通行证页面（不点击具体标签页），返回是否成功"""
     loop_count = 15
     auto.model = "clam"
-    season_bbox = ImageUtils.get_bbox(ImageUtils.load_image("home/season_assets.png"))
     while True:
         if auto.take_screenshot() is None:
             continue
+        # 赛季横幅会改版，备用 OCR 需要覆盖完整入口而非旧模板中的文字位置。
+        season_bbox = get_scaled_bbox(PASS_HOME_ENTRY_BBOX, np.array(auto.screenshot).shape)
         if auto.find_element("pass/pass_missions_assets.png"):
             return True
         if loop_count >= 10:
