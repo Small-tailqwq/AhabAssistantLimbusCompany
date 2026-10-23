@@ -927,9 +927,14 @@ class FarmingInterfaceLeft(QWidget):
         mediator.link_start.connect(self.my_stop_shortcut)
         mediator.pause_resume.connect(self.pause_or_resume_tasks)
         mediator.kill_signal.connect(self.stop_AALC)
-        # finished_signal 目前用于命令行/定时任务通过 QTimer 延迟触发开始/停止按钮逻辑
-        mediator.finished_signal.connect(self.start_and_stop_tasks)
+        mediator.finished_signal.connect(self._on_command_start_requested)
         mediator.script_finished.connect(self.handle_script_finished)
+
+    def _on_command_start_requested(self):
+        if self.my_script is not None and self.my_script.isRunning():
+            return
+        if self.link_start_button.get_text() == "Link Start!":
+            self.start_and_stop_tasks()
 
     def retranslateUi(self):
         self.set_windows.retranslateUi()
