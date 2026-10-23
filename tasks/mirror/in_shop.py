@@ -8,6 +8,7 @@ from PIL import Image
 from module.automation import auto
 from module.config import TeamSetting, cfg
 from module.logger import log
+from module.my_error.my_error import userStopError
 from module.ocr import ocr
 from tasks import all_sinners_name, all_sinners_name_zh, all_systems, system_cn_zh
 from tasks.base.back_init_menu import back_init_menu
@@ -122,6 +123,22 @@ def _wait_for_keyword_refresh_confirm_to_clear(timeout_seconds=2.2, poll_interva
         if index < max_checks - 1:
             sleep(poll_interval)
     return False
+
+
+def _dismiss_gift_get_popup(timeout_seconds=1.5, poll_interval=0.3):
+    """关闭遮挡经费文字的获得饰品弹窗。"""
+    popup = "mirror/road_in_mir/ego_gift_get_confirm_assets.png"
+    poll_interval = max(float(poll_interval), 0.05)
+    max_checks = max(1, int(ceil(max(float(timeout_seconds), poll_interval) / poll_interval)))
+
+    for index in range(max_checks):
+        position = auto.find_element(popup, take_screenshot=True)
+        if position is None:
+            return True
+        auto.mouse_click(position[0], position[1])
+        if index < max_checks - 1:
+            sleep(poll_interval)
+    return auto.find_element(popup, take_screenshot=True) is None
 
 
 def _retry_money_ocr_with_scaled_crop(money_bbox, scale=2):
@@ -1592,6 +1609,10 @@ class Shop:
         money_bbox = None
         my_money = None
         try:
+            if not _dismiss_gift_get_popup():
+                _debug_save_on_failure(None, "获得饰品弹窗未消失", in_heal)
+                log.error("获取剩余金钱失败：获得饰品弹窗未消失")
+                return my_remaining_money
             if in_heal:
                 money_bbox = ImageUtils.get_bbox(ImageUtils.load_image("mirror/shop/my_money_heal_bbox.png"))
             else:
@@ -1615,6 +1636,8 @@ class Shop:
                 log.error("获取剩余金钱失败")
             else:
                 log.debug(f"剩余金钱：{my_remaining_money}")
+        except userStopError:
+            raise
         except Exception as e:
             _debug_save_on_failure(money_bbox, my_money, in_heal)
             log.error(f"获取剩余金钱失败：{e}")
