@@ -1,95 +1,46 @@
-<div align="center">
-
 # FAQ
 
-[简体中文](/assets/doc/zh/FAQ.md) | **English**
+[Home](README_EN.md) · [Getting started](How_to_use_EN.md) · [简体中文](../zh/FAQ.md)
 
-[*README*](/assets/doc/en/README_EN.md) | [*How To Use*](/assets/doc/en/How_to_use_EN.md)
+## It stalls, misclicks or cannot recognize a screen
 
-</div>
+Pause and save the original game screenshot and logs at the failure time. Check game language, resolution, window bounds and the current page. HDR, night mode, overlays, fonts and game UI changes can affect recognition.
 
----
+Identify the active capture and input paths. Test optional OBS, Logitech/Razer and Desktop Clone features separately instead of changing every setting at once.
 
-Q: Infinity is stuck on the crafting module interface
+## The window is visible but input does not work
 
-A: Turn off "Experimental Features" at the bottom of the settings, and then check AALC's "Game Language" setting to make sure it is consistent with the game
+Check the privilege levels of AALC, the game and any external controller, plus the selected input mode. The packaged `AALC.exe` requests elevation. Source entry points `main.py` and `main_dev.py` inherit the terminal's privileges; use an administrator terminal to run Desktop Clone from source. A privilege mismatch is a possible cause to verify, not a diagnosis by itself.
 
-If it still doesn't work, check if you have changed the game picture quality, enabled HDR on your monitor, or modified the game font, or use other mods (such as battle voice bubbles, etc.)
+If driver input is enabled, check the driver and DLL configuration; disable that path when it is not configured. For keyboard failures, also check the input method and keyboard focus.
 
----
+## Can it run in the background?
 
-Q: Why can't the XXX function be implemented or the script run after running it?
+There is background input and a separate experimental Desktop Clone mode. Background input does not guarantee operation while minimized, locked or switching remote sessions. Desktop Clone has additional compatibility requirements. See the [usage guide](How_to_use_EN.md).
 
-A: Please first try closing the script, then right-click and select "Run as administrator". If the issue persists, please continue to check below.
+## Why were rewards not collected?
 
----
+Check selected reward actions, completed progress, claimable rewards and whether the pass page opens. C24 fixed pass-entry search bounds and completed-mission background recognition. If it recurs, include both the entry screen and the rewards page; a finished log sequence alone is not proof of collection.
 
-Q: Why does the script crash immediately after I start it?
+## Can I avoid a Mirror Dungeon theme pack?
 
-A: Check if you are using a language translation module (referring to localization) or other MODs. Try closing them and then run the script again.
+Lower its weight in the theme-pack UI and check any team-specific override. Weights control preference, not an absolute ban. Unrecognized packs use the “unknown” fallback; rerun and original packs can share weights. See [configuration](Custom_setting_EN.md).
 
----
+## Updates fail or downloads are slow
 
-Q: After the battle ends, the script will not automatically click on the page, and it will take a while to exit the battle interface
+Use [this fork's Releases](https://github.com/Small-tailqwq/AhabAssistantLimbusCompany/releases), and check network access and update proxy settings. The current download path uses GitHub; inherited instructions for a paid distribution service do not describe this fork's current updater. A complete package can be downloaded manually while preserving personal configuration and logs.
 
-A: This is because you have selected an announcer with a particularly long voice, please turn off the option to "Wait for the announcer's voice to finish" at the bottom of the settings page
+## Emulator startup fails or captures do not refresh
 
----
+Check the emulator type, instance, actual ADB port, debugging state and resolution. For MuMu, also inspect application keep-alive and reconnection logs. Recovery code does not mean every emulator version has been validated.
 
-Q: Why does it stop moving as soon as it enters combat? Why can't my shortcut keys take effect?
+## What should a bug report include?
 
-A: The auto - combat function configured in this script is executed using the < P > and < Enter > keys. Issues related to these keys may be due to the input method on your computer.
-Please check the input method you are using on your computer. If you are using a Pinyin input method, please switch to an English input method and then try running the script again.
+Open an issue in [this repository](https://github.com/Small-tailqwq/AhabAssistantLimbusCompany/issues) with:
 
-Ways to switch input methods:
-- Use the keyboard shortcut Ctrl + Space to switch input methods
-- Use the keyboard shortcut Ctrl + Shift to switch input methods
-- Use the keyboard shortcut Shift to switch input modes
+- AALC version or commit, game language, resolution and Windows version.
+- PC/emulator/Desktop Clone mode, input method and capture method.
+- Selected tasks, expected and actual results, first failure timestamp and reproduction steps.
+- Logs around the failure and uncropped game screenshots at their original resolution.
 
----
-
-Q: After starting, can I not move the keyboard and mouse or switch to the background?
-
-A: Yes, if you need to run it in the background, please try [Remote Local Multi - User Desktop](/assets/doc/en/README_EN.md#running-in-the-background).
-
----
-
-Q: I'm stuck in XXX / XXX seems to be unrecognizable all the time.
-
-A: Check if your computer has enabled night mode. For more details, refer to [this](https://github.com/KIYI671/AhabAssistantLimbusCompany/issues/70).
-
----
-
-Q: I encountered the XXX theme pack, which led to the death of all members. Can I set it not to enter?
-
-A: Yes, you can set it not to enter. Please try [Setting Theme Pack Weight](/README_EN.md#theme-package-weight-setting) on your own.
-
----
-
-Q: AALC does not automatically select the highest level of EXP and Thread
-
-A: AALC will automatically select the highest level of Luxcavation that you have cleared, so make sure you have cleared the highest level of Luxcavation once
-
----
-
-Q: Where the numbers are supposed to be displayed in AALC, gibberish is displayed
-
-A: Please check the local language, it is currently known that if you use [Chinese (Simplified Chinese Characters, Hong Kong SAR)], this issue may occur.
-
-This problem does not affect normal use, and can be solved by filling in the numbers by yourself.
-
----
-
-Q: When I open AALC, an error window pops up: no OPENSSL_Applink
-
-A: On your computer, delete the SSLKEYLOGFILE in Windows Settings - >Advanced System Settings - > environment variables and restart AALC
-
----
-
-Q: This script webpage is inaccessible / How to unzip the script program after downloading / The script update check function cannot run / The game often has network issues.
-
-A: Use a search engine (such as Bing), or AI search (such as GPT) to query:
-- "How to solve the problem of inaccessible Github webpage"
-- "How to download files from Github"
-- "How to unzip files"
-- "How to use a accelerator"
+Remove account details, personal information and credentials before sharing. Do not upload an unredacted full configuration file.

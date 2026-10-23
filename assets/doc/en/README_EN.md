@@ -1,293 +1,67 @@
 <div align="center">
 
-![image](/assets/logo/canary.png)
+<img src="../../logo/canary.png" alt="CanaryAssistant" width="88" />
 
-<br>
+# CanaryAssistant · Limbus Company
 
-# 🟡 CanaryAssistantLimbusCompany
+**A 100% vibe-coded automation experiment**
 
-## FACE THE SILENCE, HEED THE WARNING
+Windows x64 · Image matching + OCR · Experimental Pre-releases
 
----
-<br>
-<div>
-    <a href="https://discord.gg/vUAw98cEVe">
-        <img src="https://cdn.simpleicons.org/discord" alt="Discord" width="24" height="24">
-    </a>
-</div>
-<div>
-    <img alt="version" src="https://img.shields.io/github/v/release/Small-tailqwq/AhabAssistantLimbusCompany?include_prerelease&color=%23FFD700&style=flat-square&label=version">
-    <img alt="download" src="https://img.shields.io/github/downloads/Small-tailqwq/AhabAssistantLimbusCompany/total?style=flat-square&color=%23FFA500&label=downloads">
-</div>
-<div>
-    <img alt="language" src="https://img.shields.io/badge/Language-Python-%23FFD700?style=flat-square">
-    <img alt="platform" src="https://img.shields.io/badge/platform-Windows-%23FFA500?style=flat-square">
-</div>
-
-[简体中文](/README.md) | **English**
-
-Encountering problems? Please check the [FAQ](assets/doc/en/FAQ.md) before asking questions.
-
----
-
-This project is the brainchild of a non-computer professional.
-
-It is a third-party project based on image recognition and text recognition technology
-
-A PC assistant for the mobile game Limbus Company
-
-It can help players automatically complete daily tasks, mirror dungeon challenges and other operations, one-click liver
-protection
-
-This project aims to help you reduce the repetitive and boring parts of Limbus's gameplay, so that you can better enjoy
-the exciting story, performances, and mechanics inside
-
-<br>
+[Download](https://github.com/Small-tailqwq/AhabAssistantLimbusCompany/releases) · [Getting started](How_to_use_EN.md) · [Report an issue](https://github.com/Small-tailqwq/AhabAssistantLimbusCompany/issues) · [简体中文](../../../README.md)
 
 </div>
 
-## Function Introduction
+> **Before using: this is an unofficial AALC fork, primarily for experiments and testing, maintained only intermittently.** Features may be unstable and fixes may be delayed. Understand and accept the risks of failed runs, unintended actions and game-account consequences before using it.
+>
+> **For everyday AALC use, choose the [original project's official stable release →](https://github.com/KIYI671/AhabAssistantLimbusCompany/releases/latest).**
 
-- **Automatic Daily**: Automatically swipe experience books, new books, receive daily/weekly rewards, and receive emails
-- **LUNACY to physical**: Automatically identify and use LUNACY for physical strength, and automatically synthesize
-  enkephalin module (cake)
-- **Automatic Mirror Dungeons**: fully automatic Dungeons time
-  - Support multi-team rotation and round-robin battles
-  - Supports custom team accessories system selection
-  - Support mirror dungeon theme pack to automatically identify and filter based on weight
-  - Configure intelligent route planning (prioritize event nodes)
+This fork uses **100% vibe coding**: people set goals and judge results; AI writes and refactors code, with logs, screenshots and live runs used to investigate failures. It makes no promise of unattended reliability, compatibility with every setup, or game-account safety.
 
-- Imitation of MAA style GUI
-- Automatic version update
-  - Automatically download the latest version
-  - Automatically execute update operations
-- What You See Is What You Get.
-- Supports multi-resolution window execution.
-- Supports automatically closing the game or shutting down the computer after the task is completed
+Current workflows cover EXP and Thread Luxcavations, Enkephalin refills and modules, reward collection, Mirror Dungeons and team rotation. There are also theme-pack weight controls, emulator integration and experimental Desktop Clone support. See the [changelog](../../../CHANGELOG.md) and [project status and validation record (Chinese)](../../../docs/project-status.md).
 
-### Special Features
+## Start here
 
-- Automatic team selection, there are two modes:
-  - Select a team based on get a team name from OCR (the initial team name must be maintained, e.g. [TEAM #1])
-  - Select a team based on their serial number
-- The Mirror Dungeon automatically selects theme packs based on weights
-- Supports running with English (EN) and Chinese Simplified (zh_cn) as the game language
-- Customized Mirror Dungeon experience
+1. Choose a **Pre-release** from this repository, download `AALC_<version>.7z`, extract the entire archive and run `AALC.exe`.
+2. Check the game path, language, resolution, teams and task counts. Start with a small run and watch the logs.
+3. By default, `Ctrl+Q` requests a stop; `Alt+P` / `Alt+R` pause or resume. Wait for the UI to return to idle before restarting.
 
-For custom settings and process acceleration for Mirror Dungeon team composition, please see [AALC Advance Team Setting](/assets/doc/en/Custom_setting_EN.md)
+[Usage and updates](How_to_use_EN.md) · [FAQ](FAQ_EN.md) · [Configuration](Custom_setting_EN.md) · [Documentation index (Chinese)](../../../docs/README.md)
 
----
+<details>
+<summary><strong>Features and experimental limits</strong></summary>
 
-## How to download
+- Daily tasks: EXP/Thread stages, Lunacy refills, module conversion, mail, daily/weekly missions and pass-level rewards.
+- Mirror Dungeons: team rotation, gift systems, shop strategies and theme-pack weights. Results depend on teams, game updates and recognition.
+- Execution: PC foreground/background input and emulators. Desktop Clone uses a Windows Child Session and has additional system requirements.
+- Optional experiments: Desktop Clone, OBS capture and Logitech/Razer driver input each need separate configuration and verification.
+- UI and game resources primarily cover Simplified Chinese and English. Current release packages target Windows x64; macOS, Linux and ARM are unsupported.
 
-Click [Releases](https://github.com/KIYI671/AhabAssistantLimbusCompany/releases) and download the file called
-【AALC-Vx.x.x】 in the latest version, unzip it and run AALC.exe.
+</details>
 
-Because of the lack of technical power, I also engaged in GUI and used third-party OCR, so the file size is relatively
-large
+<details>
+<summary><strong>Run from source and contribute</strong></summary>
 
-**Note**: The Release is based on the x86_64 architecture for Windows systems. It currently does not support Arm architecture (such as Apple M-series chips, Raspberry Pi, etc.), RISCV architecture, Mac systems, or Linux systems. If you need to run AALC on unsupported platforms, please refer to the **Run the source code** and **Build guide**. Contributions as a developer to submit PRs for multi-platform adaptation are also welcome. In the future, multi-platform Release version support may be added based on user demand.
+Use Windows, Python 3.12+ and uv:
 
----
-
-## Instructions for use
-
-### [A maneuver that even Don Quixote could learn](/assets/doc/en/How_to_use_EN.md)
-
-### Other Notes
-
-During script execution you can use **CTRL+Q** keys to terminate the script process (this may cause problems when the
-script is restarted, which can be solved by restarting the script program).
-
-At the same time **ALT+P** can pause the script, **ALT+R** can resume the script
-
-The above shortcuts can all be modified in the **Shortcut Settings** tab within the settings interface.
-
-There is nothing to explain, what you see is what you get.
-
-If you find any problems (except for the team numbering problem below), you can report them
-to [Issue](https://github.com/KIYI671/AhabAssistantLimbusCompany/issues).
-
-Of course, you are also welcome to submit [Pull Request](https://github.com/KIYI671/AhabAssistantLimbusCompany/pulls)
-
-### Theme package weight setting
-
-When the script is run once, a _"theme_pack_list.yaml"_ file is automatically created, which is used to set the weight
-of the theme package</br>
-After opening it with Notepad or other text editors, you can configure the weight of the theme package according to the
-format, or add the theme package to recognize the text
-
-#### Modify the process
-
-- Run the AALC.exe once first (for new users)
-- A theme_pack_list.yaml file appears in the AALC folder
-- Modify theme_pack_list.yaml file
-- Restart AALC after modification
-
-The file format is shown in the following picture.
-
-![image](/assets/doc/image/theme_list.png)
-
-### Running in the background
-
-- This section is currently unsupported for this language.
-- **Need to run in the background or have multiple monitors
-  try [Remote Local Multi-User Desktop](https://www.bilibili.com/read/cv24286313/)**
-- **All related files in the above tutorials: [download link](https://github.com/CHNZYX/asu_version_latest/releases)**
-- **Related files can also be obtained by going to the tutorial
-  author's [Home - Dynamic Page](https://space.bilibili.com/26715033/dynamic) from the top**.
-
-## Attention
-
-- It is recommended to run with resolutions of 1920 \* 1080 and 2160 \* 1440</br> The screen is less than 1920 * 1080 is
-  not tested, it is not recommended to use it at resolutions less than that
-- **Please set Material Quality and Render Ratio in Settings-Image to High, Normal FPS and Combat FPS to 60, and
-  Post-Processing to Off** to facilitate software recognition. If the performance of the device cannot be met, please
-  also try to set the **rendering ratio to high**, otherwise the software may have difficulty in recognizing it.
-- The game program will be set to window mode after the script starts, and if there is a behavior of switching to the
-  full screen and then exiting in the middle, it is normal behavior, so there is no need to worry
-- If you have enabled the performance display feature of Steam or other software, you should try not to obscure the game
-  screen, as this may cause problems with the scripting process
-
----
-
-## Declaration
-
-This software is open source, free of charge, for learning and communication purposes only.
-
-If you encounter merchants use this software to practice on behalf of and charge, may be equipment and time and other
-costs, problems and consequences have nothing to do with this software.
-
-The code to get administrator privileges is configured to ensure smooth operation
-
-In addition to checking updates and displaying announcements, the project runs purely offline
-
-Software icon material from the source of network graphics, does not belong to the AGPL v3 agreement open source
-content, if any infringement, please contact the author to delete in a timely manner
-
-Some images and audio materials are from [Limbus Company Chinese WIKI](https://limbuscompany.huijiwiki.com/wiki/)
-and [Yue Helena](https://yuehailunna.lofter.com/), and are disclosed upon request
-
-Users are required to comply with the rules of use and terms of service of the relevant platform in the process of use.
-Due to the use of this software may lead to the game account ban, illegal behavior and all the consequences, the author
-is not responsible. Users are responsible for their own behavior and bear all risks that may be brought about by the use
-of this software.
-
----
-
-## Sample Diagrams
-
-(The picture is for reference only, please refer to the example)
-
-### Start screen
-
-![image](/assets/doc/image/README1_en.png)
-
-### The Mirror Dungeon team setup screen
-
-![image](/assets/doc/image/README2_en.png)
-
----
-
-## Acknowledgements
-
-### Individual acknowledgements
-
-The AALC project could not have been possible without the help of the following open source projects
-
-| projects                              | links                                                                             | introduction                                                                                                                                |
-|---------------------------------------|-----------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
-| LALC                                  | [LixAssistantLimbusCompany](https://github.com/HSLix/LixAssistantLimbusCompany)   | Thanks to the big guy's open source, so I can learn and start my own project by rewriting the big guy's project with step-by-step follow-up |
-| OCR Text Recognition                  | [PaddleOCR-json](https://github.com/hiroi-sora/PaddleOCR-json)                    | Without it there would be no auto-recognition of teams, auto-recognition of Mirror Jail theme packs                                         |
-| Graphical Interface Component Library | [PyQt-Fluent-Widgets](https://github.com/zhiyiYo/PyQt-Fluent-Widgets)             | Although only used the basic components, not much development potential, but the basic components have made the GUI aesthetics UP           |
-| March7thAssistant                     | [March7thAssistant](https://github.com/moesnow/March7thAssistant)                 | Learned quite a bit from the big guy here                                                                                                   |
-| BAAS                                  | [blue_archive_auto_script](https://github.com/pur1fying/blue_archive_auto_script) | I learned the simulator-related code from the big guy here                                                                                  |
-
-The file [ChineseFont.ttf](./assets/app/fonts/ChineseFont.ttf) is sourced from [Sarasa-Gothic](https://github.com/be5invis/Sarasa-Gothic), This portion of the code adheres to the **SIL Open Font License** license.
-
-### Uniform acknowledgements
-
-All the people who are directly or indirectly involved in the development of this software
-
-Including the people who shared their tutorials on the web.
-
-And the giants who open-sourced their own code!
-
----
-
-## Contributors
-
-Thanks to the following developers for their outstanding contributions to AALC:
-
-<a href="https://github.com/KIYI671/AhabAssistantLimbusCompany/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=KIYI671/AhabAssistantLimbusCompany" />
-</a>
-
-## Future plans
-
-- [ ] Count the number of pass levels after the run.
-- [ ] Adapt more window position.
-- [ ] Generate excel file or chart for stats during runtime to improve readability.
-- [ ] Improve the code function commentation documentation
-- [ ] Provides a GUI for theme package configuration
-- [ ] Continuously fix bugs
-- [ ] ......
-
----
-
-## Run the source code
-
-If you don't understand it at all, please download and install it through the above method, and you don't have to look
-down.
-
-### Using uv (Recommended)
-
-```ps1
-# Clone the repository
-git clone https://github.com/KIYI671/AhabAssistantLimbusCompany
+```powershell
+git clone https://github.com/Small-tailqwq/AhabAssistantLimbusCompany.git
 cd AhabAssistantLimbusCompany
-# Download dependencies via uv (uv tool needs to be installed separately)
 uv sync --frozen
-uv run main.py
-
-# Update
-git pull
+uv run python .\main.py
 ```
 
-### Using pip (Excludes dev packages)
+[Development guide (Chinese)](../zh/develop_guide.md) · [Build guide](build_guide_EN.md) · [Translation and resources](translateGuide.md)
 
-```ps1
-# Clone the repository
-git clone https://github.com/KIYI671/AhabAssistantLimbusCompany
-cd AhabAssistantLimbusCompany
-# Please use a Python binary with version higher than 3.13 (with GIL)
-pip install -r requirements.txt
-python main.py
+Report the version, execution mode, timestamps, relevant logs and game screenshots. Remove account details and credentials before sharing. AI-generated changes need the same explanation of evidence and actual validation as other changes.
 
-# Update
-git pull
-```
+</details>
 
----
+<details>
+<summary><strong>Origins, license and credits</strong></summary>
 
-## Build guide
+This project is derived from [AhabAssistantLimbusCompany](https://github.com/KIYI671/AhabAssistantLimbusCompany) and retains AALC executable names and directory conventions. “100% vibe coding” describes this fork's development approach; it does not erase upstream authorship.
 
-- References [build guide](build_guide_EN.md)
+See [LICENSE](../../../LICENSE) and [credits and asset attribution](../../../docs/credits.md). Dependencies, fonts and game assets retain their respective rights and licenses. This is not an official game project.
 
----
-
-## Join Us
-
-- Development Participation(Document Under Construction)
-- Translation Support: Refer to [Translation Guide](translateGuide.md)
-
----
-
-## At last
-
-If you found the software helpful, please click Star.
-
-I hope that there will be a big guy to guide or optimize this project, or further improve this project together.
-
-Hopefully, this app will help you reduce the tedious part of playing Limbus and enjoy the wonderful story, performances,
-and mechanics inside.
+</details>
