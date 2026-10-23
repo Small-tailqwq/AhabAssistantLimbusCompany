@@ -244,6 +244,8 @@ def thread_luxcavation(combat_count: int = 1):
             and auto.find_element("home/back_assets.png", model="normal")
             and not auto.find_element("luxcavation/thread_enter_assets.png", threshold=0.78)
             and not auto.find_element(_THREAD_CONSUME_ASSET)
+            # 经验采光页的翻页箭头也会命中提示模板，应留在采光页切换纺锤。
+            and not auto.find_element("luxcavation/thread_assets.png")
         ):
             auto.key_press("esc")
             continue
