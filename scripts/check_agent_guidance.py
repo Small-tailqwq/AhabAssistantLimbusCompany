@@ -7,8 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SKILL_ROOT = ROOT / ".agents" / "skills"
 NAME_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
-# Tighter than the 500-line Agent Skills disclosure limit: a SKILL.md body stays in
-# context for the rest of the session, so cold-path detail belongs in references/.
+# Keep entry instructions small; cold-path detail belongs in references/.
 SKILL_LINE_BUDGET = 180
 MARKDOWN_LINK_PATTERN = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 
@@ -103,9 +102,20 @@ def iter_guidance_markdown() -> list[Path]:
     claude = ROOT / "CLAUDE.md"
     if claude.exists():
         paths.append(claude)
-    for base in (ROOT / ".agents", ROOT / ".opencode" / "agents", ROOT / ".github"):
+    # .opencode/tools carries the on-demand debug rules that AGENTS.md routes to,
+    # so its Markdown is guidance text and needs the same stale-path check.
+    archive = ROOT / ".agents" / "notes" / "archived"
+    for base in (
+        ROOT / ".agents",
+        ROOT / ".opencode" / "agents",
+        ROOT / ".opencode" / "tools",
+        ROOT / ".github",
+    ):
         if base.exists():
-            paths.extend(base.rglob("*.md"))
+            for path in base.rglob("*.md"):
+                if path.is_relative_to(archive) and path.parent != archive:
+                    continue
+                paths.append(path)
     return sorted(set(paths))
 
 
@@ -130,8 +140,14 @@ def validate_guidance_paths(problems: list[str]) -> None:
     agents_text = read_text(agents)
     if len(agents_text.splitlines()) > 150:
         problems.append("AGENTS.md exceeds the 150-line project-guidance limit")
-    if claude.exists() and read_text(agents) != read_text(claude):
-        problems.append("AGENTS.md and local CLAUDE.md have drifted")
+    if claude.exists():
+        # CLAUDE.md is a local pointer, not a second copy. A duplicated mirror
+        # drifts silently from the tracked source, so it must forward instead.
+        claude_text = read_text(claude)
+        if not any(point in claude_text for point in ("@AGENTS.md", "](AGENTS.md)")):
+            problems.append(
+                "CLAUDE.md must point at AGENTS.md instead of duplicating it"
+            )
 
 
 def validate_opencode_ci(problems: list[str]) -> None:

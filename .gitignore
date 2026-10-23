@@ -13,7 +13,7 @@ entities.json
 # 本地专有分析资料（不适用开源）
 .agents/skills/limbus-input-safety/
 
-AGENTS.md
+# 其他 harness 的本地入口，只转发到 AGENTS.md
 CLAUDE.md
 GEMINI.md
 
@@ -74,3 +74,6 @@ assets/app/fonts/chars.txt
 _pending_cleanup/
 
 todo/
+
+# G HUB hosts 恢复备份，仅保留在本机
+/data/hosts.ghub.backup

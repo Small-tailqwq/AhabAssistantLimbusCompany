@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "classes": ["feature", "bug-fix", "simplification", "architecture", "process", "testing"],
+  "headings": {
+    "problem": "问题",
+    "proposal": "提案",
+    "decision": "决策",
+    "alternatives": "曾考虑的替代方案",
+    "acceptance": "验收标准",
+    "risks": "风险",
+    "consequences": "后果",
+    "bannedInImplemented": ["提案", "计划", "迁移计划", "验收标准", "Proposal", "Plan", "Migration plan", "Acceptance criteria"]
+  },
+  "primaryLanguage": "zh",
+  "counterpartLanguages": [],
+  "formatAdopted": "2026-10-23",
+  "forbiddenRoots": []
+}

@@ -2,6 +2,16 @@
 
 `origin` → Small-tailqwq/AhabAssistantLimbusCompany；`upstream` → KIYI671/AhabAssistantLimbusCompany。
 
+## 执行与指令优先级
+
+- 在系统、开发者与工具权限边界内，用户明确指令优先于 Skill 的一般建议。Skill 不撤销已有授权，也不扩大任务范围。
+- 已获授权的、可逆的仓库内工作直接做到约定结果；不要停在确认能力、复述任务或只给计划，也不要为同一步重复确认。
+- 只有无法从当前证据解决、且会实质改变结果、范围、访问或风险的歧义才询问；采用最窄合理解释并说明重要假设。先完成不受该问题影响的已授权工作。
+- Skill 若导致询问、暂停、未完成或偏离任务，链接具体 SKILL.md（规则在 reference 中时一并链接），引用具体规则并解释适用性，区分原文要求与自己的推断。
+- 下列命令、Skill 流程与报告模板按任务选择，不是每次全部执行的清单。报告保留结果、依据和重要缺口；简单任务不强制完整模板。
+- 本地开发默认由主智能体完成；只有用户要求或当前任务适用的专门流程明确需要时才委派，不能因读到 CI 代理配置就启动独立审阅。
+- 本文件是项目公共规则的唯一来源；目录级 AGENTS 只补充本目录规则。CLAUDE.md 只转发到本文件，不维护副本。
+
 ## 渐进式披露
 
 本文件只保存高频项目不变量。不要预加载所有专项文档；任务命中时再加载：
@@ -14,19 +24,30 @@
 - 向上游贡献及 PR 后续闭环：加载 `upstream-contribution`；不可用时读取 `.agents/skills/upstream-contribution/SKILL.md`。
 - 上游优秀提交或最终 PR 结果回流（fork ← upstream）：加载 `downstream-sync`；不可用时读取 `.agents/skills/downstream-sync/SKILL.md`。
 - 代码审阅及复审：加载 `code-review`；不可用时读取 `.agents/skills/code-review/SKILL.md`。
-- 新增/修改 `debug_*`：再读取 `.opencode/tools/debug_model_constitution.md`。
+- 长期决策记录或 `.agents/notes/` 维护：加载 [agent-notes](.agents/skills/agent-notes/SKILL.md)，普通局部修复无需自动写笔记。
+- 新增/修改 `debug_*` 配置或受其控制的行为：再读取 `.opencode/tools/debug_model_constitution.md`。
 
 Skills 内容使用中文编写；代码符号、命令、文件路径与协议术语（如 finding ID、Block/Warning、exact/adapt/rewrite）保留英文，以便与仓库工具链对齐。
 
 Skill 正文只读任务所需 reference，不要因“可能有用”提前展开。
 
-SKILL.md 正文一旦加载就常驻上下文到会话结束，因此只放热路径；失败处理、回滚、复审协议、报告模板等低频内容放 `references/`。正文受 180 行预算约束，由 `check_agent_guidance.py` 强制。
+SKILL.md 正文保持热路径，减少加载后的上下文负担；失败处理、回滚、复审协议、报告模板等低频内容放 `references/`。`check_agent_guidance.py` 强制 SKILL.md 180 行、本文件 150 行的预算。
 
 ## 多 harness 共用 skills
 
-`.agents/skills/` 是唯一真实来源。Codex、pi、OpenCode 直接读取该目录；Claude Code 只读 `.claude/skills/`，但会跟随链接。克隆仓库后运行一次 `uv run python .\scripts\link_skills.py` 建立链接（Windows 无开发者模式时用目录联接，POSIX 用相对符号链接）。
+`.agents/skills/` 是唯一真实来源。Codex、pi、OpenCode 等 harness 直接读取该目录；不为任何 harness 建立转发副本、桥接 skill 或同名入口。Claude Code 只读 `.claude/skills/`，克隆仓库后运行一次 `uv run python .\scripts\link_skills.py` 建立指向 `.agents/skills/` 的链接（Windows 无开发者模式时用目录联接，POSIX 用相对符号链接）。
 
 `.claude/` 已被忽略，链接是本地产物，不提交也不手工编辑；新增或重命名 skill 后重跑该脚本。`check_agent_guidance.py` 在链接目录存在时校验漂移。
+
+历史设计、.superpowers/sdd 任务记录与其他 harness 的旧说明仅作证据，不代表当前任务授权；专项文档与当前源码不符时先核对。OpenCode CI 代理的只读权限、固定输出和调度只适用于对应 CI 入口。
+
+## Agent Notes
+
+代码、测试和现有文档未解释的长期决策理由写入 `.agents/notes/`，遵循[笔记契约](.agents/notes/README.md)。新笔记检查取代关系，同一决策只保留一个活跃归属；部分取代保留各自仍有效的内容。
+
+Agent Notes 单独允许记录真实考虑过的替代方案及理由；不编造取舍。其他仓库文字继续描述当前状态。`archived/` 是冻结历史，不作为当前行为依据。
+
+新增决策记录使用 notes；剩余 `docs/superpowers/specs/` 仅在相关主题维护时按当前实现迁移。修改 notes 后运行 `uv run python scripts/agent_notes.py check`；模板问题按契约记录最小复现，在当前授权范围内反馈。
 
 ## 快速命令
 
@@ -44,6 +65,7 @@ uv run python .\scripts\translation_files_compile.py
 uv run python .\scripts\check_i18n.py --update
 uv run python .\scripts\export-requirements-from-uv-lock.py
 uv run python .\scripts\check_agent_guidance.py
+uv run python .\scripts\agent_notes.py check
 uv run python .\scripts\link_skills.py
 ```
 
@@ -83,7 +105,7 @@ uv run python .\scripts\link_skills.py
 
 - 正常停止必须协作式传播：`my_script_task.stop()` → `auto.request_stop()` → `userStopError`。
 - 长任务和阻塞等待必须检查 `auto.ensure_not_stopped()` 或输入处理器的停止检查。
-- `run()` 收尾时清除停止状态、断开 OBS、发出 `mediator.script_finished`。
+- `my_script_task.run()` 收尾时清除停止状态、断开 OBS、发出 `mediator.script_finished`；子任务传播停止，不重复全局收尾。
 - `FarmingInterfaceLeft.handle_script_finished()` 恢复 UI 并清理模拟器连接。
 - 不使用 `QThread.terminate()` 进行正常停止。
 - 修改游戏启动、窗口句柄或模拟器等待逻辑时，加入停止检查和有界重试。
@@ -92,9 +114,9 @@ uv run python .\scripts\link_skills.py
 ## 用户资产安全
 
 - 未追踪文件、`issues/`、日志、截图、配置快照和 stash/merge 冲突默认是用户资产。
-- 删除、移动、整体覆盖或清理这些内容前，必须按全局规则获得路径级确认。
+- 删除、移动、整体覆盖或清理这些内容前，核对已有授权是否覆盖具体路径和操作；未覆盖时再按全局规则确认。
 - 不自行裁决 stash pop/merge 冲突。
-- Issue 流程：读取 → 分析 → 修复 → 列出可清理临时文件；保留 issue 记录。
+- Issue 流程按请求推进：读取与分析；已授权修复时继续实现；有临时产物时列出清理候选，保留 issue 记录。
 
 ## 发布不变量
 
@@ -107,6 +129,8 @@ uv run python .\scripts\link_skills.py
 
 ## 验证范围
 
-- 根据改动运行最窄且足够的 `py_compile`、ruff、相关 unittest；涉及 i18n、构建或更新协议时运行对应脚本。
+- 按风险选择最窄且足够的冷检查：改动 Python 文件的语法、针对性 ruff 或相关确定性 unittest；涉及 i18n、构建或更新协议时仅运行受影响的检查。
+- 必要检查通过后，只有新改动、失败或具体未解决风险才重跑或扩大验证。纯指令/文档编辑只检查内容、引用与 diff，不运行项目测试；改动本文件、CLAUDE.md、共享 skills、`.opencode/` 指引或 OpenCode CI 协议时，运行 `uv run python .\scripts\check_agent_guidance.py`。
+- 不因 Skill 建议自动新增测试；仅在用户要求或已接受的交付内容包含测试时添加。GUI、设备、真实环境、E2E 与独立审阅遵循用户授权和全局验证边界。
 - 修改自动化调用前先查 API 签名和仓库同类用法，不显式重复默认参数。
 - 不为了通过检查清理无关遗留警告。
