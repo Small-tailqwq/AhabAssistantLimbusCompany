@@ -274,130 +274,108 @@ def generate_bionic_curve(
     *,
     depth: int = 0,
 ) -> list[tuple[int, int]]:
-    """
-    绝对仿生的人类运动学轨迹生成算法 (WindMouse + MinJerk + Perlin)
-    1. 引入 Remainder Accumulator，防整形截断截断检测 (FFT 频域对抗)。
-    2. 使用 Minimum Jerk 进行理想位置坐标主导，替代受力模型的两段积分失控风险。
-    3. 引入深度参数 depth 阻断二次修正带来的无限递归过冲。
-    """
+    """按距离混合直线、弧线、S 形及轴向分段轨迹，使用 Minimum Jerk 时间规划。"""
     start = np.array([float(start_x), float(start_y)])
     target = np.array([float(end_x), float(end_y)])
     delta = target - start
     dist = float(np.linalg.norm(delta))
-
     if dist < 1.0:
         return [(int(round(start_x)), int(round(start_y))), (int(round(end_x)), int(round(end_y)))]
 
-    # 1. 动态 Fitts 定时预测
     if duration > 0:
         f_time = duration
     else:
         a = abs(random.gauss(0.1, 0.02))
         b = abs(random.gauss(0.18, 0.05))
         f_time = a + b * math.log2((dist / target_width) + 1.0)
-    
-    # 2. Logistic 过冲测算 (限制递归层深)
-    v_avg = dist / f_time
-    is_overshoot = False
     actual_target = target.copy()
-    
+    is_overshoot = False
     if depth == 0 and dist > 24.0:
-        p_overshoot = 1.0 / (1.0 + math.exp(-(0.01 * v_avg - 0.15 * target_width)))
+        v_avg = dist / f_time
+        p_overshoot = 1.0 / (1.0 + math.exp(-(0.008 * v_avg - 0.12 * target_width)))
         if random.random() < p_overshoot:
             is_overshoot = True
             cov = [[target_width**2, 0.0], [0.0, target_width**2]]
-            target_delta = np.clip(np.random.multivariate_normal([0.0, 0.0], cov), -target_width * 1.5, target_width * 1.5)
-            actual_target += target_delta
+            actual_target += np.clip(
+                np.random.multivariate_normal([0.0, 0.0], cov), -target_width * 1.2, target_width * 1.2
+            )
 
-    # 3. 驱动核心 (Minimum Jerk + 分形噪音)
-    steps = max(3, int(f_time * 100)) # e.g. 100Hz
-    
-    noise_x = ValueNoise1D()
-    noise_y = ValueNoise1D()
-    motor_tremor_scale = random.uniform(0.6, 1.4)
-    max_noise = min(dist * 0.08, 12.0) * motor_tremor_scale
-    
-    points: list[tuple[int, int]] = []
-    
-    # 二维余数累加器 (Remainder Accumulator)
-    acc_x, acc_y = 0.0, 0.0
-    pos_int_x, pos_int_y = int(start[0]), int(start[1])
-    prev_float = start.copy()
-    
-    # 3. 计算宏观抛物线偏移 (Wrist/Elbow Pivot Arc)
-    # 人类手臂移动必然带着弧度，绝不会是完全两点一线的直线序列
-    # 计算路线法向量，随机确定外侧鼓包 (最高可偏离直线的 5% - 25%)
-    if dist > 0:
-        normal = np.array([-delta[1], delta[0]]) / dist
+    if depth > 0:
+        weights = (0.7, 0.3, 0.0, 0.0)
+    elif dist < 50:
+        weights = (0.6, 0.3, 0.1, 0.0)
+    elif dist < 150:
+        weights = (0.25, 0.45, 0.2, 0.1)
     else:
-        normal = np.array([0.0, 1.0])
-        
-    bulge = random.choice([-1.0, 1.0]) * random.uniform(0.05, 0.25) * dist
-    bulge = np.clip(bulge, -250.0, 250.0)
-    
-    # 随机化两个非对称的控制点位置，打破死板的对称圆弧
-    cp1_t = random.uniform(0.1, 0.4)
-    cp2_t = random.uniform(0.6, 0.9)
-    ctrl1 = start + delta * cp1_t + normal * bulge * random.uniform(0.5, 1.5)
-    ctrl2 = start + delta * cp2_t + normal * bulge * random.uniform(0.5, 1.5)
-
+        weights = (0.15, 0.4, 0.3, 0.15)
+    trajectory_type = random.choices(("straight", "arc", "s_curve", "staircase"), weights=weights)[0]
+    steps = max(3, int(f_time * 100))
+    noise_x, noise_y = ValueNoise1D(), ValueNoise1D()
+    max_noise = min(dist * 0.06, 10.0) * random.uniform(0.6, 1.4)
     noise_freq = random.uniform(2.0, 5.0)
+    normal = np.array([-delta[1], delta[0]]) / dist
 
-    for step in range(steps + 1):
-        tau = step / steps
-        # Minimum Jerk 掌控物理加速度廓形 (时间规划)
-        s_tau = 10.0 * (tau**3) - 15.0 * (tau**4) + 6.0 * (tau**5)
-        
-        # 三阶 Bezier 赋予空间弧度，且完全拥抱 Minimum Jerk 的时间映射
-        omt = 1.0 - s_tau
-        ideal_pos = (omt**3) * start + 3.0 * (omt**2) * s_tau * ctrl1 + \
-                    3.0 * omt * (s_tau**2) * ctrl2 + (s_tau**3) * actual_target
-        
-        envelope = math.sin(tau * math.pi)
-        nx = noise_x.fractal(tau * noise_freq, octaves=3) * max_noise * envelope
-        ny = noise_y.fractal(tau * noise_freq, octaves=3) * max_noise * envelope
-        
-        current_float_pos = ideal_pos + np.array([nx, ny])
-        
-        # [极度关键] 必须是帧与帧之间的 Delta (导数)，绝不能是当前游标与目标的 Error，否则构成积分发散放大器！
-        step_delta_x = current_float_pos[0] - prev_float[0]
-        step_delta_y = current_float_pos[1] - prev_float[1]
-        prev_float = current_float_pos.copy()
-        
-        acc_x += step_delta_x
-        acc_y += step_delta_y
-        
-        if abs(acc_x) >= 1.0:
-            move_x = int(math.trunc(acc_x))
-            acc_x -= move_x
-            pos_int_x += move_x
-            
-        if abs(acc_y) >= 1.0:
-            move_y = int(math.trunc(acc_y))
-            acc_y -= move_y
-            pos_int_y += move_y
-            
-        # 必须帧帧推送（哪怕是重合静止像素），才能让驱动执行层感受到“停顿和极慢速”的时序分布！
-        points.append((pos_int_x, pos_int_y))
-            
-    # 中转点收尾：确保无浮点误差偏移
-    final_x_int = int(round(actual_target[0]))
-    final_y_int = int(round(actual_target[1]))
-    if not points or points[-1] != (final_x_int, final_y_int):
-        points.append((final_x_int, final_y_int))
+    waypoints = [start, actual_target]
+    if trajectory_type == "staircase":
+        intermediate = start.copy()
+        axis = 0 if random.random() < 0.5 else 1
+        intermediate[axis] += (actual_target[axis] - start[axis]) * random.uniform(0.5, 0.9)
+        intermediate[1 - axis] += random.uniform(-dist * 0.02, dist * 0.02)
+        waypoints.insert(1, intermediate)
 
-    # 4. 二次修正回落
-    if is_overshoot and depth == 0:
-        corr_points = generate_bionic_curve(
-            final_x_int, final_y_int, target[0], target[1], 
-            target_width=max(target_width * 0.4, 2.0),
-            depth=depth + 1
-        )
-        if points and corr_points and points[-1] == corr_points[0]:
-            points.extend(corr_points[1:])
+    points: list[tuple[int, int]] = []
+    for index, (segment_start, segment_end) in enumerate(zip(waypoints, waypoints[1:])):
+        segment_delta = segment_end - segment_start
+        if trajectory_type == "straight":
+            bulge = np.clip(random.uniform(-0.03, 0.03) * dist, -15.0, 15.0)
+            ctrl1 = start + delta * random.uniform(0.25, 0.4) + normal * bulge
+            ctrl2 = start + delta * random.uniform(0.6, 0.75) + normal * bulge
+        elif trajectory_type == "s_curve":
+            bulge = min(random.uniform(0.08, 0.18) * dist, 180.0) * random.choice((-1.0, 1.0))
+            ctrl1 = start + delta * random.uniform(0.2, 0.4) + normal * bulge
+            ctrl2 = start + delta * random.uniform(0.6, 0.8) - normal * bulge * random.uniform(0.6, 1.0)
+        elif trajectory_type == "staircase":
+            ctrl1 = segment_start + segment_delta * 0.33
+            ctrl2 = segment_start + segment_delta * 0.67
         else:
-            points.extend(corr_points)
+            bulge = np.clip(random.choice((-1.0, 1.0)) * random.uniform(0.05, 0.2) * dist, -200.0, 200.0)
+            ctrl1 = start + delta * random.uniform(0.15, 0.4) + normal * bulge * random.uniform(0.6, 1.4)
+            ctrl2 = start + delta * random.uniform(0.6, 0.85) + normal * bulge * random.uniform(0.6, 1.4)
+        segment_steps = steps if len(waypoints) == 2 else (steps // 2 if index == 0 else steps - steps // 2)
+        acc_x, acc_y = 0.0, 0.0
+        pos_int_x, pos_int_y = int(segment_start[0]), int(segment_start[1])
+        prev_float = segment_start.copy()
+        for step in range(segment_steps + 1):
+            tau = step / segment_steps
+            s_tau = 10.0 * tau**3 - 15.0 * tau**4 + 6.0 * tau**5
+            omt = 1.0 - s_tau
+            ideal_pos = (
+                omt**3 * segment_start + 3.0 * omt**2 * s_tau * ctrl1
+                + 3.0 * omt * s_tau**2 * ctrl2 + s_tau**3 * segment_end
+            )
+            envelope = math.sin(tau * math.pi)
+            current_float_pos = ideal_pos + np.array([
+                noise_x.fractal(tau * noise_freq, octaves=3) * max_noise * envelope,
+                noise_y.fractal(tau * noise_freq, octaves=3) * max_noise * envelope,
+            ])
+            # 累积相邻浮点坐标的差值，避免逐点截断丢失亚像素位移。
+            acc_x += current_float_pos[0] - prev_float[0]
+            acc_y += current_float_pos[1] - prev_float[1]
+            prev_float = current_float_pos.copy()
+            move_x, move_y = math.trunc(acc_x), math.trunc(acc_y)
+            acc_x, acc_y = acc_x - move_x, acc_y - move_y
+            pos_int_x, pos_int_y = pos_int_x + move_x, pos_int_y + move_y
+            points.append((pos_int_x, pos_int_y))
 
+    final_point = (int(round(actual_target[0])), int(round(actual_target[1])))
+    if points[-1] != final_point:
+        points.append(final_point)
+    if is_overshoot:
+        correction = generate_bionic_curve(
+            *final_point, *target, target_width=max(target_width * 0.4, 2.0), depth=depth + 1
+        )
+        points.extend(correction[1:] if points[-1] == correction[0] else correction)
     return points
+
 
 HumanKinematics.generate_bionic_curve = staticmethod(generate_bionic_curve)
