@@ -468,6 +468,13 @@ class Battle:
                 if infinite_battle:
                     continue
                 break
+            # 镜牢最终结算页不一定显示战斗统计，交回镜牢流程领取奖励。
+            if not infinite_battle and (
+                auto.find_element("mirror/claim_reward/claim_rewards_assets.png")
+                and auto.find_element("mirror/claim_reward/complete_mirror_100%_assets.png")
+            ):
+                in_mirror = True
+                break
             if not self.is_tool:
                 # 点击中心以跳过播报员播报加速结算动画
                 random_number = random.randint(-10, 10)
