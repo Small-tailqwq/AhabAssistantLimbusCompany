@@ -2,14 +2,15 @@
 AALC Log Compression Analyzer
 =============================
 Compresses massive AALC debug logs into a concise report.
-Saves output to <log_path>.report.txt (UTF-8).
+Saves output beside the log with a .report.txt suffix (UTF-8).
+Use --output to choose a new destination; existing files are never overwritten.
 
 Usage:
-    python log_analyzer.py <log_path>
+    python log_analyzer.py <log_path> [--output <report_path>]
 """
 
+import argparse
 import re
-import sys
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
@@ -254,7 +255,11 @@ def generate_report(log_path: str) -> str:
     emit("-" * 72)
     emit("  [Key Events - non-DEBUG]")
     emit("-" * 72)
-    for lineno, level, body in extract_key_events(lines)[:50]:
+    events = extract_key_events(lines)
+    selected_events = events if len(events) <= 50 else events[:25] + events[-25:]
+    for index, (lineno, level, body) in enumerate(selected_events):
+        if len(events) > 50 and index == 25:
+            emit(f"  ... ({len(events) - 50} middle events omitted)")
         b = body[:200] if len(body) > 200 else body
         emit(f"  L{lineno:>6} [{level:>5}] {b}")
     emit()
@@ -294,12 +299,14 @@ def generate_report(log_path: str) -> str:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python log_analyzer.py <log_path>")
-        sys.exit(1)
-
-    log_path = sys.argv[1]
-    report = generate_report(log_path)
-    out_path = Path(log_path).with_suffix(".report.txt")
-    out_path.write_text(report, encoding="utf-8")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("log_path", type=Path)
+    parser.add_argument("--output", type=Path, help="Report destination; must not already exist")
+    args = parser.parse_args()
+    out_path = args.output or args.log_path.with_suffix(".report.txt")
+    if out_path.exists():
+        parser.error(f"Report already exists: {out_path}; choose a new --output path")
+    report = generate_report(args.log_path)
+    with out_path.open("x", encoding="utf-8") as output:
+        output.write(report)
     print(f"Report saved to: {out_path}")
