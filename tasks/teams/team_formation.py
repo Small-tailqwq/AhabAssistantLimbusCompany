@@ -340,13 +340,15 @@ def deal_with_spills():
 
 
 @begin_and_finish_time_log(task_name="检查队伍剩余战斗力")
-def check_team():
-    # 至少还有5人可以战斗
-    sinner_nums = [f"{a}/{b}" for b in range(5, 10) for a in range(5, b + 1)]
-    if auto.find_element(sinner_nums, find_type="text"):
-        return True
-    else:
-        return False
+def check_team() -> bool | None:
+    # 未识别到人数不代表战力不足；调用方只在明确返回 False 时放弃镜牢。
+    for text in auto.get_text_from_screenshot():
+        match = re.search(r"(?<!\d)(\d{1,2})\s*/\s*(\d{1,2})(?!\d)", text)
+        if match:
+            alive, total = map(int, match.groups())
+            if 0 <= alive <= total <= 12 and total > 0:
+                return alive >= 5
+    return None
 
 
 @begin_and_finish_time_log(task_name="加载编队码")
