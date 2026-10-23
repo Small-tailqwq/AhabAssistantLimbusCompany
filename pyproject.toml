@@ -117,6 +117,8 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
+"debug_tools/check_logitech_mouse.py" = ["T201"]
+"debug_tools/repro_ghub_worker_qthread_crash.py" = ["T201"]
 # CLI 诊断工具，print 是其预期输出方式
 "debug_tools/check_hdr.py" = ["T201"]
 "debug_tools/check_template_click_target.py" = ["T201"]

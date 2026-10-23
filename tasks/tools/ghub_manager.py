@@ -27,6 +27,34 @@ class _POINT(ctypes.Structure):
     _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
 
 
+def _probe_mouse_move(dll) -> bool:
+    """发一次相对移动并校验光标位移。
+
+    `device_open()` 成功、`move()` 返回 True 都只说明 IOCTL 被驱动接受了；
+    总线枚举器下没有虚拟 HID 子设备时驱动会吞掉请求，光标不动但调用依旧成功。
+    """
+    move = dll.move
+    move.argtypes = [ctypes.c_byte, ctypes.c_byte]
+    move.restype = ctypes.c_bool
+
+    get_cursor_pos = ctypes.windll.user32.GetCursorPos
+    get_cursor_pos.restype = ctypes.c_bool
+
+    before = _POINT()
+    if not get_cursor_pos(ctypes.byref(before)):
+        return False
+    # 贴近屏幕右缘时 +3 会被系统钳制，改用向左移动，避免误判为不可用。
+    dx = -3 if before.x >= ctypes.windll.user32.GetSystemMetrics(0) - 3 else 3
+
+    if not move(dx, 0):
+        return False
+    sleep(0.05)
+    p2 = _POINT()
+    if not get_cursor_pos(ctypes.byref(p2)):
+        return False
+    return p2.x == before.x + dx and p2.y == before.y
+
+
 def _find_ghub_dir() -> str:
     try:
         import winreg
@@ -54,11 +82,6 @@ def _find_ghub_dir() -> str:
 
 _GHUB_DIR = _find_ghub_dir()
 LGHUB_EXE = os.path.join(_GHUB_DIR, "lghub.exe")
-LGHUB_UPDATER = os.path.join(_GHUB_DIR, "lghub_updater.exe")
-LGHUB_UPDATER_DISABLED = LGHUB_UPDATER + ".disabled"
-LGHUB_DEPOTS = os.path.join(os.environ["PROGRAMDATA"], "LGHUB", "depots")
-LGHUB_DEPOTS_DISABLED = LGHUB_DEPOTS + ".disabled"
-LGHUB_SERVICE = "LGHUBUpdaterService"
 HOSTS_PATH = os.path.join(os.environ["WINDIR"], "System32", "drivers", "etc", "hosts")
 HOSTS_BLOCK_RULES = [
     "127.0.0.1 updates.ghub.logitechg.com",
@@ -72,10 +95,15 @@ HOSTS_BACKUP = os.path.join(BACKUP_DIR, "hosts.ghub.backup")
 
 class GHubWorker(QThread):
     log_line = Signal(str)
-    finished = Signal(bool, str)
+    result_ready = Signal(bool, str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._stop_requested = False
+
+    def request_stop(self):
+        """请求协作式停止：worker 在可中断的等待点检查该标志。"""
+        self._stop_requested = True
 
     def _log(self, msg: str):
         self.log_line.emit(msg)
@@ -103,12 +131,9 @@ class GHubWorker(QThread):
             device_open.restype = ctypes.c_bool
             if not device_open():
                 return False
-            move = dll.move
-            move.argtypes = [ctypes.c_byte, ctypes.c_byte]
-            move.restype = ctypes.c_bool
-            move(3, 0)
-            sleep(0.05)
-            return True
+            # device_open 只能证明驱动设备在：总线枚举器下缺少虚拟 HID 子设备时
+            # move() 返回成功但光标不动，必须按真实位移判定。
+            return _probe_mouse_move(dll)
         except Exception as e:
             log.warning(f"DLL 就绪检测异常: {e}")
             return False
@@ -121,6 +146,8 @@ class GHubWorker(QThread):
 
     def _wait_for_dll(self, timeout: int = 30) -> bool:
         for i in range(timeout):
+            if self._stop_requested:
+                return False
             if self._is_dll_ready():
                 return True
             if i < timeout - 1:
@@ -144,8 +171,7 @@ class GHubWorker(QThread):
 
     def _add_hosts_blocks(self):
         if not os.path.exists(HOSTS_PATH):
-            self._log("  HOSTS 文件不存在，跳过")
-            return
+            raise FileNotFoundError(2, os.strerror(2), HOSTS_PATH)
         try:
             with open(HOSTS_PATH, "r") as f:
                 existing = {line.strip() for line in f}
@@ -162,14 +188,7 @@ class GHubWorker(QThread):
                 self._log("  HOSTS 封锁规则已存在")
         except OSError as e:
             self._log(f"  HOSTS 写入失败: {e}")
-
-    def _rename_file(self, src: str, dst: str, label: str):
-        try:
-            shutil.move(src, dst)
-            self._log(f"  {label}成功")
-        except OSError as e:
-            self._log(f"  {label}失败: {e}")
-            log.warning(f"重命名失败 {src} -> {dst}: {e}")
+            raise
 
     def _remove_hosts_blocks(self):
         if not os.path.exists(HOSTS_PATH):
@@ -188,26 +207,28 @@ class GHubWorker(QThread):
                 subprocess.run(["ipconfig", "/flushdns"], capture_output=True, check=False)
         except OSError as e:
             self._log(f"  HOSTS 写入失败: {e}")
+            raise
 
 
 class GHubStartWorker(GHubWorker):
     dll_ready = Signal(bool)
 
     def run(self):
-        self._log("正在恢复 G HUB 更新通道...")
-        if os.path.exists(LGHUB_UPDATER_DISABLED):
-            self._rename_file(LGHUB_UPDATER_DISABLED, LGHUB_UPDATER, "updater")
-        if os.path.exists(LGHUB_DEPOTS_DISABLED):
-            self._rename_file(LGHUB_DEPOTS_DISABLED, LGHUB_DEPOTS, "depots")
-        self._run_cmd(["sc.exe", "config", LGHUB_SERVICE, "start=", "auto"], "恢复服务")
-        self._log("  LGHUBUpdaterService 已恢复")
-
+        if self._stop_requested:
+            return
         self._log("正在重新启动 G HUB...")
         self._kill_ghub_processes()
         sleep(2)
-        subprocess.Popen([LGHUB_EXE], creationflags=subprocess.DETACHED_PROCESS)
+        if self._stop_requested:
+            return
+        try:
+            subprocess.Popen([LGHUB_EXE], creationflags=subprocess.DETACHED_PROCESS)
+        except OSError as e:
+            self._log(f"G HUB 启动失败: {e}")
+            self.result_ready.emit(False, f"G HUB 启动失败: {e}")
+            return
 
-        self._log("等待 DLL 就绪...")
+        self._log("等待 DLL 就绪（以光标真实位移为准）...")
         ok = self._wait_for_dll()
         if ok:
             self._log("DLL 已可用")
@@ -215,70 +236,50 @@ class GHubStartWorker(GHubWorker):
         else:
             self._log("等待超时，DLL 仍未就绪")
             self.dll_ready.emit(False)
-        self.finished.emit(True, "G HUB 启动成功" if ok else "启动超时")
+        self.result_ready.emit(ok, "G HUB 启动成功" if ok else "DLL 未就绪")
 
 
 class GHubEnableUpdatesWorker(GHubWorker):
     def run(self):
         self._log("正在恢复更新通道...")
-        if os.path.exists(LGHUB_UPDATER_DISABLED):
-            self._rename_file(LGHUB_UPDATER_DISABLED, LGHUB_UPDATER, "updater")
-        if os.path.exists(LGHUB_DEPOTS_DISABLED):
-            self._rename_file(LGHUB_DEPOTS_DISABLED, LGHUB_DEPOTS, "depots")
-        self._run_cmd(["sc.exe", "config", LGHUB_SERVICE, "start=", "auto"], "恢复服务")
-
-        self._restore_hosts_or_clean()
+        try:
+            self._restore_hosts_or_clean()
+        except OSError as e:
+            self._log(f"恢复更新通道失败: {e}")
+            self.result_ready.emit(False, f"恢复更新通道失败: {e}")
+            return
 
         cfg.set_value("ghub_updates_blocked", False)
-        self._log("更新通道已全部恢复")
-        self.finished.emit(True, "更新通道已恢复")
+        self._log("更新通道已恢复")
+        self.result_ready.emit(True, "更新通道已恢复")
 
 
 class GHubDisableUpdatesWorker(GHubWorker):
     def run(self):
-        self._log("正在封锁 G HUB 更新...")
-        self._kill_ghub_processes()
-        self._log("  G HUB 进程已终止")
-
-        self._run_cmd(["sc.exe", "stop", LGHUB_SERVICE], "停止服务")
-        self._run_cmd(["sc.exe", "config", LGHUB_SERVICE, "start=", "disabled"], "禁用服务")
-        self._log("  服务已禁用")
-        sleep(1)
-
-        if os.path.exists(LGHUB_UPDATER):
-            try:
-                shutil.move(LGHUB_UPDATER, LGHUB_UPDATER_DISABLED)
-                self._log("  updater 已封锁")
-            except OSError as e:
-                self._log(f"  updater 封锁失败: {e}，中止操作")
-                self.finished.emit(False, f"updater 封锁失败: {e}")
-                return
-
-        if os.path.exists(LGHUB_DEPOTS):
-            shutil.rmtree(LGHUB_DEPOTS, ignore_errors=True)
-            if os.path.exists(LGHUB_DEPOTS):
-                self._rename_file(LGHUB_DEPOTS, LGHUB_DEPOTS_DISABLED, "depots")
-            else:
-                self._log("  depots 已清理")
-
+        self._log("正在封锁 G HUB 更新通道...")
         self._log("正在备份 HOSTS...")
-        self._backup_hosts()
-        self._add_hosts_blocks()
-        self._log("  HOSTS 封锁规则已添加")
+        try:
+            self._backup_hosts()
+            self._add_hosts_blocks()
+        except OSError as e:
+            self._log(f"封锁更新失败: {e}")
+            self.result_ready.emit(False, f"封锁更新失败: {e}")
+            return
 
         cfg.set_value("ghub_updates_blocked", True)
-        self._log("更新封锁完成")
-        self.finished.emit(True, "更新已封锁，G HUB 版本将被锁定")
+        self._log("更新封锁完成：仅拦截更新域名，G HUB 与驱动状态保持不变")
+        self.result_ready.emit(True, "更新已封锁（仅 HOSTS 拦截）")
 
 
 class GHubManager(QWidget):
     def _logitech_instruction(self) -> str:
         return self.tr(
             "使用流程：\n"
-            "1. 检测 DLL — 确认当前罗技驱动 DLL 是否可用\n"
-            "2. 启动 G HUB — 若 DLL 不可用则自动恢复更新通道并启动 G HUB\n"
-            "3. 封锁更新 — DLL 就绪后建议锁定版本，防止自动升级导致不兼容\n\n"
-            "注意：G HUB 启动后可能弹出更新提示，关闭即可，不影响 DLL 使用。"
+            "1. 检测 DLL — 按光标真实位移确认罗技驱动 DLL 是否可用\n"
+            "2. 启动 G HUB — DLL 不可用时重启 G HUB，不修改服务、驱动与 depots\n"
+            "3. 封锁更新 — 仅向 HOSTS 添加更新域名拦截，G HUB 保持运行\n\n"
+            "注意：缺少虚拟 HID 子设备时 move 调用仍会成功但光标不动，"
+            "以「检测 DLL」结果为准。"
         )
 
     def _razer_instruction(self) -> str:
@@ -294,6 +295,7 @@ class GHubManager(QWidget):
         self.setMinimumSize(480, 420)
         self.setAttribute(Qt.WA_DeleteOnClose, True)
         self._worker = None
+        self._close_pending = False
         self._driver_type = "logitech"
         self._init_ui()
         self._apply_theme_style()
@@ -415,8 +417,14 @@ class GHubManager(QWidget):
         self.log_text.append(msg)
 
     def _on_worker_finished(self):
-        self._set_buttons_enabled(True)
+        worker = self._worker
         self._worker = None
+        if worker is not None:
+            worker.deleteLater()
+        self._set_buttons_enabled(True)
+        if self._close_pending:
+            self._close_pending = False
+            self.close()
 
     def _on_check_dll(self):
         if self._driver_type == "logitech":
@@ -459,11 +467,8 @@ class GHubManager(QWidget):
             self.tr("确认封锁更新"),
             self.tr(
                 "即将执行以下操作：\n"
-                "  - 终止 G HUB 进程\n"
-                "  - 禁用 LGHUBUpdaterService\n"
-                "  - 改名 lghub_updater.exe 封锁\n"
-                "  - 清理 depots 目录\n"
-                "  - 添加 HOSTS 封锁规则\n\n"
+                "  - 向 HOSTS 添加更新域名封锁规则\n\n"
+                "不会终止 G HUB 进程，也不会修改服务、驱动文件或 depots 目录。\n\n"
                 "确认继续？"
             ),
             QMessageBox.Yes | QMessageBox.No,
@@ -482,10 +487,7 @@ class GHubManager(QWidget):
             self.tr("确认恢复更新"),
             self.tr(
                 "即将执行以下操作：\n"
-                "  - 恢复 lghub_updater.exe\n"
-                "  - 恢复 depots 目录\n"
-                "  - 启用 LGHUBUpdaterService\n"
-                "  - 移除 HOSTS 封锁规则\n\n"
+                "  - 移除 HOSTS 中的更新域名封锁规则\n\n"
                 "恢复后 G HUB 可自动更新到最新版本，可能因版本变更导致罗技 DLL 失效。\n确认继续？"
             ),
             QMessageBox.Yes | QMessageBox.No,
@@ -499,12 +501,14 @@ class GHubManager(QWidget):
         self._run_worker(worker)
 
     def closeEvent(self, event):
-        if self._worker and self._worker.isRunning():
-            self._worker.quit()
-            if not self._worker.wait(2000):
-                self._worker.terminate()
-                self._worker.wait(1000)
-        event.accept()
+        worker = self._worker
+        if worker is None or not worker.isRunning():
+            event.accept()
+            return
+        worker.request_stop()
+        self._close_pending = True
+        self.hide()
+        event.ignore()
 
 
 class _DllCheckWorker(GHubWorker):
@@ -519,7 +523,7 @@ class _DllCheckWorker(GHubWorker):
         if not self._dll_path or not os.path.exists(self._dll_path):
             self.log_line.emit("DLL 文件不存在")
             self.dll_detected.emit(False, self.tr("文件不存在"))
-            self.finished.emit(False, "DLL 未找到")
+            self.result_ready.emit(False, "DLL 未找到")
             return
 
         if self._check_ghub_block:
@@ -536,35 +540,25 @@ class _DllCheckWorker(GHubWorker):
             if not device_open():
                 self.log_line.emit("  device_open() 返回 False，DLL 不可用")
                 self.dll_detected.emit(False, self.tr("device_open 失败"))
-                self.finished.emit(False, "device_open 失败")
+                self.result_ready.emit(False, "device_open 失败")
                 return
 
             move = dll.move
             move.argtypes = [ctypes.c_byte, ctypes.c_byte]
             move.restype = ctypes.c_bool
 
-            GetCursorPos = ctypes.windll.user32.GetCursorPos
-            GetCursorPos.restype = ctypes.c_bool
-
-            p1 = _POINT()
-            GetCursorPos(ctypes.byref(p1))
-            move(3, 0)
-            sleep(0.05)
-            p2 = _POINT()
-            GetCursorPos(ctypes.byref(p2))
-
-            if p2.x == p1.x + 3:
-                self.log_line.emit("  move(3,0) 验证通过，DLL 正常工作")
+            if _probe_mouse_move(dll):
+                self.log_line.emit("  光标位移验证通过，DLL 正常工作")
                 self.dll_detected.emit(True, self.tr("可用"))
-                self.finished.emit(True, "DLL 正常工作")
+                self.result_ready.emit(True, "DLL 正常工作")
             else:
-                self.log_line.emit("  move(3,0) 未生效，驱动异常")
+                self.log_line.emit("  光标未移动：虚拟 HID 子设备缺失，移动请求被驱动吞掉")
                 self.dll_detected.emit(False, self.tr("鼠标移动未生效"))
-                self.finished.emit(False, "鼠标移动未生效")
+                self.result_ready.emit(False, "鼠标移动未生效")
         except Exception as e:
             self.log_line.emit(f"  DLL 检测异常: {e}")
             self.dll_detected.emit(False, self.tr("检测异常"))
-            self.finished.emit(False, f"DLL 检测失败: {e}")
+            self.result_ready.emit(False, f"DLL 检测失败: {e}")
         finally:
             if dll is not None:
                 try:
