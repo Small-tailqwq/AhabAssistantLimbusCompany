@@ -451,7 +451,10 @@ class MumuControl(AbstractInput):
         try:
             if multi_instance_number is None and self.multi_instance_number is None:
                 self.multi_instance_number = 0
-            if int(self.multi_instance_number) <= 1536:
+            instance = int(self.multi_instance_number)
+            if instance > 1536:
+                return f"127.0.0.1:{instance}"
+            if instance <= 1536:
                 cmd = f"{self.exe_path} adb -v {self.multi_instance_number}"
                 no_window_flag = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0x08000000
                 proc = subprocess.run(
@@ -461,11 +464,14 @@ class MumuControl(AbstractInput):
                     encoding="utf-8",
                     creationflags=no_window_flag,
                 )
-                adb_info = json.loads(proc.stdout)
-                try:
-                    return f"{adb_info['adb_host']}:{adb_info['adb_port']}"
-                except Exception:
-                    return f"127.0.0.1:{int(self.multi_instance_number) * 32 + 16384}"
+                output_lines = proc.stdout.strip().splitlines()
+                clean_json = "\n".join(line for line in output_lines if "Active code page" not in line)
+                adb_info = json.loads(clean_json)
+                host = adb_info.get("adb_host") or adb_info.get("adb_host_ip") or "127.0.0.1"
+                port = adb_info.get("adb_port")
+                if port:
+                    return f"{host}:{port}"
+                return self._default_adb_port(instance)
         except userStopError:
             raise
         except Exception as e:
@@ -473,12 +479,17 @@ class MumuControl(AbstractInput):
                 log.warning(
                     f"get_mumu_adb_port 重试耗尽 ({_MAX_DEPTH}轮)，使用默认端口计算"
                 )
-                return f"127.0.0.1:{int(self.multi_instance_number) * 32 + 16384}"
+                return self._default_adb_port(int(self.multi_instance_number))
             log.debug(
                 f"get_mumu_adb_port 异常 (轮次{_depth+1}/{_MAX_DEPTH}): {type(e).__name__}: {e}, 等待后重试"
             )
             time.sleep(3)
             return self.get_mumu_adb_port(multi_instance_number, _depth + 1)
+
+    def _default_adb_port(self, instance):
+        if self.mumu_version is not None and self.mumu_version >= 5:
+            return f"127.0.0.1:{5555 + 2 * instance}"
+        return f"127.0.0.1:{instance * 32 + 16384}"
 
     def start(self):
         # 预先处理后台保活（仅在首次）
