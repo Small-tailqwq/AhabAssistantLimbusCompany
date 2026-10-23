@@ -293,7 +293,7 @@ class MumuControl(AbstractInput):
         if self.exe_path:
             log.debug(f"MumuControl.__init__: exe_path 已初始化 -> {self.exe_path}")
         else:
-            log.warning("MumuControl.__init__: exe_path 未初始化, 将由 start() 异常 fallback 重试")
+            log.warning("MumuControl.__init__: exe_path 未初始化, 将在 start() 中补查, 仍失败则抛出异常")
         self.start()
         self.adb_connect()
 
@@ -492,13 +492,17 @@ class MumuControl(AbstractInput):
         return f"127.0.0.1:{instance * 32 + 16384}"
 
     def start(self):
-        # 预先处理后台保活（仅在首次）
         self.check_stop_requested()
+        if self.exe_path is None:
+            self.mumu_control_api_backend()
+            if self.exe_path is None:
+                message = "未找到 MuMuManager.exe，请检查 MuMu 模拟器 12 是否已安装且版本受支持"
+                raise RuntimeError(message)
         log.debug(f"开始启动MUMU模拟器实例编号{self.multi_instance_number}")
         keptlive = self.get_app_keptlive()
         if keptlive:
             log.info("检测到启用了应用后台保活功能，即将关闭")
-            if self.get_launch_status() == "start_finished":
+            if self.get_launch_status(timeout=5) == "start_finished":
                 log.info("检测到模拟器处于启用状态，为关闭应用后台保活，需执行重启")
                 self.stop()
             self.disable_app_keptlive()
@@ -523,7 +527,8 @@ class MumuControl(AbstractInput):
         # 的共享内存可能稍后才可用，因此以 connect() 成功作为最终就绪条件。
         while time.monotonic() < deadline:
             self.check_stop_requested()
-            if self.get_launch_status() != "start_finished":
+            remaining = max(0, deadline - time.monotonic())
+            if self.get_launch_status(timeout=min(5, remaining)) != "start_finished":
                 time.sleep(min(1, max(0, deadline - time.monotonic())))
                 continue
 
@@ -693,19 +698,25 @@ class MumuControl(AbstractInput):
             self.mumu_control_api_backend()
             self.enable_app_keptlive()
 
-    def get_launch_status(self):
+    def get_launch_status(self, *, timeout=None):
         # 获取启动状态
         cmd = [self.exe_path, "info", "-v", str(self.multi_instance_number)]
         no_window_flag = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0x08000000
-        proc = subprocess.run(
-            cmd,
-            universal_newlines=True,
-            capture_output=True,
-            encoding="utf-8",
-            creationflags=no_window_flag,
-        )
         try:
-            info = json.loads(proc.stdout)
+            proc = subprocess.run(
+                cmd,
+                universal_newlines=True,
+                capture_output=True,
+                encoding="utf-8",
+                creationflags=no_window_flag,
+                timeout=timeout,
+            )
+        except subprocess.TimeoutExpired:
+            return "not_launched"
+        try:
+            output_lines = proc.stdout.strip().splitlines()
+            clean_json = "\n".join(line for line in output_lines if "Active code page" not in line)
+            info = json.loads(clean_json)
         except Exception:
             log.warning(f"get_launch_status: 解析 info 失败，stdout={proc.stdout}")
             return "not_launched"
