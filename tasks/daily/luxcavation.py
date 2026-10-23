@@ -8,6 +8,7 @@ import numpy as np
 from module.automation import auto
 from module.config import cfg
 from module.logger import log
+from tasks.base.retry import handle_server_error_dialog
 
 _CONTINUOUS_COMBAT_DEFAULT_COUNT = 1
 _THREAD_CONSUME_ASSET = "luxcavation/thread_consume.png"
@@ -139,6 +140,11 @@ def EXP_luxcavation(combat_count: int = 1):
         # 自动截图
         if auto.take_screenshot() is None:
             continue
+        server_error_result = handle_server_error_dialog()
+        if server_error_result is False:
+            return False
+        if server_error_result is True:
+            continue
         if auto.find_element("teams/identify_assets.png"):
             break
         if (
@@ -217,6 +223,11 @@ def thread_luxcavation(combat_count: int = 1):
     while True:
         # 自动截图
         if auto.take_screenshot() is None:
+            continue
+        server_error_result = handle_server_error_dialog()
+        if server_error_result is False:
+            return False
+        if server_error_result is True:
             continue
         if auto.find_element("teams/identify_assets.png"):
             break

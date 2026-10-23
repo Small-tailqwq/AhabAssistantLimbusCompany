@@ -1,7 +1,12 @@
 import os
+import re
 import platform
 import time
 from time import sleep
+from dataclasses import dataclass
+
+import cv2
+import numpy as np
 
 import win32process
 
@@ -14,6 +19,117 @@ from utils.utils import check_game_running
 _last_title_screen_tap_time = 0.0
 _last_simulator_alive_check_time = 0.0
 _pending_simulator_launch_probe = False
+
+_last_server_error_retry_time = 0.0
+_server_error_disabled_since: float | None = None
+
+SERVER_ERROR_RETRY_INTERVAL = 5.0
+SERVER_ERROR_DISABLED_TIMEOUT = 15.0
+
+
+@dataclass(frozen=True)
+class ServerErrorDialog:
+    close_position: tuple[int, int]
+    close_bounds: tuple[int, int, int, int]
+    retry_position: tuple[int, int]
+    retry_bounds: tuple[int, int, int, int]
+
+
+def _entry_with_text(
+    entries: list[tuple[str, tuple[int, int, int, int]]], target: str
+) -> tuple[str, tuple[int, int, int, int]] | None:
+    return next((entry for entry in entries if target in entry[0]), None)
+
+
+def find_server_error_dialog(
+    entries: list[tuple[str, tuple[int, int, int, int]]],
+) -> ServerErrorDialog | None:
+    """从当前帧 OCR 结果中识别新版中文服务器错误弹窗。"""
+    error = _entry_with_text(entries, "服务器发生错误")
+    later = _entry_with_text(entries, "请稍后再试")
+    close = _entry_with_text(entries, "关闭")
+    retry = _entry_with_text(entries, "重试")
+    if not all((error, later, close, retry)):
+        return None
+
+    _, error_bounds = error
+    _, later_bounds = later
+    _, close_bounds = close
+    _, retry_bounds = retry
+    close_position = ((close_bounds[0] + close_bounds[2]) // 2, (close_bounds[1] + close_bounds[3]) // 2)
+    retry_position = ((retry_bounds[0] + retry_bounds[2]) // 2, (retry_bounds[1] + retry_bounds[3]) // 2)
+    message_bottom = max(error_bounds[3], later_bounds[3])
+    if retry_position[0] <= close_position[0] or min(close_position[1], retry_position[1]) <= message_bottom:
+        return None
+
+    return ServerErrorDialog(close_position, close_bounds, retry_position, retry_bounds)
+
+
+def is_retry_button_enabled(image: np.ndarray, bounds: tuple[int, int, int, int]) -> bool:
+    """根据新版按钮金色文字的饱和度判断“重试”是否仍可点击。"""
+    x1, y1, x2, y2 = bounds
+    height, width = image.shape[:2]
+    crop = image[max(0, y1 - 4) : min(height, y2 + 4), max(0, x1 - 4) : min(width, x2 + 4)]
+    if crop.size == 0:
+        return False
+
+    hsv = cv2.cvtColor(crop, cv2.COLOR_RGB2HSV)
+    gold_pixels = (hsv[:, :, 1] > 20) & (hsv[:, :, 2] > 100)
+    return int(gold_pixels.sum()) >= 8
+
+
+def _is_server_error_retry_countdown(entries: list[tuple[str, tuple[int, int, int, int]]]) -> bool:
+    return any("重试" in text and re.search(r"重试\s*\d+", text) for text, _ in entries)
+
+
+def handle_server_error_dialog(now: float | None = None) -> bool | None:
+    """处理服务器错误：True 为已拦截重试，False 为关闭重启，None 为非目标弹窗。"""
+    global _last_server_error_retry_time, _server_error_disabled_since
+
+    entries = auto.get_ocr_entries()
+    dialog = find_server_error_dialog(entries)
+    if dialog is None:
+        _server_error_disabled_since = None
+        return None
+
+    now = time.time() if now is None else now
+    if _is_server_error_retry_countdown(entries):
+        _server_error_disabled_since = None
+        log.info("服务器错误弹窗的重试正在游戏倒计时中，等待按钮恢复可点击")
+        return True
+
+    color_screenshot = auto.screenshot_rgb
+    if color_screenshot is None:
+        log.warning("检测到服务器错误弹窗，但当前帧缺少彩色截图，等待下一帧后再处理")
+        return True
+
+    image = np.asarray(color_screenshot)
+    if is_retry_button_enabled(image, dialog.retry_bounds):
+        _server_error_disabled_since = None
+        if now - _last_server_error_retry_time >= SERVER_ERROR_RETRY_INTERVAL:
+            log.info("检测到服务器错误弹窗，点击重试")
+            auto.mouse_click(*dialog.retry_position)
+            _last_server_error_retry_time = now
+        else:
+            log.debug("服务器错误弹窗的重试仍在 AALC 5 秒节流窗口内")
+        return True
+
+    if _server_error_disabled_since is None:
+        _server_error_disabled_since = now
+        log.info("服务器错误弹窗的重试暂不可用，等待其恢复")
+        return True
+    if now - _server_error_disabled_since < SERVER_ERROR_DISABLED_TIMEOUT:
+        log.debug("服务器错误弹窗的重试仍不可用，继续等待")
+        return True
+
+    log.warning("服务器错误弹窗的重试长时间不可用，关闭弹窗并重启游戏")
+    auto.mouse_click(*dialog.close_position)
+    _server_error_disabled_since = None
+    kill_game()
+    restart_game()
+    return False
+
+
 
 
 def _get_simulator_connection_device():
@@ -210,6 +326,11 @@ def retry():
         if check_times(start_time):
             return False
         if auto.take_screenshot() is None:
+            continue
+        server_error_result = handle_server_error_dialog()
+        if server_error_result is not None:
+            if server_error_result is False:
+                return False
             continue
         if auto.find_element("base/connecting_assets.png"):
             continue

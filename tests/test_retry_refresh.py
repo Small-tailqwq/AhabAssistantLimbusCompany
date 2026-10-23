@@ -10,6 +10,9 @@ class _RetryAuto:
         self.screenshot_count = 0
         self.click_count = 0
 
+    def get_ocr_entries(self):
+        return []
+
     def get_restore_time(self):
         return None
 

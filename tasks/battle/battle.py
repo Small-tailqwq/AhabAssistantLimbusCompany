@@ -13,7 +13,7 @@ from module.decorator.decorator import begin_and_finish_time_log
 from module.logger import log
 from module.ocr import ocr
 from tasks import sins
-from tasks.base.retry import retry
+from tasks.base.retry import handle_server_error_dialog, retry
 from tasks.event import event_handling
 from utils.image_utils import ImageUtils
 from utils.utils import find_skill3
@@ -40,6 +40,11 @@ class Battle:
         while True:
             # 自动截图
             if auto.take_screenshot() is None:
+                continue
+            server_error_result = handle_server_error_dialog()
+            if server_error_result is False:
+                return False
+            if server_error_result is True:
                 continue
             if click and (
                 auto.find_element("battle/normal_to_battle_assets.png")
@@ -179,6 +184,11 @@ class Battle:
 
             # 自动截图
             if auto.take_screenshot() is None:
+                continue
+            server_error_result = handle_server_error_dialog()
+            if server_error_result is False:
+                return False
+            if server_error_result is True:
                 continue
             if auto.get_restore_time() is not None:
                 start_time = max(start_time, auto.get_restore_time())

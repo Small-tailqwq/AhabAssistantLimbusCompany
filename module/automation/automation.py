@@ -538,6 +538,35 @@ class Automation(metaclass=SingletonMeta):
         log.debug(f"识别到文本及其坐标：{ocr_dict}", stacklevel=additional_stack + 3)
         return ocr_dict
 
+    def get_ocr_entries(self) -> list[tuple[str, tuple[int, int, int, int]]]:
+        """返回当前截图中的 OCR 文本及其规范化外接矩形。"""
+        if self.screenshot is None:
+            return []
+
+        ocr_result = ocr.run(self.screenshot)
+        if not ocr_result.txts or len(ocr_result.boxes) == 0:
+            return []
+
+        entries = []
+        for text, box in zip(ocr_result.txts, ocr_result.boxes):
+            points = np.asarray(box)
+            if points.size == 0:
+                continue
+            x_values = points[:, 0]
+            y_values = points[:, 1]
+            entries.append(
+                (
+                    text,
+                    (
+                        int(x_values.min()),
+                        int(y_values.min()),
+                        int(x_values.max()),
+                        int(y_values.max()),
+                    ),
+                )
+            )
+        return entries
+
     def _find_target_in_ocr_dict(self, target, ocr_dict, all_text=False):
         if ocr_dict == {}:
             return False
