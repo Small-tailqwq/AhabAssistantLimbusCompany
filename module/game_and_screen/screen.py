@@ -351,41 +351,38 @@ class Screen(metaclass=SingletonMeta):
         self.handle.invalidate()
 
     def init_handle(self, stop_checker: Callable[[], None] | None = None, *, start_if_missing: bool = True) -> bool:
-        try:
-            if stop_checker is not None:
-                stop_checker()
-            self.handle.init_handle(self.title)
-            if self.handle.hwnd == 0:
-                if not start_if_missing:
-                    return False
-                log.info(f"未能获取到游戏窗口: {self.title},尝试启动游戏")
-                if stop_checker is not None:
-                    stop_checker()
-                self.game.start_game()
-                for _ in range(30):
-                    if stop_checker is not None:
-                        stop_checker()
-                    sleep(1)
-                self.handle.init_handle(self.title)
+        if stop_checker is None:
+            from module.automation import auto
 
-            if self.handle.hwnd == 0:
-                log.error(f"未能获取到游戏窗口: {self.title}")
-                if stop_checker is not None:
-                    stop_checker()
-                self.game.start_game()
-                return False
-            else:
+            stop_checker = auto.ensure_not_stopped
+        try:
+            stop_checker()
+            self.handle.init_handle(self.title)
+            if self.handle.hwnd:
                 return True
+            if not start_if_missing:
+                return False
+            log.info(f"未能获取到游戏窗口: {self.title},尝试启动游戏")
+            try:
+                if not self.game.start_game():
+                    return False
+                for _ in range(30):
+                    stop_checker()
+                    self.handle.init_handle(self.title)
+                    if self.handle.hwnd:
+                        return True
+                    self.game.handle_pending_launch()
+                    sleep(1)
+                log.error(f"未能获取到游戏窗口: {self.title}")
+                return False
+            finally:
+                self.game.finish_launch_attempt()
         except userStopError:
             raise
         except Exception as e:
             log.error(f"未能获取到游戏窗口: {e}")
-            from module.instance_context import get_instance_context
-
             if get_instance_context().is_child_session:
                 raise
-            if start_if_missing:
-                self.game.start_game()
             return False
 
     def ensure_direct_input_ready(self) -> bool:
