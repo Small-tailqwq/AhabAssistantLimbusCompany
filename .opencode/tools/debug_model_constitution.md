@@ -11,13 +11,13 @@
 在 `module/config/config_typing.py` 的 `ConfigModel` 中定义：
 
 ```python
-debug_xxx: bool = False
+debug_xxx: bool
 """xxx 调试：功能描述"""
 ```
 
 ### 2.2 配置示例
 
-在 `assets/config/config.example.yaml` 添加同名字段和注释。
+在 `assets/config/config.example.yaml` 添加同名字段、默认值和注释，例如 `debug_xxx: False`；默认值只在示例配置维护。
 
 ### 2.3 UI 开关（setting_interface.py）
 
@@ -27,8 +27,10 @@ debug_xxx: bool = False
 # 定义
 self.debug_xxx_card = SwitchSettingCard(
     FIF.DEVELOPER_TOOLS,
-    "调试标题",
-    "调试描述文本",
+    QT_TRANSLATE_NOOP("SwitchSettingCard", "调试标题"),
+    QT_TRANSLATE_NOOP("SwitchSettingCard", "调试描述文本"),
+    "debug_xxx",
+    parent=self.logs_group,
 )
 
 # 注册
@@ -55,7 +57,7 @@ def __onDebugModeChanged(self, is_checked: bool):
 
 ### 3.1 辅助函数模式
 
-在每个功能模块顶部定义私有辅助函数：
+多个调用点共享同一门控，或已有模块采用此模式时，可定义私有辅助函数；单次使用可在调用点检查两个开关：
 
 ```python
 def _is_xxx_debug_enabled():
@@ -64,7 +66,7 @@ def _is_xxx_debug_enabled():
 
 ### 3.2 调用方式
 
-在业务代码中使用辅助函数，不直接用 `cfg.debug_xxx`：
+使用辅助函数或等价的双开关条件，不以单独的 `cfg.debug_xxx` 判断替代双重门控：
 
 ```python
 if _is_xxx_debug_enabled():

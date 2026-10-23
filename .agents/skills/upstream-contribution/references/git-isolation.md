@@ -58,7 +58,7 @@ PR 存在前，优先从最新上游 base 重建未改动的贡献分支。已�
 
 ## 冲突处理
 
-cherry-pick、rebase 或合并冲突时：
+本次贡献在隔离 worktree 中产生 cherry-pick 或 rebase 冲突时：
 
 1. 停下并列出冲突路径；
 2. 读 base、upstream 与预期行为；
@@ -68,6 +68,8 @@ cherry-pick、rebase 或合并冲突时：
 
 必要时只中止进行中的操作；不要 reset 或 clean 用户的原工作区。
 
+用户原有冲突以及 stash pop、merge 冲突保留现场；没有明确处置指令时不自行裁决。
+
 ## 清理
 
-worktree 清理可选，且只在分支不再需要后进行。展示精确 worktree 路径，确认其中没有唯一的未推送工作再移除。不要因为 PR 已合并就删除被忽略的 worktree。
+worktree 清理可选，且只在分支不再需要后进行。先列出精确路径、未推送提交与未提交或被忽略资产；按根 AGENTS.md 的资产保护规则处理，只有已有授权覆盖该路径及操作时才移除。

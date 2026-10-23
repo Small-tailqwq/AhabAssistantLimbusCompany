@@ -36,9 +36,9 @@ downstream <commit>:path:lines -> upstream path:function -> ported/adapted/exclu
 
 ## 测试
 
-上游支持时，测试是行为移植的一部分。
+保留上游兼容的已有回归测试；新增测试遵循根 AGENTS.md 的授权范围。
 
-- 优先添加展示原始失败的聚焦回归测试。
+- 已授权新增测试时，优先用展示原始失败的聚焦回归测试。
 - 按上游约定重写 fixture 与导入。
 - 不要仅为复用下游测试而导入 fork 专属调试辅助。
 - 无法可靠自动化时，记录手动验证基准及未添加自动化测试的原因。

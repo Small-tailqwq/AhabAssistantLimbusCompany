@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: 审阅 AALC 未提交改动、暂存 diff、提交、分支、pull request、上游贡献或下游同步分支，确认缺陷、回归、自动化安全、i18n 漂移、上游风格不匹配、多余默认参数、一次性下划线变量与可维护性风险。首次审阅及每次改动或收到反馈后的复审都使用本技能。
+description: 审阅 AALC 未提交改动、暂存 diff、提交、分支、pull request、上游贡献或下游同步分支，确认缺陷、回归、自动化安全、i18n 漂移、上游风格不匹配、多余默认参数、一次性下划线变量与可维护性风险。用户要求审阅，或已授权贡献流程需要审阅时使用；复审限于实际改动与新证据。
 ---
 
 # AALC 代码审阅
@@ -12,9 +12,10 @@ description: 审阅 AALC 未提交改动、暂存 diff、提交、分支、pull 
 | 目标 | 协议 |
 |---|---|
 | 未提交或暂存 diff | 就地审阅。跳过 finding ID、台账与完整报告模板。 |
-| 提交、分支、pull request 或任何复审 | 加载 [references/pr-protocol.md](references/pr-protocol.md) 并完整执行。 |
+| 简单提交、分支或局部复审 | 就地审阅，记录目标 SHA、发现和重要验证缺口。 |
+| 多轮 PR 协调或需要跨审阅者追踪的贡献 | 加载 [references/pr-protocol.md](references/pr-protocol.md)，按实际轮次维护发现台账。 |
 
-只有当 diff 既触及该领域又大到单个上下文装不下时，才分发给专项审阅者。单文件改动不需要 subagent。
+本地默认就地审阅；用户已要求委派且有独立领域可并行时使用 subagent。OpenCode CI 入口明确要求的具名调度由对应代理配置负责。
 
 ## 确定目标
 
@@ -40,10 +41,10 @@ description: 审阅 AALC 未提交改动、暂存 diff、提交、分支、pull 
 
 ## 专项路由
 
-`.opencode/agents/` 定义了 `code-reviewer`、`automation-reviewer` 与 `i18n-reviewer`。它们仅存在于 OpenCode，支撑 GitHub Actions 的 PR 审阅；其他环境看不到它们。
+`.opencode/agents/` 定义了 `code-reviewer`、`automation-reviewer` 与 `i18n-reviewer`。这些是 OpenCode 的具名代理配置，支撑 GitHub Actions 的 PR 审阅；Codex 可读取其清单，但不因此拥有同名可调用代理。
 
-- 在 OpenCode 中按精确名称调用。不要派发通用 `general` agent 去冒充具名审阅者。
-- 在其他环境就地应用领域清单并注明。只有 diff 规模确实需要时才派发 subagent。
+- 当前入口要求或用户已授权委派时，在 OpenCode 中按精确名称调用。不要派发通用 `general` agent 去冒充具名审阅者。
+- 在其他环境就地应用相关领域清单，委派遵循上面的授权边界。
 
 只有 diff 触及该领域时才选择它：
 
@@ -81,11 +82,11 @@ description: 审阅 AALC 未提交改动、暂存 diff、提交、分支、pull 
 
 审阅有界。满足以下任一条件即停止并报告，而不是再开一轮：
 
-- 连续两轮没有产生已确认的 Critical 或 High 发现；
-- 某轮发现需要架构扩展，或推翻先前审阅决定；
+- 当前请求的范围已覆盖，已确认缺陷已报告或已授权修复并核验；不要为凑轮次再审；
+- 已核实发现需要超出当前授权的架构扩展，或尚未解决的证据冲突会推翻先前审阅决定；
 - 同一文件已修三轮，发现数量仍未下降。
 
-然后把剩余项按严重度列成清单交给用户。审阅者严重度本身不授权再修一轮，"再多过一遍更稳妥"不构成继续的理由。
+需要范围决策时只暂停受影响的修复，继续不依赖该决定的已授权工作；报告剩余项及其证据。审阅者严重度本身不授权扩大修复范围，"再多过一遍更稳妥"不构成继续的理由。
 
 修复只触及上一轮已清文件的，绝不重新派发整套审阅者。每轮审阅本轮 delta 及其影响上下文；台账延续前几轮对完整 diff 已建立的覆盖。
 
@@ -103,4 +104,4 @@ description: 审阅 AALC 未提交改动、暂存 diff、提交、分支、pull 
 **裁决：Block / Warning / Approve with comments / Approve**
 ```
 
-无发现时明确说明，并只列影响结论的验证缺口。提交、分支、PR 或复审使用 `references/pr-protocol.md` 的完整报告。
+无发现时明确说明，并只列影响结论的验证缺口。复杂 PR 协调使用 `references/pr-protocol.md` 的适用字段；简单复审只报告变化、结论与重要缺口。
