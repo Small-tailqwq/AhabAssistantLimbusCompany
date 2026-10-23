@@ -1,11 +1,24 @@
 import os
 import webbrowser
-from time import sleep, time
+from time import monotonic, sleep
+
+import win32con
+import win32gui
+import win32process
 
 from module.config import cfg
+from module.game_and_screen.steam_cloud import handle_steam_cloud_sync_dialog
 from module.instance_context import get_instance_context
-from module.session_process import iter_processes_by_name, process_sessions_by_name
+from module.my_error.my_error import userStopError
+from module.session_process import (
+    iter_processes_by_name,
+    process_belongs_to_session,
+    process_sessions_by_name,
+    terminate_processes,
+)
 from utils.singletonmeta import SingletonMeta
+
+GAME_GRACEFUL_CLOSE_TIMEOUT_SECONDS = 30.0
 
 
 class Game(metaclass=SingletonMeta):
@@ -15,15 +28,15 @@ class Game(metaclass=SingletonMeta):
         self.log = logger
         self.process_name = cfg.game_process_name
         self.game_path_exists = True
-        self.last_check_time = None
-        self.check_in_short_time = 0
+        self._launch_requested_at: float | None = None
+        self._cloud_sync_confirmation_attempted = False
 
     def reload_runtime_config(self) -> None:
         self.game_path = cfg.game_path
         self.process_name = cfg.game_process_name
         self.game_path_exists = True
-        self.last_check_time = None
-        self.check_in_short_time = 0
+        self._launch_requested_at: float | None = None
+        self._cloud_sync_confirmation_attempted = False
 
     def check_game_alive(self):
         for proc in iter_processes_by_name(self.process_name):
@@ -48,22 +61,16 @@ class Game(metaclass=SingletonMeta):
         return False
 
     def start_game(self) -> bool:
-        """启动游戏"""
+        """发起一次启动请求，窗口就绪前不重复唤起 Steam。"""
+        if self._launch_requested_at is not None:
+            return True
+        self._launch_requested_at = monotonic()
+        self._cloud_sync_confirmation_attempted = False
         if self.check_game_alive():
-            if self.last_check_time is None or time() - self.last_check_time > 60:
-                self.last_check_time = time()
-                self.check_in_short_time = 0
-            else:
-                self.check_in_short_time += 1
-            if self.check_in_short_time > 5:
-                from tasks.base.retry import kill_game
+            return True
 
-                kill_game()
-                self.check_in_short_time = 0
-            else:
-                return True
-
-        if not os.path.exists(self.game_path):
+        self.game_path_exists = os.path.exists(self.game_path)
+        if not self.game_path_exists:
             from module.config.config import Config
             detected = Config._auto_detect_game_path()
             if detected:
@@ -111,16 +118,66 @@ class Game(metaclass=SingletonMeta):
                     )
                 return True
 
-            # 调用系统打开该 URL（会触发 Steam 启动游戏）
-            webbrowser.open(self.game_url)
-            self.log.info("使用steam命令启动游戏")
-            sleep(5)
-            if not self.check_game_alive() and self.game_path_exists:
+            if self.game_path_exists:
                 os.startfile(self.game_path)
-                self.log.info(f"游戏启动：{self.game_path}")
+                self.log.info(f"使用本地路径启动游戏：{self.game_path}")
+            else:
+                webbrowser.open(self.game_url)
+                self.log.info("使用 Steam 命令启动游戏")
             return True
+        except userStopError:
+            self.finish_launch_attempt()
+            raise
         except Exception:
+            self.finish_launch_attempt()
             self.log.exception("启动游戏时发生错误")
             if get_instance_context().is_child_session:
                 raise
         return False
+
+    def handle_pending_launch(self) -> bool:
+        if self._launch_requested_at is None or self._cloud_sync_confirmation_attempted:
+            return False
+        from module.automation import auto
+
+        auto.ensure_not_stopped()
+
+        def consume_confirmation():
+            auto.ensure_not_stopped()
+            self._cloud_sync_confirmation_attempted = True
+
+        handled = handle_steam_cloud_sync_dialog(on_dialog_detected=consume_confirmation)
+        if handled:
+            self.log.warning("检测到 Steam 云同步失败，已自动点击“仍然进行游戏”继续无人值守启动")
+        return handled
+
+    def finish_launch_attempt(self) -> None:
+        self._launch_requested_at = None
+        self._cloud_sync_confirmation_attempted = False
+
+    def close_game(self) -> bool:
+        """先正常关闭当前 Session 游戏，超时后仅结束该 Session 的进程。"""
+        from module.automation import auto
+        from module.game_and_screen import screen
+
+        self.finish_launch_attempt()
+        auto.ensure_not_stopped()
+        if not self.check_game_alive():
+            return True
+        try:
+            hwnd = screen.handle.hwnd
+            if hwnd and win32gui.IsWindow(hwnd):
+                _, pid = win32process.GetWindowThreadProcessId(hwnd)
+                if process_belongs_to_session(pid):
+                    win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
+        except Exception as exc:
+            self.log.warning(f"请求游戏正常退出失败：{exc}")
+        deadline = monotonic() + GAME_GRACEFUL_CLOSE_TIMEOUT_SECONDS
+        while self.check_game_alive() and monotonic() < deadline:
+            auto.ensure_not_stopped()
+            sleep(0.1)
+        auto.ensure_not_stopped()
+        if not self.check_game_alive():
+            return True
+        self.log.warning("等待游戏正常退出超时，强制结束当前 Session 的游戏进程")
+        return terminate_processes(self.process_name, timeout=1.0)

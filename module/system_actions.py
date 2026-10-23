@@ -19,6 +19,7 @@ from module.after_completion_types import (
 )
 from module.config import cfg
 from module.logger import log
+from module.my_error.my_error import userStopError
 
 # SetThreadExecutionState 常量
 _ES_CONTINUOUS = 0x80000000
@@ -132,7 +133,7 @@ def apply_power_keep_awake(enable: bool) -> None:
 
 
 def _action_exit_game() -> None:
-    from module.game_and_screen import game_process, screen
+    from module.game_and_screen import game_process
 
     if os.name != "nt":
         log.info("跳过退出游戏：仅支持 Windows")
@@ -156,31 +157,11 @@ def _action_exit_game() -> None:
         log.info("已执行：退出游戏（模拟器）")
         return
 
-    if not game_process.check_game_alive():
-        log.info("跳过退出游戏：游戏进程未运行")
-        return
-
     try:
-        hwnd = getattr(screen.handle, "hwnd", 0)
-        if hwnd:
-            try:
-                import win32process
-            except ImportError:
-                win32process = None
-            if win32process is not None:
-                _, pid = win32process.GetWindowThreadProcessId(hwnd)
-                ret = _run_command(["taskkill", "/F", "/PID", str(pid)])
-                if ret == 0:
-                    log.info("已执行：退出游戏")
-                    return
-        # 兜底仍按当前 Windows Session 过滤，不能误杀主/分身另一侧的游戏。
-        from module.session_process import terminate_processes
-
-        game_process_name = cfg.get_value("game_process_name", "")
-        if terminate_processes(game_process_name):
-            log.info("已执行：退出游戏（当前 Session 进程兜底）")
-        else:
+        if not game_process.close_game():
             log.warning("退出游戏失败：当前 Session 中仍有游戏进程")
+    except userStopError:
+        raise
     except Exception:
         log.exception("退出游戏失败")
 

@@ -1,14 +1,10 @@
-import os
 import re
-import platform
 import time
-from time import sleep
 from dataclasses import dataclass
+from time import sleep
 
 import cv2
 import numpy as np
-
-import win32process
 
 from module.automation import auto
 from module.config import cfg
@@ -269,27 +265,9 @@ def kill_game():
 
             SimulatorControl.connection_device.close_current_app()
         return
-    if platform.system() == "Windows":
-        from module.session_process import process_belongs_to_session, terminate_processes
+    from module.game_and_screen import game_process
 
-        _, pid = win32process.GetWindowThreadProcessId(screen.handle.hwnd)
-        if process_belongs_to_session(pid):
-            os.system(f"taskkill /F /PID {pid}")
-        else:
-            log.error(f"拒绝终止其他 Windows Session 的游戏进程：PID {pid}")
-            terminate_processes(cfg.game_process_name)
-    sleep(10)
-    wait_start = time.time()
-    while True:
-        from module.session_process import process_is_running
-
-        game_running = process_is_running(cfg.game_process_name)
-        if not game_running:
-            break
-        if time.time() - wait_start > 30:
-            log.warning("等待游戏进程退出超时(30s)，继续后续流程")
-            break
-        sleep(1)
+    game_process.close_game()
 
 
 def check_times(start_time, timeout=90, logs=True):

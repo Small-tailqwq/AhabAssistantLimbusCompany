@@ -2512,6 +2512,8 @@ class ChildGameLaunchTests(unittest.TestCase):
 
         game = SimpleNamespace(
             check_game_alive=lambda: False,
+            _launch_requested_at=None,
+            finish_launch_attempt=lambda: None,
             game_path=__file__,
             game_path_exists=True,
             process_name="LimbusCompany.exe",

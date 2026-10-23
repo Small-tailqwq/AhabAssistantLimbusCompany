@@ -238,15 +238,9 @@ class ScreenShot:
 
         except pywintypes.error as e:
             log.error(f"后台截图报错: {e}，尝试重启游戏")
-            import os
+            from module.game_and_screen import game_process
 
-            import win32process
-
-            try:
-                _, pid = win32process.GetWindowThreadProcessId(screen.handle.hwnd)
-                os.system(f"taskkill /F /PID {pid}")
-            except Exception:
-                pass
+            game_process.close_game()
             from tasks.base.script_task_scheme import init_game
 
             init_game()

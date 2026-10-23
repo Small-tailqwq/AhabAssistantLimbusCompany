@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Callable
 from sys import exc_info
 from threading import Event
-from time import sleep, time
+from time import monotonic, sleep, time
 from traceback import format_exception
 
 import win32api
@@ -162,6 +162,9 @@ def to_get_reward():
         back_init_menu()
 
 
+GAME_LAUNCH_TIMEOUT_SECONDS = 120.0
+
+
 def init_game():
     log.debug("初始化游戏")
     clear_startup_main_menu_wait_pending()
@@ -225,15 +228,24 @@ def init_game():
     else:
         stop_checker()
         was_game_alive = game_process.check_game_alive()
-        game_process.start_game()
+        if not game_process.start_game():
+            raise withOutGameWinError("无法发起游戏启动")
         if not was_game_alive:
             mark_startup_main_menu_wait_pending()
-        while not screen.init_handle(stop_checker=stop_checker):
-            stop_checker()
-            sleep(1)
-        if cfg.set_windows:
-            stop_checker()
-            screen.set_win()
+        deadline = monotonic() + GAME_LAUNCH_TIMEOUT_SECONDS
+        try:
+            while monotonic() < deadline:
+                stop_checker()
+                if screen.init_handle(stop_checker=stop_checker, start_if_missing=False):
+                    if cfg.set_windows:
+                        stop_checker()
+                        screen.set_win()
+                    return
+                game_process.handle_pending_launch()
+                sleep(1)
+            raise withOutGameWinError("游戏窗口启动超时")
+        finally:
+            game_process.finish_launch_attempt()
 
 
 def _warn_if_game_monitor_hdr_enabled() -> None:

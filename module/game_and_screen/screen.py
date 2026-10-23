@@ -350,12 +350,14 @@ class Screen(metaclass=SingletonMeta):
         self.title = cfg.game_title_name
         self.handle.invalidate()
 
-    def init_handle(self, stop_checker: Callable[[], None] | None = None) -> bool:
+    def init_handle(self, stop_checker: Callable[[], None] | None = None, *, start_if_missing: bool = True) -> bool:
         try:
             if stop_checker is not None:
                 stop_checker()
             self.handle.init_handle(self.title)
             if self.handle.hwnd == 0:
+                if not start_if_missing:
+                    return False
                 log.info(f"未能获取到游戏窗口: {self.title},尝试启动游戏")
                 if stop_checker is not None:
                     stop_checker()
@@ -374,13 +376,16 @@ class Screen(metaclass=SingletonMeta):
                 return False
             else:
                 return True
+        except userStopError:
+            raise
         except Exception as e:
             log.error(f"未能获取到游戏窗口: {e}")
             from module.instance_context import get_instance_context
 
             if get_instance_context().is_child_session:
                 raise
-            self.game.start_game()
+            if start_if_missing:
+                self.game.start_game()
             return False
 
     def ensure_direct_input_ready(self) -> bool:
