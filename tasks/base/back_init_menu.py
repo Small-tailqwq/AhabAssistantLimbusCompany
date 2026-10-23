@@ -1,6 +1,6 @@
 import time
 from enum import StrEnum
-from time import sleep
+from time import monotonic, sleep
 
 from module.automation import auto
 from module.config import cfg
@@ -12,6 +12,7 @@ from tasks.base.retry import (
     retry,
 )
 from tasks.mirror.reward_card import get_reward_card
+from tasks.event_page import resolve_event_page
 
 
 class StartupMainMenuWaitResult(StrEnum):
@@ -22,6 +23,7 @@ class StartupMainMenuWaitResult(StrEnum):
 
 _pending_startup_main_menu_wait = False
 LOOP_COUNT = 30
+EVENT_PAGE_WAIT_TIMEOUT = 60
 
 
 def mark_startup_main_menu_wait_pending() -> None:
@@ -151,6 +153,7 @@ def back_init_menu(*, allow_restart: bool = True) -> bool:
         if wait_result == StartupMainMenuWaitResult.MAIN_MENU:
             return True
 
+    event_wait_started_at = None
     loop_count = LOOP_COUNT
     auto.model = "clam"
     _last_fingerprint = None
@@ -172,6 +175,7 @@ def back_init_menu(*, allow_restart: bool = True) -> bool:
             kill_game()
             restart_game()
             loop_count = LOOP_COUNT
+            event_wait_started_at = None
             auto.model = "clam"
             sleep(1)
             continue
@@ -180,6 +184,33 @@ def back_init_menu(*, allow_restart: bool = True) -> bool:
 
         if retry() is False:
             return False
+
+        resolution = resolve_event_page(auto.get_ocr_entries())
+        if resolution is not None:
+            if resolution.state == "advance" and resolution.position is not None:
+                auto.mouse_click(*resolution.position)
+                log.debug(f"OCR推进事件页: {resolution.reason}")
+                event_wait_started_at = None
+                continue
+
+            if resolution.state == "advance":
+                log.warning("OCR事件页推进结果缺少坐标，按等待状态处理")
+            if event_wait_started_at is None:
+                event_wait_started_at = monotonic()
+            if monotonic() - event_wait_started_at < EVENT_PAGE_WAIT_TIMEOUT:
+                # 事件结果动画可持续约 40 秒；仅由单调事件时钟限制等待，
+                # 不能让通用页面恢复预算先行耗尽。
+                loop_count = LOOP_COUNT
+                log.debug("事件结果页等待推进按钮出现")
+                sleep(1)
+                continue
+            if not allow_restart:
+                log.warning("事件结果页等待推进按钮超时，返回主页失败")
+                return False
+            log.warning("事件结果页等待推进按钮超时，尝试重启游戏")
+            loop_count = 0
+            continue
+        event_wait_started_at = None
 
         # 截屏冻结检测：连续 3 轮相同画面则跳过（不点击），防止 Mumu 显存刷新延迟导致的无限误触
         fingerprint = _screenshot_fingerprint()

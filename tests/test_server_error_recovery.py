@@ -233,6 +233,9 @@ def test_to_battle_returns_false_when_server_error_restarts_game(monkeypatch) ->
 
 
 class _FightServerErrorAuto:
+    def get_restore_time(self):
+        return None
+
     def __init__(self, *, stop_after_next_frame: bool = False) -> None:
         self.stop_after_next_frame = stop_after_next_frame
         self.screenshots = 0

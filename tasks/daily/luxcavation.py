@@ -9,6 +9,7 @@ from module.automation import auto
 from module.config import cfg
 from module.logger import log
 from tasks.base.retry import handle_server_error_dialog
+from tasks.base.back_init_menu import back_init_menu
 
 _CONTINUOUS_COMBAT_DEFAULT_COUNT = 1
 _THREAD_CONSUME_ASSET = "luxcavation/thread_consume.png"
@@ -198,8 +199,6 @@ def EXP_luxcavation(combat_count: int = 1):
             "home/drive_assets.png", model="normal"
         ):
             auto.click_element("base/renew_confirm_assets.png")
-            from tasks.base.back_init_menu import back_init_menu
-
             if back_init_menu(allow_restart=False) is False:
                 return False
             continue
@@ -217,8 +216,6 @@ def EXP_luxcavation(combat_count: int = 1):
             if recovery_attempts >= 1:
                 log.error("无法进入经验本,不能进行下一步,此次经验本无效")
                 return False
-            from tasks.base.back_init_menu import back_init_menu
-
             if back_init_menu(allow_restart=False) is False:
                 return False
             recovery_attempts += 1
@@ -362,8 +359,6 @@ def thread_luxcavation(combat_count: int = 1):
             "home/drive_assets.png", model="normal"
         ):
             auto.click_element("base/renew_confirm_assets.png")
-            from tasks.base.back_init_menu import back_init_menu
-
             if back_init_menu(allow_restart=False) is False:
                 return False
             continue
@@ -380,8 +375,6 @@ def thread_luxcavation(combat_count: int = 1):
             if recovery_attempts >= 1:
                 log.error("无法进入纽本,不能进行下一步,此次纽本无效")
                 return False
-            from tasks.base.back_init_menu import back_init_menu
-
             if back_init_menu(allow_restart=False) is False:
                 return False
             recovery_attempts += 1

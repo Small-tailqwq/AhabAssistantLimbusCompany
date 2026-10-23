@@ -15,8 +15,20 @@ from module.ocr import ocr
 from tasks import sins
 from tasks.base.retry import handle_server_error_dialog, retry
 from tasks.event import event_handling
+from tasks.event_page import resolve_event_page, find_event_choice_slots, is_event_choice_page, is_first_event_choice_disabled
 from utils.image_utils import ImageUtils
 from utils.utils import find_skill3
+
+
+EVENT_CHOICE_MAX_RETRY_ATTEMPTS = 8
+
+
+def _find_daily_battle_settlement_confirmation() -> tuple[int, int] | bool:
+    """返回普通日常战斗胜利结算页的确认按钮，避免镜牢模板误判抢占。"""
+    if auto.find_language_text("战斗胜利", "battle victory") is False:
+        return False
+    return auto.find_language_text("确认", "confirm")
+
 
 
 class Battle:
@@ -168,7 +180,9 @@ class Battle:
         fail_count = 0
         in_mirror = False
         first_battle_reward = None
-        event_chance = 15
+        event_choice_retry_attempts = 0
+        daily_settlement_handled = False
+        story_finished = False
         if defense_all_time:
             self.defense_all_time = defense_all_time
         if defense_on_turn1:
@@ -185,11 +199,6 @@ class Battle:
             # 自动截图
             if auto.take_screenshot() is None:
                 continue
-            server_error_result = handle_server_error_dialog()
-            if server_error_result is False:
-                return False
-            if server_error_result is True:
-                continue
             if auto.get_restore_time() is not None:
                 start_time = max(start_time, auto.get_restore_time())
             if infinite_battle is False and check_times(start_time, timeout=900 + 300 * combat_count, logs=False):
@@ -198,6 +207,11 @@ class Battle:
                 back_init_menu()
                 return False
 
+            server_error_result = handle_server_error_dialog()
+            if server_error_result is False:
+                return False
+            if server_error_result is True:
+                continue
             total_count += 1
 
             if auto.find_element("mirror/road_in_mir/legend_assets.png"):
@@ -374,49 +388,59 @@ class Battle:
                     waiting = self._update_wait_time(waiting, False, total_count)
 
             # 如果战斗中途出现事件
-            if (
-                choice_event_handling
-                and auto.find_element("event/choices_assets.png")
-                and auto.find_element("event/select_first_option_assets.png")
-            ):
-                if event_chance > 5:
-                    auto.click_element("event/select_first_option_assets.png")
-                    event_chance -= 1
-                elif event_chance > 0:
-                    auto.click_element(
-                        "event/select_first_option_assets.png",
-                        find_type="image_with_multiple_targets",
-                    )
-                    event_chance -= 1
-                else:
-                    auto.click_element(
-                        "event/select_first_option_assets.png",
-                        find_type="image_with_multiple_targets",
-                    )
-                    finishes_bbox = ImageUtils.get_bbox(ImageUtils.load_image("event/continue_assets.png"))
-                    if auto.find_text_element(
-                        [
-                            "conti",
-                            "proc",
-                            "comme",
-                            "choices",
-                            "confirm",
-                            "行判",
-                            "始战",
-                            "继续",
-                        ],
-                        finishes_bbox,
-                    ):
-                        auto.mouse_click(
-                            (finishes_bbox[0] + finishes_bbox[2]) // 2,
-                            (finishes_bbox[1] + finishes_bbox[3]) // 2,
-                        )
-                        if infinite_battle:
-                            continue
-                        break
-                    else:
-                        event_chance = -1
+            choice_entries = auto.get_ocr_entries() if choice_event_handling else []
+            is_choice_page = choice_event_handling and (
+                auto.find_element("event/choices_assets.png") or is_event_choice_page(choice_entries)
+            )
+            if is_choice_page:
+                if event_choice_retry_attempts >= EVENT_CHOICE_MAX_RETRY_ATTEMPTS:
+                    log.error("日常事件选项连续未推进，取消当前战斗")
+                    return False
+                event_choice_retry_attempts += 1
+                choice_slots = find_event_choice_slots(choice_entries)
+                first_choice = next(
+                    (position for slot, position in choice_slots if slot == 0),
+                    None,
+                )
+                next_choice = next(
+                    ((slot, position) for slot, position in choice_slots if slot == 1),
+                    None,
+                )
+                choice_slot_spacing = (
+                    next_choice[1][1] - first_choice[1] if first_choice is not None and next_choice is not None else 0
+                )
+                first_choice_disabled = first_choice is not None and is_first_event_choice_disabled(
+                    auto.screenshot_rgb,
+                    first_choice,
+                    choice_slot_spacing=(choice_slot_spacing if choice_slot_spacing > 0 else 124),
+                )
+                if first_choice_disabled:
+                    if next_choice is not None:
+                        _, next_choice_position = next_choice
+                        auto.mouse_click(*next_choice_position)
+                        log.debug("首个日常事件选项灰化，OCR 选择下一候选")
+                        sleep(waiting)
+                        continue
+                    log.debug("首个日常事件选项灰化但没有可替代候选，等待页面状态变化")
+                    sleep(waiting)
+                    continue
 
+                if first_choice is not None:
+                    if not auto.click_element("event/select_first_option_assets.png"):
+                        auto.mouse_click(*first_choice)
+                        log.debug("首个日常事件选项模板失配，OCR 选择首项")
+                    # 选项仍存在时按当前帧状态重试同一可用项；绝不因页面未切换就改点次项。
+                    sleep(waiting)
+                    continue
+
+                if auto.click_element("event/select_first_option_assets.png"):
+                    sleep(waiting)
+                    continue
+
+                log.debug("日常事件选项候选信息不足，等待页面状态变化")
+                sleep(waiting)
+                continue
+            event_choice_retry_attempts = 0
             if choice_event_handling and auto.find_element("event/perform_the_check_feature_assets.png"):
                 event_handling.decision_event_handling()
             if choice_event_handling:
@@ -427,6 +451,18 @@ class Battle:
                 if auto.click_element("event/commence_assets.png"):
                     continue
                 if auto.click_element("event/skip_assets.png", times=6):
+                    continue
+                event_resolution = resolve_event_page(auto.get_ocr_entries())
+                if event_resolution is not None:
+                    if event_resolution.state == "advance" and event_resolution.position is not None:
+                        auto.mouse_click(*event_resolution.position)
+                        log.debug(f"OCR 推进日常事件页: {event_resolution.reason}")
+                    elif event_resolution.state == "advance":
+                        log.warning("OCR 事件推进缺少按钮坐标，按等待处理")
+                    else:
+                        log.debug("事件判定结果动画中，等待推进按钮出现")
+                    chance = self.INIT_CHANCE
+                    sleep(waiting)
                     continue
             if auto.find_element("mirror/road_in_mir/select_encounter_reward_card_assets.png"):
                 if infinite_battle:
@@ -447,12 +483,15 @@ class Battle:
                 auto.find_element("scenes/story_meun_assets.png")
                 or auto.find_element("scenes/story_skip_assets.png")
             ):
+                story_finished = True
                 break
 
-            # 战斗结束，进入结算页面
-            if auto.click_element("battle/battle_finish_confirm_assets.png", click=False) or auto.find_element(
-                "mirror/claim_reward/battle_statistics_assets.png"
-            ):
+            # 战斗结束，进入结算页面。普通日常优先通过 OCR 点击确认，避免镜牢统计模板误判。
+            daily_settlement_confirmation = _find_daily_battle_settlement_confirmation()
+            mirror_settlement = in_mirror and auto.find_element("mirror/claim_reward/battle_statistics_assets.png")
+            if daily_settlement_confirmation or mirror_settlement:
+                if daily_settlement_confirmation:
+                    daily_settlement_handled = True
                 sleep(1)
                 if auto.click_element("base/leave_up_assets.png"):
                     auto.click_element("base/leave_up_confirm_assets.png")
@@ -467,7 +506,10 @@ class Battle:
                         first_battle_reward = "EXP"
                     if auto.find_element("battle/clear_rewards_thread_assets.png"):
                         first_battle_reward = "thread"
-                auto.click_element("battle/battle_finish_confirm_assets.png")
+                if daily_settlement_confirmation:
+                    auto.mouse_click(*daily_settlement_confirmation)
+                else:
+                    auto.click_element("battle/battle_finish_confirm_assets.png")
                 if infinite_battle:
                     continue
                 break
@@ -512,6 +554,9 @@ class Battle:
             match_success_rate = (1 - fail_count / total_count) * 100
         msg = f"此次战斗匹配失败次数{fail_count} 匹配总次数{total_count} 匹配成功率{match_success_rate}%"
         log.debug(msg)
+        if not infinite_battle and not in_mirror and not daily_settlement_handled and not story_finished:
+            log.error("普通战斗未确认日常结算便退出，取消后续日常批次")
+            return False
         if self.first_battle:
             return first_battle_reward
         else:

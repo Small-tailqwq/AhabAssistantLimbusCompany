@@ -1,3 +1,4 @@
+from tasks.event_page import resolve_event_page  # noqa: F401
 import time
 
 from module.automation import auto
