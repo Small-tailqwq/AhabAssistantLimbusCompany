@@ -135,6 +135,7 @@ def _filter_thread_level_targets(level: list[tuple[int, int]] | None, scale: flo
 
 def EXP_luxcavation(combat_count: int = 1):
     loop_count = 30
+    recovery_attempts = 0
     auto.model = "clam"
     while True:
         # 自动截图
@@ -146,7 +147,7 @@ def EXP_luxcavation(combat_count: int = 1):
         if server_error_result is True:
             continue
         if auto.find_element("teams/identify_assets.png"):
-            break
+            return True
         if (
             auto.find_element("home/first_prompt_assets.png", model="clam")
             and auto.find_element("home/back_assets.png", model="normal")
@@ -199,7 +200,8 @@ def EXP_luxcavation(combat_count: int = 1):
             auto.click_element("base/renew_confirm_assets.png")
             from tasks.base.back_init_menu import back_init_menu
 
-            back_init_menu()
+            if back_init_menu(allow_restart=False) is False:
+                return False
             continue
         if auto.click_element("home/drive_assets.png"):
             sleep(0.5)
@@ -212,12 +214,21 @@ def EXP_luxcavation(combat_count: int = 1):
         if loop_count < 10:
             auto.model = "aggressive"
         if loop_count < 0:
-            log.error("无法进入经验本,不能进行下一步,此次经验本无效")
-            break
+            if recovery_attempts >= 1:
+                log.error("无法进入经验本,不能进行下一步,此次经验本无效")
+                return False
+            from tasks.base.back_init_menu import back_init_menu
+
+            if back_init_menu(allow_restart=False) is False:
+                return False
+            recovery_attempts += 1
+            loop_count = 30
+            auto.model = "clam"
 
 
 def thread_luxcavation(combat_count: int = 1):
     loop_count = 30
+    recovery_attempts = 0
     continuous_combat_ready = combat_count <= _CONTINUOUS_COMBAT_DEFAULT_COUNT
     auto.model = "clam"
     while True:
@@ -230,7 +241,7 @@ def thread_luxcavation(combat_count: int = 1):
         if server_error_result is True:
             continue
         if auto.find_element("teams/identify_assets.png"):
-            break
+            return True
         if (
             auto.find_element("home/first_prompt_assets.png", model="clam")
             and auto.find_element("home/back_assets.png", model="normal")
@@ -353,7 +364,8 @@ def thread_luxcavation(combat_count: int = 1):
             auto.click_element("base/renew_confirm_assets.png")
             from tasks.base.back_init_menu import back_init_menu
 
-            back_init_menu()
+            if back_init_menu(allow_restart=False) is False:
+                return False
             continue
         if auto.click_element("home/drive_assets.png"):
             sleep(0.5)
@@ -365,5 +377,13 @@ def thread_luxcavation(combat_count: int = 1):
         if loop_count < 10:
             auto.model = "aggressive"
         if loop_count < 0:
-            log.error("无法进入纽本,不能进行下一步,此次纽本无效")
-            break
+            if recovery_attempts >= 1:
+                log.error("无法进入纽本,不能进行下一步,此次纽本无效")
+                return False
+            from tasks.base.back_init_menu import back_init_menu
+
+            if back_init_menu(allow_restart=False) is False:
+                return False
+            recovery_attempts += 1
+            loop_count = 30
+            auto.model = "clam"
