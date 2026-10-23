@@ -581,8 +581,6 @@ class my_script_task(QThread):
             if keep_awake_enabled:
                 apply_power_keep_awake(True)
             ret = script_task()
-            if ret == 0:
-                mediator.kill_signal.emit()
         finally:
             if keep_awake_enabled:
                 # 先切回 AALC 再释放线程级防息屏，避免游戏仍持有前台时继续阻止息屏。
@@ -590,3 +588,5 @@ class my_script_task(QThread):
                 self.msleep(800)  # 覆盖 WinRT toast 异步归还焦点（延迟约 600ms），再释放防息屏
                 apply_power_keep_awake(False)
             auto.clear_img_cache()
+        if ret == 0:
+            mediator.kill_signal.emit()
