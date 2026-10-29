@@ -8,9 +8,9 @@ AALC 由多个代理维护，项目规则、专项流程与历史设计承担不
 
 ## 决策
 
-采用 [agent-notes-kit 的 1a5fab7c8db59789744cf97cbad6ab1bd9565553](https://github.com/Small-tailqwq/agent-notes-kit/tree/1a5fab7c8db59789744cf97cbad6ab1bd9565553)。[Python 门禁](../../../../scripts/agent_notes.py)保留该版本实现，只需 Python 3.9 及以上的标准库；本地入口为 `python scripts/agent_notes.py check`。
+采用 [agent-notes-kit 的 3541d1b](https://github.com/Small-tailqwq/agent-notes-kit/tree/3541d1b)。[Python 门禁](../../../../scripts/agent_notes.py)保留该版本实现，只需 Python 3.9 及以上的标准库；本地入口为 `python scripts/agent_notes.py check`。
 
-[配置](../../agent-notes.config.json)使用中文主语言 `zh`，无副本语言；格式启用日是 `2026-10-23`。保留 feature、bug-fix、simplification、architecture、process、testing 六类，生命周期由路径和状态行共同表达。
+[配置](../../agent-notes.config.json)使用中文主语言 `zh`，无副本语言；格式启用日是 `2026-10-23`。保留 feature、bug-fix、simplification、architecture、process、testing 六类，生命周期由路径和状态行共同表达。`proseLint` 为 `false`，文风候选由写作者运行 `python scripts/agent_notes.py lint` 获取。
 
 [根 AGENTS](../../../../AGENTS.md)负责触发入口，[agent-notes skill](../../../skills/agent-notes/SKILL.md)负责写作与生命周期操作。Claude 的本地入口继续引用根规则，skills 通过现有 `scripts/link_skills.py` 的目录联接或符号链接共享。Agent Notes 允许记录真实的落选方案，其他仓库文字仍描述当前状态。
 

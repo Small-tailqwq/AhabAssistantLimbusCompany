@@ -41,6 +41,6 @@ python scripts/link_skills.py
 
 ## Agent Notes
 
-代码、测试和现有文档未解释的长期决策理由，在同一变更中写入 `.agents/notes/`，遵循[笔记契约](.agents/notes/README.md)与 [agent-notes skill](.agents/skills/agent-notes/SKILL.md)。每条新笔记都检查取代关系；`.agents/notes/archived/` 是冻结历史，不作为当前依据。修改 notes 后运行 `python scripts/agent_notes.py check`。
+代码、测试和现有文档未解释的长期决策理由，在同一变更中写入 `.agents/notes/`，遵循[笔记契约](.agents/notes/README.md)与 [agent-notes skill](.agents/skills/agent-notes/SKILL.md)。每条新笔记都检查取代关系；`.agents/notes/archived/` 是冻结历史，不作为当前依据。修改 notes 后运行 `python scripts/agent_notes.py check`，写完笔记正文后运行 `python scripts/agent_notes.py lint` 并对每条命中给出保留或改写的判定。
 
 `.agents/skills/` 是 skills 的唯一来源；Claude Code 通过 `scripts/link_skills.py` 生成 `.claude/skills/` 链接。
