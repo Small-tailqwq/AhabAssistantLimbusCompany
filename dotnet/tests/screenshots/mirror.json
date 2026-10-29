@@ -1,0 +1,1264 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "map-winrate-is-not-combat",
+      "description": "地图背景与胜率按钮易混淆，页面不能当成战斗、事件或奖励；来源20261025-215115-945/frame-000060.png",
+      "image": "mirror/images/map-battle-button-false-positive.png",
+      "sha256": "0d35cc881beb60dcddbc19a01f3d9a447d62c14e49cbd23413480f2f64f085aa",
+      "width": 1280,
+      "height": 720,
+      "templates": [
+        {
+          "query": {
+            "asset": "mirror/road_in_mir/legend_assets.png"
+          },
+          "count": 1,
+          "within": {
+            "x": 1205,
+            "y": 78,
+            "width": 50,
+            "height": 45
+          }
+        },
+        {
+          "query": {
+            "asset": "teams/clear_selection_confirm_assets.png"
+          },
+          "count": 0
+        },
+        {
+          "query": {
+            "asset": "mirror/claim_reward/claim_rewards_confirm_assets.png",
+            "threshold": 0.75
+          },
+          "count": 0
+        }
+      ],
+      "pages": {
+        "combat": false,
+        "event": false,
+        "reward": false
+      }
+    },
+    {
+      "id": "theme-persistent-giftbox-is-not-reward",
+      "description": "主题包选择页左上角常驻礼物箱入口，不应当成奖励页；来源20261025-201244-736/frame-000001.png",
+      "image": "mirror/images/theme-persistent-giftbox.png",
+      "sha256": "069e50aa7a6de93eda892bb53d5479a49aa4ffe5d115a55dbc490c35855ebf29",
+      "width": 1280,
+      "height": 720,
+      "templates": [
+        {
+          "query": {
+            "asset": "mirror/road_in_mir/acquire_ego_gift_box_assets.png"
+          },
+          "count": 1,
+          "within": {
+            "x": 40,
+            "y": 20,
+            "width": 70,
+            "height": 70
+          }
+        },
+        {
+          "query": {
+            "asset": "mirror/theme_pack/feature_theme_pack_assets.png"
+          },
+          "count": 1,
+          "within": {
+            "x": 1175,
+            "y": 85,
+            "width": 70,
+            "height": 70
+          }
+        }
+      ],
+      "pages": {
+        "reward": false
+      }
+    },
+    {
+      "id": "event-probability-check",
+      "description": "真实罪人判定事件同时显示极高概率与事件特征，应识别事件页；来源20261025-201244-736/frame-000127.png",
+      "image": "mirror/images/event-probability-check.png",
+      "sha256": "62e209ee4b07c622c75d059863e1189d001c20e85efa102c73d09003252d5863",
+      "width": 1280,
+      "height": 720,
+      "templates": [
+        {
+          "query": {
+            "asset": "event/perform_the_check_feature_assets.png"
+          },
+          "count": 1,
+          "within": {
+            "x": 745,
+            "y": 270,
+            "width": 105,
+            "height": 100
+          }
+        },
+        {
+          "query": {
+            "asset": "event/very_high.png"
+          },
+          "count": 1,
+          "within": {
+            "x": 805,
+            "y": 595,
+            "width": 70,
+            "height": 45
+          }
+        }
+      ],
+      "pages": {
+        "event": true,
+        "reward": false
+      }
+    },
+    {
+      "id": "single-gift-without-count",
+      "description": "单件归途饰品只有选择文字，没有数量分数；来源20261025-215614-617/frame-000111.png",
+      "image": "mirror/images/gift-single-no-counter.png",
+      "sha256": "057509482af2f8bfcf2adf177a6ec8405768cb75c7944229bac5c715fcdce2e2",
+      "width": 1280,
+      "height": 720,
+      "templates": [
+        {
+          "query": {
+            "asset": "mirror/road_in_mir/acquire_ego_gift_card.png",
+            "multiple": true
+          },
+          "count": 1,
+          "within": {
+            "x": 515,
+            "y": 290,
+            "width": 55,
+            "height": 140
+          }
+        },
+        {
+          "query": {
+            "asset": "mirror/road_in_mir/acquire_ego_gift_select_assets.png",
+            "search": "Normal"
+          },
+          "count": 1,
+          "within": {
+            "x": 1095,
+            "y": 550,
+            "width": 90,
+            "height": 60
+          }
+        }
+      ],
+      "text": [
+        {
+          "region": {
+            "x": 1089,
+            "y": 554,
+            "width": 150,
+            "height": 50
+          },
+          "scale": 2,
+          "exact": "选择"
+        },
+        {
+          "region": {
+            "x": 1178,
+            "y": 550,
+            "width": 60,
+            "height": 60
+          },
+          "scale": 2,
+          "exact": ""
+        }
+      ],
+      "pages": {
+        "reward": true
+      }
+    },
+    {
+      "id": "multiple-gifts-zero-of-one",
+      "description": "三件候选饰品尚未选择，按钮计数应为0/1；来源20261025-204915-316/frame-000003.png",
+      "image": "mirror/images/gift-multiple-zero-of-one.png",
+      "sha256": "225401493f7ae9bc379cfef9b0bc3b47634628855f49578ca90e62d1463a61f5",
+      "width": 1280,
+      "height": 720,
+      "templates": [
+        {
+          "query": {
+            "asset": "mirror/road_in_mir/acquire_ego_gift_card.png",
+            "multiple": true
+          },
+          "count": 3,
+          "within": {
+            "x": 250,
+            "y": 225,
+            "width": 590,
+            "height": 140
+          }
+        },
+        {
+          "query": {
+            "asset": "mirror/road_in_mir/acquire_ego_gift_select_assets.png",
+            "search": "Normal"
+          },
+          "count": 1,
+          "within": {
+            "x": 1070,
+            "y": 550,
+            "width": 90,
+            "height": 60
+          }
+        }
+      ],
+      "text": [
+        {
+          "region": {
+            "x": 1155,
+            "y": 550,
+            "width": 60,
+            "height": 60
+          },
+          "scale": 2,
+          "exact": "0/1"
+        }
+      ],
+      "pages": {
+        "reward": true
+      }
+    },
+    {
+      "id": "floor-four-before-transition",
+      "description": "首领战后地图仍显示第四层，不能提前判为第五层；来源20261025-213506-786/frame-000121.png",
+      "image": "mirror/images/map-floor-four-before-transition.png",
+      "sha256": "0f5c3edab7bf3cabd3e862d37bd9fc6a1ff704cff191c963fa0139fe35719ef1",
+      "width": 1280,
+      "height": 720,
+      "templates": [
+        {
+          "query": {
+            "asset": "mirror/road_in_mir/legend_assets.png"
+          },
+          "count": 1,
+          "within": {
+            "x": 1205,
+            "y": 78,
+            "width": 50,
+            "height": 45
+          }
+        }
+      ],
+      "text": [
+        {
+          "region": {
+            "x": 30,
+            "y": 84,
+            "width": 255,
+            "height": 41
+          },
+          "scale": 2,
+          "contains": [
+            "第4",
+            "层"
+          ],
+          "excludes": [
+            "第5"
+          ]
+        }
+      ],
+      "pages": {
+        "combat": false,
+        "event": false,
+        "reward": false
+      }
+    },
+    {
+      "id": "floor-five-after-transition",
+      "description": "地图已切换为第五层，楼层区域应读到第5层；来源20261025-213506-786/frame-000123.png",
+      "image": "mirror/images/map-floor-five-after-transition.png",
+      "sha256": "48d43014a890e3e591517a0b5a5923059144229228c188a9075fa4428d3e1b63",
+      "width": 1280,
+      "height": 720,
+      "templates": [
+        {
+          "query": {
+            "asset": "mirror/road_in_mir/legend_assets.png"
+          },
+          "count": 1,
+          "within": {
+            "x": 1205,
+            "y": 78,
+            "width": 50,
+            "height": 45
+          }
+        }
+      ],
+      "text": [
+        {
+          "region": {
+            "x": 30,
+            "y": 84,
+            "width": 255,
+            "height": 41
+          },
+          "scale": 2,
+          "contains": [
+            "第5层"
+          ],
+          "excludes": [
+            "第4"
+          ]
+        }
+      ],
+      "pages": {
+        "combat": false,
+        "event": false,
+        "reward": false
+      }
+    },
+    {
+      "id": "route-map-red-boss-center",
+      "description": "第四层红色水平连线经双箭头遮挡仍能确认巴士通往首领；来源20261025-211632-651/frame-000170.png",
+      "image": "mirror/images/map-red-boss-center.png",
+      "sha256": "3a95b65067a5c3960eacdac755b1380e88f57a594632d90b737fa4b0187db69f",
+      "width": 1280,
+      "height": 720,
+      "templates": [
+        {
+          "query": {
+            "asset": "mirror/road_in_mir/legend_assets.png"
+          },
+          "count": 1,
+          "within": {
+            "x": 1205,
+            "y": 78,
+            "width": 50,
+            "height": 45
+          }
+        },
+        {
+          "query": {
+            "asset": "mirror/mybus_default_distance.png",
+            "search": "Aggressive"
+          },
+          "count": 1,
+          "within": {
+            "x": 445,
+            "y": 225,
+            "width": 50,
+            "height": 80
+          }
+        }
+      ],
+      "route": {
+        "kind": "BossBattle",
+        "destination": {
+          "x": 709,
+          "y": 273,
+          "width": 30,
+          "height": 30
+        }
+      }
+    },
+    {
+      "id": "route-map-red-boss-left",
+      "description": "第四层红色水平连线经双箭头遮挡仍能确认巴士通往首领；来源20261025-211632-651/frame-000182.png",
+      "image": "mirror/images/map-red-boss-left.png",
+      "sha256": "3e106e2dd14299aecfffcc1be6e08b197f4fcd4dc2eba63224d04b69e2bb22d9",
+      "width": 1280,
+      "height": 720,
+      "templates": [
+        {
+          "query": {
+            "asset": "mirror/road_in_mir/legend_assets.png"
+          },
+          "count": 1,
+          "within": {
+            "x": 1205,
+            "y": 78,
+            "width": 50,
+            "height": 45
+          }
+        },
+        {
+          "query": {
+            "asset": "mirror/mybus_default_distance.png",
+            "search": "Aggressive"
+          },
+          "count": 1,
+          "within": {
+            "x": 45,
+            "y": 305,
+            "width": 55,
+            "height": 85
+          }
+        }
+      ],
+      "route": {
+        "kind": "BossBattle",
+        "destination": {
+          "x": 309,
+          "y": 356,
+          "width": 30,
+          "height": 30
+        }
+      }
+    },
+    {
+      "id": "settlement-weekly-on",
+      "description": "结算弹窗周常第一格ON，应匹配一项已启用加成；来源20261025-223349-846/frame-000003.png",
+      "image": "mirror/images/settlement-weekly-on.png",
+      "sha256": "14ecb8882db548f3449c1c75954d48cf66dd3e04d772eaa49bc0bf47776e471b",
+      "width": 1280,
+      "height": 720,
+      "templates": [
+        {
+          "query": {
+            "asset": "mirror/claim_reward/clear_assets.png"
+          },
+          "count": 1,
+          "within": {
+            "x": 315,
+            "y": 340,
+            "width": 70,
+            "height": 70
+          }
+        },
+        {
+          "query": {
+            "asset": "mirror/claim_reward/weekly_bonuses.png",
+            "multiple": true
+          },
+          "count": 1,
+          "within": {
+            "x": 535,
+            "y": 230,
+            "width": 50,
+            "height": 40
+          }
+        }
+      ]
+    },
+    {
+      "id": "settlement-weekly-off",
+      "description": "结算弹窗周常第一格OFF，不应匹配任何ON加成；来源20261025-223349-846/frame-000004.png",
+      "image": "mirror/images/settlement-weekly-off.png",
+      "sha256": "73a8136af4fde01bde29965bbdaaab35b97b94ab40731c6f391ad30f2f7f1b7c",
+      "width": 1280,
+      "height": 720,
+      "templates": [
+        {
+          "query": {
+            "asset": "mirror/claim_reward/clear_assets.png"
+          },
+          "count": 1,
+          "within": {
+            "x": 315,
+            "y": 340,
+            "width": 70,
+            "height": 70
+          }
+        },
+        {
+          "query": {
+            "asset": "mirror/claim_reward/weekly_bonuses.png",
+            "multiple": true
+          },
+          "count": 0
+        }
+      ]
+    },
+    {
+      "id": "formation-twelve-with-backups",
+      "description": "最终完整编队含7名出战与5名备用，参战人数为12/12；来源20261025-222613-979/frame-000026.png",
+      "image": "mirror/images/formation-complete.png",
+      "sha256": "5e7955cf4c1da1f6b283134794c2a3564cefac4882d68bea55dbeca845686ff0",
+      "width": 1280,
+      "height": 720,
+      "templates": [
+        {
+          "query": {
+            "asset": "teams/identify_assets.png"
+          },
+          "count": 1,
+          "within": {
+            "x": 1170,
+            "y": 150,
+            "width": 65,
+            "height": 55
+          }
+        },
+        {
+          "query": {
+            "asset": "teams/selected.png",
+            "multiple": true
+          },
+          "count": 7,
+          "within": {
+            "x": 220,
+            "y": 220,
+            "width": 820,
+            "height": 260
+          }
+        }
+      ],
+      "text": [
+        {
+          "region": {
+            "x": 1040,
+            "y": 440,
+            "width": 200,
+            "height": 180
+          },
+          "contains": [
+            "参战人数",
+            "12/12",
+            "开始战斗"
+          ]
+        },
+        {
+          "region": {
+            "x": 265,
+            "y": 193,
+            "width": 60,
+            "height": 37
+          },
+          "exact": "1",
+          "minimumConfidence": 0.9,
+          "preprocessing": "FormationOrder"
+        },
+        {
+          "region": {
+            "x": 398,
+            "y": 193,
+            "width": 60,
+            "height": 37
+          },
+          "exact": "5",
+          "minimumConfidence": 0.9,
+          "preprocessing": "FormationOrder"
+        },
+        {
+          "region": {
+            "x": 530,
+            "y": 193,
+            "width": 60,
+            "height": 37
+          },
+          "exact": "3",
+          "minimumConfidence": 0.9,
+          "preprocessing": "FormationOrder"
+        },
+        {
+          "region": {
+            "x": 662,
+            "y": 193,
+            "width": 60,
+            "height": 37
+          },
+          "exact": "4",
+          "minimumConfidence": 0.9,
+          "preprocessing": "FormationOrder"
+        },
+        {
+          "region": {
+            "x": 794,
+            "y": 193,
+            "width": 60,
+            "height": 37
+          },
+          "exact": "6",
+          "minimumConfidence": 0.9,
+          "preprocessing": "FormationOrder"
+        },
+        {
+          "region": {
+            "x": 927,
+            "y": 193,
+            "width": 60,
+            "height": 37
+          },
+          "exact": "2",
+          "minimumConfidence": 0.9,
+          "preprocessing": "FormationOrder"
+        },
+        {
+          "region": {
+            "x": 265,
+            "y": 392,
+            "width": 60,
+            "height": 37
+          },
+          "exact": "7",
+          "minimumConfidence": 0.9,
+          "preprocessing": "FormationOrder"
+        },
+        {
+          "region": {
+            "x": 405,
+            "y": 391,
+            "width": 60,
+            "height": 37
+          },
+          "exact": "11",
+          "minimumConfidence": 0.9,
+          "preprocessing": "FormationOrder"
+        },
+        {
+          "region": {
+            "x": 540,
+            "y": 391,
+            "width": 60,
+            "height": 37
+          },
+          "exact": "12",
+          "minimumConfidence": 0.9,
+          "preprocessing": "FormationOrder"
+        },
+        {
+          "region": {
+            "x": 675,
+            "y": 391,
+            "width": 60,
+            "height": 37
+          },
+          "exact": "10",
+          "minimumConfidence": 0.9,
+          "preprocessing": "FormationOrder"
+        },
+        {
+          "region": {
+            "x": 810,
+            "y": 391,
+            "width": 60,
+            "height": 37
+          },
+          "exact": "8",
+          "minimumConfidence": 0.9,
+          "preprocessing": "FormationOrder"
+        },
+        {
+          "region": {
+            "x": 945,
+            "y": 391,
+            "width": 60,
+            "height": 37
+          },
+          "exact": "9",
+          "minimumConfidence": 0.9,
+          "preprocessing": "FormationOrder"
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "pages": {
+        "combat": false,
+        "reward": false,
+        "event": true
+      },
+      "description": "短叙述事件以现有 SKIP 控件确认；来源20261026-151951-036/frame-000251.png",
+      "sha256": "3ed70d04c788c02a947915457e7fd8e5b5bdb1cb83910eceb23e5530590b6aa8",
+      "id": "event-short-narration-skip",
+      "image": "mirror/images/event-short-narration-skip.png",
+      "templates": [
+        {
+          "query": {
+            "asset": "event/skip_assets.png"
+          },
+          "count": 1,
+          "within": {
+            "y": 600,
+            "width": 210,
+            "height": 95,
+            "x": 1030
+          }
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "id": "reward-card-empty",
+      "text": [
+        {
+          "scale": 2,
+          "region": {
+            "height": 60,
+            "x": 985,
+            "width": 75,
+            "y": 105
+          },
+          "exact": "0/1"
+        }
+      ],
+      "image": "mirror/images/reward-card-empty.png",
+      "height": 720,
+      "description": "连续奖励中的遭遇战卡片页，当前未选卡；来源20261026-154707-612/frame-000170.png",
+      "templates": [
+        {
+          "query": {
+            "asset": "mirror/road_in_mir/select_encounter_reward_card_assets.png"
+          },
+          "count": 1
+        }
+      ],
+      "sha256": "eff730c01556b7c429c337321f4cbc4573ef1499fdc68f974643c3489336aca8"
+    },
+    {
+      "width": 1280,
+      "pages": {
+        "selectedGifts": 0,
+        "reward": true
+      },
+      "id": "gift-border-empty",
+      "height": 720,
+      "sha256": "a4773981252ab0c7342eaad195e6bdc379ce48fa56d94dd93e7d38127f0bc8bf",
+      "description": "实机饰品选择边框，选中数量0；来源round05-event-handoff/recordings/mirror/20261026-152827-201/frame-000218.png",
+      "image": "mirror/images/gift-border-empty.png"
+    },
+    {
+      "width": 1280,
+      "pages": {
+        "selectedGifts": 1,
+        "reward": true
+      },
+      "id": "gift-border-selected",
+      "height": 720,
+      "sha256": "db628237197aed861db92c5e5fdc8dbf19033b4fff7b00f2fe2f83126ebcddbd",
+      "description": "实机饰品选择边框，选中数量1；来源round06-gift-feedback-space/recordings/mirror/20261026-154707-612/frame-000004.png",
+      "image": "mirror/images/gift-border-selected.png"
+    },
+    {
+      "width": 1280,
+      "pages": {
+        "selectedGifts": 1,
+        "reward": true
+      },
+      "id": "gift-border-single",
+      "height": 720,
+      "sha256": "73d8db9b3319a783f963edda663811ff31e5e6f7638956352da9e3da247fa150",
+      "description": "实机饰品选择边框，选中数量1；来源round06-gift-feedback-space/recordings/mirror/20261026-154707-612/frame-000127.png",
+      "image": "mirror/images/gift-border-single.png"
+    },
+    {
+      "id": "route-map-warning-unknown-center",
+      "description": "WARNING发光环漏检节点仅在唯一且有巴士连接时作为Unknown进入",
+      "image": "mirror/images/map-warning-unknown-center.png",
+      "sha256": "d022a4e2418463323dfd7166a183a4c1f6bbb7c7a45223030359a9c5caa76e15",
+      "width": 1280,
+      "height": 720,
+      "templates": [
+        {
+          "query": {
+            "asset": "mirror/road_in_mir/legend_assets.png"
+          },
+          "count": 1
+        },
+        {
+          "query": {
+            "asset": "mirror/mybus_default_distance.png",
+            "search": "Aggressive"
+          },
+          "count": 1
+        }
+      ],
+      "route": {
+        "kind": "Unknown",
+        "destination": {
+          "x": 708,
+          "y": 267,
+          "width": 32,
+          "height": 32
+        }
+      }
+    },
+    {
+      "id": "route-map-warning-unknown-left",
+      "description": "WARNING发光环漏检节点仅在唯一且有巴士连接时作为Unknown进入",
+      "image": "mirror/images/map-warning-unknown-left.png",
+      "sha256": "f13148ef6c0b0993afef1db084cc2d86d6ec5ec3323953e26646e33de8305666",
+      "width": 1280,
+      "height": 720,
+      "templates": [
+        {
+          "query": {
+            "asset": "mirror/road_in_mir/legend_assets.png"
+          },
+          "count": 1
+        },
+        {
+          "query": {
+            "asset": "mirror/mybus_default_distance.png",
+            "search": "Aggressive"
+          },
+          "count": 1
+        }
+      ],
+      "route": {
+        "kind": "Unknown",
+        "destination": {
+          "x": 310,
+          "y": 350,
+          "width": 32,
+          "height": 32
+        }
+      }
+    }
+  ],
+  "replays": [
+    {
+      "id": "replay-floor4-shop-to-full-clear",
+      "description": "从第四层商店续跑，完成第四层Boss、第五层及奖励领取；真实录制442帧，核对122个已发送动作",
+      "directory": "mirror/runs/20261026-170440-492",
+      "sha256": {
+        "events.jsonl": "91335c2f94e3e2a7d70708c904d527855491aaa7a4af93f37bdfd9eef831f4e8",
+        "frame-000001.png": "4716eae1b4f9ba63995d102cce037ebd00d7e57ff491afad6e5120a16519cf97",
+        "frame-000002.png": "0cf0ae310c813165888eb5de4b8c2555cf943ea16338f3ec1cdf745daa9d82b7",
+        "frame-000003.png": "f2b620fe45e3629cc899714e5c68876c80b329fb36948dc1f5376a514a993006",
+        "frame-000004.png": "7f9245fc9abca4e19b8ac978bfbdbbf8834b40415f48cd6d7facee6f3bb7d071",
+        "frame-000005.png": "8f3a4628ee95d5f482a7f87b296273889f4233af3a0960af3846436992d4a8df",
+        "frame-000006.png": "0e0fa010929b2e907171b0d6d1e6238b2862ec1d1c4dc3aadda1898d2b412fe6",
+        "frame-000007.png": "17e9b104dfbd457c516c3ec5af4bdb12648e09fef33276956f8e2a1868bc681f",
+        "frame-000008.png": "65f12a9d8b827519556f254ad50e9a2f255603bfcc2def9db54c92b5df3a6a5d",
+        "frame-000009.png": "bd8b3453dcbd4d4f57b5741f072c7d46e1b9dca94b95010d184d96304631b341",
+        "frame-000010.png": "6909ac7a12f54319325526c794ae3185d4f077821e6815a93a7469c1580968be",
+        "frame-000011.png": "53f3f66ba12c8832026cab6de7b6ac865df0076f23af07643696c5dd636ab566",
+        "frame-000012.png": "4534a2bc88461da543bbc97ecab269bc96d31fedc020075232151d06cbea6c2e",
+        "frame-000013.png": "7eb11fa1f0728ae1768b8cb32ca78e54311a72793198c5d0329317e313b8a390",
+        "frame-000014.png": "d34df5c8559932323f384c8d8b08d7922da8c3aa0c6faeaf2a362d7b10f45be8",
+        "frame-000015.png": "66099caec7bc8790dfd582189ee8d5ffa9febb898ca7e6fcbb6870ddee123e9d",
+        "frame-000016.png": "f2cff421453968b8ad6769759c230770b5d3d3433314593e37c2cc01a579989b",
+        "frame-000017.png": "9ddbe962c90153570958779f81e532bf75681aa4237bc876c151de858749735a",
+        "frame-000018.png": "c997d822215b5bb51320c4a04022d6bfdc4ff44b097608785a3bc40726c8659a",
+        "frame-000019.png": "c76e68c3790cd7e08c491731425e2812ce153b35200171517dd937d12a79fb46",
+        "frame-000020.png": "5c4f9f7d5f58724fd614d72f039b376aa3ebc4122173c0af6e2e07454a4026c9",
+        "frame-000021.png": "f9c2655442ef86710555d6bba55f382615c4a1efe5053488820d07526877c5d5",
+        "frame-000022.png": "4c349d0ba6714dbcacf8ecbcb377a6b05e4ceef9567a8c4c9f6234666a2eff95",
+        "frame-000023.png": "e501664e853d2bd934205bddc6f757bef47bb7ff280db19abb97002f560b802a",
+        "frame-000024.png": "2320ccb7db5aba7dcb4c49daac0a9ebd95593dd9e4b74ccb30d4fc244fce75b5",
+        "frame-000025.png": "1172f20d91751b18774262464912972fa0f0f5410a89ff2b636a51c7c7caca20",
+        "frame-000026.png": "d0815ac0cacffce1903af216df2ad86c9e3df5f7f6652b0ef220e4f1825149b6",
+        "frame-000027.png": "fa43a2f7627c23fc689bf3863c2d804d60fb1e9da460fa5eca16ff223d5f49a0",
+        "frame-000028.png": "8281a28f0af2a7a6bbef35c9045c9c5c4c4ac8eab05545c0a948c5d1bd1fef9d",
+        "frame-000029.png": "ed53318b050d34e443e9f1edfde67b4c3f918207f3ba947f130e46d5fe0f9c98",
+        "frame-000030.png": "825c03ec463dab8fe9ffcb1b4ff73f12c6623bc4eff500016f1d4e059a4e7fe3",
+        "frame-000031.png": "540ac36a0a79948384b3173b861df94d5d035eb3a01c5ece3371051972201013",
+        "frame-000032.png": "020f4c7f054190f9114ffa11fc1cc21c528113b98d5db9f44f43b338b3a7c565",
+        "frame-000033.png": "4c7bc119a8689d9ef70a009352e85d557393e9995b41769b983d20ca3d0bb3b0",
+        "frame-000034.png": "c1602b1ae887da7e21f1a92039f80f273b30c5fc4fe0b8f474270a68df66c982",
+        "frame-000035.png": "9a4bd3cc4d3ad26bd6b60cfb162ad1c4bf1a2128d3eb192e5da69c43408d7988",
+        "frame-000036.png": "3cbd49ee65ea286d87cce7b4648e1a157c1163e5a7ab4c785c50f1c9a75b1ef8",
+        "frame-000037.png": "bf5c535f5c442ae66a93d66bdbf0161538d4d2a2de3776113831a2bf77ba928a",
+        "frame-000038.png": "398691a8c3d920b734e9813038692e3539e674ce69a9499942fa833048d60b73",
+        "frame-000039.png": "37d23fadc7bd4183fcd96a73b52e838d4e267125b110754bc54baddf87233d36",
+        "frame-000040.png": "7180cdee4e7d54dec0c17c22a3dbff39ce3ae35d278e6f86d89490f4c50d8b30",
+        "frame-000041.png": "b10c8bd6cc9af455560d76f98352e4def25d8622d32646a484f1dd4975b8bce4",
+        "frame-000042.png": "0e40d13e1a05feb223411ad7c3cce95bf26af9f3f28d7ef2d1cdc1ed409d7c00",
+        "frame-000043.png": "dfdd20bcbbc9cf34ae19ec6267cfa5d5e4faf158dabb492da32d83784b6dfddf",
+        "frame-000044.png": "612f2e89965126fa67f4407631ef9041aad1507c521bf9847e140815b1536174",
+        "frame-000045.png": "f668fbd7b3f2daaeda1444c6970c2fa6f1ccdb53d2a30812a47fd8ea9c5a14f6",
+        "frame-000046.png": "19600cbd701629e337983f224a4615d1662406e9b8f1b4f8c16e308353a89205",
+        "frame-000047.png": "ac48d45ca4c8511d050adfb2277cb281873d9e18fb223508ba3dc0b718d6bca2",
+        "frame-000048.png": "4658652f1b189cf4463a0489f280d4aafd09ad6e3077cf2fcd6297ffd9bd6b44",
+        "frame-000049.png": "4430f906e83ff47a5b029c8b4b19ae030b51a85e5d609e50063666fe02ddfb09",
+        "frame-000050.png": "8fbda2f0fba74814c907594cf6c073087cd4ca1191cb4774831dba0a65049849",
+        "frame-000051.png": "7537125d46b1a1ba0f44b6ceded1ec2ed479f130c3f41db973ade7ef2a9eec38",
+        "frame-000052.png": "4adb134074780b31dac5d849023389a5296aaf8ba9816194e50c0020718e6279",
+        "frame-000053.png": "37dbbf7b50da1d817956278ec1c8b3f38fe4fae3063e008a4f2419b3663b71e0",
+        "frame-000054.png": "b25815f6e350b47a4695fbb14657c354fe3b49b68def13c63f93bb8830faf17f",
+        "frame-000055.png": "7622dda88eadd135e65db88c54bba46c9271ac77d3bba85a8a7787bf1f0d6fde",
+        "frame-000056.png": "110f2d3e8d28b29b728720ee8c0a11e9b8cc1f212a5121208d970d4ef39fd914",
+        "frame-000057.png": "d448e199ddb014bcab92a69b5b3cdce5697508626e52c4fdc3bcfe1e24de0fbc",
+        "frame-000058.png": "f6c70108b47f87de3348696940feaaa8d269136e13198ee7d398b793b6d7ea65",
+        "frame-000059.png": "f2a1247f1a631b565ff06cba7c7fd61e6da2f63b79028ca96f8111f4505d079d",
+        "frame-000060.png": "17dba8a7263172886bd88cc7b12c060a1be62a61e3e02d02617f212136e910f2",
+        "frame-000061.png": "cd3a318f205597c12ad31de03ee3e20c5f110bf1104feb9ef0e61fef654fd951",
+        "frame-000062.png": "854de406a8af5ace32f3c356cc32bd44246d717f4c74efdb621ce160c5bff9d0",
+        "frame-000063.png": "aaa4fd8d6d074028295a35f5f9e1e7500d244a31b265076ea8395bbb053f41f7",
+        "frame-000064.png": "33e3a061dd6c27d4a896e41fa28cbc9189ea9be9c06c7b230c1c9afd1bf74b4e",
+        "frame-000065.png": "ce9f402f3809db84ac30caa8e2baef65f4dcd9b711f7b68e119c65246832b3aa",
+        "frame-000066.png": "d0f1ee1e2d0bf05ed5f26dd67c8fc4f18783e18a6a4bf61853aa9bef7234c0c1",
+        "frame-000067.png": "e124dba52c747d816f71978aaf8728201fba712f8632c84ca587219e1ff52a7e",
+        "frame-000068.png": "e212237932c4566da0edba3421bf2c4fcc226c28425616e972f2a602bbd37def",
+        "frame-000069.png": "5beb766db829f5e4192935a431a1df226a546dae0f22c885a50048fa484ec569",
+        "frame-000070.png": "461a5201a6b5c2c4031d0300f6d746f0d9d874129e2a1785209569e2fd519191",
+        "frame-000071.png": "e3b3e47e6f131196963baa72a8fdd4cf5aaa429ceb9243cc1f3641fcb180e845",
+        "frame-000072.png": "46ab4db49c72201cb69a868a8c4069fa1cd4737f39967cb9ba7d013be2f5368c",
+        "frame-000073.png": "58157aec335b7056a5bfd376fcc4c4478b563459a454f33447f161a0716e8460",
+        "frame-000074.png": "ce4dd09022b047fce7b67a870c3a6d7fb65e9750f58bbbeee69df5a121d54b0c",
+        "frame-000075.png": "4e158d413079655700e4915211c405996b13f5d3c94046f10cef441d733427fb",
+        "frame-000076.png": "aa24732e9109aa1aecc52ec7a0562af4eda0cac5daa491ffbf12a0881fd99d4f",
+        "frame-000077.png": "26aa1d6fa0d1d4cbe12b0617a6a4f82455b7193beb452ef33e29258edf023f43",
+        "frame-000078.png": "2ec7d8a25958df24050944ed733941673c82203f248323c388b313368be05c83",
+        "frame-000079.png": "abb29c3f6d7004ec04bb991387e7f9b5524321c26191597c10c5293bbf830cc8",
+        "frame-000080.png": "760a5caf921b2ef58055bdb98cc9cf1933aedb1a8a26f3965bbe773d889fea82",
+        "frame-000081.png": "91f190318cfaff9d14612d90162bad61dfe48f1def430e22df78917c43a030e2",
+        "frame-000082.png": "e711dc272d2a7efdd610c883b7a5cf84879d9460016bf0743d9794788836bc91",
+        "frame-000083.png": "be1e49dbf849ccd74833c5ce4fc6e82df4b4d48d6e0e44e98bfba2dfb23bb46d",
+        "frame-000084.png": "2059ff77ba7ae2dfaf9bfdb8f177277124bb4e1dc2f9cd71b8a46f61fa0a73a4",
+        "frame-000085.png": "d2e0b0c47fa18916130e90ed8c47accfdd5d1d6d8beb7990df20a3ab0929f6ad",
+        "frame-000086.png": "a94f8fa895f367df061906df8b72d8d4e1d605312227260319ec19f23ceeea9c",
+        "frame-000087.png": "68866083e984bb6ae4c92ab90db7d9eca67e7938f4bb3b3f7ea3a058089cb27f",
+        "frame-000088.png": "880745e7cdf876235fa5c1209ba9668d25affd810522e79869a100f6fd954f08",
+        "frame-000089.png": "9d6c01354581e42f823693035274f5e31378893bdd132295e90b0858049ed066",
+        "frame-000090.png": "135aabdcac9a6dbffb4dad21c78891797411880e593ef057c2f89e106826f291",
+        "frame-000091.png": "d7a7213fe6060c52c951e6201a86b1c1475e21a38f41f5026289dd4aaae9fdd8",
+        "frame-000092.png": "80ee25f3b9d426f9b815323d72b348e8ac415494850ebafadcb50b22884f8fd2",
+        "frame-000093.png": "fdcad8d64c653f9871b9fafd9ce728ee6a68683512dbc7f0e830245401739858",
+        "frame-000094.png": "9d4b2404950fbfa1b2dff8ed04483a6cc7b51e797fd56bc6921cfeb3305a22cc",
+        "frame-000095.png": "2368e9b2b61b0364e5ad43533fbd692ce91b8f78aa7a50607f29724f946a2396",
+        "frame-000096.png": "2d318ba595523a127847ba2b2bb3689ae52b00c955c46ecd0b4c5e820e106c1b",
+        "frame-000097.png": "6564e0f721ce5064b5b0dd876ea7071b77fede43f4c8079123a4443ceaaca247",
+        "frame-000098.png": "872bd163043e3356708821b3d0543c3902e6d6f934d9e9922abea27e65a8f6db",
+        "frame-000099.png": "b3784ae98d35626a5a899df90baf707fa72ed177eb64c15f24b1248cf5c4e579",
+        "frame-000100.png": "127fa384baea628897042839956cb9874913ad64b58a1ac0696a868d93e758b7",
+        "frame-000101.png": "9916c423129f7619031d748e13af1a9053569fa35ef862f8c4c96faf5fd41174",
+        "frame-000102.png": "06da9f80137782982ff0d080a8de746c7bd7589ffd4ac0f7430e1a6f4224b84c",
+        "frame-000103.png": "5959922296977174f9637d07caca3a33ef62976a800b4fda750df823c2ce5620",
+        "frame-000104.png": "7127632344abed22e90e87e71c1611ad7259ea79189e6fba7c2e98fe55144276",
+        "frame-000105.png": "37f3db365a895693fb958bf24c0d125a7bca7a2dcd2d7fad8a08b7db7cd3b214",
+        "frame-000106.png": "55e8455de06abebf7c38aaffabb3df2d2ffbfd0ca8d69b28d6d5000629e5c35e",
+        "frame-000107.png": "ee295bfb2ce8f4215ffd26f4d5393ba1bd383af2b57bdc5db23146f00c689a1b",
+        "frame-000108.png": "4c0d452e71770dd38b9ce8d2117194353d34b3045060131a98dd9cf1dd8c33d0",
+        "frame-000109.png": "c1a543af0d0cd6f7b478aae868a89248d2ee21f077da644a424a3132acb6c8cd",
+        "frame-000110.png": "c018fa9e002e1c78f79dc8b316ad059ca32335dc872879e799f3cbc20a4f3ac2",
+        "frame-000111.png": "c2d3975be4b9f894a67e7e98f9fa5531498aeb415effe9df103d52465d3690b4",
+        "frame-000112.png": "507c05665cf193de9e0cc965b2c89768e5889ee5edf50b2a3579d6994c98d340",
+        "frame-000113.png": "10b096085fda94e61ebb94e414894fa765cb30aec050ad4bc06ea8a2b545a89e",
+        "frame-000114.png": "87fac5b100903ba4c70bc290a320a244a2d9362071efaa5de72fc5fbd629da18",
+        "frame-000115.png": "ab45ddb4c4d1ce494e9ccb723db2840f820e54323470cb9e4fe2c392c487688d",
+        "frame-000116.png": "5984228ad08ce8ca419ee939e749bd32abbd5341ea15342d999e283a5f54a62c",
+        "frame-000117.png": "443b438e7541eb004e7ee7c85221b2eac40ffc59b3399216486ce1971a0bc6ac",
+        "frame-000118.png": "83aaa2044747a230c3fa5ce193c070f2bb41bfd529feb6161c5f774218708d5c",
+        "frame-000119.png": "21b483f7eb0b3836d7a12d23d747361c654a0b9697b6af0bfe91bce799c2b3cc",
+        "frame-000120.png": "b75e2ed66ba64db7a638b3ebf63c59ba928a19fecdda732cecdf029c6f5b0f09",
+        "frame-000121.png": "5ea50a89b8bb6c97bbff37f0e1eddf5e29868ec1bd80c96173a7036eaf708d8a",
+        "frame-000122.png": "5a1d2d2e6257517398edbe30cf9c78fa84ca61d675951a75289b9c2b50dec145",
+        "frame-000123.png": "6490dc7d5e4a30d64c0de024a85e9ae18f01b1e3663b4fb4c9444b1b1295df42",
+        "frame-000124.png": "70b8a68dded64272646a2b8b9e4d970fd08c127c73db97382c45ee779d602185",
+        "frame-000125.png": "d9856fe5be13a5395c8628b2300d35115d15ec5aa2c34886dd37c37bdf4f00a1",
+        "frame-000126.png": "51cd1980d2727f30067c142de73805c60df768050d31bfdb77e894e27ba13eca",
+        "frame-000127.png": "ab6c7cd4391dc69d047e516d594bd37e783906f445541d14fa2b24f31d6615d7",
+        "frame-000128.png": "a85a9455557173287e71d8ed3425e71b92f204b988d1e386fabdde9ce3e1a393",
+        "frame-000129.png": "6c1ccf0cec1c6193f3f5f6130c285fde2746750220e8db37cc53047b336d70d6",
+        "frame-000130.png": "fb2d38256717e40b1b268bf2e007e4bdbbb0477dae47fd2b8fb9360300150182",
+        "frame-000131.png": "b47cb37695cf3cc01ff2398b253a49140dd327ba2a5ffa15519fcc8721ca7bc5",
+        "frame-000132.png": "7f8515b2b0293be0c0cc8adc7fb2750d1b10d6c73965a3425f922ed15e4ad7a7",
+        "frame-000133.png": "e58c846aa0bac2d36a2d9e79ac105ceacde577a103bae460a303fbe9f6cd967f",
+        "frame-000134.png": "fa7576da13d9f0747a9089347a7ef28153f1e7af3270a94f38d2762ade7b4982",
+        "frame-000135.png": "5c42f3d53ab85741fba51ea6b9f3b14c2e75d35433332fc458551fdef7fc58d9",
+        "frame-000136.png": "902a1c000b8ffdecda3c6ccbec7e4e0301c3f03ab8b7a84ed2d8c597720e3cd0",
+        "frame-000137.png": "959c1af0f0e9065bfcbd852e3ce2de317b0bceb43cb348c02d5abd80687c36bf",
+        "frame-000138.png": "163077c65f531273bd1386cc12d3b46df5f8c9ea69c423d5b8f923a42f81ba99",
+        "frame-000139.png": "84059241b788f15fad5cd745e89b7051eb83cf460cddff1ef0af3264d78fecbb",
+        "frame-000140.png": "6a3dd2ad60f097d9be9156df1b9018e3f2145a352eaa53d4393f7359053bed90",
+        "frame-000141.png": "62e747d426440e8a825beec88d1720210c80da1c7cb2ee979fdb988436cedb43",
+        "frame-000142.png": "425b8d20373df5905f083b073f6322db8199a277e24f8dc9ea91ae6171f98595",
+        "frame-000143.png": "2ee9b1f01758aa351fd25c3d643940092a7abafd545a219e3ca9b6d414b46b37",
+        "frame-000144.png": "6038ef6bcbb1fcd9400f0324627ec60daa99828fffb1e039e1e57959e002a59e",
+        "frame-000145.png": "2cf2111f5b6a6868aa36952b6dd76cba3b8771d192551f5e28771362d4edbaae",
+        "frame-000146.png": "ed3a08a7940f70e98ffca9e1b6e4097a91c9c6d68be04932633d5c7fa215f956",
+        "frame-000147.png": "8891fef7a9af664bf9f77226748cc9d03d75a28a3a6f469dba9ec9b78ac59dd2",
+        "frame-000148.png": "6ce4e4d047ec2a9bce81f6c58f2782a3a46c27684fb89b645eea2f70cefa61be",
+        "frame-000149.png": "7f23fcef0f83cfa895a99d63b9ade8bfcb41e1ea8aeb301b3df1bbe5261b6aae",
+        "frame-000150.png": "521427a0ca06eb318aa7034824db931e4964fe9b9acf27835baf5e2cf2af8e44",
+        "frame-000151.png": "15f9f192c239d92ddb2a36da1660c5d6128cf65bd8fce243dea711064b5c8849",
+        "frame-000152.png": "00cbdf656a7360b7aaf8f84d30b6eb74c92bf27a3ae588373edeec900655eed6",
+        "frame-000153.png": "55093ad9756485b1a70238ed0668354fd865e7e3bcabec186df16614775e7f28",
+        "frame-000154.png": "60c9d6338fc7d7b1be2e90503ce1822dac6a1f29bb93f54d6aa883c8778c7506",
+        "frame-000155.png": "45bd87e74bfd644fec76f24016cf77c04993cc5e834780c9353bc617514154b6",
+        "frame-000156.png": "98d037b9f9e3bdf5d0cb6a925397eec1552dd35a3e2a40863e9cfa35b67a6fae",
+        "frame-000157.png": "ef470f35c87853c4422c53d51948de9ff5fb0216cc543f50983288f8b3fe723c",
+        "frame-000158.png": "487ce47bc92675049f1f89f7a042d0c878c45947b0672ddf565f5fee0af17c94",
+        "frame-000159.png": "526e1fb454b66bb04442e8f50e94c71e7676789ac5e0baebcad763cef82d9776",
+        "frame-000160.png": "ba4556fcde5a701f7f0f7b9daad06b58d9408642a8fce23669414199570cf46d",
+        "frame-000161.png": "95b7f0966499c06e95630d0a02311322d622319bb4b08dca3aa0d26e4052bb8e",
+        "frame-000162.png": "a887aae37d3440a37468c0a51fbf10bae60fa26aa0b7102d7a36fb00be247cda",
+        "frame-000163.png": "2369b000a5aa5831a23b8d65a1212ee2a6ec868a2cd8ddbac9c678d0208c0d6d",
+        "frame-000164.png": "20b21d5ed277eed236f2eb53ceb55287acd9156e1a9f226eefa22a0820356d8b",
+        "frame-000165.png": "9aad7dc59a6a0b65bf59630cfb095ee50ed7bdf5432bb2b17b4dd8ba1a22a70f",
+        "frame-000166.png": "fbe21576eca764c852432b24f19215d1c79469ada7a188b990538a3c5dd7c5d3",
+        "frame-000167.png": "818af74c651666241b7fa50f711b1454683ecc0a3ec3368300fba9335d25bfc0",
+        "frame-000168.png": "1aff9ac0b1457a74734ba4f6ba7280743be5bd190d77fe0035841024d9fa0d89",
+        "frame-000169.png": "e3de7ff2f6f9989c514a02211f2c633a4da660e97207e571692fa3b19c21b752",
+        "frame-000170.png": "9261f246bdf8d33a38c43e264ba9ff7ee869aa23d78ea80530ea22fbf1282601",
+        "frame-000171.png": "0495ad06c8d144d5d947e9ffda7cb48d4ac83a75f096ecaafefa7de3ad4237fc",
+        "frame-000172.png": "95dece9bb534a4b187eeb2d6626a13c5447629a58396b12c3ae2b28a21792ce5",
+        "frame-000173.png": "636318aa5153552ab204bcc3d925fbd89ed428617174d815884d8bad629fdedc",
+        "frame-000174.png": "9026b0cf326c3d19ad6ae167021d0d78379c4b765db448b32f22ca037c43fccb",
+        "frame-000175.png": "939da0829a17656cbd4f0c75439dd1527729bece8744ec8ed5a120cafe8fa721",
+        "frame-000176.png": "c9f7fada7da566ee3dcd395541581c7756a778b3c9bc52dda4df1c206c235cac",
+        "frame-000177.png": "025475c83c418b5d09554f4c43a8fafe2cfcf7ccbeca9eb938b052ab90137400",
+        "frame-000178.png": "ea90fff464e13634579b926be2cebc029107b867750466d83c65300a1e6a07d3",
+        "frame-000179.png": "1fa0711234be050133142de2d28e32c71d5ae94a3d6d4831e0a547a92f7e17d8",
+        "frame-000180.png": "7ffb70978d03a11b67fc9ab7169894af6e4170a56e16bc434f0bf4ebce196d0a",
+        "frame-000181.png": "4dbeafc2afc71f3fb4be58273ec8335098e34f877ab98c263cb9b1e2ad6bd7a3",
+        "frame-000182.png": "e5b4a4450c357f621212f3d6e8f530b88486a3518cccacaa51d48a92ed9b3226",
+        "frame-000183.png": "ecde32adbb97633d8cab5b77acbaa446ed1e019a5aef69916b04662bd334ec72",
+        "frame-000184.png": "bcf10e8dcd439949d33db2bd706fd4417624646a74b488402747d7a382ab5f9a",
+        "frame-000185.png": "cf51e838bf7bb767fb48b42399a424362d6e29b3b2e9d832d43f9faa43191563",
+        "frame-000186.png": "9bb468683a46e2a6f18d62a3193ece0797d07e7bd2b8be7de0a9d01d045d5a68",
+        "frame-000187.png": "5d6022d13297c1f9565320cb36c29a2c36b49c51fd5cb08e25f23a1335cfa2d5",
+        "frame-000188.png": "eeab125842962f036c519427f9ef311a1e35aeb824f95cdfa24a56343accd01b",
+        "frame-000189.png": "acddb89a928dded9ff4ab01c1489129efa95e694ec6aa677617ebdbe8ca06f7c",
+        "frame-000190.png": "6da007dc69a8b54e61dba39fd5c85ece9a57ca28317b28396e0bff4355628ced",
+        "frame-000191.png": "527dd410e35affef7e8c21166ff0dd539cf717a2b6683a15af90be4b0db7d261",
+        "frame-000192.png": "06c4ac4132383342e8c28ac4d00aabebfb6165b9abd0a8bf3954c3944fad93f9",
+        "frame-000193.png": "a2c2baf1d63477574306086ff1bddd47c03be6a2adca1b3bc33a6384c63abe28",
+        "frame-000194.png": "a9d7ec00405b0cf51d4eed44fbce07e88b1c93520a98f38e0ada5e6375899ba4",
+        "frame-000195.png": "4e0eead033374ad6a26ab044c16c6df2bc379d5b0e39f16c9aba91c08c85ac3d",
+        "frame-000196.png": "03d7e038f79bc7502d653810023ab021601c22b114a97d46624593580c8a0bb7",
+        "frame-000197.png": "c02d904e8814dfe6bf3b7614e6c7708fdaa1f52b4f8a6a087a4db4403ee39734",
+        "frame-000198.png": "a43229358ae5372013ecbdc2993ea92c09eeb89145ec338e1257f67c0421a82a",
+        "frame-000199.png": "d0a8ed308d67f8dceeeb08ecaa13529420ae2723356213fc04fd5afb491afc83",
+        "frame-000200.png": "bdd5c1f7008b24056157aefcf2bb686b1d3e20e439f1397bc7cbe34241de9d3b",
+        "frame-000201.png": "6f57e562a26b6f675a5b6a0087faf868d99fc43e3f1b17751461a1d515b9ea56",
+        "frame-000202.png": "fd792f9a1bfe7998b7fb1d76af7982353f4543916d6bc072387dd20da4c6759f",
+        "frame-000203.png": "9c10958e09c5280d2c61d9a56a5658515f8b49ffe403512c78a1bc62dc6ef204",
+        "frame-000204.png": "322e0a0ff90bdfbc52a7995efbeac4f48c4875120eb39cd56a73419e58c769b4",
+        "frame-000205.png": "60406fe5ef0b852766b72ff9aabf9c8e680e0d849b5c433fa7bf10c2b9cff3f6",
+        "frame-000206.png": "9df7366c768a140f3d8102df49873f37346682ae451fb71b462edd1d799fb0f9",
+        "frame-000207.png": "8e7ec21204d12d0e729863b3417dadbf6268b19a837bcfe149ef357fb87c17aa",
+        "frame-000208.png": "17e1fd61707ddbd22d5913d39893999b1d6b70f81d8158eb5c15cf44b3231b44",
+        "frame-000209.png": "4b23898044c7cdba6f065c1d0a0ca2867578f0ebb3db7848c9b1c7662eff5fdf",
+        "frame-000210.png": "632c55cc49b5cc01ad09936e857cb5bb29a6e307937b9f97c9aeed7babd85504",
+        "frame-000211.png": "43b99b81a2624470f48c9b48b85f0f61d98fa3e54a02787a996f2763b79e2dd6",
+        "frame-000212.png": "e19dfa3de6f7aa5ce30867742f0698aee2cbe65d45319230629b7c7d27c52090",
+        "frame-000213.png": "c1e88bd1082101be4f9cc1d864dcd8d1ab14e677eea18091b0e3b9088223b779",
+        "frame-000214.png": "a1a880cf1731c028f8f125c9d3b81087e9b5867448366dd92cbcd2267128ec2c",
+        "frame-000215.png": "95dafabe6059cf1ec9749aa0f3c74f35e7a705b25fd01eff4c4b6a209d0d3d17",
+        "frame-000216.png": "4c29e4985aee840015a7169018159369845817ab6cdcc10b99f151b34d1f9367",
+        "frame-000217.png": "00fc752dc73de8e0009f89f2919dd506528d7eeb24337e52e8e568c53cbdca12",
+        "frame-000218.png": "e52e2fd46260e7bc1dc6706d298e66f6f4e7807bc4334dbde5fefd77ce75bd9b",
+        "frame-000219.png": "0d229ec2115ef4d8263b245eddd8426e644417836489c1c3e9ce666aaaf38917",
+        "frame-000220.png": "60377fb725932ebbdcfabcfd66c0f8abd2923f9705856bd4ce361fcd819ed32a",
+        "frame-000221.png": "828f0422ff8de742c222b831d32d633b5f13b15cb1972f1d10c0de3f03cbca5a",
+        "frame-000222.png": "8864f596d9ddeee850feb0860e5ff53077a80432bd21232c2c02217643aeedc3",
+        "frame-000223.png": "aed73421873c461be47af23ab782801a686568e2c5a6dcdbf2ea51b51056891e",
+        "frame-000224.png": "a598b0829d560ad8a4dcaa5aa74d31a21ebc6546136caf1e446ad62a936de2a6",
+        "frame-000225.png": "84561322a3778c53469cb7effd52c1b7b73b5ba82fe2feb07df3eaf72c46add7",
+        "frame-000226.png": "1d088ceab8963f6f8bd5af7e49bcef89740e8d744476b01b8c68057d72c268dc",
+        "frame-000227.png": "34ee37205a529981c5cfc24abdae63ce97696db98938a58f1b4dee980341926f",
+        "frame-000228.png": "2daff41943e276c1d606b76ba1d203aaf61eec7fa68cd63fc7688d2b1b6a0022",
+        "frame-000229.png": "3ca296211fc32511327ac9c5dd106aefcda810b6d17335f864bbc6b711e5a8da",
+        "frame-000230.png": "7bad28fbf44a210f5a103fb797f3e81b0aaf10182bace4fc5ee6b5d1c6637193",
+        "frame-000231.png": "9d8e6a3b3bae1a40b4418c2e43002e5d3a014127b2e239504956933608a12353",
+        "frame-000232.png": "363ce129d601909ef0d503385374f3b37326cc28d16d6862a47f2c6c599e810d",
+        "frame-000233.png": "2c455f6f3b896363e01e85390780120cc6021b73ff5ae42df1b72565ae3b82e2",
+        "frame-000234.png": "bb3dc29818453aa39780e6a655788b60da40a6e89c04eaf22d4c5b5f0a46fb3b",
+        "frame-000235.png": "9094d430b3ce620e8ea45bd429f225d64e7dc82682d31da3320a5da52f35d6aa",
+        "frame-000236.png": "384e8bb6a6a2c9ddd61fbb6a05a826bbc460b6598e276649dac0ef2ec4f065c4",
+        "frame-000237.png": "85e32b1a48a46a89f7d47ca887dc4840d7803ab01994ef4811a46961b2accad9",
+        "frame-000238.png": "aa5a96837f8fadc96cedd72e9287aa819dcd299c72a6564950b69080da58f128",
+        "frame-000239.png": "7db6399eddcf3361d197b9881ec15db44a363e66c82bd5d58b2f2c32f7e4e468",
+        "frame-000240.png": "89e956f5c4d9e0273ef015f537ecb90b283a5ada31c524a8adec14acfdd8fa9f",
+        "frame-000241.png": "c3d63f566dce98040578ef7bd198a9df3c442c1fb7631e1f5081641811b3740d",
+        "frame-000242.png": "f67bf0aeac1dd9e6ee1c8e39d29d99230bfcfe917076da3af23bac2e2096a30d",
+        "frame-000243.png": "f407b3069fd9f1a0c138fbc515683e015d64b44ec674aab0f0f39b3835abe9e7",
+        "frame-000244.png": "a1cdb2d7fc581e8bfc1372c29bb031eca7a2bd871799d3d4c1d3782d88596b42",
+        "frame-000245.png": "dba9dedc7df432f5342ab512a0c8055b1177be0038de82e6a2db4879f2252c4b",
+        "frame-000246.png": "d56cee88a2082b0ea2405e01c38d2c88f9cfe43b81bfd9ad7372a629d643e950",
+        "frame-000247.png": "adff25941a07b2809b1a99277f02e46e5b778197e0b9a3974eb56970e4b59d69",
+        "frame-000248.png": "309232d3d033f9a4d8e5dc760a22aaa29accafda8d40a9764f621c972361999c",
+        "frame-000249.png": "b56dbae5608ec993f8dc4df5f91b51ad6c097a909684fefbada8fc65d066abeb",
+        "frame-000250.png": "160eddafcd1b7867c4feffe715996118bdf6bcba731ecb9ec56304158bb203a0",
+        "frame-000251.png": "b47cb37695cf3cc01ff2398b253a49140dd327ba2a5ffa15519fcc8721ca7bc5",
+        "frame-000252.png": "a7e654b753c44652b30d04472d54fe6f03ae6520da1ee30b9873ca2c279629fc",
+        "frame-000253.png": "4bbb25db6110f2d9c7cc6d2d0beb31287c23e1a4052af43644ac76e16f6660d7",
+        "frame-000254.png": "f24db7c037609cec8e4463cb850ac75c302d5b337872909d30845a5d42ca7fac",
+        "frame-000255.png": "f24db7c037609cec8e4463cb850ac75c302d5b337872909d30845a5d42ca7fac",
+        "frame-000256.png": "f24db7c037609cec8e4463cb850ac75c302d5b337872909d30845a5d42ca7fac",
+        "frame-000257.png": "3969d151c1c17b51185955583f8af3b7b95bb23dfcbce2d9b1c1b7f377a6abb4",
+        "frame-000258.png": "0de76d7214bbbacf64f7cad4019d519b7d73ed3ab089a0c1f987e462de8ce0d0",
+        "frame-000259.png": "d0e11a782053b5c8285e77f841174899a16c1f81579bc6fbcb9a9d7bbd721ac8",
+        "frame-000260.png": "346405703e987098efc224cf7afccecc875b1d9559d6927f5d50ef7c69c8677c",
+        "frame-000261.png": "6f8a968e344c777945a8eda75024ddc16f07c3f6cf4ca95c87de05968ff0caf9",
+        "frame-000262.png": "ab3f3bb92c2f21b5feae1a31004145ce65fd6bddf3cc62eafd69d37e926d645e",
+        "frame-000263.png": "3292f8041a695f02342f89d3c4ff4e9b0133a0f6f5fe1b66e47de9922a04d6af",
+        "frame-000264.png": "3463947c7e0b59afbee95ec142aca02e693d9b2fe9dc7aa0bf58def00a214472",
+        "frame-000265.png": "848137b6063553749979effb2ceb0861f962726db2c3745b271b00ebb349b56c",
+        "frame-000266.png": "aa599c47d46dd4e5809280f2d3781f04fb346081091f90a2e4f8458cafeed270",
+        "frame-000267.png": "ad90dc12b8f88bbd92e3ab1cca14cf697354d0f7c3479ccca46c0ced88ceaa8d",
+        "frame-000268.png": "380994ea8453110a9f9ffbc18811554e188631a5ba6456607ab486ad5b9d4a70",
+        "frame-000269.png": "06f63194a423fde20bb258a34df60ec857c378b162aaaeba0cbd4a9d5c9f20b9",
+        "frame-000270.png": "0d72f64ceb83b4d1da78ed3bb89b7d2dd3d5c8065486ea1aa5e27d6c7c76786b",
+        "frame-000271.png": "9e4c1149c55e67f4c4ded2010772b2357e83271317d38b602980a5bfa2bab01f",
+        "frame-000272.png": "a1b54061c988e0b08854bdaf06b497bc0a31ea1ca1cb460102034de3a45166f6",
+        "frame-000273.png": "ff3d139d8779eae4a300ad343247568710430c792b3a62c4e4d8366a699cb614",
+        "frame-000274.png": "e849a4df18b06b8f8d7bf774c9b05522b61fdc9c8f79e03a35cfb8a531422779",
+        "frame-000275.png": "d717479a465ccd6bc60cd4adc09e2c2902c208800a714e07c4b9d450937bdc3f",
+        "frame-000276.png": "d181f26d86aedcc8e2ef08038ef5b4272c15bf7d60c97d71e81bfc858510178e",
+        "frame-000277.png": "0c0e5375cc4a56022fb344c4403a1e0f411f56f1582fd117e825a9b70fd598a0",
+        "frame-000278.png": "9155e81ef56a7f44d326de2a3e06965496d19d550a9eaec25387902dbcb0a139",
+        "frame-000279.png": "3c338900e370c0a00ad997f43ae30d3cd46149983f2df74837e4a45382760bb9",
+        "frame-000280.png": "15f1bec05788f08a220f574b87adf31afe4ba31e1a27a3dbb4afd10503839360",
+        "frame-000281.png": "7b108a829e1b8cdb3d4f8b9f9a8ff9955c90639888cd08ff722a3a69b1eba352",
+        "frame-000282.png": "37757da206d65b502e5d349ec7644f47b462bcfffd706dd4d5a61b25db87acdf",
+        "frame-000283.png": "287be0cbc7c6dc3808ebb3a466943316863b76eba51677e7e2dd8053ab943cf7",
+        "frame-000284.png": "e63b819d11f40a76785b0087f69ae87e9fe961c5f4b050ef30dda002a9771b7a",
+        "frame-000285.png": "a549f596d89b5b406cfdd82b3922e4a7b251c08a2505a3846b662de478fa8ae3",
+        "frame-000286.png": "0165ed27ba3871ff54ffa7840c352c8caa172fc057652513563b9e70b41a5e7c",
+        "frame-000287.png": "e3dfa72df8bfe6ba72645f92fcacac40a17b5d651b951855b6589b8ba8c6e3ea",
+        "frame-000288.png": "531ef19320cd94042c8851224101be30a35ff187dfaa16831b27768adc20ceda",
+        "frame-000289.png": "a2ace0eb77683a5e1fcda0a91dbaee6da6b409e9ab22378efcbcd647965961fb",
+        "frame-000290.png": "65fe6a9c1dbb41c3629cd138274042ad6f030e75dfa2379ff36bdf286431e660",
+        "frame-000291.png": "8b862da4fa4f9f41c8fd6c14c3f60e6fc420c26275d92122b60bdd3406818be9",
+        "frame-000292.png": "99d2350e19da08c0bbaa74e1f54ee744d62af6dff2ca7da697f4705934b8088e",
+        "frame-000293.png": "a747de95432ecbb7606318a80a3169f661c7782532bf3cd2dea0f35399ce1c42",
+        "frame-000294.png": "fda7c50d717e76ab0427cde460bcffe49e1e45c59b839c857157fe9b3427a355",
+        "frame-000295.png": "5e7996ea5cbdbf978c9e185183690342eee5bdd2ffcc41b8bbdd1488248e0eb3",
+        "frame-000296.png": "a15dd83cf5e1c0974c64d3d0afdc10b70f02e153cd509cf8e9b28ffa3c4bb90e",
+        "frame-000297.png": "811eebc6ab7c14a59478c686cdb923e8e17e3ba3c7cb27637dfa51675b663417",
+        "frame-000298.png": "e65c9364b635fe06058c98a669f025e7de98814ea4371657790fd9637c9baeb3",
+        "frame-000299.png": "29bf7b1d2bb4fb8cb96809ed2f4a57187380f59843129892c4690bef3801befa",
+        "frame-000300.png": "3a3390a3247735a6a1a9a335a45b5638edea623884032cf52b562b0d9b317b45",
+        "frame-000301.png": "d82a3704fa6ef1e58bbca2e4f504bdeb59dea438bf0d4fd357c5aa9c42a4f63f",
+        "frame-000302.png": "7d092d60686513604426270dea3df8c249ce481fc2671ea447466598d8267bd3",
+        "frame-000303.png": "91b8fe9cd71a94e3412ca826ce7b37d5c13462454501a8e9a3a1a3bfe92e2706",
+        "frame-000304.png": "cdc587e040afbe638d69c96df953100ccb7aebaf22cfcd05232b69c2fc9c624d",
+        "frame-000305.png": "69de5b93777f0e04323c454b9c8ad6927c32ee152610372cd479622298bd1906",
+        "frame-000306.png": "b94e1398d9b61d940b82957e0a28a2f7762e8eaa9f54114d9eaa2b1558dbd143",
+        "frame-000307.png": "594ec798821e531f264195fea0bab8a3b673b6ee623b05e280e4a8365a77cf8e",
+        "frame-000308.png": "98e54a83b678530743b3dafb4e68728fecebd824a68c4fe30f4c7f963eea74ff",
+        "frame-000309.png": "f20b13f9d753e82f900dd76d0505d2b6181699743b67df88a9a5d1f270d5d822",
+        "frame-000310.png": "e6212e56c9cdd71fef12d25f3062311e6085cf50fcce2568ceb525395f2a1508",
+        "frame-000311.png": "23cc3dc78b746f7cc39f154768e56d5fa4ada7d2026f2734f33c13e0c428d68e",
+        "frame-000312.png": "58ea8874e556cda8eb19f5a80137e285d0b82e28e0a413f451a58a549197cc95",
+        "frame-000313.png": "365d82adc534963a747a011376981c2b2140cd5f6efd656f965e8031a56359d1",
+        "frame-000314.png": "fd6034d814353f5fea7281d2df887a8cfba1bc47c12d0873caba0dea62da4f73",
+        "frame-000315.png": "36f7a7956e186d5ea5aed8ff5fbb002df15429485f52d6618bcb0a1c36fa7cba",
+        "frame-000316.png": "6fea68050a8cc794f75e7d00f826124e057c6311954f0c57c9ce78ef35b8006a",
+        "frame-000317.png": "184a30a065e042fc7aa0cb1c5296c4679d1017e7672c0b1006dee64c384753dd",
+        "frame-000318.png": "9ca8495437e117a7b7e8a83e006729956973284178360b3c04029415979b8d6c",
+        "frame-000319.png": "7e732c0f9003b1ced6f73fc66e4b215d0dc379727c6332fdf75c42801e449649",
+        "frame-000320.png": "7e0c0a5a85b5aa31179709e6a40c042fe2c509be9b95fc82d05adeb67e5d0248",
+        "frame-000321.png": "9f7e3a47a6e566ce0a04cf656deb47b024fe8b7c75851f0c0239cdfde108bd79",
+        "frame-000322.png": "79d211d5f3e8f5fca65aa45ec5bb9316fa4c84a84353b31054564d0f5948e999",
+        "frame-000323.png": "800dbfb069a8b28b086f497dc320401ac41f654cb19429a730053530a442d8f5",
+        "frame-000324.png": "351c1e189a414ac46996b74e1af29bcb6fe278e8e3c5b570bd07f3904c2e69b6",
+        "frame-000325.png": "43de91b8c1cde10a9a8f7bd8a79fb9380e8f6816bf5997a10138da0fc3a0b29f",
+        "frame-000326.png": "8630593e64ff13aa14b2566cbac97e5712e5deb13015cef0ef45c716421c9667",
+        "frame-000327.png": "68be571b67fb9e578d528a86e9d8e8cc39c559d4d0721aab01427790ff1a7aa9",
+        "frame-000328.png": "e78bf349d5089dbb4a1ea62b96e42a617202a552fc428a6523b6fbf8bcf8d247",
+        "frame-000329.png": "fe0b6c1d3b2a4d24c93d37f4e0692c358808b3d718be6c1c06ae9b51ea1901cf",
+        "frame-000330.png": "1db8581ab1412353ee8adb5753cc7c5d8986d7b9d062712b14cdc3f76c055acc",
+        "frame-000331.png": "46c2b77aaf95ba834bcba77eb402c9903ce3755b7ba8c5434adf8108aa4aad69",
+        "frame-000332.png": "897404f53c046714a469d50e37eb236423102a1125517ef062effefcf9f5f25a",
+        "frame-000333.png": "a0fca3c68a2cc43e24d8b619008dfcd923d6e98c1d8caa6d1874c8eb4969947a",
+        "frame-000334.png": "db8c1faa88c0d856842fc10613271ee82ff9d5439b2730cd4231cc21fd074d6b",
+        "frame-000335.png": "27e8b3c7869bc84552d7ab855a58827ac586a58f451a4904abb13ccee3b968b6",
+        "frame-000336.png": "d5d7fae35219ba10764992451568a0584e0b7369344cfeecad3878df43f44138",
+        "frame-000337.png": "ea0e60cf8d3758bde5e343e6cfe211e3bedddd3fc422c98a70ec12a8337bef9a",
+        "frame-000338.png": "58087814764ec385d84eb44b58ba1d1d4ed27e8bb63de3c6ef663509b9a20ba6",
+        "frame-000339.png": "54cf74d774f2b7695b30189ab771c99874e31495ab76019450eb0b2983a22b33",
+        "frame-000340.png": "d3356814fae454199ba7343215e39e67b3d4c9e73b53f411fd14ec1b5870a87f",
+        "frame-000341.png": "f5b529fb305aafb2a79e9ecf997894d7d2243080971140a6117fd5c8389db07f",
+        "frame-000342.png": "ddf14c4b7137ad051b21de3ef12a208ecc8b23ea55302b1379749a9bec130da6",
+        "frame-000343.png": "3690072608879862643caead4a683a45c75eff1b8318f936a26090c39091a4aa",
+        "frame-000344.png": "63fe2c1cebff592c792e342fd9d01b28e1a7957c6fb1934eb609d780a377e310",
+        "frame-000345.png": "7a5b7f00da373f0a6b35b9a31e035e09da87544ba471c40c0ebefd34ce485817",
+        "frame-000346.png": "bba9850a224ac3d07f093d621097aaff7c89631e93a483968ab0d3ea26351194",
+        "frame-000347.png": "a3a25095a17457220a40a9a20ac69a6e5bf97140c3114edb0b5a487e9a20bac4",
+        "frame-000348.png": "b47cb37695cf3cc01ff2398b253a49140dd327ba2a5ffa15519fcc8721ca7bc5",
+        "frame-000349.png": "72d8a9f10faf29c3b958eee47421b878655d7270b1fee6914432723d6305289e",
+        "frame-000350.png": "d1647e8c31027c9bcee15b070d54bc93b1055289d7f724e6e1bcc3cbdc796125",
+        "frame-000351.png": "2daa73e50266b407a0bdb7091f49449a6397fafb4800e40103540e49dd2cfa23",
+        "frame-000352.png": "3b235c3074f1eb183ab2b759b611968f38c81a731c43aa2e5c15d761f4a86808",
+        "frame-000353.png": "cbbd96d25db79c979e1b2cc84d5d2254678ce09032dfd766f538e5c03f70b146",
+        "frame-000354.png": "d69e0ac89b14c79dee24d4c68544069a0b5346088009d1dfc1627143c4e25bc0",
+        "frame-000355.png": "5b02d5752e67d957daddc333141a50419f56f10a87bf4ea7b4b17725ee4674b5",
+        "frame-000356.png": "1124825e4229c93cc48c4ec35f3f1635f688db82a9bbc725ff022e51b363c108",
+        "frame-000357.png": "e2b02859b98ae7c312010e0e558d8e2bb19aa9b6ad1b7d97dd923e826adbca95",
+        "frame-000358.png": "02dde379b79e9c0ae6db743986726857e202619af308558bde6b0abce766270c",
+        "frame-000359.png": "60ca854112dfda21bd1a4d5298b91bdee82bd51049e2eebe4aa22ddf12a2a51a",
+        "frame-000360.png": "4a697e850d70e5d9e7fcdb0dc23f5fef2fab8622f353c5648f474f97f21f0b71",
+        "frame-000361.png": "2dbdfa61a4d522471364d32841e9d5283562988b1b8ef97764cf9009d5369b9b",
+        "frame-000362.png": "e45da9ddbfba8d1201939ba578cc1ee9ca20d8801c04426bd6f7b94d55710691",
+        "frame-000363.png": "6828e0489c26933604d22b2bb027859c76c56bac49ecde6df28c65158403d5c4",
+        "frame-000364.png": "dec6f4f31ee3a1d119e58a2c93609c7c86afc2806f15537cf50dc926b9f58d9e",
+        "frame-000365.png": "330127a383dfc30ca9f5d8ff31da10c44594ed27c849d206519a794fa1ad8ef6",
+        "frame-000366.png": "2ddf512008b760585e5e452d5f3bee6886de73606fdefc342a8291f946c1b313",
+        "frame-000367.png": "ef12084d77a325e1cbbb2a5992b77fd73f718ff537ea43118da67784e4b56147",
+        "frame-000368.png": "5e893817ff0420b7fc423c24f8326ba30c93bcc2461e976e9ab69148c2319833",
+        "frame-000369.png": "27de0a0dca4c748be2266fe53fcea3744051e6a55cbbb181a58d42d16fc316d6",
+        "frame-000370.png": "945d979e484065a3f1da70d72f124e44232a8264386c005be2bb994f703fc8ab",
+        "frame-000371.png": "5a38528f5fb443581a329c3b2a47544fe6deb462ef4305a5f94878fe4eb0404d",
+        "frame-000372.png": "341fc0cb0996a192ca3e1a50a3bb4eda7a8501378553853383c72ecaa3d0c136",
+        "frame-000373.png": "807e0ccded92b8b4b2e930428e6d88f3e2440d6c7974d84aca1cb10597de489f",
+        "frame-000374.png": "d9a0623e17c25d7ec5d0b97ed9799408941b5ab848e63045e3ed695a8c55d265",
+        "frame-000375.png": "b457818099516ecdef23c930e75d8a5919b4931eeda75db10d29b504b2b3888b",
+        "frame-000376.png": "a4e3fd0e049a04a7b0829f7952f8ba8b67627cde6d1ac9e9d38f4aa6edc51644",
+        "frame-000377.png": "0713b307a50a66335a56a42deaf7c9fd9c4e3e628d0c5ba6b239e888fb9fafd9",
+        "frame-000378.png": "ce390e2f2498201d40562f93e963d18bd8963bf63134067b1da4162684c908ae",
+        "frame-000379.png": "1362a5004453d4258a0c7499a4dc52238e3f5d87c7cb016c8580170a94e035d0",
+        "frame-000380.png": "c6eb80967af4af52c01aeb02809c213441541da5c14189cf5eeb111560620778",
+        "frame-000381.png": "f12e7253c9cfaef5b934a82077461cf8aa632d2c6f218d8ad76ea956ea92c126",
+        "frame-000382.png": "f02a3d973000d90f9453f81f6b06e355bc2f3e144ff2a3d13e1e85b89e058d07",
+        "frame-000383.png": "dca20c5b4243eff8e924378d7bb0c5f1876736f316b633532e370fc7fb681fe0",
+        "frame-000384.png": "129daff1dfe36ea679e5da5fd8d14a000d60e63b0266398d52149163f37d602a",
+        "frame-000385.png": "1981e640516104459f8bfb440aeec27315ebaf995f6e1135fe57ee0903d44f80",
+        "frame-000386.png": "68622f92212938ba81e399fdbac872d3b99e3bb3505233da6ca42a133687dc89",
+        "frame-000387.png": "07c7b205757090fb28095ec027a9a50fb07331569f2eeaabf20b8593379a372e",
+        "frame-000388.png": "10f5049c8c7307a7b4173e7ddaf41b39e03f1ca324e272506717d34f7963a8af",
+        "frame-000389.png": "f58f5a69822cb229d651858d3b7998ebea3c1e61d8abd2f1b338bfb581c0e2ca",
+        "frame-000390.png": "8cbd80007b3fe69b2be914b8bb7677cfcf154ff9ce5c4b050e1e66c32929ea1a",
+        "frame-000391.png": "8b2dfe14a6fad187a381da98b7b2970d4dde45c4b4ddd0ba406eb1a3932915ee",
+        "frame-000392.png": "e11b420ce8fae21356ca45d4740c3c93c4e8576942b41bcef557ff0403220aef",
+        "frame-000393.png": "8fcea29d4e923bc89c7347126a03c3b6bb200b3bef8dd8c44b30ebc0b4d6f908",
+        "frame-000394.png": "70528cd5b08ba70da3ae6ad3f61f829cfb36cdcb159173f7d92b3064ec793f56",
+        "frame-000395.png": "3b4a2ae70a3b8649863a418ce6702423170d8cea120b315a3b7c77d0557395b3",
+        "frame-000396.png": "7b35509661c53e0f0d617382b84d8aa1839429cf0b5485d2349fc6bc271eb70d",
+        "frame-000397.png": "509e3417f75a9c3007c426cfb0adf30e511a2e3bf71d6aa9628f96c6c7235e9d",
+        "frame-000398.png": "1b5115fe0f8fa7f1765eb2c4ffa62990a8d8a7383ba4d0acf03fcb4a1e9b949a",
+        "frame-000399.png": "74d15255c3ee2954bd186a78afa563a7459aa6ce6cb1ff299d76633c70dc01f6",
+        "frame-000400.png": "0501955a7fea58fe1afeb81a2dfece98c23e67516a177787d858013d0125c274",
+        "frame-000401.png": "01dd9498d1e7b4ca58be0d1297e562e3a063e9773637d96873079724b62e6209",
+        "frame-000402.png": "d8cfbf8775b8d304a0af091e8607748f64a4107b8f6240aad2003f587a8e471d",
+        "frame-000403.png": "32fadb4a398466026d81b4a0405eda28a8fc29a4f2a8fb67695ae73471a69f4d",
+        "frame-000404.png": "abf5c228ea595fe502ea1c6a150d062616b3bccd74702c388c2be84ea0def9d3",
+        "frame-000405.png": "19d3298ff3ab9359f96dbac3ef6adfcb6907c8065f456b9a484ec75e099a954d",
+        "frame-000406.png": "a8e8ceae6495507bafa556134133b336dfef8d754b2e19d0a049bfc26f7cff06",
+        "frame-000407.png": "2cd03f146dc1028fea69ef265ceddf7ee0c931d10407db76b1e103756394aa52",
+        "frame-000408.png": "9b0c716a2790780b1c5f893505cc302d1cb1c2805b404980ff25206db9618e49",
+        "frame-000409.png": "051fd87b8dcfed8adeec906f359a49437077da5db7e7cfc77ee48669da856bf6",
+        "frame-000410.png": "6b45345a81139508c1ac3430a3bbb38f72a1126a61b1e0744d32c6941b89ebb1",
+        "frame-000411.png": "34e86bab74ddf736b9fa1134bce093629df6c35caa002dfef6142dea6bba3c05",
+        "frame-000412.png": "d76941e77ec67db5e49410ad8250e6a0af38d81140700e4f9257d53750b9100e",
+        "frame-000413.png": "b754dc427c1cfbf3c05168ac710aa4dbb711538bd9c99e7d26d81e712a6233fc",
+        "frame-000414.png": "191642687e83f39bcfdd788f37a26266848d1c29ab76e6eebb3049a300ed219b",
+        "frame-000415.png": "8de6a1130a4316c8acdf70681100b5d67e5bfa0ad68f88f023868ba2932855bf",
+        "frame-000416.png": "c3a35163dffd2350be34cfa826f2487793ab59efc0a072fd4c2a4ae0f0f68cde",
+        "frame-000417.png": "81c19ef416bb508c76e2e04063ff8699e75264538d934f98f4ab37328e9bf8d3",
+        "frame-000418.png": "bd332a2d0cfa892a029983dae6b9e68b47596ceb3e0d8c0fbc4cf80f17cdf030",
+        "frame-000419.png": "f1d467209458af4a461bd8d5e33d6c2585de0f8ceee4f5b9d6bf9daf475ac535",
+        "frame-000420.png": "6a3ec04fb3b7af5eae4d51178763b3aecf1d2609a7bc96aa814737a6b104a6eb",
+        "frame-000421.png": "9ca0602359839d244325ce6819aac848dc091b57be47713f3c101c96b352d43b",
+        "frame-000422.png": "4aed5e32f4cf5d580671404586cd999f2bc2cb89774609da05901cee952c1064",
+        "frame-000423.png": "bf1d7f7b6ee01346dfb4469a2b40a41dc68b1bb6fdad0cd1110a09cc747ef908",
+        "frame-000424.png": "d3c6b20a4ef32d5713e461db4900b396852c099067bd878c1ba376aaaf670e81",
+        "frame-000425.png": "cab71efdcf1d53a33550461937f233b8a54e972ef79d89e5b3309b19edfeea9c",
+        "frame-000426.png": "15b1f727bd37be2c975d4372ff0cbe0478f485cc72198c53aa4e5a59c095e031",
+        "frame-000427.png": "b47cb37695cf3cc01ff2398b253a49140dd327ba2a5ffa15519fcc8721ca7bc5",
+        "frame-000428.png": "455f0a32a5155784caaf2ce0577b155ea8a391f15c34b5e4e1a9568c1554a33a",
+        "frame-000429.png": "1a1e19318748b0705fc2a7f87cdb20373289fd6e3aed366d8ea257f664f7cbe7",
+        "frame-000430.png": "7897355e48937e61769ef1a96edb0080ead100ae1f3063b666701e8e5924541d",
+        "frame-000431.png": "f1d476b4a313f28ecc89e88d9b5a9dafc19fd2455db7aade80eb438c46cdf2e9",
+        "frame-000432.png": "9e07fc0b8f95e265757f16ecde2eb1e58274ffa3bd0b72ae4c1afacd81360338",
+        "frame-000433.png": "9e07fc0b8f95e265757f16ecde2eb1e58274ffa3bd0b72ae4c1afacd81360338",
+        "frame-000434.png": "9feb156e9baa8106d195488152facd90304647afc4014d91cf1ba606143282b4",
+        "frame-000435.png": "ad5bb721956217c9ef0fc8ac49eccbacfa3325bd4d3b856786d64541146cd3dd",
+        "frame-000436.png": "66bd2af6a1ae2d2bee55d2566bee53c433870ec1075db1da683bb16f2ae5f789",
+        "frame-000437.png": "6bb0a8fd79aeb5619a2dd34bf1c33f86fdef9e7838e52c149e290bc3832886c9",
+        "frame-000438.png": "464e65a2bea4836ed0b8dcbcee70d9ef795de651790d474ca7c1c556af08289e",
+        "frame-000439.png": "9b0b392f90626858b8de10e0b9befc285d11dddf361ba2beb21bcae134d010a1",
+        "frame-000440.png": "2ff911d81f762f5c311253a50a6d3fc7ca0f5ae25d96798a104fcd2f9f97dfc2",
+        "frame-000441.png": "6a2a0dffdbb7aaf19ddb7bda759336197365a46235c7167ce5af4136335564e5",
+        "frame-000442.png": "ddda629ee46585f2b0cf7b5222cb055ed14a7320b60bceeaa2fb53ea984667d2",
+        "options.json": "56c2bd0b6d7d1c9e9d5e0be3cc516c5c60d67d65a858a5d468902a602b21959e",
+        "result.json": "9c285723b3e07839892dd9beacf1e05fc02e5943510e52b90277ec6c314a3ecb"
+      }
+    }
+  ]
+}

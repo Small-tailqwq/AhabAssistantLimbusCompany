@@ -1,0 +1,99 @@
+<!-- 语义样式：页面只组合这些类名，不在局部重复定义尺寸或颜色。 -->
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:suki="https://github.com/kikipoulet/SukiUI">
+ <!-- 窗口使用系统原生标题栏，背景与前景由令牌提供。 -->
+ <Style Selector=":is(Window)">
+  <Setter Property="Icon" Value="avares://AAALC/Assets/Logo.ico"/>
+  <Setter Property="Background" Value="{DynamicResource SurfaceWindowBrush}"/><Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+ </Style>
+ <!-- 文本层级 -->
+ <Style Selector="TextBlock"><Setter Property="FontFamily" Value="Microsoft YaHei UI"/></Style>
+ <Style Selector="TextBlock.heading"><Setter Property="FontSize" Value="{DynamicResource FontSizeHeading}"/><Setter Property="FontWeight" Value="SemiBold"/></Style>
+ <Style Selector="TextBlock.section"><Setter Property="FontSize" Value="{DynamicResource FontSizeSection}"/><Setter Property="FontWeight" Value="SemiBold"/></Style>
+ <Style Selector="TextBlock.muted"><Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/><Setter Property="FontSize" Value="13"/></Style>
+ <Style Selector="TextBlock.caption"><Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}"/><Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}"/></Style>
+ <Style Selector="TextBlock.error"><Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}"/><Setter Property="TextWrapping" Value="Wrap"/></Style>
+ <Style Selector="TextBlock.highlight"><Setter Property="Foreground" Value="{DynamicResource HighlightBrush}"/></Style>
+
+ <!-- 容器：card 是唯一的内容承载面，inset 用于画面、列表等内嵌区域。 -->
+ <Style Selector="Border.card">
+  <Setter Property="Background" Value="{DynamicResource SurfaceCardBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource BorderDefaultBrush}"/>
+  <Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="{DynamicResource RadiusCard}"/>
+  <Setter Property="Padding" Value="{DynamicResource CardPadding}"/>
+ </Style>
+ <Style Selector="Border.inset">
+  <Setter Property="Background" Value="{DynamicResource SurfaceInsetBrush}"/><Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}"/>
+  <Setter Property="ClipToBounds" Value="True"/>
+ </Style>
+
+ <!-- 页面骨架：标题 / 内容 / 底部操作栏。 -->
+ <Style Selector="Grid.page"><Setter Property="Margin" Value="{DynamicResource PagePadding}"/><Setter Property="RowSpacing" Value="{DynamicResource CardSpacing}"/></Style>
+ <Style Selector="StackPanel.cards"><Setter Property="Spacing" Value="{DynamicResource CardSpacing}"/></Style>
+ <Style Selector="Grid.actions"><Setter Property="ColumnSpacing" Value="16"/></Style>
+ <Style Selector="Grid.actions > StackPanel"><Setter Property="Orientation" Value="Horizontal"/><Setter Property="Spacing" Value="12"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+ <Style Selector="Grid.actions > TextBlock"><Setter Property="VerticalAlignment" Value="Center"/></Style>
+
+ <!-- 配置行：左列固定 160 标签，右侧控件；开关靠右，数值与下拉限宽靠左。 -->
+ <Style Selector="Grid.option"><Setter Property="MinHeight" Value="{DynamicResource ControlHeight}"/><Setter Property="ColumnSpacing" Value="12"/></Style>
+ <Style Selector="Grid.option > TextBlock"><Setter Property="VerticalAlignment" Value="Center"/></Style>
+ <Style Selector="Grid.option > ComboBox"><Setter Property="MaxWidth" Value="320"/><Setter Property="HorizontalAlignment" Value="Left"/></Style>
+ <Style Selector="Grid.option > NumericUpDown"><Setter Property="MaxWidth" Value="180"/><Setter Property="HorizontalAlignment" Value="Left"/></Style>
+ <Style Selector="ToggleSwitch"><Setter Property="OnContent" Value=""/><Setter Property="OffContent" Value=""/></Style>
+ <Style Selector="Grid.option > ToggleSwitch"><Setter Property="HorizontalAlignment" Value="Right"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
+ <Style Selector="StackPanel.options"><Setter Property="Spacing" Value="{DynamicResource RowSpacing}"/></Style>
+
+ <!-- 按钮：页面内按钮统一用 AppButtonTheme（Styles/Button.axaml），这里只定义变体的颜色与尺寸。 -->
+ <Style Selector="Button:not(.WindowControlsButton)"><Setter Property="Theme" Value="{DynamicResource AppButtonTheme}"/></Style>
+ <Style Selector="Button.logo-letter">
+  <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
+  <Setter Property="Padding" Value="0"/><Setter Property="MinHeight" Value="0"/>
+  <Setter Property="Cursor" Value="Arrow"/>
+ </Style>
+ <Style Selector="Button.logo-letter:pointerover /template/ Border#PART_Overlay, Button.logo-letter:pressed /template/ Border#PART_Overlay">
+  <Setter Property="Opacity" Value="0"/>
+ </Style>
+ <Style Selector="TextBlock.logo-glyph">
+  <Setter Property="FontSize" Value="32"/><Setter Property="FontWeight" Value="Bold"/>
+  <Setter Property="LetterSpacing" Value="4"/><Setter Property="VerticalAlignment" Value="Center"/>
+  <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+ </Style>
+ <!-- 主按钮：每个操作区至多一个；禁用时退为中性色，不保留主色。 -->
+ <Style Selector="Button.primary">
+  <Setter Property="Background" Value="{DynamicResource AccentFillBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource AccentFillBrush}"/>
+  <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}"/>
+ </Style>
+ <Style Selector="Button.primary:disabled">
+  <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource SurfaceHoverBrush}"/>
+  <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+ </Style>
+ <!-- 危险：停止等中断操作。 -->
+ <Style Selector="Button.danger">
+  <Setter Property="Background" Value="{DynamicResource DangerSubtleBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource DangerBorderBrush}"/>
+  <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}"/>
+ </Style>
+ <!-- 尺寸：small 用于卡片内的批量快捷操作，icon 为方形图标按钮。 -->
+ <Style Selector="Button.small"><Setter Property="MinHeight" Value="30"/><Setter Property="Padding" Value="10,0"/><Setter Property="FontSize" Value="12"/><Setter Property="CornerRadius" Value="{DynamicResource RadiusSmall}"/></Style>
+ <Style Selector="Button.icon"><Setter Property="Width" Value="{DynamicResource ControlHeight}"/><Setter Property="Height" Value="{DynamicResource ControlHeight}"/><Setter Property="Padding" Value="0"/></Style>
+ <Style Selector="Button.icon PathIcon"><Setter Property="Width" Value="14"/><Setter Property="Height" Value="14"/></Style>
+
+ <!-- 输入控件统一 40 高。 -->
+ <Style Selector="ComboBox"><Setter Property="Margin" Value="0"/><Setter Property="Height" Value="{DynamicResource ControlHeight}"/><Setter Property="MinHeight" Value="{DynamicResource ControlHeight}"/><Setter Property="HorizontalAlignment" Value="Stretch"/><Setter Property="FontFamily" Value="Microsoft YaHei UI"/></Style>
+ <!-- SukiUI 7.0.1 的外层 Border 固定 Padding=5，抵消后让可见背景与输入行对齐。 -->
+ <Style Selector="ComboBox /template/ suki|GlassCard#border"><Setter Property="Margin" Value="-5"/></Style>
+ <Style Selector="TextBox"><Setter Property="Margin" Value="0"/><Setter Property="Height" Value="{DynamicResource ControlHeight}"/><Setter Property="MinHeight" Value="{DynamicResource ControlHeight}"/><Setter Property="FontFamily" Value="Microsoft YaHei UI"/></Style>
+ <Style Selector="NumericUpDown"><Setter Property="Margin" Value="0"/><Setter Property="Height" Value="{DynamicResource ControlHeight}"/><Setter Property="MinHeight" Value="{DynamicResource ControlHeight}"/><Setter Property="HorizontalAlignment" Value="Stretch"/><Setter Property="FormatString" Value="0"/><Setter Property="Increment" Value="1"/></Style>
+
+ <!-- 游戏内选择块（星光、观测饰品）：默认无底，选中为金色。 -->
+ <Style Selector="Button.choice">
+  <Setter Property="Background" Value="{DynamicResource SurfaceCardBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource BorderDefaultBrush}"/>
+  <Setter Property="CornerRadius" Value="{DynamicResource RadiusSmall}"/><Setter Property="FontWeight" Value="Normal"/>
+ </Style>
+ <Style Selector="Button.choice.active, Button.choice.selected">
+  <Setter Property="Background" Value="{DynamicResource HighlightSubtleBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource HighlightBrush}"/>
+  <Setter Property="Foreground" Value="{DynamicResource HighlightTextBrush}"/>
+ </Style>
+
+ <!-- 状态点 -->
+ <Style Selector="Ellipse.status"><Setter Property="Width" Value="7"/><Setter Property="Height" Value="7"/><Setter Property="Fill" Value="{DynamicResource TextTertiaryBrush}"/></Style>
+ <Style Selector="Ellipse.status.running"><Setter Property="Fill" Value="{DynamicResource AccentBrush}"/></Style>
+</Styles>

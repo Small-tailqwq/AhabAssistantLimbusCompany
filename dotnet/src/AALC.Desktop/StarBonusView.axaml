@@ -1,0 +1,46 @@
+<UserControl x:Class="AALC.Desktop.StarBonusView"
+ xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:local="using:AALC.Desktop" x:DataType="local:MirrorTeamItem">
+ <UserControl.Styles>
+  <Style Selector="Button.star">
+   <Setter Property="HorizontalAlignment" Value="Stretch"/>
+   <Setter Property="HorizontalContentAlignment" Value="Center"/>
+   <Setter Property="MinHeight" Value="30"/><Setter Property="Padding" Value="4,2"/>
+   <Setter Property="FontSize" Value="12"/><Setter Property="FontWeight" Value="Normal"/><Setter Property="CornerRadius" Value="{DynamicResource RadiusSmall}"/>
+   <!-- 用深色的全透明版本而非 Transparent(#00FFFFFF)，避免选中过渡经过半透明白。 -->
+   <Setter Property="Background" Value="{DynamicResource SurfaceHoverClearBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource SurfaceHoverClearBrush}"/>
+  </Style>
+  <Style Selector="Button.star.selected">
+   <Setter Property="Background" Value="{DynamicResource HighlightSubtleBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource HighlightBrush}"/>
+   <Setter Property="Foreground" Value="{DynamicResource HighlightTextBrush}"/>
+  </Style>
+ </UserControl.Styles>
+ <StackPanel Spacing="12">
+  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+   <WrapPanel ItemSpacing="6">
+    <Button Content="全部基础" Command="{Binding AllStarsBaseCommand}" Classes="small"/>
+    <Button Content="全部 +" Command="{Binding AllStarsPlusCommand}" Classes="small"/>
+    <Button Content="全部 ++" Command="{Binding AllStarsDoubleCommand}" Classes="small"/>
+    <Button Content="清空" Command="{Binding ClearStarsCommand}" Classes="small"/>
+   </WrapPanel>
+   <TextBlock Grid.Column="1" Text="{Binding StarCostLabel}" Foreground="{DynamicResource HighlightBrush}" VerticalAlignment="Center"/>
+  </Grid>
+  <ItemsControl ItemsSource="{Binding StarLevels}">
+   <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="5" Rows="2"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+   <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:MirrorLevelItem">
+    <Border Background="{DynamicResource SurfaceInsetBrush}" BorderBrush="{DynamicResource HighlightBorderBrush}" BorderThickness="1" CornerRadius="7" Padding="5" Margin="0,0,7,8">
+     <Grid RowDefinitions="46,Auto" RowSpacing="5">
+      <Button Classes="star" Classes.selected="{Binding BaseSelected}" Command="{Binding ToggleBaseCommand}" ToolTip.Tip="{Binding Definition.BaseEffect}">
+       <TextBlock Text="{Binding Name}" TextWrapping="Wrap" TextAlignment="Center"/>
+      </Button>
+      <Grid Grid.Row="1" ColumnDefinitions="*,32,32" ColumnSpacing="3">
+       <TextBlock Text="{Binding PriceLabel}" FontSize="11" Foreground="{DynamicResource HighlightBrush}" VerticalAlignment="Center" Margin="3,0"/>
+       <Button Grid.Column="1" Content="+" Classes="star" Classes.selected="{Binding PlusSelected}" Command="{Binding TogglePlusCommand}" ToolTip.Tip="{Binding Definition.PlusEffect}"/>
+       <Button Grid.Column="2" Content="++" Classes="star" Classes.selected="{Binding DoubleSelected}" Command="{Binding ToggleDoubleCommand}" ToolTip.Tip="{Binding Definition.DoubleEffect}"/>
+      </Grid>
+     </Grid>
+    </Border>
+   </DataTemplate></ItemsControl.ItemTemplate>
+  </ItemsControl>
+ </StackPanel>
+</UserControl>

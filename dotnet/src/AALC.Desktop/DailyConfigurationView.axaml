@@ -1,0 +1,59 @@
+<UserControl x:Class="AALC.Desktop.DailyConfigurationView"
+ xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:local="using:AALC.Desktop" x:DataType="local:MainViewModel">
+ <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+  <StackPanel Classes="cards" Margin="0,0,10,0" IsEnabled="{Binding CanConfigure}">
+   <Border Classes="card">
+    <StackPanel Classes="options">
+     <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="采光作战" Classes="section"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding RunLuxcavation}" AutomationProperties.Name="采光作战"/></Grid>
+     <StackPanel Classes="options" IsEnabled="{Binding RunLuxcavation}">
+      <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="经验本次数"/><NumericUpDown Grid.Column="1" Value="{Binding ExpCount}" Minimum="0" Maximum="999" AutomationProperties.Name="经验本次数"/></Grid>
+      <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="纺锤本次数"/><NumericUpDown Grid.Column="1" Value="{Binding ThreadCount}" Minimum="0" Maximum="999" AutomationProperties.Name="纺锤本次数"/></Grid>
+      <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="使用编队"/><NumericUpDown Grid.Column="1" Value="{Binding TeamNumber}" Minimum="1" Maximum="20" AutomationProperties.Name="使用编队"/></Grid>
+      <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="按编队顺序选择"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding SelectTeamByOrder}" AutomationProperties.Name="按编队顺序选择"/></Grid>
+      <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="连续作战"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding UseContinuousCombat}" AutomationProperties.Name="连续作战"/></Grid>
+      <Grid Classes="option" ColumnDefinitions="160,*" IsVisible="{Binding UseContinuousCombat}"><TextBlock Text="每批最多连战"/><NumericUpDown Grid.Column="1" Value="{Binding MaxContinuousCombat}" Minimum="1" Maximum="10" AutomationProperties.Name="每批最多连战"/></Grid>
+      <TextBlock Text="{Binding BatchPreview}" Classes="muted" IsVisible="{Binding UseContinuousCombat}" TextWrapping="Wrap" LineHeight="22"/>
+     </StackPanel>
+    </StackPanel>
+   </Border>
+   <Border Classes="card">
+    <StackPanel Classes="options">
+     <TextBlock Text="模块与奖励" Classes="section" Margin="0,0,0,4"/>
+     <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="兑换脑啡肽模块"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding ConvertModules}" AutomationProperties.Name="兑换脑啡肽模块"/></Grid>
+     <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="领取奖励"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding ClaimRewards}" AutomationProperties.Name="领取奖励"/></Grid>
+     <StackPanel Classes="options" IsVisible="{Binding ClaimRewards}">
+      <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="邮件"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding ClaimMail}" AutomationProperties.Name="领取邮件"/></Grid>
+      <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="每日与每周任务"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding ClaimMissions}" AutomationProperties.Name="领取每日与每周任务"/></Grid>
+      <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="赛季任务"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding ClaimSeasonMissions}" AutomationProperties.Name="领取赛季任务"/></Grid>
+      <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="通行证等级"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding ClaimPassLevels}" AutomationProperties.Name="领取通行证等级"/></Grid>
+     </StackPanel>
+    </StackPanel>
+   </Border>
+   <Expander Header="按日选队">
+    <StackPanel Classes="options" IsEnabled="{Binding RunLuxcavation}">
+     <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="经验本按日选队"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding ExpTeamByDay}" AutomationProperties.Name="经验本按日选队"/></Grid>
+     <ItemsControl ItemsSource="{Binding ExpDayTeams}" IsVisible="{Binding ExpTeamByDay}">
+      <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:DayTeamItem">
+       <Grid Classes="option" ColumnDefinitions="160,*" Margin="0,0,0,8"><TextBlock Text="{Binding Name}"/><NumericUpDown Grid.Column="1" Value="{Binding TeamNumber}" Minimum="1" Maximum="20" AutomationProperties.Name="{Binding Name}"/></Grid>
+      </DataTemplate></ItemsControl.ItemTemplate>
+     </ItemsControl>
+     <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="纺锤本按日选队"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding ThreadTeamByDay}" AutomationProperties.Name="纺锤本按日选队"/></Grid>
+     <ItemsControl ItemsSource="{Binding ThreadDayTeams}" IsVisible="{Binding ThreadTeamByDay}">
+      <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:DayTeamItem">
+       <Grid Classes="option" ColumnDefinitions="160,*" Margin="0,0,0,8"><TextBlock Text="{Binding Name}"/><NumericUpDown Grid.Column="1" Value="{Binding TeamNumber}" Minimum="1" Maximum="20" AutomationProperties.Name="{Binding Name}"/></Grid>
+      </DataTemplate></ItemsControl.ItemTemplate>
+     </ItemsControl>
+    </StackPanel>
+   </Expander>
+   <Expander Header="其他选项">
+    <StackPanel Classes="options">
+     <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="处理战斗事件"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding HandleChoiceEvents}" AutomationProperties.Name="处理战斗事件"/></Grid>
+     <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="狂气换体"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding BuyStamina}" AutomationProperties.Name="狂气换体"/></Grid>
+     <Grid Classes="option" ColumnDefinitions="160,*" IsVisible="{Binding BuyStamina}"><TextBlock Text="兑换至"/><ComboBox Grid.Column="1" ItemsSource="{Binding RefillTiers}" SelectedIndex="{Binding RefillTier}" AutomationProperties.Name="狂气换体档位"/></Grid>
+     <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="葛朗台模式"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding GrandetMode}" AutomationProperties.Name="葛朗台模式"/></Grid>
+    </StackPanel>
+   </Expander>
+  </StackPanel>
+ </ScrollViewer>
+</UserControl>

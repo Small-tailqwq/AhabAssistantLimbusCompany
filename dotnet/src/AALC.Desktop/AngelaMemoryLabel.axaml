@@ -1,0 +1,12 @@
+<UserControl x:Class="AALC.Desktop.AngelaMemoryLabel"
+ xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ IsHitTestVisible="False" ClipToBounds="True" Height="{StaticResource ControlHeight}">
+ <Grid>
+  <TextBlock Name="SignalEcho" FontFamily="Consolas, Microsoft YaHei UI" FontSize="{StaticResource FontSizeSection}"
+   VerticalAlignment="Center" Foreground="{DynamicResource AngelaGoldBrush}" Opacity="0">
+   <TextBlock.RenderTransform><TranslateTransform X="2"/></TextBlock.RenderTransform>
+  </TextBlock>
+  <TextBlock Name="SignalText" Text="COGNITION FILTER" FontFamily="Consolas, Microsoft YaHei UI" FontSize="{StaticResource FontSizeSection}"
+   VerticalAlignment="Center" Foreground="{DynamicResource AngelaIceBrush}"/>
+ </Grid>
+</UserControl>

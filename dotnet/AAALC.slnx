@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AALC.Core/AALC.Core.csproj" />
+    <Project Path="src/AALC.Runtime/AALC.Runtime.csproj" />
+    <Project Path="src/AALC.Vision/AALC.Vision.csproj" />
+    <Project Path="src/AALC.Platform.Windows/AALC.Platform.Windows.csproj" />
+    <Project Path="src/AALC.Cli/AALC.Cli.csproj" />
+    <Project Path="src/AALC.Desktop/AALC.Desktop.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AALC.Core.Tests/AALC.Core.Tests.csproj" />
+  </Folder>
+</Solution>
+

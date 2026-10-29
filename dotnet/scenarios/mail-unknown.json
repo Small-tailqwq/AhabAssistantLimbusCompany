@@ -1,0 +1,13 @@
+{
+  "id": "mail-unknown",
+  "evidence": "synthetic-contract",
+  "source": "有界等待要求；未知页面不进行输入",
+  "expectedOutcome": "Failed",
+  "expectedReason": "mail.timeout",
+  "holdLastFrame": true,
+  "steps": [
+    {
+      "visible": []
+    }
+  ]
+}

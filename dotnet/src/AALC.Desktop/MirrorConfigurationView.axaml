@@ -1,0 +1,103 @@
+<UserControl x:Class="AALC.Desktop.MirrorConfigurationView"
+ xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:local="using:AALC.Desktop" x:DataType="local:MainViewModel">
+ <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+  <StackPanel Classes="cards" Margin="0,0,10,0" IsEnabled="{Binding CanConfigure}">
+   <Border Classes="card">
+    <StackPanel Classes="options">
+     <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="难度"/><ComboBox Grid.Column="1" ItemsSource="{Binding MirrorModes}" SelectedIndex="{Binding MirrorModeIndex}" AutomationProperties.Name="镜牢难度"/></Grid>
+     <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="运行次数"/><NumericUpDown Grid.Column="1" Value="{Binding MirrorRuns}" Minimum="1" Maximum="999" AutomationProperties.Name="镜牢次数"/></Grid>
+     <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="领取结算奖励"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding MirrorClaimRewards}" AutomationProperties.Name="领取镜牢结算奖励"/></Grid>
+     <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="周奖励"/><ComboBox Grid.Column="1" ItemsSource="{Binding MirrorWeeklyBonuses}" SelectedIndex="{Binding MirrorWeeklyBonusIndex}" IsEnabled="{Binding MirrorClaimRewards}" AutomationProperties.Name="镜牢周奖励"/></Grid>
+    </StackPanel>
+   </Border>
+   <Border Classes="card">
+    <StackPanel Classes="options">
+     <TextBlock Text="轮换队列" Classes="section"/>
+     <ComboBox ItemsSource="{Binding MirrorTeams}" SelectedItem="{Binding SelectedMirrorTeam}" AutomationProperties.Name="镜牢队伍队列">
+      <ComboBox.ItemTemplate><DataTemplate x:DataType="local:MirrorTeamItem"><TextBlock Text="{Binding Name}"/></DataTemplate></ComboBox.ItemTemplate>
+     </ComboBox>
+     <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="8">
+      <Button Content="添加" Command="{Binding AddMirrorTeamCommand}" HorizontalAlignment="Stretch" Padding="8,0"/>
+      <Button Grid.Column="1" Content="移除" Command="{Binding RemoveMirrorTeamCommand}" HorizontalAlignment="Stretch" Padding="8,0"/>
+      <Button Grid.Column="2" Content="上移" Command="{Binding MoveMirrorTeamUpCommand}" HorizontalAlignment="Stretch" Padding="8,0"/>
+      <Button Grid.Column="3" Content="下移" Command="{Binding MoveMirrorTeamDownCommand}" HorizontalAlignment="Stretch" Padding="8,0"/>
+     </Grid>
+    </StackPanel>
+   </Border>
+   <ContentControl Content="{Binding SelectedMirrorTeam}" IsVisible="{Binding HasMirrorTeam}">
+    <ContentControl.ContentTemplate><DataTemplate x:DataType="local:MirrorTeamItem">
+     <StackPanel Classes="cards">
+      <Border Classes="card">
+       <StackPanel Classes="options">
+        <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="队伍名称"/><TextBox Grid.Column="1" Text="{Binding Name}" Width="320" HorizontalAlignment="Left" AutomationProperties.Name="镜牢队伍名称"/></Grid>
+        <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="启用"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding Enabled}" AutomationProperties.Name="启用镜牢队伍"/></Grid>
+        <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="适用难度"/><ComboBox Grid.Column="1" ItemsSource="{Binding Modes}" SelectedIndex="{Binding ModeIndex}" AutomationProperties.Name="队伍适用难度"/></Grid>
+        <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="游戏编队编号"/><NumericUpDown Grid.Column="1" Value="{Binding GameTeamNumber}" Minimum="1" Maximum="50" AutomationProperties.Name="镜牢游戏编队编号"/></Grid>
+        <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="按编队顺序选择"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding SelectTeamByOrder}" AutomationProperties.Name="镜牢按编队顺序选择"/></Grid>
+        <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="主体系"/><ComboBox Grid.Column="1" ItemsSource="{Binding Keywords}" SelectedIndex="{Binding KeywordIndex}" AutomationProperties.Name="镜牢主体系"/></Grid>
+        <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="副体系"/><ComboBox Grid.Column="1" ItemsSource="{Binding SecondaryKeywords}" SelectedIndex="{Binding SecondaryKeywordIndex}" AutomationProperties.Name="镜牢副体系"/></Grid>
+       </StackPanel>
+      </Border>
+      <Expander Header="商店">
+        <StackPanel Classes="options">
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="购买饰品"/><ComboBox Grid.Column="1" ItemsSource="{Binding Purchases}" SelectedIndex="{Binding ShopPurchasesIndex}" AutomationProperties.Name="镜牢商店购买"/></Grid>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="回复生命"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding ShopHeal}" AutomationProperties.Name="镜牢商店回复"/></Grid>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="升级饰品"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding ShopEnhance}" AutomationProperties.Name="镜牢商店升级"/></Grid>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="库存处理"/><ComboBox Grid.Column="1" ItemsSource="{Binding Inventories}" SelectedIndex="{Binding ShopInventoryIndex}" AutomationProperties.Name="镜牢库存处理"/></Grid>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="普通刷新次数"/><NumericUpDown Grid.Column="1" Value="{Binding ShopRefreshLimit}" Minimum="0" Maximum="10"/></Grid>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="体系刷新次数"/><NumericUpDown Grid.Column="1" Value="{Binding KeywordRefreshLimit}" Minimum="0" Maximum="10"/></Grid>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="预留经费"/><NumericUpDown Grid.Column="1" Value="{Binding ReserveFunds}" Minimum="0" Maximum="99999"/></Grid>
+         <TextBlock Text="额外购买体系"/>
+         <ItemsControl ItemsSource="{Binding ShopKeywords}">
+          <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:MirrorKeywordItem"><CheckBox Content="{Binding Name}" IsChecked="{Binding Selected}" Margin="0,0,8,4"/></DataTemplate></ItemsControl.ItemTemplate>
+         </ItemsControl>
+         <TextBlock Text="出售体系"/>
+         <ItemsControl ItemsSource="{Binding SellKeywords}">
+          <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:MirrorKeywordItem"><CheckBox Content="{Binding Name}" IsChecked="{Binding Selected}" Margin="0,0,8,4"/></DataTemplate></ItemsControl.ItemTemplate>
+         </ItemsControl>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="技能替换"/><ComboBox Grid.Column="1" ItemsSource="{Binding Skills}" SelectedIndex="{Binding ShopSkillIndex}"/></Grid>
+         <TextBlock Text="技能替换对象" Classes="section"/>
+         <local:SinnerSelectionView Model="{Binding SkillSelection}" Compact="True" AssetRoot="{Binding $parent[local:MirrorConfigurationView].((local:MainViewModel)DataContext).RepositoryRoot}"/>
+         <TextBlock Text="跳过商店楼层"/>
+         <ItemsControl ItemsSource="{Binding ShopFloors}">
+          <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:MirrorFloorItem"><CheckBox Content="{Binding Name}" IsChecked="{Binding Selected}" Margin="0,0,14,0"/></DataTemplate></ItemsControl.ItemTemplate>
+         </ItemsControl>
+        </StackPanel>
+       </Expander>
+      <Expander Header="初始增益与出战顺序">
+        <StackPanel Classes="options">
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="星光转为经费"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding ConvertStarlight}"/></Grid>
+         <local:StarBonusView/>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="初始饰品优先顺序"/><ComboBox Grid.Column="1" ItemsSource="{Binding InitialGiftOrders}" SelectedIndex="{Binding InitialGiftOrderIndex}" AutomationProperties.Name="初始饰品优先顺序"/></Grid>
+         <TextBlock Text="出战顺序" Classes="section" Margin="0,8,0,0"/>
+         <local:SinnerSelectionView Model="{Binding Formation}" AssetRoot="{Binding $parent[local:MirrorConfigurationView].((local:MainViewModel)DataContext).RepositoryRoot}"/>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="每层重新编队"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding ReformEachFloor}"/></Grid>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="链接战避免三技能"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding AvoidSkill3}"/></Grid>
+        </StackPanel>
+       </Expander>
+      <Expander Header="主题包">
+        <StackPanel Classes="options">
+         <Button Content="配置卡包权重" Click="OpenThemeWeights" HorizontalAlignment="Left"/>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="刷新次数"/><NumericUpDown Grid.Column="1" Value="{Binding ThemeRefreshLimit}" Minimum="0" Maximum="10"/></Grid>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="未知主题权重"/><NumericUpDown Grid.Column="1" Value="{Binding UnknownThemeWeight}" Minimum="-10" Maximum="10"/></Grid>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="第四层优选活动包"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding PreferEventPack}"/></Grid>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="第四层跳过活动包"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding SkipEventPack}"/></Grid>
+        </StackPanel>
+       </Expander>
+      <Expander Header="奖励卡与观测饰品">
+        <StackPanel Classes="options">
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="奖励卡优先级"/><ComboBox Grid.Column="1" ItemsSource="{Binding CardPreferences}" SelectedIndex="{Binding CardPreferenceIndex}"/></Grid>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="跳过白棉花"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding AvoidWhiteGossypium}"/></Grid>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="观测饰品"/><Button Grid.Column="1" Content="{Binding ObservedGiftSummary}" Click="OpenObservedGifts" HorizontalAlignment="Left" HorizontalContentAlignment="Left"/></Grid>
+        </StackPanel>
+       </Expander>
+     </StackPanel>
+    </DataTemplate></ContentControl.ContentTemplate>
+   </ContentControl>
+  </StackPanel>
+ </ScrollViewer>
+</UserControl>

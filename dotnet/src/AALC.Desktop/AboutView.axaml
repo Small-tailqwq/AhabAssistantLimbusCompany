@@ -1,0 +1,65 @@
+<UserControl x:Class="AALC.Desktop.AboutView"
+ xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:local="using:AALC.Desktop" x:DataType="local:MainViewModel">
+ <Grid Classes="page" RowDefinitions="Auto,*">
+  <TextBlock Text="关于" Classes="heading"/>
+  <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+   <StackPanel Classes="cards" Margin="0,0,10,0">
+    <Border Classes="card" Padding="28,24">
+     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="28">
+      <Border Classes="inset" Width="{StaticResource LogoAboutSize}" Height="{StaticResource LogoAboutSize}" CornerRadius="{DynamicResource RadiusCard}">
+       <Image Source="{Binding LogoSource}" Margin="8"/>
+      </Border>
+      <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Center">
+       <StackPanel Orientation="Horizontal" Classes="logo-wordmark" Classes.ice="{Binding IsAngelaIce}" Classes.gold="{Binding IsAngelaGold}">
+        <Button x:Name="AngelaButton" Classes="logo-letter"
+         Command="{Binding RevealAngelaCommand}" AutomationProperties.Name="A">
+         <TextBlock Text="A" Classes="logo-glyph logo-wave-0"/>
+        </Button>
+        <TextBlock Text="A" Classes="logo-glyph logo-wave-1"/>
+        <TextBlock Text="A" Classes="logo-glyph logo-wave-2"/>
+        <TextBlock Text="L" Classes="logo-glyph logo-wave-3"/>
+        <TextBlock Text="C" Classes="logo-glyph logo-wave-4"/>
+       </StackPanel>
+       <TextBlock Text="{Binding FullName}" Classes="muted" FontSize="15"/>
+       <TextBlock Text="{x:Static local:MainViewModel.AppVersion}" Classes="caption" FontFamily="Consolas, Microsoft YaHei UI"/>
+       <WrapPanel Orientation="Horizontal" ItemSpacing="10" LineSpacing="10" Margin="0,10,0,0">
+        <HyperlinkButton Classes="pill" Content="AAALC 仓库" NavigateUri="https://github.com/Small-tailqwq/AhabAssistantLimbusCompany"/>
+        <HyperlinkButton Classes="pill" Content="原版 AALC" NavigateUri="https://github.com/KIYI671/AhabAssistantLimbusCompany"/>
+       </WrapPanel>
+      </StackPanel>
+     </Grid>
+    </Border>
+
+    <Border Classes="card">
+     <StackPanel Classes="options">
+      <TextBlock Text="技术栈" Classes="section" Margin="0,0,0,4"/>
+      <ItemsControl ItemsSource="{Binding AboutComponents}">
+       <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:AboutComponent">
+        <Border BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1" Padding="0,9">
+         <Grid ColumnDefinitions="200,*,Auto" ColumnSpacing="12">
+          <TextBlock Text="{Binding Name}"/>
+          <TextBlock Grid.Column="1" Text="{Binding Version}" Classes="muted" FontFamily="Consolas, Microsoft YaHei UI" VerticalAlignment="Center"/>
+          <TextBlock Grid.Column="2" Text="{Binding License}" Classes="muted" VerticalAlignment="Center"/>
+         </Grid>
+        </Border>
+       </DataTemplate></ItemsControl.ItemTemplate>
+      </ItemsControl>
+     </StackPanel>
+    </Border>
+
+    <Border Classes="card">
+     <StackPanel Classes="options">
+      <TextBlock Text="许可证" Classes="section" Margin="0,0,0,4"/>
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+       <TextBlock Text="AAALC 与原版 AALC 一样以 GNU AGPL-3.0 发布。" TextWrapping="Wrap" VerticalAlignment="Center"/>
+       <HyperlinkButton Grid.Column="1" Content="许可证全文" NavigateUri="https://www.gnu.org/licenses/agpl-3.0.html"/>
+      </Grid>
+      <TextBlock Classes="caption" TextWrapping="Wrap" LineHeight="20"
+       Text="非官方粉丝项目，与 Project Moon 无关。Limbus Company 的版权归 Project Moon 所有。"/>
+     </StackPanel>
+    </Border>
+   </StackPanel>
+  </ScrollViewer>
+ </Grid>
+</UserControl>

@@ -1,0 +1,40 @@
+{
+  "id": "mail-empty",
+  "evidence": "synthetic-contract",
+  "source": "tests/test_get_mail_prize.py::test_get_mail_prize_closes_when_empty_mailbox_has_no_confirm",
+  "expectedOutcome": "Completed",
+  "expectedReason": "mail.returned-home",
+  "steps": [
+    {
+      "visible": [
+        "HomeMail"
+      ],
+      "expectedClick": "HomeMail"
+    },
+    {
+      "visible": [
+        "ClaimAll",
+        "Close"
+      ],
+      "expectedClick": "ClaimAll"
+    },
+    {
+      "visible": [
+        "ClaimAll",
+        "Close"
+      ]
+    },
+    {
+      "visible": [
+        "ClaimAll",
+        "Close"
+      ],
+      "expectedClick": "Close"
+    },
+    {
+      "visible": [
+        "HomeMail"
+      ]
+    }
+  ]
+}

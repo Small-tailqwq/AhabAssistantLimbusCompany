@@ -1,0 +1,59 @@
+<!-- 设计令牌：页面与控件只引用这里的键，不再写十六进制颜色或零散尺寸。规则见 dotnet/docs/ui-design.md。 -->
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <!-- 表面：窗口底色之上由深到浅三层，卡片是唯一的承载容器。 -->
+ <SolidColorBrush x:Key="SurfaceWindowBrush" Color="#20242B"/>
+ <SolidColorBrush x:Key="SurfaceInsetBrush" Color="#141B26"/>
+ <SolidColorBrush x:Key="SurfaceCardBrush" Color="#1E2734"/>
+ <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#263142"/>
+ <!-- 悬停色的全透明版本：作为过渡起点，避免 Transparent(#00FFFFFF) 插值经过半透明白。 -->
+ <SolidColorBrush x:Key="SurfaceHoverClearBrush" Color="#00263142"/>
+ <SolidColorBrush x:Key="BorderSubtleBrush" Color="#2B3545"/>
+ <SolidColorBrush x:Key="BorderDefaultBrush" Color="#354152"/>
+
+ <!-- 文本 -->
+ <SolidColorBrush x:Key="TextPrimaryBrush" Color="#E6EBF2"/>
+ <SolidColorBrush x:Key="TextSecondaryBrush" Color="#A6B2C6"/>
+ <SolidColorBrush x:Key="TextTertiaryBrush" Color="#6F7C90"/>
+
+ <!-- 语义色：Accent 表示可操作/进行中，Highlight 表示游戏内选中项（金色），Danger 只用于错误。 -->
+ <SolidColorBrush x:Key="AccentBrush" Color="#8CABFF"/>
+ <SolidColorBrush x:Key="AccentSubtleBrush" Color="#263552"/>
+ <SolidColorBrush x:Key="AccentFillBrush" Color="#3E66D6"/>
+ <SolidColorBrush x:Key="OnAccentBrush" Color="#FFFFFF"/>
+ <SolidColorBrush x:Key="AngelaIceBrush" Color="#BDE8EF"/>
+ <SolidColorBrush x:Key="AngelaIceShadeBrush" Color="#4B9FB5"/>
+ <SolidColorBrush x:Key="AngelaIceLightBrush" Color="#F1FDFF"/>
+ <SolidColorBrush x:Key="AngelaGoldBrush" Color="#D7BC70"/>
+ <SolidColorBrush x:Key="AngelaGoldShadeBrush" Color="#AB7D39"/>
+ <SolidColorBrush x:Key="AngelaGoldLightBrush" Color="#FFF2CB"/>
+ <SolidColorBrush x:Key="SuccessBrush" Color="#7FD1A8"/>
+ <SolidColorBrush x:Key="DangerTextBrush" Color="#FFB7AD"/>
+ <SolidColorBrush x:Key="DangerSubtleBrush" Color="#3A2326"/>
+ <SolidColorBrush x:Key="DangerBorderBrush" Color="#6B3A3A"/>
+ <SolidColorBrush x:Key="HighlightBrush" Color="#E5C580"/>
+ <SolidColorBrush x:Key="HighlightTextBrush" Color="#FFE0A0"/>
+ <SolidColorBrush x:Key="HighlightSubtleBrush" Color="#65512D"/>
+ <SolidColorBrush x:Key="HighlightBorderBrush" Color="#4C4434"/>
+
+ <!-- 圆角：卡片 12，控件 8，小块 6。 -->
+ <CornerRadius x:Key="RadiusCard">12</CornerRadius>
+ <CornerRadius x:Key="RadiusControl">8</CornerRadius>
+ <CornerRadius x:Key="RadiusSmall">6</CornerRadius>
+
+ <!-- 间距：4 的倍数。页面外边距、卡片内边距、卡片间距固定。 -->
+ <Thickness x:Key="PagePadding">28,20,28,22</Thickness>
+ <Thickness x:Key="CardPadding">20,16</Thickness>
+ <x:Double x:Key="CardSpacing">16</x:Double>
+ <x:Double x:Key="RowSpacing">8</x:Double>
+ <x:Double x:Key="ControlHeight">40</x:Double>
+
+ <x:Double x:Key="LogoSidebarSize">48</x:Double>
+ <x:Double x:Key="LogoAboutSize">112</x:Double>
+
+ <!-- 字号：标题 24 / 小节 15 / 正文 14 / 说明 12。 -->
+ <x:Double x:Key="FontSizeHeading">24</x:Double>
+ <x:Double x:Key="FontSizeSection">15</x:Double>
+ <x:Double x:Key="FontSizeBody">14</x:Double>
+ <x:Double x:Key="FontSizeCaption">12</x:Double>
+
+</ResourceDictionary>

@@ -1,0 +1,62 @@
+<UserControl x:Class="AALC.Desktop.ToolsView"
+ xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:local="using:AALC.Desktop" x:DataType="local:MainViewModel">
+ <Grid Classes="page" RowDefinitions="Auto,*,Auto">
+  <TextBlock Text="工具箱" Classes="heading"/>
+  <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+   <StackPanel Classes="cards" Margin="0,0,10,0">
+    <!-- 单次游戏操作：使用侧栏选中的游戏窗口，进度在运行监控中查看。 -->
+    <Border Classes="card">
+     <StackPanel Classes="options">
+      <TextBlock Text="快捷操作" Classes="section"/>
+      <WrapPanel Orientation="Horizontal" ItemSpacing="10" LineSpacing="10">
+       <Button Content="领取邮件" Command="{Binding RunMailCommand}" Classes="primary" MinWidth="120"/>
+       <Button Content="截图" Command="{Binding CaptureScreenshotCommand}" MinWidth="100"/>
+       <Button Content="打开截图目录" Command="{Binding OpenScreenshotDirectoryCommand}"/>
+      </WrapPanel>
+     </StackPanel>
+    </Border>
+    <Border Classes="card">
+     <StackPanel Classes="options">
+      <TextBlock Text="零协汉化" Classes="section"/>
+      <Grid ColumnDefinitions="*,*" ColumnSpacing="20">
+       <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding HasInstalledLocalization}"><TextBlock Text="当前版本" Classes="muted"/><TextBlock Text="{Binding InstalledLocalization}"/></StackPanel>
+       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" IsVisible="{Binding HasLatestLocalization}"><TextBlock Text="最新版本" Classes="muted"/><TextBlock Text="{Binding LatestLocalization}"/></StackPanel>
+      </Grid>
+      <Expander Header="更新说明" Classes="plain" IsVisible="{Binding HasLocalizationNotes}">
+       <TextBlock Text="{Binding LocalizationNotes}" TextWrapping="Wrap"/>
+      </Expander>
+      <WrapPanel Orientation="Horizontal" ItemSpacing="10" LineSpacing="10">
+       <Button Content="检查更新" Command="{Binding CheckLocalizationCommand}"/>
+       <Button Content="安装 / 更新" Command="{Binding InstallLocalizationCommand}" Classes="primary"/>
+       <HyperlinkButton Content="零协汉化 · CC BY-NC-SA 4.0" NavigateUri="https://github.com/LocalizeLimbusCompany/LocalizeLimbusCompany" VerticalAlignment="Center"/>
+      </WrapPanel>
+     </StackPanel>
+    </Border>
+    <Border Classes="card">
+     <StackPanel Classes="options">
+      <TextBlock Text="新手提示" Classes="section"/>
+      <TextBlock Text="修改存档前请退出游戏，原文件保留备份。" Classes="muted" TextWrapping="Wrap"/>
+      <WrapPanel Orientation="Horizontal" ItemSpacing="10">
+       <Button Content="关闭提示" Command="{Binding DisableTutorialsCommand}"/>
+       <Button Content="恢复提示" Command="{Binding EnableTutorialsCommand}" ToolTip.Tip="重新开启提示，保留已读公告列表"/>
+      </WrapPanel>
+     </StackPanel>
+    </Border>
+    <Border Classes="card" IsVisible="{Binding HasToolMessages}">
+     <ItemsControl ItemsSource="{Binding ToolMessages}">
+      <ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String">
+       <SelectableTextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="12" Margin="0,4"/>
+      </DataTemplate></ItemsControl.ItemTemplate>
+     </ItemsControl>
+    </Border>
+   </StackPanel>
+  </ScrollViewer>
+  <Grid Grid.Row="2" Classes="actions" ColumnDefinitions="*,Auto">
+   <TextBlock Text="{Binding Error}" Classes="error"/>
+   <StackPanel Grid.Column="1">
+    <Button Classes="danger" Content="停止" Command="{Binding StopCommand}" MinWidth="90" ToolTip.Tip="停止 (Esc)" IsVisible="{Binding IsRunning}"/>
+   </StackPanel>
+  </Grid>
+ </Grid>
+</UserControl>

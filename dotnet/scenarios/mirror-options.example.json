@@ -1,0 +1,19 @@
+{
+  "mode": "Normal",
+  "runs": 1,
+  "claimRewards": false,
+  "weeklyBonus": "None",
+  "teams": [
+    {
+      "name": "烧伤队",
+      "gameTeamNumber": 1,
+      "selectTeamByOrder": true,
+      "sinnerOrder": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "convertStarlight": false,
+      "starLevels": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      "initialGifts": [1, 2, 3],
+      "rewards": { "keyword": "burn", "cardPreference": "StarlightThenGift" },
+      "shop": { "purchases": "EssentialsAndKeyword", "heal": true, "enhance": true }
+    }
+  ]
+}

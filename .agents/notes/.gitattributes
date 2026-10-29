@@ -1,0 +1,2 @@
+# Seals hash raw bytes; keep line endings identical on every platform.
+* text eol=lf

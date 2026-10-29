@@ -1,0 +1,86 @@
+{
+  "cases": [
+    {
+      "text": [
+        {
+          "region": {
+            "x": 0,
+            "y": 0,
+            "width": 1280,
+            "height": 720
+          },
+          "contains": [
+            "游戏无法运行",
+            "即将关闭游戏",
+            "关闭",
+            "重试"
+          ]
+        }
+      ],
+      "image": "runtime/images/terminal-game-error.png",
+      "id": "terminal-game-error-text",
+      "sha256": "7dbe18a134f60328baf28b2cf42dd25ef6cf69e3aa54a2edfc1910326ed6bb0d",
+      "height": 720,
+      "width": 1280,
+      "description": "游戏无法运行、即将关闭且重试按钮不可用；来源20261026-143116-538/frame-000756.png"
+    },
+    {
+      "height": 720,
+      "sha256": "80113fa6491f4b35fb96b12cac2f3d116d691c239c564d78f3a5c044e02e5051",
+      "image": "runtime/images/infinite-on-hover.png",
+      "width": 1280,
+      "id": "infinite-on-hover",
+      "templates": [
+        {
+          "count": 0,
+          "query": {
+            "asset": "mirror/road_to_mir/infinity_mirror_enter_assets.png"
+          }
+        }
+      ],
+      "text": [
+        {
+          "region": {
+            "width": 85,
+            "y": 320,
+            "height": 50,
+            "x": 1083
+          },
+          "scale": 2,
+          "exact": "ON"
+        }
+      ],
+      "description": "无尽模式ON；点击光效会短暂遮挡模板，后续新帧恢复；来源20261026-151511-136"
+    },
+    {
+      "height": 720,
+      "sha256": "34dc52d0445f732e28d46387ab9a518d197ac7b1e06b3302e0f5b5f889c77e96",
+      "image": "runtime/images/infinite-on-stable.png",
+      "width": 1280,
+      "id": "infinite-on-stable",
+      "templates": [
+        {
+          "count": 1,
+          "query": {
+            "asset": "mirror/road_to_mir/infinity_mirror_enter_assets.png"
+          }
+        }
+      ],
+      "text": [
+        {
+          "region": {
+            "width": 85,
+            "y": 320,
+            "height": 50,
+            "x": 1083
+          },
+          "scale": 2,
+          "exact": "ON"
+        }
+      ],
+      "description": "无尽模式ON；点击光效会短暂遮挡模板，后续新帧恢复；来源20261026-151511-136"
+    }
+  ],
+  "version": 1,
+  "replays": []
+}

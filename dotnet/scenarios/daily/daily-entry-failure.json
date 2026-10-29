@@ -1,0 +1,215 @@
+{
+  "id": "daily-entry-failure",
+  "evidence": "synthetic-contract",
+  "source": "tests/test_daily_event_recovery.py::test_luxcavation_stops_when_entry_recovery_fails; tests/test_daily_team_selection.py::test_daily_wrapper_stops_before_thread_after_exp_group_fails",
+  "options": {
+    "runLuxcavation": true,
+    "expCount": 1,
+    "threadCount": 1,
+    "teamNumber": 1,
+    "selectTeamByOrder": true,
+    "useContinuousCombat": false,
+    "maxContinuousCombat": 3,
+    "convertModules": false,
+    "claimRewards": false,
+    "buyStamina": false
+  },
+  "expectedOutcome": "Failed",
+  "expectedReason": "经验采光未完成",
+  "steps": [
+    {
+      "targets": [
+        {
+          "asset": "home/mail_assets.png",
+          "center": {
+            "x": 1120,
+            "y": 124
+          }
+        },
+        {
+          "asset": "home/drive_assets.png",
+          "center": {
+            "x": 1000,
+            "y": 650
+          }
+        }
+      ],
+      "expectedActions": [
+        {
+          "rule": "daily.luxcavation.drive"
+        }
+      ]
+    },
+    {
+      "targets": [
+        {
+          "asset": "home/luxcavation_assets.png",
+          "center": {
+            "x": 500,
+            "y": 600
+          }
+        }
+      ],
+      "expectedActions": [
+        {
+          "rule": "daily.luxcavation.open"
+        }
+      ]
+    },
+    {
+      "targets": [],
+      "expectedActions": [
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        },
+        {
+          "rule": "daily.home.escape",
+          "kind": "Key",
+          "key": "Escape"
+        }
+      ]
+    }
+  ]
+}

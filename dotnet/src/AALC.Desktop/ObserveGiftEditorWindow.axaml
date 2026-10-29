@@ -1,0 +1,59 @@
+<Window x:Class="AALC.Desktop.ObserveGiftEditorWindow"
+ xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:local="using:AALC.Desktop"
+ x:DataType="local:ObserveGiftSelectionModel" Title="观测饰品" Width="1030" Height="760" MinWidth="940" MinHeight="620"
+ WindowStartupLocation="CenterOwner">
+ <Grid Margin="22,18,22,22" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="14">
+  <ItemsControl ItemsSource="{Binding Systems}">
+   <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="11"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+   <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:ObserveSystemItem">
+    <Button Classes="choice" Classes.active="{Binding Active}" Command="{Binding SelectCommand}" Margin="0,0,5,0" Padding="4,6" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" AutomationProperties.Name="{Binding Name}">
+     <StackPanel Spacing="3"><Image Source="{Binding Icon}" Width="26" Height="26"/><TextBlock Text="{Binding Name}" FontSize="12" HorizontalAlignment="Center"/></StackPanel>
+    </Button>
+   </DataTemplate></ItemsControl.ItemTemplate>
+  </ItemsControl>
+  <TextBlock Grid.Row="1" Text="按游戏中的等级、行列选择位置，最多 3 件。" Classes="muted"/>
+  <Grid Grid.Row="2" ColumnDefinitions="*,252" ColumnSpacing="18">
+   <Border Classes="card" Padding="14">
+    <Grid RowDefinitions="Auto,*" RowSpacing="12">
+     <ItemsControl ItemsSource="{Binding Tiers}">
+      <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:ObserveTierItem">
+       <Button Content="{Binding Name}" Classes="choice" Classes.active="{Binding Active}" Command="{Binding SelectCommand}" Margin="0,0,6,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Foreground="{DynamicResource HighlightBrush}"/>
+      </DataTemplate></ItemsControl.ItemTemplate>
+     </ItemsControl>
+     <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+      <ItemsControl ItemsSource="{Binding Rows}">
+       <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:ObservePositionRow">
+        <Grid ColumnDefinitions="52,*" ColumnSpacing="6" Margin="0,0,0,8">
+         <TextBlock Text="{Binding Label}" Classes="muted" FontSize="12" VerticalAlignment="Center"/>
+         <ItemsControl Grid.Column="1" ItemsSource="{Binding Cells}">
+          <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="8"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:ObservePositionCell">
+           <Button Content="{Binding Label}" Classes="choice" Classes.active="{Binding Selected}" Command="{Binding ToggleCommand}" ToolTip.Tip="{Binding Description}" AutomationProperties.Name="{Binding Description}"
+            Height="50" Margin="0,0,5,0" Padding="2" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="12"/>
+          </DataTemplate></ItemsControl.ItemTemplate>
+         </ItemsControl>
+        </Grid>
+       </DataTemplate></ItemsControl.ItemTemplate>
+      </ItemsControl>
+     </ScrollViewer>
+    </Grid>
+   </Border>
+   <StackPanel Grid.Column="1" Spacing="14">
+    <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{Binding CountLabel}" Classes="section" VerticalAlignment="Center"/><Button Grid.Column="1" Content="清空" Command="{Binding ClearCommand}"/></Grid>
+    <ItemsControl ItemsSource="{Binding Selected}">
+     <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:ObservedGiftChoice">
+      <Border Classes="card" Padding="12" Margin="0,0,0,10">
+       <StackPanel Spacing="10"><TextBlock Text="{Binding Description}" TextWrapping="Wrap" Foreground="{DynamicResource HighlightBrush}"/><Button Content="移除" Command="{Binding RemoveCommand}" HorizontalAlignment="Right" Classes="small"/></StackPanel>
+      </Border>
+     </DataTemplate></ItemsControl.ItemTemplate>
+    </ItemsControl>
+   </StackPanel>
+  </Grid>
+  <Grid Grid.Row="3" ColumnDefinitions="*,Auto" ColumnSpacing="14">
+   <TextBlock Text="{Binding Error}" Classes="error" VerticalAlignment="Center"/>
+   <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12"><Button Content="取消" Click="Cancel"/><Button Content="应用" Click="Apply" Classes="primary" MinWidth="100"/></StackPanel>
+  </Grid>
+ </Grid>
+</Window>

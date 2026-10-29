@@ -1,0 +1,84 @@
+<!--
+ 折叠卡片：替换 SukiUI 7.0.1 的 Expander 主题。
+ 原主题头部是 ToggleButton.Basic，点击时 :pointerover:checked 会先套用主色背景和白字、:pressed 缩放 0.97，
+ 随后才被 :expanded 的透明背景覆盖，表现为白色闪烁；内容容器还会在测量时改写父级 Margin 造成抖动。
+ 这里头部只有透明底与悬停色，内容由 ExpandPresenter 按进度截取高度并同步淡入。
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:local="using:AALC.Desktop">
+ <ControlTheme x:Key="ExpanderHeaderTheme" TargetType="ToggleButton">
+  <Setter Property="Background" Value="{DynamicResource SurfaceHoverClearBrush}"/>
+  <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+  <Setter Property="Padding" Value="20,0"/>
+  <Setter Property="MinHeight" Value="52"/>
+  <Setter Property="Cursor" Value="Hand"/>
+  <Setter Property="HorizontalAlignment" Value="Stretch"/>
+  <Setter Property="Template">
+   <ControlTemplate>
+    <Border Name="PART_Background" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" MinHeight="{TemplateBinding MinHeight}">
+     <Border.Transitions><Transitions><BrushTransition Property="Background" Duration="0:0:0.12"/></Transitions></Border.Transitions>
+     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+      <ContentPresenter Content="{TemplateBinding Content}" VerticalAlignment="Center"
+       FontSize="{DynamicResource FontSizeSection}" FontWeight="SemiBold" Foreground="{TemplateBinding Foreground}"/>
+      <PathIcon Name="PART_Chevron" Grid.Column="1" Width="10" Height="10" Data="M0,3 L5,8 10,3"
+       Foreground="{DynamicResource TextSecondaryBrush}" RenderTransformOrigin="50%,50%">
+       <PathIcon.Transitions><Transitions><TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.22" Easing="CubicEaseOut"/></Transitions></PathIcon.Transitions>
+      </PathIcon>
+     </Grid>
+    </Border>
+   </ControlTemplate>
+  </Setter>
+  <Style Selector="^:pointerover /template/ Border#PART_Background"><Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}"/></Style>
+  <Style Selector="^ /template/ PathIcon#PART_Chevron"><Setter Property="RenderTransform" Value="rotate(0deg)"/></Style>
+  <Style Selector="^:checked /template/ PathIcon#PART_Chevron"><Setter Property="RenderTransform" Value="rotate(180deg)"/></Style>
+  <Style Selector="^:focus-visible /template/ Border#PART_Background"><Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}"/></Style>
+ </ControlTheme>
+
+ <ControlTheme x:Key="{x:Type Expander}" TargetType="Expander">
+  <Setter Property="Background" Value="{DynamicResource SurfaceCardBrush}"/>
+  <Setter Property="BorderBrush" Value="{DynamicResource BorderDefaultBrush}"/>
+  <Setter Property="BorderThickness" Value="1"/>
+  <Setter Property="CornerRadius" Value="{DynamicResource RadiusCard}"/>
+  <Setter Property="Padding" Value="20,4,20,18"/>
+  <Setter Property="HorizontalAlignment" Value="Stretch"/>
+  <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+  <Setter Property="Template">
+   <ControlTemplate>
+    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+     BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}" ClipToBounds="True">
+     <DockPanel>
+      <ToggleButton Name="PART_ToggleButton" DockPanel.Dock="Top" Theme="{StaticResource ExpanderHeaderTheme}"
+       Content="{TemplateBinding Header}" IsChecked="{TemplateBinding IsExpanded, Mode=TwoWay}"/>
+      <local:ExpandPresenter Name="PART_Expand">
+       <local:ExpandPresenter.Transitions>
+        <Transitions>
+         <DoubleTransition Property="Progress" Duration="0:0:0.22" Easing="CubicEaseOut"/>
+         <DoubleTransition Property="Opacity" Duration="0:0:0.18" Easing="CubicEaseOut"/>
+        </Transitions>
+       </local:ExpandPresenter.Transitions>
+       <ContentPresenter Name="PART_ContentPresenter" Padding="{TemplateBinding Padding}"
+        HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+        Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"/>
+      </local:ExpandPresenter>
+     </DockPanel>
+    </Border>
+   </ControlTemplate>
+  </Setter>
+  <Style Selector="^ /template/ local|ExpandPresenter#PART_Expand">
+   <Setter Property="Progress" Value="0"/><Setter Property="Opacity" Value="0"/>
+   <Setter Property="IsHitTestVisible" Value="False"/>
+   <Setter Property="KeyboardNavigation.TabNavigation" Value="None"/>
+  </Style>
+  <Style Selector="^:expanded /template/ local|ExpandPresenter#PART_Expand">
+   <Setter Property="Progress" Value="1"/><Setter Property="Opacity" Value="1"/>
+   <Setter Property="IsHitTestVisible" Value="True"/>
+   <Setter Property="KeyboardNavigation.TabNavigation" Value="Continue"/>
+  </Style>
+  <!-- 卡片内的次级折叠：无底色与边框，头部与正文左缘对齐。 -->
+  <Style Selector="^.plain">
+   <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
+   <Setter Property="CornerRadius" Value="{DynamicResource RadiusSmall}"/><Setter Property="Padding" Value="0,6,0,0"/>
+   <Style Selector="^ /template/ ToggleButton#PART_ToggleButton"><Setter Property="Padding" Value="0"/><Setter Property="MinHeight" Value="36"/></Style>
+  </Style>
+ </ControlTheme>
+</ResourceDictionary>

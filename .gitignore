@@ -1,0 +1,10 @@
+/dotnet/**/bin/
+/dotnet/**/obj/
+/dotnet/**/TestResults/
+.vs/
+.vscode/
+.idea/
+.claude/
+.venv/
+__pycache__/
+logs/
