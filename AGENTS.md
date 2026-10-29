@@ -24,7 +24,7 @@ python scripts/link_skills.py
 ## 项目现实
 
 - Windows-only 桌面自动化。项目依赖方向：Core ← Runtime ← Vision／Platform.Windows ← Desktop／CLI；Core 不依赖 UI、模型和设备。
-- 运行时读取资源仓库中的 `assets/images` 与 OCR 模型目录（设置页或 CLI 参数指定），这些资源不在本分支。
+- 运行资源随仓库提交：模板 `assets/images`、镜牢地图模型 `assets/model`、罪人头像与主题封面 `assets/app`、OCR 模型 `assets/models/ocr`；设置页或 CLI 参数可改用其他目录。
 - `debug_tools/` 与 `scripts/` 中的 Python 脚本只是开发工具，产品运行不依赖 Python。
 
 ## 核心不变量

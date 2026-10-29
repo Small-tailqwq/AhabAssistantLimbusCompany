@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using AALC.Core.Features.Mirror;
+using AALC.Runtime;
 using AALC.Runtime.Automation;
 using AALC.Runtime.Mail;
 using AALC.Runtime.Replay;
@@ -19,7 +20,7 @@ public sealed class MirrorScenarioVision : IMirrorScenarioVision, IDisposable
     public MirrorScenarioVision(string repositoryRoot, string? modelsDirectory = null, TemplateOptions? options = null)
     {
         matcher = new(repositoryRoot, options ?? new());
-        text = new(modelsDirectory ?? Path.Combine(repositoryRoot, ".venv", "Lib", "site-packages", "rapidocr", "models"));
+        text = new(modelsDirectory ?? RepositoryPaths.OcrModels(repositoryRoot));
         mapModel = Path.Combine(repositoryRoot, "assets", "model", "best.onnx");
     }
 

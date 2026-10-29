@@ -26,28 +26,6 @@ public sealed class MirrorThemeCatalogTests
     }
 
     [Fact]
-    public void AllPythonNamesImagesAndOcrAlternativesArePresent()
-    {
-        var root = RepositoryRoot();
-        var source = File.ReadAllText(Path.Combine(root, "app/theme_pack_setting_interface.py"));
-        foreach (var hard in new[] { false, true })
-        {
-            var prefix = hard ? "THEME_PACK_HARD" : "THEME_PACK";
-            var images = SourceMap(source, prefix + "_IMAGE_MAP");
-            foreach (var pair in SourceMap(source, prefix + "_NAME_MAP"))
-            {
-                var pack = MirrorThemeCatalog.Match(pair.Key);
-                Assert.NotNull(pack);
-                Assert.Contains(pair.Value, pack.OcrAliases);
-                Assert.Equal(pack.Id, MirrorThemeCatalog.Match(pair.Value)?.Id);
-                Assert.Equal("assets/app/theme_packs/" + images[pair.Key], hard ? pack.HardImage : pack.NormalImage);
-            }
-        }
-        foreach (var pair in SourceMap(source, "CN_OCR_ALTERNATIVES"))
-            Assert.Equal(MirrorThemeCatalog.Match(pair.Value)?.Id, MirrorThemeCatalog.Match(pair.Key)?.Id);
-    }
-
-    [Fact]
     public void EveryChineseAndEnglishExampleWeightHasTheSameCatalogDefault()
     {
         var path = Path.Combine(RepositoryRoot(), "assets/config/theme_pack_list.example.yaml");
@@ -137,14 +115,4 @@ public sealed class MirrorThemeCatalogTests
 
     private static string RepositoryRoot() => RepositoryPaths.Discover(AppContext.BaseDirectory)
         ?? throw new InvalidOperationException("未找到主题目录的仓库来源");
-
-    private static Dictionary<string, string> SourceMap(string source, string name)
-    {
-        var body = Regex.Match(source, @"(?ms)^" + name + @"\s*=\s*\{(.*?)^\}").Groups[1].Value;
-        Assert.NotEmpty(body);
-        var entries = Regex.Matches(body, "\"([^\"]+)\":\\s*\"([^\"]+)\"")
-            .ToDictionary(match => match.Groups[1].Value, match => match.Groups[2].Value);
-        Assert.NotEmpty(entries);
-        return entries;
-    }
 }

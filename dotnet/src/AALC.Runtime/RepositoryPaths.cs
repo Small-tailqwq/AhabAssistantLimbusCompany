@@ -7,11 +7,13 @@ public static class RepositoryPaths
         var directory = new DirectoryInfo(Path.GetFullPath(start));
         while (directory is not null)
         {
-            if (File.Exists(Path.Combine(directory.FullName, "assets", "config", "config.example.yaml")))
+            if (Directory.Exists(Path.Combine(directory.FullName, "assets", "images")))
                 return directory.FullName;
             directory = directory.Parent;
         }
         return null;
     }
+
+    public static string OcrModels(string root) => Path.Combine(root, "assets", "models", "ocr");
 }
 

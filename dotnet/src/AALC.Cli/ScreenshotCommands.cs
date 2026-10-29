@@ -21,7 +21,7 @@ internal static class ScreenshotCommands
         var suitePath = flags.GetValueOrDefault("--suite", Path.Combine(root, "dotnet", "tests", "screenshots", "mirror.json"));
         var suite = ScreenshotTestset.Load(suitePath);
         var data = EvidencePaths.RequireExternalPath(flags.GetValueOrDefault("--data", Path.Combine(EvidencePaths.ResolveRoot(), "testsets")));
-        var models = flags.GetValueOrDefault("--models", Path.Combine(root, ".venv", "Lib", "site-packages", "rapidocr", "models"));
+        var models = flags.GetValueOrDefault("--models", RepositoryPaths.OcrModels(root));
         var filter = flags.GetValueOrDefault("--filter", "");
         var cases = suite.Cases.Where(item => item.Id.Contains(filter, StringComparison.OrdinalIgnoreCase)).ToArray();
         var replays = suite.Replays.Where(item => item.Id.Contains(filter, StringComparison.OrdinalIgnoreCase)).ToArray();

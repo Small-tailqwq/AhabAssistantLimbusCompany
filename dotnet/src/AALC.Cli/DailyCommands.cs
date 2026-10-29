@@ -36,7 +36,7 @@ internal static class DailyCommands
         if (args.Length is < 3 or > 5 || !int.TryParse(args[1], out var pid))
             throw new ArgumentException("daily <进程ID> <配置.json> [仓库] [OCR模型目录] | daily-battle <进程ID> <当前批次数> [仓库] [OCR模型目录]");
         root = args.Length >= 4 ? Path.GetFullPath(args[3]) : root ?? throw new ArgumentException("找不到资源仓库");
-        var models = args.Length == 5 ? args[4] : Path.Combine(root, ".venv", "Lib", "site-packages", "rapidocr", "models");
+        var models = args.Length == 5 ? args[4] : RepositoryPaths.OcrModels(root);
         var continueBattle = args[0] == "daily-battle";
         var combatCount = continueBattle ? int.Parse(args[2]) : 0;
         if (continueBattle && combatCount is < 1 or > 10) throw new ArgumentOutOfRangeException(nameof(combatCount), "当前批次数须为 1–10");

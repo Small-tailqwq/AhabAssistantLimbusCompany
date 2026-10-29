@@ -17,7 +17,7 @@ dotnet run --project dotnet/src/AALC.Cli/AALC.Cli.csproj -c Release -- replay do
 dotnet test dotnet/tests/AALC.Core.Tests/AALC.Core.Tests.csproj -c Release
 ```
 
-桌面设置位于 `%LOCALAPPDATA%/AALC.Next/settings.json`。`--profile <目录>` 指定独立配置目录；日常选项、资源路径和 OCR 模型目录保存在此目录，不导入或覆盖 Python 的 `config.yaml`。首次启动自动查找包含 `assets/images` 的仓库，设置页可修改资源位置、游戏语言、图像主题和模型目录。
+桌面设置位于 `%LOCALAPPDATA%/AALC.Next/settings.json`。`--profile <目录>` 指定独立配置目录；日常选项、资源路径和 OCR 模型目录保存在此目录，不导入或覆盖 Python 的 `config.yaml`。首次启动向上查找包含 `assets/images` 的目录（即本仓库），设置页可修改资源位置、游戏语言、图像主题和模型目录。
 
 ## 日常任务
 
@@ -25,7 +25,7 @@ dotnet test dotnet/tests/AALC.Core.Tests/AALC.Core.Tests.csproj -c Release
 
 生产编排依次完成返回主页、采光与可选模块兑换、邮件及通行证奖励、可选狂气换体，最后确认主页。通行证中的赛季任务有独立开关，默认关闭；开启后按分区领取提示扫描滚动列表，详见[通行证领取](docs/pass-rewards.md)。狂气换体默认关闭，开启后按当日价格决定还可购买的档位，配置为不兑换、第一档、第二档或第三档。消费确认后等待价格或按钮状态变化，未确认变化时停止继续消费。战斗流程包含回合操作、事件选项与结算识别。
 
-页面 OCR 使用原生 PP-OCRv4 检测与识别模型，执行文字检测、透视裁剪和识别。模型目录包含 `ch_PP-OCRv4_det_infer.onnx`、`ch_PP-OCRv4_rec_infer.onnx`；识别模型没有内嵌字符表时，还需 `ppocr_keys_v1.txt`。桌面仅检查 `assets/models/ocr` 和 `.venv/Lib/site-packages/rapidocr/models` 是否存在以填入默认路径，也可指定独立目录。
+页面 OCR 使用原生 PP-OCRv4 检测与识别模型，执行文字检测、透视裁剪和识别。模型目录包含 `ch_PP-OCRv4_det_infer.onnx`、`ch_PP-OCRv4_rec_infer.onnx`；识别模型没有内嵌字符表时，还需 `ppocr_keys_v1.txt`。三个文件随仓库放在 `assets/models/ocr`，桌面与 CLI 默认使用该目录，也可指定独立目录。
 
 运行中禁用配置与重复启动。停止按钮和窗口内 Esc 取消任务，关闭窗口最多等待 5 秒收尾。CLI 支持 Ctrl+C。真实任务保存截图、`events.jsonl` 和 `result.json`；桌面和 CLI 默认写入 `D:\AALCData\recordings/{mirror,daily,mail}/时间戳`。可用 `AALC_DATA_ROOT` 指定其他本地非 C 盘目录，C 盘及指向 C 盘的目录链接会被拒绝。
 

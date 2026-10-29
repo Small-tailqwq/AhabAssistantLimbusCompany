@@ -19,7 +19,7 @@ screenshot-test [--suite <用例.json>] [--data <非C盘测试集目录>]
                 [--root <资源仓库>] [--models <OCR模型目录>] [--filter <用例ID片段>]
 ```
 
-默认读取 `dotnet/tests/screenshots/mirror.json`、`<AALC_DATA_ROOT>/testsets` 和仓库 `.venv/Lib/site-packages/rapidocr/models`。`--filter` 按 ID 子串筛选静态用例和录制用例；没有匹配用例会报错。克隆代码不包含本地截图，缺图会失败，不能被视为通过或跳过。
+默认读取 `dotnet/tests/screenshots/mirror.json`、`<AALC_DATA_ROOT>/testsets` 和仓库 `assets/models/ocr`。`--filter` 按 ID 子串筛选静态用例和录制用例；没有匹配用例会报错。克隆代码不包含本地截图，缺图会失败，不能被视为通过或跳过。
 
 报告逐用例写入 `<AALC_DATA_ROOT>/reports/screenshots/时间戳/report.json`，包含预期、实际目标与位置、OCR 文本和置信度、地图节点/连接/计划、异常和耗时，以及模型、模板与执行程序集的 SHA256。全部通过退出码为 `0`，用例失败为 `1`，配置错误或取消为 `2`。Ctrl+C 协作取消，已完成的结果保留。
 

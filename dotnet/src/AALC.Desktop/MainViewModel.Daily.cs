@@ -62,11 +62,7 @@ public partial class MainViewModel
     {
         OcrModelsDirectory = settings.OcrModelsDirectory;
         if (string.IsNullOrWhiteSpace(OcrModelsDirectory))
-            OcrModelsDirectory = new[]
-            {
-                Path.Combine(RepositoryRoot, "assets", "models", "ocr"),
-                Path.Combine(RepositoryRoot, ".venv", "Lib", "site-packages", "rapidocr", "models")
-            }.FirstOrDefault(Directory.Exists) ?? "";
+            OcrModelsDirectory = Directory.Exists(RepositoryPaths.OcrModels(RepositoryRoot)) ? RepositoryPaths.OcrModels(RepositoryRoot) : "";
         var options = settings.Daily ?? new DailyOptions();
         DailyPlan.Validate(options);
         RunLuxcavation = options.RunLuxcavation;

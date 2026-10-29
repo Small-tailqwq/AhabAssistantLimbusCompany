@@ -59,7 +59,7 @@ internal static class MirrorCommands
         using var matcher = new TemplateMatcher(root, new(settings?.GameLanguage ?? "zh_cn", settings?.GameTheme ?? "default"));
         var models = flags.TryGetValue("--models", out var modelDirectory) ? modelDirectory
             : !string.IsNullOrWhiteSpace(settings?.OcrModelsDirectory) ? settings.OcrModelsDirectory
-            : Path.Combine(root, ".venv", "Lib", "site-packages", "rapidocr", "models");
+            : RepositoryPaths.OcrModels(root);
         using var observer = new GameObserver(window, matcher, models, output);
         var session = new GameSession(observer, window, new SystemRunClock(), Publish, MirrorRunner.TimeoutFor(options), "Mirror");
         session.Report("mirror.configuration", $"读取镜牢配置：{source}");
