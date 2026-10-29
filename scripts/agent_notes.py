@@ -11,10 +11,13 @@ Usage (run from the repository root):
   python3 agent_notes.py check                     verify everything
   python3 agent_notes.py seal                      verify, then append seals for newly archived files
   python3 agent_notes.py pair --write NOTE... | --all   re-record bilingual consistency sidecars
+  python3 agent_notes.py lint [NOTE... | --all]    list prose candidates in changed notes (never fails)
 Options: --repo-root DIR (default: cwd), --notes-dir DIR (default: <repo-root>/.agents/notes).
 Environment: AGENT_NOTES_BASE_REF names the trusted commit whose manifest seals must survive
-(default HEAD; CI should pass the pull request base SHA with full history checked out).
-Exit status: 0 clean, 1 violations, 2 usage or configuration error.
+and against which `lint` finds changed notes (default HEAD; CI should pass the pull request
+base SHA with full history checked out).
+Exit status: 0 clean, 1 violations, 2 usage or configuration error. `lint` hits are candidates,
+not violations; with `"proseLint": true` in the config, `check` lists them after a clean run.
 """
 
 import datetime
@@ -33,6 +36,26 @@ GRANDFATHER = "<!-- agent-note-format: alternatives-not-recorded (pre-format Age
 NOTE_NAME = re.compile(r"^(\d{4}-\d{2}-\d{2})-[^/]+\.md$")
 LANG = re.compile(r"^[a-z]{2,3}(?:-[A-Za-z0-9]+)?$")
 HEADING_KEYS = ["problem", "proposal", "decision", "alternatives", "acceptance", "risks", "consequences"]
+# The recall probes of references/prose.md, in the same order; change all three copies together.
+# Explicit ASCII lookarounds instead of \b: Python treats CJK as word characters, JavaScript does not.
+PROSE_PROBES = [
+    ("scope-disclaimer",
+     r"(does not|doesn't|cannot|can't|won't) (prove|guarantee|mean|imply|ensure|verify|judge)"
+     r"|不能(证明|保证|判断|代表|说明)|不(意味着|代表|等于|保证)|并不|只(能)?说明|不配置|不提供|不涉及"),
+    ("straw-man-or-escalation", r"not [^.]{1,40}, but|rather than|instead of|不是.*而是|而非|并非|不仅|既.*，也"),
+    ("announcement-or-summary", r"worth noting|importantly|essentially|in short|值得注意|关键在于|本质上|总之|这样一来"),
+    ("session-vantage",
+     r"(?<![A-Za-z])this (PR|change|note|session)(?![A-Za-z])|本次|这次|此次|本笔记|维护者(的)?(明确)?要求|用户要求"
+     r"|locally|本机|(Python|Node|node|python) ?v?[0-9]+\.[0-9]+\.[0-9]+"),
+    ("draft-history",
+     r"originally|previously|formerly|no longer|used to|the old |legacy|[0-9]+ original"
+     r"|最初|原先|原本|原来|此前|曾经|不再|改为|原 ?[0-9]|旧 ?`"),
+    ("vague-reference",
+     r"(?<![A-Za-z])(etc\.|and so on|as needed|as appropriate|various|relevant (files|docs|code|parts|settings|rationale|changes))"
+     r"|相关(文件|文档|代码|配置|逻辑|内容|部分|理由)|相应的?(文件|文档|代码|配置|修改|处理)|某些|若干|一些|适当|必要时|等等|之类"),
+]
+SUPERSEDES = r"supersed|replaces|取代"
+NOTE_LINK = r"\]\((?![A-Za-z][A-Za-z0-9+.-]*:)([^)#\s]+\.md)(?:#[^)]*)?\)"
 
 
 class UsageError(Exception):
@@ -121,7 +144,7 @@ def load_config(notes_dir):
         fail("expected a JSON object")
     keys = ["version", "classes", "headings", "primaryLanguage", "counterpartLanguages", "formatAdopted", "forbiddenRoots"]
     for key in raw:
-        if key not in keys:
+        if key not in keys + ["proseLint"]:
             fail('unknown field "%s"' % key)
     for key in keys:
         if key not in raw:
@@ -159,7 +182,10 @@ def load_config(notes_dir):
         fail('"formatAdopted" must be a YYYY-MM-DD date')
     if not is_string_list(raw["forbiddenRoots"]):
         fail('"forbiddenRoots" must be a list of repository-relative paths')
+    if not isinstance(raw.get("proseLint", False), bool):
+        fail('"proseLint" must be true or false')
     return {
+        "proseLint": raw.get("proseLint", False),
         "classes": classes,
         "headings": headings,
         "primary": primary,
@@ -189,18 +215,22 @@ def walk_tree(repo_root, notes_dir, config, errors):
         if not os.path.exists(os.path.join(notes_dir, lifecycle)):
             errors.append("tree: %s/ — required lifecycle folder is missing" % lifecycle)
             continue
+        unknown = set()
+        for name, is_dir in listing(os.path.join(notes_dir, lifecycle)):
+            if is_dir and name not in config["classes"]:
+                errors.append('tree: %s/%s/ — unknown class folder "%s" (allowed: %s)' % (lifecycle, name, name, ", ".join(config["classes"])))
+                unknown.add(name)
         for rel in markdown_under(notes_dir, lifecycle):
             segs = rel.split("/")
             name = segs[-1]
+            if len(segs) > 2 and segs[1] in unknown:
+                continue
             if len(segs) == 2 and name in LIFECYCLE_ROOT_FILES:
                 continue
             if counterpart_language_of(name, config) is not None:
                 continue
             if len(segs) != 3:
                 errors.append("tree: %s — expected {lifecycle}/{class}/yyyy-mm-dd-topic.md (got depth %d)" % (rel, len(segs)))
-                continue
-            if segs[1] not in config["classes"]:
-                errors.append('tree: %s — unknown class folder "%s" (allowed: %s)' % (rel, segs[1], ", ".join(config["classes"])))
                 continue
             m = NOTE_NAME.match(name)
             if m is None or not valid_date(m.group(1)):
@@ -542,7 +572,7 @@ def check_archive(notes_dir, config, write, errors):
             record, pair_errors = compute_record(archive_dir, stem + ".md", config["primary"], langs)
             errors.extend("archive: " + e for e in pair_errors)
             if record is not None and read_text(os.path.join(archive_dir, stem + ".i18n.json")) != render_json(record):
-                errors.append("archive: %s.i18n.json — sidecar must match the archived contents (re-record it once while archiving)" % stem)
+                errors.append("archive: %s.i18n.json — sidecar must match the archived contents (run `pair --write` on the active note after adding the Archived line, then move the group)" % stem)
 
     manifest_path = os.path.join(archive_dir, "manifest.json")
     files = {}
@@ -583,6 +613,85 @@ def check_archive(notes_dir, config, write, errors):
         with open(manifest_path, "w", encoding="utf-8", newline="\n") as handle:
             handle.write(rendered)
     return len(added)
+
+
+# ---------- prose lint ----------
+
+def lint_baseline(repo_root):
+    """Return the baseline ref, or None for an unborn default HEAD (everything counts as new)."""
+    explicit = os.environ.get("AGENT_NOTES_BASE_REF")
+    ref = explicit if explicit is not None else "HEAD"
+    if git(repo_root, ["rev-parse", "--verify", "--quiet", ref + "^{commit}"])[0]:
+        return ref
+    if explicit is not None:
+        raise UsageError("lint: cannot resolve baseline %s" % json.dumps(ref))
+    return None
+
+
+def changed_note_files(repo_root, notes_dir, ref):
+    """Active note files in any language that differ from the baseline or are untracked."""
+    rel_notes = os.path.relpath(notes_dir, repo_root).replace(os.sep, "/")
+    if ref is None:
+        out = git(repo_root, ["ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", rel_notes])[1]
+    else:
+        out = git(repo_root, ["diff", "-z", "--name-only", "--relative", ref, "--", rel_notes])[1]
+        out += git(repo_root, ["ls-files", "-z", "--others", "--exclude-standard", "--", rel_notes])[1]
+    files = set()
+    for path in out.split("\0"):
+        if not path.startswith(rel_notes + "/"):
+            continue
+        rel = path[len(rel_notes) + 1:]
+        segs = rel.split("/")
+        if len(segs) == 3 and segs[0] in LIFECYCLES and rel.endswith(".md") and os.path.isfile(os.path.join(notes_dir, rel)):
+            files.add(rel)
+    return files
+
+
+def lint_file(repo_root, notes_dir, rel, ref):
+    hits = []
+    path = os.path.join(notes_dir, rel)
+    in_fence = False
+    for number, line in enumerate(read_text(path).split("\n"), 1):
+        if line.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        for rule, pattern in PROSE_PROBES:
+            m = re.search(pattern, line, re.I)
+            if m is not None:
+                hits.append("%s:%d: [%s] %s" % (rel, number, rule, m.group(0)))
+        if re.search(SUPERSEDES, line, re.I) is None:
+            continue
+        for target in re.findall(NOTE_LINK, line):
+            linked = os.path.normpath(os.path.join(os.path.dirname(path), target))
+            repo_rel = os.path.relpath(linked, repo_root).replace(os.sep, "/")
+            if ref is None or not git(repo_root, ["cat-file", "-e", "%s:./%s" % (ref, repo_rel)])[0]:
+                hits.append("%s:%d: [draft-supersession] %s is absent from the baseline" % (rel, number, target))
+    return hits
+
+
+def lint(repo_root, notes_dir, config, targets, all_notes):
+    """Return report lines: prose-probe hits in changed (or named) notes, both languages."""
+    ref = lint_baseline(repo_root)
+    if all_notes or targets:
+        primaries = [n["rel"] for n in walk_tree(repo_root, notes_dir, config, [])] if all_notes else targets
+        files = set()
+        for rel in primaries:
+            files.add(rel)
+            if counterpart_language_of(os.path.basename(rel), config) is None:
+                files.update(counterpart_of(rel, lang) for lang in config["langs"])
+        files = {f for f in files if os.path.isfile(os.path.join(notes_dir, f))}
+    else:
+        files = changed_note_files(repo_root, notes_dir, ref)
+    hits = []
+    for rel in sorted(files):
+        hits.extend(lint_file(repo_root, notes_dir, rel, ref))
+    if not hits:
+        return ["agent-notes: lint found no prose candidates in %d file(s)." % len(files)]
+    return ["agent-notes: lint found %d prose candidate(s) in %d file(s); these are not violations. Judge each "
+            "with the prose checks of the agent-notes skill, rewrite what fails, and report a keep or rewrite "
+            "verdict for every hit:" % (len(hits), len(files))] + ["  " + h for h in hits]
 
 
 # ---------- CLI ----------
@@ -640,9 +749,16 @@ def main(argv):
                 print("agent-notes: sealed %d new archived file(s); existing seals unchanged." % sealed)
             else:
                 print("agent-notes: %d active note(s) conform." % len(notes))
+                if config["proseLint"]:
+                    print("\n".join(lint(repo_root, directory, config, [], False)))
             return 0
+    elif command == "lint":
+        if write_flag or (all_notes and targets):
+            raise UsageError("usage: lint [NOTE... | --all] [--repo-root DIR] [--notes-dir DIR]")
+        print("\n".join(lint(repo_root, directory, config, targets, all_notes)))
+        return 0
     else:
-        raise UsageError("usage: agent-notes (check | seal | pair --write (--all | NOTE...)) [--repo-root DIR] [--notes-dir DIR]")
+        raise UsageError("usage: agent-notes (check | seal | pair --write (--all | NOTE...) | lint [NOTE... | --all]) [--repo-root DIR] [--notes-dir DIR]")
     print("agent-notes: violations found:", file=sys.stderr)
     for error in errors:
         print("  " + error, file=sys.stderr)

@@ -28,7 +28,7 @@ description: 当变更包含代码、测试及现有文档未解释的长期决�
 3. `## 问题` 独立解释动机；`## 决策` 或 `## 提案` 写明确的路径、机制、默认值、约束及失败行为。
 4. `## 曾考虑的替代方案` 只写真正权衡过的选项与理由，不为填章节编造经历。旧笔记的豁免按契约处理。
 5. `## 后果` 同时说明收益与代价；用相对链接引用具体源码和当前文档。
-6. 按[文风检查](references/prose.md)检查改动文件；命令执行结果、本机版本、取代检索结果等会话事实放在对用户的报告里。
+6. 运行 `uv run python scripts/agent_notes.py lint`（即[文风检查](references/prose.md)的检索，作用于改动的笔记），按对应检验逐条判断并修正不通过的命中；再通读笔记，检查检索找不到的含糊范围、无出处的断言和病句。既未改写也未说明理由的命中意味着笔记未完成。命令执行结果、本机版本、取代检索结果等会话事实放在对用户的报告里。
 
 ## 4. 生命周期变化
 
@@ -53,10 +53,11 @@ description: 当变更包含代码、测试及现有文档未解释的长期决�
 ## 6. 归档已实施笔记
 
 1. 先确认事实已满足归档条件；归档动作不顺带更新正文。
-2. 在 `Status: implemented` 下一行插入 `Archived: YYYY-MM-DD`。双语时所有语言同时处理，并在移动前执行 `pair --write` 更新 sidecar。
-3. 将笔记及副本、sidecar 移到 `archived/<class>/`，其他字节不变。
-4. 活跃入链指向当前依据，确需历史引用的改指向归档；删除无用入链。
-5. 运行 `uv run python scripts/agent_notes.py seal`、`uv run python scripts/agent_notes.py check`。清单只追加哈希，已封存记录保持冻结。
+2. 笔记仍在 `implemented/<class>/` 时，在 `Status: implemented` 下一行插入 `Archived: YYYY-MM-DD`，双语时所有语言同时处理。
+3. 双语时此刻运行 `uv run python scripts/agent_notes.py pair --write implemented/<class>/foo.md`：`pair --write` 只接受活跃路径，已封存的 sidecar 无法重新记录。
+4. 将笔记及副本、sidecar 原样移到 `archived/<class>/`。
+5. 活跃入链指向当前依据，确需历史引用的改指向归档；删除无用入链。
+6. 运行 `uv run python scripts/agent_notes.py seal`、`uv run python scripts/agent_notes.py check`。清单只追加哈希，已封存记录保持冻结。
 
 ## 7. 双语
 
@@ -64,6 +65,6 @@ description: 当变更包含代码、测试及现有文档未解释的长期决�
 
 ## 8. 验证与交付
 
-运行 notes 门禁、项目要求的指引检查及针对改动的 `git diff --check`。检查新增或迁移的入链、相对路径和锚点。门禁不替代语义审阅，不验证归档出链。
+运行 `uv run python scripts/agent_notes.py check`、`uv run python scripts/agent_notes.py lint`、项目要求的指引检查及针对改动的 `git diff --check`。检查新增或迁移的入链、相对路径和锚点。门禁不替代语义审阅，不验证归档出链。
 
-报告实际新增、更新、迁移、归档或删除项（各附一行理由）、取代判断、修复的入链、保留的文风检索命中及理由、边界判断和重要缺口；简单修改无需完整台账。检查通过且无具体未解决问题后交付，不为文档改动运行业务测试。
+报告实际新增、更新、迁移、归档或删除项（各附一行理由）、取代判断、修复的入链、每条 lint 命中及其保留或改写判定（保留的写明通过哪项检验）、边界判断和重要缺口；简单修改无需完整台账。检查通过且无具体未解决问题后交付，不为文档改动运行业务测试。

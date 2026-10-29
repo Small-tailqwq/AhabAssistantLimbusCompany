@@ -24,6 +24,6 @@ Status: implemented
 
 ## 后果
 
-冷启动、重启游戏和模拟器自动拉起不再消耗中途兜底的 30 次预算，`back_init_menu()` 的快速收敛语义不变。PC 与模拟器的等待时长可分别按机器性能调节。
+冷启动、重启游戏和模拟器自动拉起使用独立的秒数预算，不消耗中途兜底的 30 次预算，`back_init_menu()` 的快速收敛语义不变。PC 与模拟器的等待时长可分别按机器性能调节。
 
 默认上限较长，启动真正卡死时恢复会比中途兜底慢，但仍是有界等待。启动等待与 `retry()` 各自处理启动画面，新增启动态时需要同时核对两处。[test_startup_main_menu_wait.py](../../../../tests/test_startup_main_menu_wait.py) 与 [test_simulator_recovery.py](../../../../tests/test_simulator_recovery.py) 覆盖调用链与超时路径。

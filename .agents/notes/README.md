@@ -53,7 +53,7 @@ Agent Note 保存代码、测试和现有文档未能解释、但会影响后续
 
 删除或移动须修复入链，并遵守根 AGENTS 的用户资产边界。已封存文件永久冻结，不能因文档清扫而删除。
 
-归档时只移动笔记，在 `Status: implemented` 下一行插入 `Archived: YYYY-MM-DD`；双语组按 skill 处理 sidecar，正文不变。`seal` 将原始字节的 SHA-256 追加到 [archived/manifest.json](archived/manifest.json)，`check` 拒绝变更、丢失、未封存文件或相对基线删除的封存记录。其他文档检查跳过封存文件及其出链；活跃文件可为引用历史而链接归档。
+归档时在 `Status: implemented` 下一行插入 `Archived: YYYY-MM-DD`；双语组在笔记仍处于活跃目录时重新记录一次 sidecar（`pair --write` 只接受活跃路径），然后移动整组，正文不变。`seal` 将原始字节的 SHA-256 追加到 [archived/manifest.json](archived/manifest.json)，`check` 拒绝变更、丢失、未封存文件或相对基线删除的封存记录。其他文档检查跳过封存文件及其出链；活跃文件可为引用历史而链接归档。
 
 <a id="the-file-format"></a>
 ## 文件格式
@@ -98,8 +98,6 @@ proposed 转 implemented 时改写提案为当前决策，将验收标准和风�
 
 ## 检查与模板反馈
 
-本地运行 `uv run python scripts/agent_notes.py check`；CI 由现有 Agent Guidance 工作流执行，`AGENT_NOTES_BASE_REF` 使用 PR base SHA 或 push 前的提交。归档前运行 `seal`，然后运行 `check`。
-
-当前门禁会漏检只含 `.gitkeep` 的未知类别目录（[模板 issue #1](https://github.com/Small-tailqwq/agent-notes-kit/issues/1)），目录类别仍须按 config 人工核对。双语归档先在活跃目录加入归档行并更新 sidecar，再移动整组；`pair --write` 只接受活跃路径（[模板 issue #2](https://github.com/Small-tailqwq/agent-notes-kit/issues/2)）。
+本地运行 `uv run python scripts/agent_notes.py check`；CI 由现有 Agent Guidance 工作流执行，`AGENT_NOTES_BASE_REF` 使用 PR base SHA 或 push 前的提交。归档前运行 `seal`，然后运行 `check`。`uv run python scripts/agent_notes.py lint` 列出改动笔记（相对 `AGENT_NOTES_BASE_REF`，默认 `HEAD`，含未追踪文件）的文风候选，并标出指向基线中不存在笔记的取代链接；`NOTE...` 或 `--all` 扩大范围，命中只是候选，退出码恒为 0。config 中 `proseLint` 为 `false`，`check` 不附带这些候选。
 
 更新模板时比较采纳笔记固定的提交，合并规则与配置本地化，Python 门禁按来源文件更新。遇到模板缺陷时，记录来源提交、最小复现、预期与实际结果以及项目适配方式；向模板仓库反馈前查重。反馈不携带本地路径、配置、日志或未发布业务内容；发布反馈仍以当前任务授权为准。

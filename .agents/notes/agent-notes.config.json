@@ -14,5 +14,6 @@
   "primaryLanguage": "zh",
   "counterpartLanguages": [],
   "formatAdopted": "2026-10-23",
+  "proseLint": false,
   "forbiddenRoots": ["docs/superpowers/specs"]
 }
