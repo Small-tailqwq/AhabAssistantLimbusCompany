@@ -47,7 +47,7 @@ SKILL.md 正文保持热路径，减少加载后的上下文负担；失败处�
 
 Agent Notes 单独允许记录真实考虑过的替代方案及理由；不编造取舍。其他仓库文字继续描述当前状态。`archived/` 是冻结历史，不作为当前行为依据。
 
-新增决策记录使用 notes；剩余 `docs/superpowers/specs/` 仅在相关主题维护时按当前实现迁移。修改 notes 后运行 `uv run python scripts/agent_notes.py check`；模板问题按契约记录最小复现，在当前授权范围内反馈。
+新增决策记录使用 notes；`docs/superpowers/specs/` 已迁出并被门禁禁止写回。修改 notes 后运行 `uv run python scripts/agent_notes.py check`；模板问题按契约记录最小复现，在当前授权范围内反馈。
 
 ## 快速命令
 

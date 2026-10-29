@@ -20,6 +20,6 @@
 
 ## 历史资料
 
-`docs/superpowers/specs/` 中的设计文档记录对应主题的方案。判断当前行为时同时核对源码；长期决策以 Agent Notes 的活跃记录为准。
+历史设计文档已转写为 [Agent Notes](../.agents/notes/README.md)，原文见 Git 历史；长期决策以活跃笔记为准。
 
 开发代理的仓库规则在 [AGENTS.md](../AGENTS.md)，长期决策记录见 [Agent Notes](../.agents/notes/README.md)；面向用户的说明从本页进入。

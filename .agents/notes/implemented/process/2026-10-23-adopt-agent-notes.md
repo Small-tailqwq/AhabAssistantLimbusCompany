@@ -16,7 +16,7 @@ AALC 由多个代理维护，项目规则、专项流程与历史设计承担不
 
 [Agent Guidance CI](../../../../.github/workflows/agent-guidance.yml)执行笔记检查，完整获取 Git 历史，以 PR base 或 push 前提交检查封存记录。notes 内的 `.gitattributes` 固定 LF；通用指引检查跳过封存笔记，归档完整性由专门门禁检查。
 
-新增决策写入 notes。更新协议与镜牢队列的长期约束在 architecture 笔记维护；其余 `docs/superpowers/specs/` 及本地分析资料继续按相关任务核对。`forbiddenRoots` 为空，因为旧资料目录仍有保留内容。历史材料不赋予任务执行权限。
+新增决策写入 notes。更新协议与镜牢队列的长期约束在 architecture 笔记维护；本地分析资料按相关任务核对。`docs/superpowers/specs/` 的迁移范围与 `forbiddenRoots` 由[历史设计目录迁移](2026-10-29-retire-design-spec-directory.md)取代。历史材料不赋予任务执行权限。
 
 ## 曾考虑的替代方案
 
