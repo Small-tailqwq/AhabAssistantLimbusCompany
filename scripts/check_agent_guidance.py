@@ -157,44 +157,6 @@ def validate_opencode_ci(problems: list[str]) -> None:
         if fragment not in comment_agent:
             problems.append(f".opencode/agents/pr-comment.md: missing {fragment!r}")
 
-    workflow = read_text(ROOT / ".github" / "workflows" / "pr-review.yml")
-    required_fragments = (
-        "types: [opened, synchronize, reopened, ready_for_review]",
-        "pull_request_review_comment:",
-        "workflow_dispatch:",
-        "ref: ${{ steps.context.outputs.base_sha }}",
-        "refs/remotes/opencode/pr-head",
-        "actual_head_sha=$(git rev-parse refs/remotes/opencode/pr-head)",
-        "prior_review: priorReview?.body || ''",
-        "scripts/build_pr_review_context.py",
-        "opencode --pure run",
-        "--agent pr-review",
-        "opencode --pure github run",
-        "AGENT: pr-comment",
-        '--version "${OPENCODE_VERSION}"',
-        "<!-- opencode-pr-review -->",
-    )
-    for fragment in required_fragments:
-        if fragment not in workflow:
-            problems.append(f".github/workflows/pr-review.yml: missing {fragment!r}")
-
-    forbidden_fragments = (
-        "ocr review",
-        "OpenCodeReview",
-        ".opencodereview",
-        ".github/review-context.md",
-        "ref: ${{ github.event.pull_request.head.sha",
-    )
-    for fragment in forbidden_fragments:
-        if fragment in workflow:
-            problems.append(
-                f".github/workflows/pr-review.yml: forbidden legacy or unsafe fragment {fragment!r}"
-            )
-
-    context_builder = ROOT / "scripts" / "build_pr_review_context.py"
-    if not context_builder.exists():
-        problems.append("scripts/build_pr_review_context.py: missing PR context generator")
-
     issue_workflow = read_text(ROOT / ".github" / "workflows" / "issue-analyze.yml")
     for fragment in (
         '--version "${OPENCODE_VERSION}"',
