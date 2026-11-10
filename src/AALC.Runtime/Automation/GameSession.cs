@@ -10,6 +10,7 @@ public sealed class GameSession(IGameVision vision, IGameInput input, IRunClock 
     Action<RunEvent> publish, TimeSpan timeout, string stage = "Daily", IGameRestarter? restarter = null) : IGameSession
 {
     private const int MaxRestarts = 2;
+    private const int MaxCaptureAttempts = 6;
     private int restarts;
     private static readonly ImageQuery[] ConnectionQueries = [new("base/connecting_assets.png"),
         new("base/retry_countdown.png"), new("base/retry.png", 0.9), new("base/try_again.png")];
@@ -40,7 +41,7 @@ public sealed class GameSession(IGameVision vision, IGameInput input, IRunClock 
         {
             Check(cancellationToken);
             var observationStarted = Elapsed;
-            latest = await vision.ObserveAsync(all, cancellationToken);
+            latest = await CaptureWithRetryAsync(all, cancellationToken);
             Observations++;
             Check(cancellationToken);
             Emit("automation.observe", "Observed", null, JsonSerializer.Serialize(new { queries = all, latest.Targets,
@@ -105,6 +106,20 @@ public sealed class GameSession(IGameVision vision, IGameInput input, IRunClock 
                 retryAt = Elapsed;
             }
             await DelayAsync(TimeSpan.FromMilliseconds(500), cancellationToken);
+        }
+    }
+
+    // 截图不发送输入，重试是安全的；连续失败说明游戏可能已卡死，交给运行器决定重启。
+    private async ValueTask<GameFrame> CaptureWithRetryAsync(IReadOnlyList<ImageQuery> queries, CancellationToken cancellationToken)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try { return await vision.ObserveAsync(queries, cancellationToken); }
+            catch (GameTransientException exception) when (attempt < MaxCaptureAttempts)
+            {
+                Emit("automation.observe.retry", "Progress", null, $"{exception.Message}，第 {attempt}/{MaxCaptureAttempts - 1} 次重新截图");
+                await DelayAsync(TimeSpan.FromSeconds(attempt), cancellationToken);
+            }
         }
     }
 

@@ -353,6 +353,49 @@ public sealed class MirrorOrchestrationTests
     }
 
     [Fact]
+    public async Task ATransientReceiptFailureResumesTheSubmittedSettlementWithoutPayingAgain()
+    {
+        var inner = new Session([
+            Stage("mirror.settlement.use-modules", MirrorSettlementFlow.Clear, MirrorSettlementFlow.UseModules),
+            Stage("mirror.settlement.acknowledge", Receipt),
+            Stage(null, Entrance)]);
+        var session = new FlakySession(inner, "mirror.settlement.acknowledge");
+        var saved = new List<MirrorTeamOptions[]>();
+
+        var result = await new MirrorRunner(session, new NoMapReader(),
+            (queue, _) => { saved.Add(queue.ToArray()); return Task.CompletedTask; })
+            .RunAsync(new() { ClaimRewards = true, Teams = Teams() }, default);
+
+        Assert.Equal(RunOutcome.Completed, result.Outcome);
+        Assert.Equal(1, session.Failures);
+        Assert.Single(inner.Inputs, input => input.Rule == "mirror.settlement.use-modules");
+        Assert.Single(inner.Inputs, input => input.Rule == "mirror.settlement.acknowledge");
+        Assert.Contains(inner.Reports, item => item.Rule == "mirror.run.transient");
+        Assert.Equal(["B", "A"], Assert.Single(saved).Select(team => team.Name));
+    }
+
+    [Fact]
+    public async Task PersistentTransientFailuresStopWhenTheGameCannotBeRestarted()
+    {
+        var inner = new Session([
+            Stage("mirror.settlement.use-modules", MirrorSettlementFlow.Clear, MirrorSettlementFlow.UseModules),
+            Stage("mirror.settlement.acknowledge", Receipt),
+            Stage(null, Entrance)]);
+        var session = new FlakySession(inner, "mirror.settlement.acknowledge", int.MaxValue);
+        var saved = new List<MirrorTeamOptions[]>();
+
+        var result = await new MirrorRunner(session, new NoMapReader(),
+            (queue, _) => { saved.Add(queue.ToArray()); return Task.CompletedTask; })
+            .RunAsync(new() { ClaimRewards = true, Teams = Teams() }, default);
+
+        Assert.Equal(RunOutcome.Failed, result.Outcome);
+        Assert.Equal(11, session.Failures);
+        Assert.Equal(1, inner.Restarts);
+        Assert.Single(inner.Inputs, input => input.Rule == "mirror.settlement.use-modules");
+        Assert.Empty(saved);
+    }
+
+    [Fact]
     public async Task AModuleSubmissionThatNeverChangesThePageCannotBeRepeated()
     {
         var session = new Session([
@@ -1589,6 +1632,32 @@ public sealed class MirrorOrchestrationTests
             NodeCount = nodes.Length;
             return new(frame.Identity, bus, nodes, Enumerable.Range(0, remaining).Select(index => new MirrorRouteConnection(index - 1, index)).ToArray());
         }
+    }
+
+    /// <summary>在指定规则的输入发送前抛出瞬时错误，模拟画面过期或窗口消息未确认；其余调用转交内部会话。</summary>
+    private sealed class FlakySession(Session inner, string failingRule, int failures = 1) : IGameSession
+    {
+        public int Failures { get; private set; }
+        public TimeSpan Elapsed => inner.Elapsed;
+        public int Observations => inner.Observations;
+        public ValueTask<GameFrame> ObserveAsync(IReadOnlyList<ImageQuery> queries, CancellationToken ct) => inner.ObserveAsync(queries, ct);
+        public ValueTask<IReadOnlyList<RecognizedText>> ReadTextAsync(GameFrame frame, CancellationToken ct, PixelRect? region = null,
+            int scale = 1, TextPreprocessing preprocessing = TextPreprocessing.None) => inner.ReadTextAsync(frame, ct, region, scale, preprocessing);
+        public ValueTask ClickAsync(GameFrame frame, PixelPoint target, string rule, CancellationToken ct)
+        {
+            if (rule == failingRule && Failures < failures)
+            {
+                Failures++;
+                throw new GameTransientException("测试模拟识别画面已过期");
+            }
+            return inner.ClickAsync(frame, target, rule, ct);
+        }
+        public ValueTask KeyAsync(GameFrame frame, GameKey key, string rule, CancellationToken ct) => inner.KeyAsync(frame, key, rule, ct);
+        public ValueTask DragAsync(GameFrame frame, PixelPoint from, PixelPoint to, TimeSpan duration, string rule, CancellationToken ct) =>
+            inner.DragAsync(frame, from, to, duration, rule, ct);
+        public ValueTask DelayAsync(TimeSpan duration, CancellationToken ct) => inner.DelayAsync(duration, ct);
+        public void Report(string rule, string message) => inner.Report(rule, message);
+        public ValueTask<bool> RestartGameAsync(string reason, CancellationToken ct) => inner.RestartGameAsync(reason, ct);
     }
 
     private sealed class Session(IReadOnlyList<FrameState> states, int width = 2560, int height = 1440) : IGameSession

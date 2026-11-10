@@ -19,6 +19,8 @@ public sealed class DailyRunner(IGameSession session, Func<CancellationToken, Ta
         }
     }
 
+    private const int MaxTransientFailures = 10;
+
     public static TimeSpan TimeoutFor(DailyOptions options)
     {
         DailyPlan.Validate(options);
@@ -43,6 +45,7 @@ public sealed class DailyRunner(IGameSession session, Func<CancellationToken, Ta
         try
         {
             DailyPlan.Validate(options);
+            var transientFailures = 0;
             while (true)
             {
                 try
@@ -51,6 +54,19 @@ public sealed class DailyRunner(IGameSession session, Func<CancellationToken, Ta
                 }
                 catch (GameRestartedException exception)
                 {
+                    session.Report("daily.run.resume", $"{exception.Message}，游戏已重启，从未完成的步骤继续");
+                }
+                catch (GameTransientException exception) when (++transientFailures <= MaxTransientFailures)
+                {
+                    // 截图超时、画面过期、窗口消息未确认：回到主界面后从未完成的步骤继续，已完成的步骤不重复。
+                    session.Report("daily.run.transient", $"{exception.Message}，从未完成的步骤继续（{transientFailures}/{MaxTransientFailures}）");
+                    await session.DelayAsync(TimeSpan.FromSeconds(3), ct);
+                }
+                catch (GameTransientException exception)
+                {
+                    // 瞬时错误持续出现，游戏可能已卡死：重启后接续，重启次数仍受会话限制。
+                    transientFailures = 0;
+                    if (!await session.RestartGameAsync(exception.Message, ct)) throw;
                     session.Report("daily.run.resume", $"{exception.Message}，游戏已重启，从未完成的步骤继续");
                 }
             }
