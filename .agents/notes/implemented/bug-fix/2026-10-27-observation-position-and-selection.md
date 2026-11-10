@@ -8,11 +8,11 @@ Status: implemented
 
 ## 决策
 
-[Python 观测流程](https://github.com/Small-tailqwq/AhabAssistantLimbusCompany/blob/ahab/tasks/mirror/mirror.py)与 [AAALC 观测流程](../../../../dotnet/src/AALC.Runtime/Mirror/MirrorRewardFlow.cs)在切换体系后重新定位等级。等级不在可见区时有界地向上、向下查找；每次滚动都获取新帧，优先用等级锚点重新计算位置。Python 几何计算使用实际截图高度。
+[AAALC 观测流程](../../../../src/AALC.Runtime/Mirror/MirrorRewardFlow.cs)在切换体系后重新定位等级。等级不在可见区时有界地向上、向下查找；每次滚动都获取新帧，优先用等级锚点重新计算位置。
 
-等级滚出可见区时，[Python 位移测量](https://github.com/Small-tailqwq/AhabAssistantLimbusCompany/blob/ahab/tasks/mirror/observation.py)与 [C# 位移测量](../../../../dotnet/src/AALC.Runtime/Mirror/MirrorObservationScroll.cs)比较滚动前后的亮色卡框和文字，估计实际内容位移；不将固定深色底纹当作列表移动。无法可靠定位或列表不再移动时停止选择，不点击推测位置。
+等级滚出可见区时，[C# 位移测量](../../../../src/AALC.Runtime/Mirror/MirrorObservationScroll.cs)比较滚动前后的亮色卡框和文字，估计实际内容位移；不将固定深色底纹当作列表移动。无法可靠定位或列表不再移动时停止选择，不点击推测位置。
 
-点击前读取游戏按钮的已选数量，点击一次后等待数量增加，再处理下一件。没有增加时停止，不重复切换选中状态，也不提交。旧版配置中的重复位置只处理一次；新版配置校验及编辑器禁止重复位置。两端最多选择三件，并校验等级和行列范围；新版配置同时校验体系键。输入继续使用各自既有会话与停止机制。
+点击前读取游戏按钮的已选数量，点击一次后等待数量增加，再处理下一件。没有增加时停止，不重复切换选中状态，也不提交。配置校验及编辑器禁止重复位置，最多选择三件，并校验体系键、等级和行列范围。输入使用既有会话与停止机制。
 
 ## 曾考虑的替代方案
 
@@ -22,6 +22,6 @@ Status: implemented
 
 ## 后果
 
-[Python 回归](https://github.com/Small-tailqwq/AhabAssistantLimbusCompany/blob/ahab/tests/test_observe_ego_gift.py)和 [AAALC 回归](../../../../dotnet/tests/AALC.Core.Tests/MirrorObservationTests.cs)覆盖滚动钳制、向上查找、截图尺度、重复位置、计数未增加及像素位移等情况。编辑器和配置保存的原则见[界面设计笔记](../architecture/2026-10-27-aaalc-interface-design.md)。
+[AAALC 回归](../../../../tests/AALC.Core.Tests/MirrorObservationTests.cs)覆盖滚动钳制、向上查找、截图尺度、重复位置、计数未增加及像素位移等情况。编辑器和配置保存的原则见[界面设计笔记](../architecture/2026-10-27-aaalc-interface-design.md)。
 
 定位和计数确认能发现未选中，无法证明位置仍对应某个特定饰品。游戏更新后某件饰品无法选中的报告尚缺当前游戏画面及配置证据；目录顺序与模板是否漂移仍需对应实机核对。

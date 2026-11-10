@@ -1,0 +1,21 @@
+assets:
+- file: default/share/mirror/infinity_mirror_assets.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:7484732f4f897a0b5f3df7d1598008394bd0f83c6a969b7a4641a896a6a89b41
+- file: default/share/mirror/infinity_mirror_close_assets.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:045688874d28bcfe1cd238c9f3de0a211dedfa8c3c2b8c91a48b8fe62794b9e2
+- file: default/share/mirror/mybus_default_distance.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:57da79a12c33932be2146f9bbe40b6ed5caf68398d0e79156287982a629fa47e
+- file: default/share/mirror/mybus_maximum_distance.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:cb1f6cccd2dfd173b07243b1600ab5f4b79c4405aa4d0f9a93c1b84ced32240a

@@ -1,0 +1,39 @@
+name: Agent Guidance
+
+on:
+  pull_request:
+    paths:
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - ".agents/**"
+      - "docs/**"
+      - ".github/workflows/agent-guidance.yml"
+      - "scripts/check_agent_guidance.py"
+      - "scripts/agent_notes.py"
+  push:
+    branches: [angela]
+    paths:
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - ".agents/**"
+      - "docs/**"
+      - ".github/workflows/agent-guidance.yml"
+      - "scripts/check_agent_guidance.py"
+      - "scripts/agent_notes.py"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate agent guidance
+        run: python scripts/check_agent_guidance.py
+      - name: Validate Agent Notes
+        run: python scripts/agent_notes.py check
+        env:
+          AGENT_NOTES_BASE_REF: ${{ github.event.pull_request.base.sha || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before) || 'HEAD' }}

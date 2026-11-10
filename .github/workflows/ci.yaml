@@ -1,0 +1,39 @@
+name: .NET Build
+
+on:
+  pull_request:
+    branches: [angela]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "scenarios/**"
+      - "AAALC.slnx"
+      - "global.json"
+      - "Directory.Build.props"
+      - ".github/workflows/ci.yaml"
+  push:
+    branches: [angela]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "scenarios/**"
+      - "AAALC.slnx"
+      - "global.json"
+      - "Directory.Build.props"
+      - ".github/workflows/ci.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Build solution
+        run: dotnet build AAALC.slnx -c Release
+      - name: Run unit tests
+        run: dotnet test tests/AALC.Core.Tests/AALC.Core.Tests.csproj -c Release --no-build

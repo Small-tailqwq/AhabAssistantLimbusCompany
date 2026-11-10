@@ -10,9 +10,9 @@ Status: implemented
 
 ## 决策
 
-[MirrorMapScan](../../../../dotnet/src/AALC.Core/Features/Mirror/MirrorMapScan.cs) 只在一次未发生导航输入的补扫期间持有局部图。每张观察使用实际巴士位置换算相对坐标，节点和连接保存来源帧及原始编号。合并只接受真实观察中的边；相同位置的已知类别冲突进入争议状态，不参与路径选择。未分类仅表示信息缺失，后续观察可以补全类别。
+[MirrorMapScan](../../../../src/AALC.Core/Features/Mirror/MirrorMapScan.cs) 只在一次未发生导航输入的补扫期间持有局部图。每张观察使用实际巴士位置换算相对坐标，节点和连接保存来源帧及原始编号。合并只接受真实观察中的边；相同位置的已知类别冲突进入争议状态，不参与路径选择。未分类仅表示信息缺失，后续观察可以补全类别。
 
-[MirrorRoutePlanner](../../../../dotnet/src/AALC.Core/Features/Mirror/MirrorRoutePlan.cs) 分别接受单帧观察和纯图。纯图不带伪造的帧身份。[MirrorRouteFlow](../../../../dotnet/src/AALC.Runtime/Mirror/MirrorRouteFlow.cs) 选择首步后，必须在最新截图重新找到对应节点和巴士连线，才能点击该帧的检测坐标。旧图投影只用于相机调整。
+[MirrorRoutePlanner](../../../../src/AALC.Core/Features/Mirror/MirrorRoutePlan.cs) 分别接受单帧观察和纯图。纯图不带伪造的帧身份。[MirrorRouteFlow](../../../../src/AALC.Runtime/Mirror/MirrorRouteFlow.cs) 选择首步后，必须在最新截图重新找到对应节点和巴士连线，才能点击该帧的检测坐标。旧图投影只用于相机调整。
 
 相机平移依据已见节点的遮挡和右侧前沿，保留可识别的巴士，使用有限补扫预算。停止补扫表示当前局部路线可执行，不表示已识别整层。中途接手直接从当前巴士建立新图，不要求知道此前经过了几个节点。
 

@@ -1,0 +1,13 @@
+{
+  "base_head": "cee28c37cc7e496759e2df786b03dd5027c8dede",
+  "sync_commit": null,
+  "verified_date": "2026-11-09",
+  "baseline": "uncommitted-working-tree",
+  "tlc_version": "1.7.4",
+  "files": {
+    "src/AALC.Runtime/Automation/GameSession.cs": "c4510e2e0219090e17d892fd0be868f980f714a2cba1ca843dbe8675494673e3",
+    "src/AALC.Runtime/Automation/Contracts.cs": "9f33413906175b5ecbbab9646c8db4aa10bd91346942df25e543e330ee54749e",
+    "src/AALC.Platform.Windows/GameWindow.cs": "8099f17b90540635fcb4564b5369f26fac17ecd3b4d2c8176ce1ea79576da236",
+    "src/AALC.Desktop/GameTasks.cs": "3e6e7b3679e110efa6444b8580c2ba595254662e98d7c9f47b636434e4a603fe"
+  }
+}

@@ -29,7 +29,7 @@ Status: proposed
 
 Runtime 引用 Core；具体设备与视觉实现依赖运行接口。Desktop 和 CLI 组装实际实现，Runtime 不引用具体后端。只有有外部效果或替换需求的边界引入接口。项目内部按日常、战斗、镜牢路线、商店、奖励等业务组织。
 
-既有桌面分身宿主先保留独立进程及 IPC 协议，COM、STA 消息循环和音频控制单独验证。更新器保持独立可执行入口，在发布迁移阶段处理。
+既有桌面分身宿主先保留独立进程及 IPC 协议，COM、STA 消息循环和音频控制单独验证；AAALC 的宿主与分身内进程边界见[分身边界决策](../../implemented/architecture/2026-10-31-aaalc-desktop-clone-boundaries.md)。更新器保持独立可执行入口，在发布迁移阶段处理。
 
 ### 桌面 UI
 
@@ -41,7 +41,7 @@ Avalonia 负责 XAML、布局、渲染与窗口，SukiUI 负责控件主题和�
 
 流程依次执行观察、决策、输入、重新观察、确认后继状态。发出动作后不得直接把预期界面当成事实。观察包含帧标识、时间、窗口尺寸和坐标变换；窗口或会话变化后丢弃旧坐标。
 
-流程结果明确表达完成、交回父流程、失败和取消。未知识别保留为未知，不按成功或足够资源继续。日常批次数仍由任务层管理；镜牢队列沿用[活动队列决策](https://github.com/Small-tailqwq/AhabAssistantLimbusCompany/blob/ahab/.agents/notes/implemented/architecture/2026-05-03-mirror-team-queue-normalization.md)。
+流程结果明确表达完成、交回父流程、失败和取消。未知识别保留为未知，不按成功或足够资源继续。日常批次数仍由任务层管理；镜牢队列沿用[活动队列决策](../../archived/architecture/2026-05-03-mirror-team-queue-normalization.md)。
 
 每个游戏会话有一个运行状态所有者和输入执行者。配置持久化与当前任务状态分开；UI 观察运行状态并发送命令，不直接驱动设备。取消协作传播，输入执行前再次检查；释放已按下的键鼠属于收尾。原生调用超时不等于调用已经终止，资源和会话确认可用前禁止新任务接管。应用关闭保持最多 5 秒优雅等待。
 
@@ -85,7 +85,7 @@ Avalonia 负责 XAML、布局、渲染与窗口，SukiUI 负责控件主题和�
 
 ### 镜牢编辑器的交付顺序与数据归属
 
-镜牢选人和主题权重编辑器属于阶段 4，已随运行主体提供；完整实机通关仍待验收，先于阶段 5 的后端迁移。
+镜牢选人和主题权重编辑器属于阶段 4，已随运行主体提供；主桌面普通镜牢保留奖励模式已完成实机通关，领取模式与困难镜牢仍需验收。
 
 星光、观测位置与页面信息层级遵循[已实施的界面设计原则](../../implemented/architecture/2026-10-27-aaalc-interface-design.md)；观测定位依据见[实际位移与选择确认](../../implemented/bug-fix/2026-10-27-observation-position-and-selection.md)。
 
@@ -103,7 +103,7 @@ Avalonia 负责 XAML、布局、渲染与窗口，SukiUI 负责控件主题和�
 
 首个里程碑贯通启动基线、Avalonia 主界面、独立场景运行器、视觉结果对照和邮件领取流程。
 
-邮件领取依据[现有实现](https://github.com/Small-tailqwq/AhabAssistantLimbusCompany/blob/ahab/tasks/daily/get_prize.py)、[已有测试](https://github.com/Small-tailqwq/AhabAssistantLimbusCompany/blob/ahab/tests/test_get_mail_prize.py)及可获取的真实画面核验。覆盖进入邮箱、领取、奖励确认、空邮箱、关闭返回、取消与超时。人工场景必须明确标记来源，真实设备结果单独保存。流程验证必须观察动作后的状态，不按截图调用次数自动推进。
+邮件领取依据[生产运行器](../../../../src/AALC.Runtime/Mail/MailRunner.cs)、[现有测试](../../../../tests/AALC.Core.Tests/MailTests.cs)及可获取的真实画面核验。覆盖进入邮箱、领取、奖励确认、空邮箱、关闭返回、取消与超时。人工场景必须明确标记来源，真实设备结果单独保存。流程验证必须观察动作后的状态，不按截图调用次数自动推进。
 
 启动记录分开报告依赖恢复、完整编译、增量编译、进程启动、主界面可交互和模型准备。采用相同机器与可比配置，保留原始结果和测量条件。
 
@@ -117,7 +117,7 @@ Avalonia 负责 XAML、布局、渲染与窗口，SukiUI 负责控件主题和�
 
 新配置按业务意图定义字段，消费预算、编队选择和完成次数具有明确含义。旧配置可以作为用户偏好的读取来源；新程序写入独立配置，保留原配置和自定义资源。本阶段不增加旧字段、旧 API 或旧流程的兼容层。
 
-发布保留[更新协议决策](https://github.com/Small-tailqwq/AhabAssistantLimbusCompany/blob/ahab/.agents/notes/implemented/architecture/2026-05-05-updater-bootstrap-protocol.md)的受管文件所有权和保护路径原则。新产品的安装、更新与失败恢复按实际发行入口设计，现阶段不要求旧版原地升级或旧二进制互操作。
+发布保留[更新协议决策](../../archived/architecture/2026-05-05-updater-bootstrap-protocol.md)的受管文件所有权和保护路径原则。新产品的安装、更新与失败恢复按实际发行入口设计，现阶段不要求旧版原地升级或旧二进制互操作。
 
 ## 曾考虑的替代方案
 

@@ -1,0 +1,57 @@
+{
+  "id": "mail-rewards",
+  "evidence": "synthetic-contract",
+  "source": "src/AALC.Core/Features/Mail/MailFlow.cs; tests/AALC.Core.Tests/MailTests.cs",
+  "expectedOutcome": "Completed",
+  "expectedReason": "mail.returned-home",
+  "steps": [
+    {
+      "visible": [
+        "HomeMail"
+      ],
+      "expectedClick": "HomeMail"
+    },
+    {
+      "visible": [
+        "ClaimAll",
+        "Close"
+      ],
+      "expectedClick": "ClaimAll"
+    },
+    {
+      "visible": [
+        "ClaimAll",
+        "Close"
+      ]
+    },
+    {
+      "visible": [
+        "Confirm",
+        "Close"
+      ],
+      "expectedClick": "Confirm"
+    },
+    {
+      "visible": [
+        "Confirm",
+        "Close"
+      ]
+    },
+    {
+      "visible": [
+        "Close"
+      ],
+      "expectedClick": "Close"
+    },
+    {
+      "visible": [
+        "Close"
+      ]
+    },
+    {
+      "visible": [
+        "HomeMail"
+      ]
+    }
+  ]
+}

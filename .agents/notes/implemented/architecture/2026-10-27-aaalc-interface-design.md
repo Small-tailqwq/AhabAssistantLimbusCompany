@@ -8,16 +8,16 @@ Status: implemented
 
 ## 决策
 
-[主窗口](../../../../dotnet/src/AALC.Desktop/MainWindow.axaml)和编辑器遵循以下原则：
+[主窗口](../../../../src/AALC.Desktop/MainWindow.axaml)和编辑器遵循以下原则：
 
 - 文字提供完成操作所需的信息。标题、控件标签和布局已经表达的内容不另配说明；副作用、备份位置和具体错误保留在对应操作处。
 - 空闲页面以配置和操作为主。预览、日志和结果有内容才显示；结果卡片按内容占用高度。运行时保留一个跨页任务状态，局部结果直接展示具体内容。
-- 游戏已经建立的空间关系和点击语义优先复用。[星光组件](../../../../dotnet/src/AALC.Desktop/StarBonusView.axaml)按两行五列排列，标题、`+`、`++` 分别对应三档；再次点击已选段会移除该段及其后续等级。效果放在悬停提示，成本由实际等级计算。
+- 游戏已经建立的空间关系和点击语义优先复用。[星光组件](../../../../src/AALC.Desktop/StarBonusView.axaml)按两行五列排列，标题、`+`、`++` 分别对应三档；再次点击已选段会移除该段及其后续等级。效果放在悬停提示，成本由实际等级计算。
 - 有限的合法组合由控件表达。初始饰品优先顺序直接选择六种排列，跳过商店楼层直接勾选，避免输入重复编号或自行记忆分隔格式。
-- [观测编辑器](../../../../dotnet/src/AALC.Desktop/ObserveGiftEditorWindow.axaml)沿用游戏的体系图标顺序、III／II／I 等级和八列目录；点击位置加入或移除，右侧显示顺序和已选项。最多选择三件，第四次选择不会替换已有项。
+- [观测编辑器](../../../../src/AALC.Desktop/ObserveGiftEditorWindow.axaml)沿用游戏的体系图标顺序、III／II／I 等级和八列目录；点击位置加入或移除，右侧显示顺序和已选项。最多选择三件，第四次选择不会替换已有项。
 - 图片、OCR 和独立编辑窗口按需创建。编辑窗口持有队伍草稿副本，应用才更新队伍，主页面保存才写入 profile；取消不修改队伍配置。
 
-星光数据集中在 [MirrorStarBonusCatalog](../../../../dotnet/src/AALC.Core/Features/Mirror/MirrorStarBonusCatalog.cs)，供显示和入口成本计算共享。界面选择投影到既有配置字段，运行层继续独立校验，具体观测约束见[观测定位笔记](../bug-fix/2026-10-27-observation-position-and-selection.md)。这些原则细化[重写方案](../../proposed/architecture/2026-10-25-dotnet-rewrite.md)的桌面 UI 决策，迁移阶段仍以重写方案为准。
+星光数据集中在 [MirrorStarBonusCatalog](../../../../src/AALC.Core/Features/Mirror/MirrorStarBonusCatalog.cs)，供显示和入口成本计算共享。界面选择投影到既有配置字段，运行层继续独立校验，具体观测约束见[观测定位笔记](../bug-fix/2026-10-27-observation-position-and-selection.md)。这些原则细化[重写方案](../../proposed/architecture/2026-10-25-dotnet-rewrite.md)的桌面 UI 决策，迁移阶段仍以重写方案为准。
 
 ## 曾考虑的替代方案
 

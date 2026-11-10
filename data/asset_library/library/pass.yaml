@@ -1,0 +1,27 @@
+assets:
+- file: default/en/pass/pass_missions_assets.png
+  business_name: 通行证按钮
+  tags: []
+  note: ''
+  checksum: sha256:d6d7bffe2cda8325f2c2ce86602e837bf1d108467c77e8b49f5323962848184e
+- file: default/en/pass/weekly_assets.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:f0ed7b5033fc91fb971211c289cdc47be6b9c2dcbf9ab3bb3731353947a474f4
+- file: default/share/pass/pass_coin.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:84ee7e61a39de19db04fd9178bc1b44c718b161d3e02d19fad7be365298d25cd
+- file: default/zh_cn/pass/pass_missions_assets.png
+  business_name: 通行证按钮
+  tags:
+  - 中文
+  note: ''
+  checksum: sha256:10ed6a2f2484a69d4f2bc5328293a02c0540a456c0af7c0c4e19a6fa157ccda0
+- file: default/zh_cn/pass/weekly_assets.png
+  business_name: ''
+  tags: []
+  note: ''
+  checksum: sha256:e0434085ffb0b7694c9410a144383de890ed3d1f9867dfcadc0a6d30ce42c02e

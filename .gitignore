@@ -1,10 +1,51 @@
-/dotnet/**/bin/
-/dotnet/**/obj/
-/dotnet/**/TestResults/
-.vs/
+# Local environments and editor state
+.venv/
+.uv-cache/
+.pytest_cache/
+.ruff_cache/
 .vscode/
 .idea/
-.claude/
-.venv/
+.env
+.worktrees/
 __pycache__/
-logs/
+*.pyc
+*.pyd
+
+# Build outputs
+**/bin/
+**/obj/
+**/TestResults/
+/artifacts/
+build/
+dist/
+dist_release/
+*.dll
+!3rdparty/PaddleOCR-json_v1.4.1/*.dll
+
+# Local Agent material
+.agents/skills/limbus-input-safety/
+/data/local-archive/
+
+# Runtime settings, evidence and local data
+config.yaml*
+config_backup/
+theme_pack_list.yaml
+theme_pack_weight*/
+/logs/
+pythonlogs/
+/screenshots/
+/*.png
+/issues/
+/debug_*_outputs/
+/debug_*_analysis/
+/data/hosts.ghub.backup
+/data/asset_library/recycle/
+/data/asset_library/scan_cache.json
+/data/asset_library/thumbnails/
+
+# Extracted game resources
+/assets/extracted/
+/assets/garbage_test/
+/assets/app/fonts/chars.txt
+entities.json
+MaaFramework/

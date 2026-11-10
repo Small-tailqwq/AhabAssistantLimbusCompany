@@ -1,0 +1,616 @@
+# Changelog
+
+## [Unreleased] — Canary
+
+## [1.5.0-canary.24] — 2026-09-27
+
+本版以 **v1.5.0-canary.23（C23）** 为比较基线，包含其后已提交的功能更新，以及本轮日常与镜牢实机排查产生的修复。
+
+### 新功能
+
+- feat: 新增实验性 **Windows 桌面分身**，可从主界面把任务交给独立 Child Session 运行；支持显示/隐藏分身桌面、主控暂停/继续/停止、日志同步，以及分身窗口的静音和输入开关。工具箱提供兼容性检查与停止任务并注销分身入口。
+- feat: 模拟器启动加速器新增 **Clash Meta** 预设，支持按按钮文字识别启动入口；排除 `tunl` 接口，避免把普通隧道接口误判为加速已经生效。
+- feat: 主题包设置新增“未知”卡包的可配置回退权重，补齐经验、巡礼、未知及部分复刻封面，并更新高清主题包预览资源。
+
+### 修复
+
+- fix: **通行证入口适配赛季横幅变化。** 旧模板无法命中时，OCR 改为搜索按分辨率缩放的完整入口区域，避免因旧文字位置过窄而打不开通行证。入口失败会向任务上报错误，不再继续后续领奖步骤并误报完成。
+- fix: **已完成日常/周常不领奖。** 调整橙色判定，使其覆盖可领取任务的橙棕色底板，解决进度已满但被误判为不可领取的问题；仍需同时满足任务进度完成条件。
+- fix: **返回主界面后遗留菜单。** 点击玻璃窗后重新截图确认，切页过程中继续等待，避免过渡帧触发 Esc 而把设置菜单打开。
+- fix: **镜牢续跑耗时异常。** 缺少当前楼层起点时改用本次运行起点统计，并保留“楼层时间不完整”提示，避免显示数十万小时的耗时。
+- fix: 镜牢奖励收尾增加完成及领奖状态确认，未确认成功时停止后续镜牢，避免把失败计入完成次数或重复开牢。
+- fix: **主题包识别与权重修正。** 校正中英文 OCR 关键词并适配零协会新译名；优先匹配较长关键词，防止短词抢占复刻包权重。原版与复刻共用对应权重；恢复困难名单中的奇迹复刻与轨道线，1–5 号线统一使用轨道线权重。
+- fix: 同步主题包配置时仅保留默认名单仍存在的关键词权重，移除已删除或更名的旧关键词，避免旧短词继续参与识别。升级后建议检查自定义主题包权重。
+- fix: 模板裁剪区域为空、区域小于模板或截图尺寸不足时返回未匹配，避免 OpenCV 匹配异常。
+
+### 其他
+
+- refactor: 主题包权重页面分批创建卡片并缓存预览，按设备像素比显示透明封面，改善打开页面时的响应和高 DPI 显示。
+- fix: 补齐多个工具窗口、状态提示和弹窗的英文翻译，并完善翻译检查与开发辅助脚本。
+- refactor: 为桌面分身分离配置、日志及进程会话范围，增加跨会话 Steam 冲突检查；构建包随附分身所需的原生宿主。
+
+### 使用与验证说明
+
+- 桌面分身默认关闭，需要管理员权限和兼容的 Windows 远程桌面环境；Windows Home 不在首发支持范围内，模拟器模式不能同时启用桌面分身。建议先运行工具箱中的兼容性检查。
+- 本轮在 1280×720、中文游戏、主桌面后台输入环境中，完成了启动及资源更新等待、经验本 3 次、纽本 3 次、换体、普通五层镜牢 1 次及奖励领取，并验证了暂停/恢复、协作停止和重载后的镜牢续跑。验证过程包含修复后的分段续跑；没有对最终打包版本重新执行整轮，也没有覆盖桌面分身、驱动输入、断网或所有分辨率。
+- 已知现象：镜牢结算中，通行证经验数量在一次成功识别后仍可能出现后续 OCR 警告；本轮实际领奖已完成，统计识别问题仍待进一步复现。
+
+[查看 C23 → C24 完整变更](https://github.com/Small-tailqwq/AhabAssistantLimbusCompany/compare/v1.5.0-canary.23...v1.5.0-canary.24)
+
+## [1.5.0-canary.23] — 2026-07-20
+
+> 本发布包含大量更新，需要人工审核补充详细日志。
+
+## [1.5.0-canary.22] — 2026-06-27
+
+### 修复
+- fix: 模板匹配 bbox 搜索边距按截图分辨率自适应缩放，修复 4K 下采光任务 "玻璃窗/驾驶席" 来回切换（本地 issue 44）
+
+## [1.5.0-canary.21] — 2026-06-27
+
+### 新功能
+- feat: 添加简单键盘寻路模式（始终按↑键）
+- feat: 在狂气换体高级设置中添加独立体力换饼配置
+
+### 修复
+- fix: MuMu IPC 输入事件增加重试机制，连续失败后停止脚本
+- fix: MuMu IPC 重试增加指数退避和 5 次失败后自动重连
+- fix: 修复 wait_until_main_menu_after_launch 在子界面启动时卡死
+- fix: 修复 720P 下自动换饼 OCR 倒计时解析与体力识别兜底
+- fix: 根据审阅意见保留首次领取，外层条件改为 finish_times > 1
+
+### 其他
+- refactor: OpenCode agent 目录重命名为 agents 并更新描述
+- refactor: 精简四个 OpenCode skill 文档，改为渐进式披露风格
+- chore: match_diagnostics.py 迁移至 debug_tools，gitignore 增加 _pending_cleanup
+
+## [1.5.0-canary.20] — 2026-06-24
+
+- feat: 新增雷蛇驱动对接，支持 Razer 硬件鼠标输入 + 分块间微步进延迟
+- feat: 添加零协汉化更新工具，支持游戏路径自动检测
+- feat: 增加运行暂停/继续按钮
+- feat: 新增观测 EGO 饰品功能，适配星光加成系统
+- feat: 新增 `debug_tools/verify_matching.py` 模板匹配验证工具（CLI 批量匹配/A/B 对照/像素分析）
+- fix: 修复多个镜牢卡死场景（输入软卡死恢复、寻路 position 分支、奖励卡状态机、技能观测无法选中罪人）
+- fix: mirror.py 耗时统计改用显式计时，修复装饰器吞返回值
+- fix: 修复亮色模式复选框不可见
+- fix: 优化初始菜单节奏，修复启动等待超时恢复、邮件领取重试、幽灵进程阻塞
+- fix: 前移奖励卡画面检测，避免结算跳过误触奖励卡 (issue #35)
+- refactor: 重构 Agent 基础设施为渐进式披露模式，更新 analyze skill
+- refactor(ci): PR 审阅迁移到 Open Code Review CLI
+
+## [1.5.0-canary.19] — 2026-06-13
+
+### 上游合并
+- feat(resource-sync): 新增图片资源自动同步功能及 CI 工作流
+- refactor(updater): 基于 changes.json 实现增量更新逻辑
+- refactor(ui_style): 重构主题样式生成逻辑
+- fix(config): 增强配置文件加载的容错性和备份恢复机制
+- refactor(retry): 优化卡死检测日志的时间可读性
+- chore(automation): 动态调整日志中匹配度的显示精度
+- chore(ci): 更新 astral-sh/setup-uv action 版本
+- style: 使用 ruff 统一代码格式与优化导入
+
+### 新功能
+- feat: 快捷截图 QuickScreenshotGet — 一键截图保存到 screenshots/ 目录
+- feat: G HUB 驱动管理器小工具
+- feat: 新手提示跳过工具
+- feat: 镜牢模拟器键盘寻路支持
+
+### 修复
+- fix(simulator): 修复 MuMu 模拟器启动失败和无限递归问题
+- fix(simulator): userStopError 被异常处理器吞掉导致递归爆炸
+- fix(simulator): 修复 _enum_windows_list 初始化错误及句柄获取
+- fix(simulator): 抑制模拟器窗口句柄告警，修复循环输出日志
+- fix(input): 修复后台按键消息在游戏更新后失效
+- fix(input): 修复文本输入不遵守异步设置
+- fix(automation): 修复长时间未重启游戏导致误判卡死
+- fix(automation): 修复因游戏窗口句柄改变导致窗口操作失效
+- fix(luxcavation): 修复采光副本首通提示误触返回导致死循环
+- fix(luxcavation): 简化采光连战次数设置，清理死代码
+- fix(enkephalin): 统一换饼入口延迟，修复暂停误判超时
+- fix(enkephalin): 补全自动换饼开关与小工具重启策略
+- fix(mirror): acquire_ego_gift 修复图片路径与 None 保护
+- fix(mirror): 饰品合成关键词选择后增加等待避免滚动条拖动失效
+- fix: 移除 back_init_menu 预截图避免节流；移除 skip_screenshot 避免旧帧误判
+- fix: 启动时清除 SSLKEYLOGFILE 环境变量，避免 OpenSSL 崩溃
+- fix: 日志复现工具热加载配置后 PageSetWindows 显示旧值
+- fix: 角色卡选中/未选中均展示 16px 抗锯齿圆角
+
+### 重构与代码质量
+- chore: 启用 ruff SIM/TRY/BLE 规则集并自动修复 73 项
+- chore: 移除金丝雀特有 API 调用以兼容上游
+- chore: 优化日志中英混杂 — 动作名中文化，体系名/方向码使用中文映射
+- refactor: 合并截图卡片为双按钮一栏设计
+- docs: 补充 AI 代码质量约束（扁平化调用栈、常量提取、gortex 自审流程）
+
+### 社区贡献
+- 233dada: hwnd 重构、输入异步修复、配置备份恢复、换饼超时修复、重启卡死修复、窗口句柄变更修复
+- lus: 图片匹配脚本、图片清理重命名、.gitignore 补充、前台模式截图修复
+- luwh2000: matchVal 精度提升（4 位 → 3 位小数）
+- fsrmll: 模拟器窗口句柄告警抑制
+
+## [1.5.0-canary.18] — 2026-06-03
+
+### 新功能
+- feat: 模拟器启动加速器 — 启动前检测 tun 接口，自动启动加速器并点击加速按钮
+
+### 修复
+- fix(animation): 防止动画播放中重置几何数据导致崩溃
+- fix(tui): 模型吉祥物 provider 感知与计时修正
+- fix: 优化 Mumu 模拟器拖动操作参数（移除冗余预按、缩短插值间隔、约束保持时间）
+- fix: 修复镜牢开场加成选择逻辑（仅选择一次而非每轮循环重复）
+
+### 重构
+- refactor(mirror): 加速事件循环并重构商店刷新逻辑
+- refactor: 移除废弃的低分辨率优化功能（experimental_low_res_match）
+
+### 性能
+- perf: 降低镜牢寻路检测的停顿时间（各场景 pause 参数减半）
+
+### 其他
+- chore: 新增 opencode 配置导入 VS Code 脚本
+- chore: 添加截图性能基准测试脚本
+
+## [1.5.0-canary.17] — 2026-05-30
+
+### 修复
+- fix(mirror): 优化镜牢事件唤醒流程，减少冗余截图与等待
+- fix(mirror): 修复暗色模式 legend 资产未匹配导致事件层卡死
+
+### 其他
+- chore: 更新 opencode 配置（code-review / upstream-contribution / 移除过时技能）
+
+## [1.5.0-canary.16] — 2026-05-29
+
+### 新功能
+- feat: 新增 Match Viewer 图片匹配诊断工具
+- feat: 配置备份自动恢复 — 设置损坏时自动读取最新备份文件
+- feat: 新增商店与镜牢事件调试开关，统一调试开关描述格式
+
+### 修复
+- fix(back_init_menu): 返回按钮改用 back_assets_v2 + normal 模型，解决 720P 下返回按钮无法匹配
+- fix(back_assets): 双模板策略 — 原版处理纽本经验本，base/back_assets 处理周常奖励和首次提示
+- fix: 返回上一级卡住 — 修复节流导致识别器重复读取同一份截图 5 秒
+- fix: 截屏冻结检测阈值从 3 降到 2，减少冗余点击
+- fix: take_screenshot 对 last_click_time 也施加截屏间隔限制，防止点击后截到过渡帧
+- fix(input): SendMessage/PostMessage 左右修饰键 wParam 归一化并截断 scan code 高位
+- fix: 为所有输入处理器的 key_press 补上 DEBUG 日志
+- fix(mirror): 关键词刷新误判失效 + 商店后寻路缓存缺失
+- fix(mirror): 限定 E.G.O 升级扫描区域
+- fix(mirror): 优化商店购买与饰品升级稳定性
+- fix: 路径状态判断增加互斥匹配和阈值差择优逻辑
+- fix: OCR 金额识别补充 h→4 的映射
+- fix(config): 备份目录不存在/删除失败/未完整初始化等多边界防御
+- fix: 重新抛出异常时保留堆栈信息
+- fix: 过滤已归档资产以避免重复加载
+- fix: 修复自动换饼工具的多项问题
+- fix(mumu): 模拟器模式下静默窗口未初始化日志噪音
+- fix: match_viewer 扫描所有 .png 文件，bbox 裁剪统一应用于所有图像
+
+### 重构
+- refactor(luxcavation): 连续战斗次数设置从滑块拖拽改为按钮点击交互
+- refactor: 统一按键输入契约与映射
+- refactor(config): 设置备份改为每天一次，最多保留十份
+- refactor: retry 移除 skip_screenshot 参数
+
+### 调试工具
+- style: log_viewer 和 match_viewer 统一 AALC 设计系统
+- chore: 新增低分辨率匹配诊断脚本和模板内容检查脚本
+
+### 测试
+- test: 新增 retry 函数截图刷新与弹窗检查覆盖率测试
+
+### 其他
+- chore: 清理过期 TODO 与无用导入
+- docs: 补充 debug_tools 目录说明，增加 CI 命令文档
+
+## [1.5.0-canary.15] — 2026-05-18
+
+### 新功能
+- feat(issue-analyze): 分离附件下载与 triage 步骤，新增确定性日志报告上传和证据矩阵输出
+
+### 修复
+- fix(triage): 强化证据引用规则，要求时间线分段、标记覆盖率和置信度评估
+
+## [1.5.0-canary.14] — 2026-05-16
+
+### 新功能
+- feat(mirror): 模拟器支持镜牢键盘寻路
+- feat(theme-pack): 新增讲解员与凤·皇主题包配置
+- feat: 优化窗口滚动体验
+
+### 修复
+- fix(mirror): 为 re_start 等流程的图片匹配补充阈值，适配低分辨率画面
+- fix(back_init_menu): 修复齿轮菜单无限切换导致无法返回主界面的问题
+- fix: 恢复 cd1156e merge 时被覆盖的改动
+- fix(automation): 优化主题切换逻辑，确保在匹配条件下正确设置主题
+- fix(luxcavation): 修复 back_assets 资产更新后在采光选关界面误触返回
+- fix(luxcavation): 纽本选关界面同样需要防御 back_assets 误触
+- fix(simulator): userStopError 被异常处理器吞掉导致递归爆炸
+- fix(simulator): 修复 MuMu 模拟器启动失败和无限递归问题
+
+### 重构
+- refactor(battle): 重构回合数识别逻辑，防止检测首回合功能无法正确使用
+- refactor(luxcavation): 用 ESC 按键替代 back_assets 图片点击关闭提示
+
+### 多语言
+- i18n: 完善界面多语言支持
+
+### 合并上游
+- Merge upstream/main — 引入 PR #649 等上游更新
+
+## [1.5.0-canary.13] — 2026-05-11
+
+### 修复
+- fix: 修复构建产物中因 PNG→WebP 转换导致图片无法识别的问题（`existing_image_paths` 补 .webp 回退）
+- fix: 修复纽本连战超时 — `onetime_thread_process` 未向 `battle.fight()` 传递 `combat_count`，导致连战超时始终为 15 分钟
+- fix: 重写 c12 更新日志，区分上游合并与金丝雀独有变更，移除重复条目
+
+## [1.5.0-canary.12] — 2026-05-11
+
+### ⚠️ 注意
+本版本合并了大量上游 main 分支的提交。以下标注 `[upstream]` 的条目来自上游作者（luwh2000, KIYI671, lushuo, lus, raymond1233319），标注 `[canary]` 的为金丝雀独有修复。
+
+### 新功能 [upstream]
+- feat: 新增编队码功能（raymond1233319）
+- feat: 队伍配置与主题包配置导入导出（raymond1233319）
+- feat: 语言自动检测（lushuo）
+- feat: 文字识别也触发语言路径更新（lushuo）
+- feat: 恢复低渲染比例和低分辨率检测（lus）
+- feat: 添加 TextMatchResult 优化 OCR 结果处理（lushuo）
+- feat: 增加 hash 校验机制（lus）
+- feat: 模拟器选择饰品后增加等待时间（lus）
+- feat(log): 降低日志等级以减少信息噪音（KIYI671）
+
+### 镜牢修复 [upstream]
+- fix: 修复更新 UI 后的镜牢 assets 适配（luwh2000）
+- fix: 修正困难镜牢自动切换逻辑（luwh2000）
+- fix: 允许镜牢次数用尽后继续困牢（luwh2000）
+- fix: 饰品格子合成前合成标签被遮盖 gifts_fusion（luwh2000）
+- fix(mirror): 降低公式合成标签检测阈值（KIYI671）
+- fix: 主题包选择根据当前语言环境调整列表获取逻辑（lushuo）
+- fix(mumu): 修复 Mumu 控制台输出解析错误 fix #622（KIYI671）
+- fix: 移除自动更改语言和强制模拟器使用英文（lushuo）
+
+### 自动化和输入 [upstream]
+- perf(battle): 支持按战斗次数动态调整超时时间（KIYI671）
+- fix(luxcavation): 优化日常战斗关卡选择界面检测逻辑（KIYI671）
+- chore: 调整镜像副本适配参数（KIYI671）
+- i18n: 同步并更新英文翻译文件（KIYI671）
+- fix: main_dev 热重载忽略配置文件（lushuo）
+- fix: 修复文本描述（lushuo）
+- chore(script-task): 添加跳过合成脑啡肽的日志处理（KIYI671）
+- fix: 降低路径日志等级（lushuo）
+
+### 界面与配置 [upstream]
+- fix: 修复默认界面下错误识别为暗色图片（lus）
+- fix: 移除多余的邮件图标资源文件（lus）
+- fix: 移除 `mail_cn_assets`（lus）
+- fix: 修复时区配置错误，统一使用首尔时区，移除 timezone 配置项（KIYI671）
+- fix: 移除 config 中的语言配置项，改为从路径管理器获取（lus）
+- refactor: 重构编队码加载流程 team-formation，优化截图逻辑（KIYI671）
+- refactor: 同步队伍设置前统一调用 `_sync_team_setting_numbers`（KIYI671）
+- fix: 移除 `check_gray` 参数（KIYI671）
+- fix: 移除无用代码/未被使用的函数（lushuo）
+- chore: 更新编队码提示信息/移除冗余配置保存（KIYI671）
+
+### 代码重构 [upstream]
+- refactor: 优化语言识别与异常处理流程（lushuo）
+- refactor: 提取楼层识别逻辑到独立函数（lushuo）
+- refactor: 路径管理器重构 — 优化路径判断后的识图逻辑（lushuo）
+- refactor: 所有英文注释改为中文，优化导入语句顺序（raymond1233319）
+- refactor: 优化路径日志级别（lus）
+- doc: 移除 path-language-auto-update 文档（luyipao）
+
+
+### 金丝雀独有修复 [canary]
+- fix: CI 构建上传 `AALC.update_manifest.json` 和 `.sha256` 到 release assets
+- fix: 无兼容更新包时不弹错误，直接显示已是最新版本
+- refactor: 统一版本号归一化实现（normalize_version_text）
+- fix: `onetime_mir_process` 透传 `userStopError` 避免停止信号被吞
+- fix: `find_element` 加回 `log_result` 参数兼容金丝雀调用方
+- fix: 补齐停止与 log_result 兼容并移除失效汉化开关
+- fix: `closeEvent` / `input_text` / `back_init_menu` 代码审阅修复
+- fix: 保留队伍配置中的游戏内编队编号
+- fix: 补录编队码与暗色镜牢资产元数据
+- chore: 模型吉祥物插件修复
+- chore: 修正金丝雀发版技能 prerelease 描述错误
+
+## [1.5.0-canary.11] — 2026-05-05
+
+### 更新系统
+- fix: 协议化 updater 更新链路 — 引入 update_manifest.json 协议，托管路径声明 + 路径穿越防护 + 精准差集清理
+- fix: 提升 updater 重试韧性 — 解压/复制上限 5 次，单文件删除失败不中止
+- fix: updater extract_file 解压目标改用 extract_folder_path 子目录，避免覆盖运行中的 updater 导致 extract 失败
+- fix: updater cover_folder 检测 `AALC/` 双层嵌套做兼容处理
+
+### 更新检测
+- feat: 更新检查按 bootstrap_version 选择兼容发布，支持桥接版本降级提示
+
+### 自动化稳定性
+- fix: 修复匹配缓存键 list 不可哈希，移除截图去重和废弃的批量并行匹配
+
+### 构建
+- feat: build.py 写入 update_manifest.json、managed_files.txt、bootstrap_version.txt 协议文件
+
+### 测试
+- test: 增补路径安全、版本选择、安装流程、清理韧性等 900+ 行单元测试
+
+## [1.5.0-canary.10] — 2026-05-04
+
+### 镜牢稳定性
+- fix: 主题包选取增加模拟器卡死检测，连续10次未离开判卡死自动重启
+- fix: select_theme_pack 循环计数器移至 while 顶部防无限循环，参照 a88f235 修复模式
+- fix: 修复编队队列状态归一化
+- fix: 修复编队删除/重启崩溃链（NameError + IndexError + KeyError）
+
+## [1.5.0-canary.9] — 2026-05-03
+
+### 镜牢稳定性
+- fix: event_chance 在主路径中不递减导致多目标兜底永远无法触发
+- fix: event_chance 递减用 max(0, ...) 兜底防溢出到负数
+- fix: 通过 HSV 亮度/饱和度检测替代双模板灰度匹配，提高事件选项识别准确率
+
+### UI
+- refactor: 合并更新设置到关于页，移除废弃的 Mirror酱 更新通道
+- fix: 修复设置导航栏最后一项高亮错位
+- fix: 修复 canary 版本号解析失败
+
+### 自动化稳定性
+- fix: 修复 refresh_team_setting_card 中未定义变量 i 及 StarlightCard 缺少防御性读取
+- fix: get_mouse_position 加异常保护，解锁过渡期 GetCursorPos 报错不崩脚本
+
+### 调试工具
+- feat(日志复现): 自然排序 + 表头可排序 + 追加日志拖入 + 使用了U公司科技，窗口可以吸在一块了
+
+### CI & 工具链
+- fix: 修复 CI 配置及模型切换相关的一系列问题
+
+## [1.5.0-canary.8] — 2026-05-01
+
+### 资产管理器 (Asset Manager)
+- fix: 修复编辑元数据后切图片内容"消失"的问题（`_on_asset_selected` 改从 model 缓存取最新值）
+- fix: 修复关闭资产管理器导致主程序退出的崩溃（QThread 销毁时序 + WA_DeleteOnClose）
+- feat: 异步缩略图加载 + 磁盘缓存（`data/asset_library/thumbnails/`），滚动不再卡顿
+- feat: CLAHE 对比度增强 + 内容感知裁剪（自动去除黑边，只保留有效内容区域）
+- feat: 图片预览弹窗支持滚轮缩放、拖拽平移、适应窗口/原始大小按钮
+- fix: 模块级 QPixmap 导入时崩溃（占位图标延迟到 widget 构造时创建）
+- fix: 切分类时旧 loader 线程信号覆盖新 grid 条目的竞态（生成计数器验证）
+- fix: 缺失文件不再显示 [Missing] 标签的回归
+- fix: KeyError 崩溃 loader 线程的防御（asset.get("file") 兜底）
+- fix: 分步加载导致未滚动到的图片永远不生成缩略图（改为一次性创建所有 item）
+- feat: 统一网格布局（setGridSize），行/列对齐如资源管理器
+- feat: 窗口图标统一为 canary.ico，所有工具窗口自动继承
+- feat: 新增"清除缩略图缓存"按钮，方便重新生成
+
+### CI & 构建
+- fix: 关闭 PyInstaller strip 避免构建产物启动报错
+- fix: CI 构建排除 Windows Defender 干扰
+
+### 其他
+- docs: 添加安全红线 — 禁止在对话中泄漏凭证
+- chore: 补充资产元数据标注（业务名、标签、备注）
+
+## [1.5.0-canary.7] — 2026-05-01
+
+> v1.5.0-canary.5 因 CI 编码问题构建失败，v1.5.0-canary.6 因 Qt6Xml.dll 被误删导致产物无法启动。
+> 本版本为首个包含以下所有变更的可运行金丝雀构建。
+
+### 构建修复
+- fix: 修复 `Qt6Xml.dll` 被误删导致 dist 构建产物启动报错 (ImportError)
+- fix: 从冗余文件列表移除 `PySide6/Qt6Xml.dll`，`qfluentwidgets.common.icon` 运行时依赖它
+
+### 资产管理器 (Asset Manager)
+- feat: 新增资产管理器完整功能 — 扫描、搜索、过滤、缓存、回收站版本链归档恢复
+- feat: 集成到工具启动器，支持独立窗口与信号路由
+- feat: 添加设计文档与实现计划
+
+### 镜牢稳定性
+- fix: DARK 主题下多个模拟器兼容性问题
+- fix: 退出商店循环 loop_count 递减移至 while 顶部，防止无限卡死
+- fix: 空星光列表时 all_click_level 误算为 1
+
+### 自动化优化
+- feat: 镜牢事件唤醒次数随机化、楼层识别优化、ONNX 模型会话缓存
+- opt: 通行证奖励领取改为批量点击 + 2 轮校验
+- feat: 截图去重、帧内匹配结果缓存和批量并行匹配
+- opt: OCR 跳过二值图的 CLAHE 处理，简化颜色空间转换
+- fix: retry 添加节流保护和 skip_screenshot 参数，避免高频重复截图
+- feat: BaseComboBox 新增 set_value 方法
+
+### CI & Issue 自动诊断
+- feat: 新增 Issue 自动诊断 CI (opencode-triage)，新 Issue 自动分析日志并回复
+- feat: analyze skill 吸收 MaaEnd 经验 — 常见模式速查表、版本感知分析、置信度
+- fix: 多项 CI 稳定性修复 — git 认证、超时控制、编码兼容
+- fix: 修复 build.py 中非 ASCII 字符 (`→`) 导致 Windows CI 构建失败 (UnicodeEncodeError)
+- docs: 更新 AGENTS.md 编码陷阱警告，补充具体案例
+- docs: 添加 Windows CI 编码陷阱说明到 AGENTS.md 和构建指南
+
+### 其他
+- feat: 更新系统新增 SHA256 校验与旧残留清理
+- feat: 添加代码审阅基础设施
+- chore: 添加资产管理器设计文档和提取脚本
+
+## [1.5.0-canary.6] — 2026-04-30
+
+> 因 CI 编码问题重新发布 canary.5。本版本产物存在 Qt6Xml.dll 缺失问题，请直接使用 v1.5.0-canary.7。
+
+### CI 修复
+- fix: 修复 build.py 中非 ASCII 字符 (`→`) 导致 Windows CI 构建失败 (UnicodeEncodeError)
+- docs: 更新 AGENTS.md 编码陷阱警告，补充具体案例
+
+## [1.5.0-canary.5] — 2026-04-30 (CI 构建失败，未发布)
+
+### 资产管理器 (Asset Manager)
+- feat: 新增资产管理器完整功能 — 扫描、搜索、过滤、缓存、回收站版本链归档恢复
+- feat: 集成到工具启动器，支持独立窗口与信号路由
+- feat: 添加设计文档与实现计划
+
+### 镜牢稳定性
+- fix: DARK 主题下多个模拟器兼容性问题
+- fix: 退出商店循环 loop_count 递减移至 while 顶部，防止无限卡死
+- fix: 空星光列表时 all_click_level 误算为 1
+
+### 自动化优化
+- feat: 镜牢事件唤醒次数随机化、楼层识别优化、ONNX 模型会话缓存
+- opt: 通行证奖励领取改为批量点击 + 2 轮校验
+- feat: 截图去重、帧内匹配结果缓存和批量并行匹配
+- opt: OCR 跳过二值图的 CLAHE 处理，简化颜色空间转换
+- fix: retry 添加节流保护和 skip_screenshot 参数，避免高频重复截图
+- feat: BaseComboBox 新增 set_value 方法
+
+### CI & Issue 自动诊断
+- feat: 新增 Issue 自动诊断 CI (opencode-triage)，新 Issue 自动分析日志并回复
+- feat: analyze skill 吸收 MaaEnd 经验 — 常见模式速查表、版本感知分析、置信度
+- fix: 多项 CI 稳定性修复 — git 认证、超时控制、编码兼容
+- docs: 添加 Windows CI 编码陷阱说明到 AGENTS.md 和构建指南
+
+### 其他
+- feat: 更新系统新增 SHA256 校验与旧残留清理
+- feat: 添加代码审阅基础设施
+- chore: 添加资产管理器设计文档和提取脚本
+
+## [1.5.0-canary.4] — 2026-04-28
+
+### issue 管理 & 调试工具
+- feat(issue_manager): 新增 `append_log()`、`reimport_issue()` 方法，支持运行时追加日志和重新导入
+- feat(issue_replay): 新增 Markdown 编辑侧窗，支持 Typora 式源码/预览分栏编辑
+- feat(issue_replay): 批注区域支持 Markdown 渲染显示，右键菜单唤出编辑
+- feat(issue_replay): 表格增加行号列、交替行色、优化列宽
+- fix(issue_replay): 修复无法接受资源管理器文件拖放
+
+### 模拟器 & 汉化支持
+- feat: 新增实验性开关「模拟器已安装零协汉化」，允许在模拟器上使用汉化
+- fix: 改进模拟器汉化开关返回值语义（SKIPPED）与提示样式
+- fix: 修复 Mumu 模拟器退出时序冲突导致连接断开 (fix #617)
+
+### 自动化
+- fix: 降低彩色图片匹配阈值至 0.85 以提高识别率
+- fix: 全仓 29 处裸 except 统一改为 Exception 或 ValueError
+- feat: 定时任务结束操作新增「退出模拟器」独立选项
+- perf(battle): 支持按战斗次数动态调整超时时间
+- fix: 连续作战最大次数非法值静默修正
+- fix: 重构 Daily_task_wrapper 消除重复分支
+- fix: 移除 _batch_combat 多余的重复 return
+
+### 配置
+- fix(config): 修复 ConfigDict 导入缺失导致 NameError
+- fix(config): 商店刷新次数默认值从 2 改为 1
+- chore(config): PostMessage 输入默认值改为 False
+- feat: 可自定义鼠标按下延迟及是否使用异步方法
+
+### 其他
+- docs: 添加文件删除严格管控策略与灾难恢复指引
+- i18n: 同步并更新英文翻译文件
+
+## [1.5.0-canary.3] — 2026-04-27
+
+### 镜牢稳定性
+- fix(mirror): re_start 添加 check_times 超时兜底，战斗失败后放弃/重开时卡死 90 秒后杀进程重启
+- fix(mirror): back_init_menu loop_count 移到 while 顶部，修复无限循环不递减导致无法触发兜底
+
+### 调试
+- feat(debug): 新增重试调试 (debug_retry)，还原镜牢退出/重启流程中的识别情况与日志断点
+- fix(debug): debug_retry 适配调试模型宪法——添加双重门控、UI 开关、父开关关闭时自动复位
+- style: 新增调试模型宪法文档及 AALC 日志压缩分析工具
+
+### 稳定性
+- fix: 连续作战最大次数为 0 时除零崩溃，默认值改为 1
+
+
+### 队伍设置
+- feat(team_setting): 刷新选项添加 tooltips 提示，移入商店配置区
+- fix(team_setting): 移除 tooltip 中的消耗信息，并入 i18n 翻译系统
+- style(team_setting): 第十行布局补充 addStretch() 保持对齐一致
+
+### 日常刷取 (Luxcavation)
+- fix(luxcavation): 经验本多关入口添加点击重试与 DEBUG 日志
+- fix(luxcavation): 修复纽本进入超时和 tab 加载竞态，添加纽本调试模式
+
+### 商店
+- fix(shop): OCR 金钱读取失败时释放刷新降级兜底，修复治疗-1 哨兵误判
+- fix(mirror): 重写商店刷新逻辑，修复只刷新一次的问题；新增自定义刷新上限与保留升级资金选项
+
+### i18n
+- fix(i18n): 将 i18n 文件同步回上游版本，只保留 fix 新增的三条翻译
+- feat(i18n): 新增 i18n 完整性检查脚本和工作流
+
+### 工具链
+- feat(tools): 新增日志复现工具，支持读取问题日志热切换配置进行调试
+
+### 自动化 & 输入
+- fix(automation): 截图延迟保护从仅 Logitech 扩展为所有输入模式
+
+### 配置 & 稳定性
+- fix(config): debug_mode 等未定义字段导致 Pydantic 崩溃，添加 ConfigDict(extra=allow)
+- fix: 新任务启动时重置暂停状态，防止上一轮的暂停穿透到新一轮
+- fix: 修饰键和弦超时检测释放 Alt+Tab 残留
+- fix: 定时任务设置保存后自动关闭弹窗；修复旧配置 team3_history 为 None 时升级崩溃
+- fix: 应对 PR 评审意见 — 改进弹窗关闭异常处理；finished_signal 改用仅启动的专用槽
+
+### 其他
+- merge: 合并 upstream/main 并吸收连战功能
+- docs: 新增本地 issue 追踪模板与 LLM 交互指南
+
+---
+
+## [V1.4.9] — 2026-04-07 (fork 初始版本)
+
+### 输入
+- 添加罗技驱动 DLL 支持，将 AALC 输入转换为驱动层鼠标输入
+- 添加仿生移动轨迹，将鼠标轨迹变换伪装
+- 优化驱动输入时的鼠标移动轨迹
+
+### 采集
+- 添加 OBS 源作为图像来源，规避常规截图检测
+- 优化原有楼层识别逻辑
+- 添加部分日常任务输入彩色图片进行匹配
+
+### 镜牢
+- 修复镜牢流程与多项识别稳定性问题
+- 精简镜牢事件检测并补全罗技告警收尾
+- 优化镜牢寻路缓存与视角调度
+- 实现镜牢路线规划车道感知重构与拖拽特性配置
+- 添加镜牢路线图渐进线段补检与调试截图落盘
+- 收紧镜牢异常处理并移除通配符导入
+
+### 镜像商店
+- 补充暗色模式等级确认弹窗模板资产
+
+### 日志与调试
+- 将日志设置改为调试模式，新增镜牢寻路调试开关
+- 为模板匹配接口添加 log_result 静默参数
+
+### 脚本生命周期
+- 实现脚本优雅停止机制
+- 修复 userStopError 被中间层 except Exception 误拦截
+- 优化启动阶段停止响应与 OBS 预检重连
+- 修复命令行 --start 未实际启动脚本，拆分 finished_signal/script_finished 信号
+
+### UI
+- 日常设置保存后自动关闭弹窗
+
+### 低分辨率支持
+- 修复低分辨率图片匹配并更新实验性输入开关
+- 修复缺图回退与邮箱入口语言判断
+- 添加实验性功能以支持低分辨率优化和罗技驱动仿生轨迹
+
+### 输入修复
+- 修复开启轨迹仿真后，部分截图时机过快的问题
+- 尝试修复 PostMessage 导致的点击事件被忽略的问题
+- Guard farming hotkey listener lifecycle
+- Harden exact hotkey listener callbacks
+- Fix exact global hotkey matching
+- 修复自动战斗工具的两个 bug：「不处理事件」选项无效 & 编队界面误触
+
+### 组件
+- fix: BaseComboBox 初始化时无法正确显示 False/0 值
+- refactor(BaseComboBox): 优化 items 访问与循环逻辑
+
+### 其他
+- 更新 README.md，添加改动清单和新标签图像
+- 合并上游 main 并保留镜牢与停止流程修复
+- 更新 requirements.txt from uv.lock
+- 添加代理指导文档以支持快速启动和架构概述
+- 在 AGENTS 中补充调试开关层级重置与中文提交约定

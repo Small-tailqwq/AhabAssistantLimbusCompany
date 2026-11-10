@@ -4,7 +4,7 @@ The 512px PNG logos looked jagged and blurry once the window scaled them down to
 24/48px, so the app draws the logos as vector DrawingImage resources instead.
 Window icons stay as the hand-tuned .ico files next to the SVGs.
 
-    uv run python scripts/build_dotnet_logos.py
+    python scripts/build_dotnet_logos.py
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DESKTOP = ROOT / "dotnet" / "src" / "AALC.Desktop"
+DESKTOP = ROOT / "src" / "AALC.Desktop"
 LOGOS = ("Logo", "LogoAngelaIce", "LogoAngelaGold")
 
 VIEW_BOX = re.compile(r'viewBox="0 0 (\d+) (\d+)"')

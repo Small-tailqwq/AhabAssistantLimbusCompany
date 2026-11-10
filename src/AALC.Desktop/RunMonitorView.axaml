@@ -1,0 +1,48 @@
+<UserControl x:Class="AALC.Desktop.RunMonitorView"
+ xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:local="using:AALC.Desktop" x:DataType="local:MainViewModel">
+ <Grid Classes="page" RowDefinitions="Auto,*,Auto">
+  <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="16">
+   <TextBlock Text="运行监控" Classes="heading"/>
+   <TextBlock Grid.Column="1" Text="{Binding ElapsedLabel}" Classes="muted" VerticalAlignment="Center" FontFamily="Consolas, Microsoft YaHei UI"/>
+   <Button Grid.Column="2" Classes="danger" Content="停止" Command="{Binding StopCommand}" IsVisible="{Binding IsRunning}" MinWidth="90" ToolTip.Tip="停止 (Esc)"/>
+  </Grid>
+  <Grid Grid.Row="1" ColumnDefinitions="3*,2*" ColumnSpacing="{DynamicResource CardSpacing}">
+   <Border Classes="card">
+    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
+     <TextBlock Text="游戏画面" Classes="section"/>
+     <Border Grid.Row="1" Classes="inset" MinHeight="160">
+      <Panel>
+       <PathIcon Data="M21,16H3V4H21M21,2H3C1.89,2 1,2.89 1,4V16A2,2 0 0,0 3,18H10V20H8V22H16V20H14V18H21A2,2 0 0,0 23,16V4C23,2.89 22.1,2 21,2Z" Width="40" Height="40"
+        Foreground="{DynamicResource BorderDefaultBrush}" IsVisible="{Binding !HasPreview}"/>
+       <Image Source="{Binding Preview}" Stretch="Uniform"/>
+      </Panel>
+     </Border>
+     <TextBlock Grid.Row="2" Text="{Binding FrameLabel}" Classes="caption"/>
+    </Grid>
+   </Border>
+   <Border Grid.Column="1" Classes="card">
+    <Grid RowDefinitions="Auto,*" RowSpacing="12">
+     <TextBlock Text="运行记录" Classes="section"/>
+     <Border Grid.Row="1" Classes="inset" Padding="14,6">
+      <Panel>
+       <PathIcon Data="M7,5H21V7H7V5M7,13V11H21V13H7M4,4.5A1.5,1.5 0 0,1 5.5,6A1.5,1.5 0 0,1 4,7.5A1.5,1.5 0 0,1 2.5,6A1.5,1.5 0 0,1 4,4.5M4,10.5A1.5,1.5 0 0,1 5.5,12A1.5,1.5 0 0,1 4,13.5A1.5,1.5 0 0,1 2.5,12A1.5,1.5 0 0,1 4,10.5M7,19V17H21V19H7M4,16.5A1.5,1.5 0 0,1 5.5,18A1.5,1.5 0 0,1 4,19.5A1.5,1.5 0 0,1 2.5,18A1.5,1.5 0 0,1 4,16.5Z" Width="32" Height="32"
+        Foreground="{DynamicResource BorderDefaultBrush}" IsVisible="{Binding !HasMessages}"/>
+       <ScrollViewer x:Name="MessageScroller" HorizontalScrollBarVisibility="Disabled">
+        <ItemsControl ItemsSource="{Binding Messages}">
+         <ItemsControl.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+         <ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String">
+          <Border BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1" Padding="0,7">
+           <SelectableTextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="12" LineHeight="20"/>
+          </Border>
+         </DataTemplate></ItemsControl.ItemTemplate>
+        </ItemsControl>
+       </ScrollViewer>
+      </Panel>
+     </Border>
+    </Grid>
+   </Border>
+  </Grid>
+  <TextBlock Grid.Row="2" Text="{Binding Error}" Classes="error"/>
+ </Grid>
+</UserControl>

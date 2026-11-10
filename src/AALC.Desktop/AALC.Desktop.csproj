@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType><TargetFramework>net10.0-windows</TargetFramework>
+    <AssemblyName>AAALC</AssemblyName>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets/Logo.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="Assets/Logo.ico" />
+    <AvaloniaResource Include="Assets/LogoAngelaIce.ico" />
+    <AvaloniaResource Include="Assets/LogoAngelaGold.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../AALC.Runtime/AALC.Runtime.csproj" />
+    <ProjectReference Include="../AALC.Vision/AALC.Vision.csproj" />
+    <ProjectReference Include="../AALC.Platform.Windows/AALC.Platform.Windows.csproj" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.0.3" />
+    <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3" />
+    <PackageReference Include="SukiUI" Version="7.0.1" />
+  </ItemGroup>
+  <!-- 分身用 dynamic 调用任务计划和 WMI，裁剪发布时保留 C# 运行时绑定。 -->
+  <ItemGroup><TrimmerRootAssembly Include="Microsoft.CSharp" /></ItemGroup>
+  <!-- RDP 宿主是 net48 独立进程，只取构建产物，不作为程序集引用。 -->
+  <ItemGroup>
+    <ProjectReference Include="../AALC.CloneHost/AALC.CloneHost.csproj" ReferenceOutputAssembly="false" Private="false"
+      SetTargetFramework="TargetFramework=net48" SkipGetTargetFrameworkProperties="true" GlobalPropertiesToRemove="RuntimeIdentifier;SelfContained;PublishTrimmed;TrimMode" />
+    <None Include="../AALC.CloneHost/bin/$(Configuration)/net48/AAALC.CloneHost.exe" Link="clone-host/AAALC.CloneHost.exe"
+      CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="../AALC.CloneHost/bin/$(Configuration)/net48/AAALC.CloneHost.exe.config" Link="clone-host/AAALC.CloneHost.exe.config"
+      CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
+

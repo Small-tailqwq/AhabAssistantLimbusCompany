@@ -6,4 +6,4 @@
 
 [archived/](archived/AGENTS.md) 是冻结的历史资料，不作为当前行为依据。
 
-修改本目录后运行 `python scripts/agent_notes.py check`；写完笔记正文后运行 `python scripts/agent_notes.py lint`，对每条命中给出保留或改写的判定。
+修改本目录后运行 `python scripts/agent_notes.py check`。

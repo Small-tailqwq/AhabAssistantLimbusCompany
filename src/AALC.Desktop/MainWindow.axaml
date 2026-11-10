@@ -1,0 +1,235 @@
+<Window x:Class="AALC.Desktop.MainWindow"
+ xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:suki="https://github.com/kikipoulet/SukiUI" xmlns:local="using:AALC.Desktop"
+ xmlns:platform="using:AALC.Platform.Windows" x:DataType="local:MainViewModel"
+ Title="AAALC" Icon="{Binding LogoIcon}" Width="1200" Height="800" MinWidth="1040" MinHeight="700"
+ FontFamily="Microsoft YaHei UI" FontSize="14" WindowStartupLocation="CenterScreen">
+ <Window.KeyBindings>
+  <KeyBinding Gesture="Escape" Command="{Binding StopCommand}"/>
+ </Window.KeyBindings>
+ <suki:SukiSideMenu x:Name="Navigation" OpenPaneLength="224" IsMenuExpanded="True" IsToggleButtonVisible="False" SidebarToggleEnabled="False">
+  <suki:SukiSideMenu.HeaderContent>
+   <StackPanel Margin="22,24,16,26" Orientation="Horizontal" Spacing="12">
+    <Image Source="{Binding LogoSource}" Width="{StaticResource LogoSidebarSize}" Height="{StaticResource LogoSidebarSize}"/>
+    <TextBlock Text="AAALC" FontSize="26" FontWeight="Bold" LetterSpacing="3" VerticalAlignment="Center"/>
+   </StackPanel>
+  </suki:SukiSideMenu.HeaderContent>
+  <!-- 游戏窗口与运行状态是全局上下文，只在侧栏出现一次。 -->
+  <suki:SukiSideMenu.FooterContent>
+   <StackPanel Margin="16,0,16,18" Spacing="10">
+    <TextBlock Text="游戏窗口" Classes="caption"/>
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+     <ComboBox ItemsSource="{Binding Windows}" SelectedItem="{Binding SelectedWindow}" IsEnabled="{Binding CanConfigure}"
+      PlaceholderText="未选择" AutomationProperties.Name="游戏窗口">
+      <ComboBox.ItemTemplate><DataTemplate x:DataType="platform:GameWindowInfo">
+       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource RowSpacing}">
+        <ToolTip.Tip><TextBlock Text="{Binding}" Classes="tooltip"/></ToolTip.Tip>
+        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis"/>
+        <TextBlock Grid.Column="1" Text="{Binding ProcessId}" Classes="muted" VerticalAlignment="Center"/>
+       </Grid>
+      </DataTemplate></ComboBox.ItemTemplate>
+     </ComboBox>
+     <Button Grid.Column="1" Classes="icon" Command="{Binding RefreshWindowsCommand}" ToolTip.Tip="刷新窗口" AutomationProperties.Name="刷新窗口">
+      <PathIcon Data="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
+     </Button>
+    </Grid>
+    <Border Padding="12,9" Background="{DynamicResource SurfaceCardBrush}" CornerRadius="{DynamicResource RadiusControl}" IsVisible="{Binding HasStatus}">
+     <StackPanel Orientation="Horizontal" Spacing="10">
+      <Ellipse Classes="status" Classes.running="{Binding IsRunning}" VerticalAlignment="Center"/>
+      <TextBlock Text="{Binding Status}" FontSize="12"/>
+     </StackPanel>
+    </Border>
+   </StackPanel>
+  </suki:SukiSideMenu.FooterContent>
+
+  <suki:SukiSideMenuItem x:Name="LaunchItem" Header="一键启动" AutomationProperties.Name="一键启动">
+   <suki:SukiSideMenuItem.Icon><PathIcon Data="M5,2 L19,10 5,18 Z"/></suki:SukiSideMenuItem.Icon>
+   <suki:SukiSideMenuItem.PageContent>
+    <Grid Classes="page" RowDefinitions="Auto,*,Auto">
+     <TextBlock Text="一键启动" Classes="heading"/>
+     <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Classes="cards" Margin="0,0,10,0" IsEnabled="{Binding CanConfigure}">
+       <Border Classes="card">
+        <StackPanel Classes="options">
+         <TextBlock Text="执行任务" Classes="section"/>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="日常"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding LaunchDaily}"/></Grid>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="收菜（换饼）"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding LaunchHarvest}"/></Grid>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="镜牢"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding LaunchMirror}"/></Grid>
+        </StackPanel>
+       </Border>
+       <Border Classes="card">
+        <StackPanel Classes="options">
+         <TextBlock Text="游戏" Classes="section"/>
+         <WrapPanel ItemSpacing="10" LineSpacing="10">
+          <Button Content="启动游戏" Command="{Binding LaunchGameCommand}"/>
+          <Button Content="关闭游戏" Command="{Binding CloseGameCommand}"/>
+          <Button Content="收菜" Command="{Binding RunHarvestCommand}"/>
+         </WrapPanel>
+        </StackPanel>
+       </Border>
+      </StackPanel>
+     </ScrollViewer>
+     <Grid Grid.Row="2" Classes="actions" ColumnDefinitions="*,Auto">
+      <TextBlock Text="{Binding Error}" Classes="error"/>
+      <StackPanel Grid.Column="1">
+       <Button Content="保存配置" Command="{Binding SaveLaunchSettingsCommand}"/>
+       <Button Content="停止" Classes="danger" Command="{Binding StopCommand}" IsVisible="{Binding IsRunning}" ToolTip.Tip="停止 (Esc)"/>
+       <Button Content="一键启动" Classes="primary" Command="{Binding RunLaunchCommand}" MinWidth="136"/>
+      </StackPanel>
+     </Grid>
+    </Grid>
+   </suki:SukiSideMenuItem.PageContent>
+  </suki:SukiSideMenuItem>
+
+  <suki:SukiSideMenuItem x:Name="DailyItem" Header="日常任务" AutomationProperties.Name="日常任务">
+   <suki:SukiSideMenuItem.Icon><PathIcon Data="M3,3 L17,3 17,19 3,19 Z M6,7 L14,7 M6,11 L14,11 M6,15 L11,15"/></suki:SukiSideMenuItem.Icon>
+   <suki:SukiSideMenuItem.PageContent>
+    <Grid Classes="page" RowDefinitions="Auto,*,Auto">
+     <TextBlock Text="日常任务" Classes="heading"/>
+     <local:DailyConfigurationView Grid.Row="1"/>
+     <Grid Grid.Row="2" Classes="actions" ColumnDefinitions="*,Auto">
+      <TextBlock Text="{Binding Error}" Classes="error"/>
+      <StackPanel Grid.Column="1">
+       <Button Content="保存配置" Command="{Binding SaveDailySettingsCommand}" MinWidth="100"/>
+       <Button Classes="danger" Content="停止" Command="{Binding StopCommand}" IsVisible="{Binding IsRunning}" MinWidth="90" ToolTip.Tip="停止 (Esc)"/>
+       <Button Content="开始日常" Command="{Binding RunDailyCommand}" Classes="primary" MinWidth="136"/>
+      </StackPanel>
+     </Grid>
+    </Grid>
+   </suki:SukiSideMenuItem.PageContent>
+  </suki:SukiSideMenuItem>
+
+  <suki:SukiSideMenuItem x:Name="MirrorItem" Header="镜牢" AutomationProperties.Name="镜牢">
+   <suki:SukiSideMenuItem.Icon><PathIcon Data="M3,3 L17,3 17,17 3,17 Z M7,7 L13,7 13,13 7,13 Z M10,0 L10,3 M10,17 L10,20"/></suki:SukiSideMenuItem.Icon>
+   <suki:SukiSideMenuItem.PageContent>
+    <Grid Classes="page" RowDefinitions="Auto,*,Auto">
+     <TextBlock Text="镜牢" Classes="heading"/>
+     <local:MirrorConfigurationView Grid.Row="1"/>
+     <Grid Grid.Row="2" Classes="actions" ColumnDefinitions="*,Auto">
+      <TextBlock Text="{Binding Error}" Classes="error"/>
+      <StackPanel Grid.Column="1">
+       <Button Content="保存配置" Command="{Binding SaveMirrorSettingsCommand}" MinWidth="100"/>
+       <Button Classes="danger" Content="停止" Command="{Binding StopCommand}" IsVisible="{Binding IsRunning}" MinWidth="90" ToolTip.Tip="停止 (Esc)"/>
+       <Button Content="开始镜牢" Command="{Binding RunMirrorCommand}" Classes="primary" MinWidth="136"/>
+      </StackPanel>
+     </Grid>
+    </Grid>
+   </suki:SukiSideMenuItem.PageContent>
+  </suki:SukiSideMenuItem>
+
+  <suki:SukiSideMenuItem x:Name="MonitorItem" Header="运行监控" AutomationProperties.Name="运行监控">
+   <suki:SukiSideMenuItem.Icon><PathIcon Data="M21,16H3V4H21M21,2H3C1.89,2 1,2.89 1,4V16A2,2 0 0,0 3,18H10V20H8V22H16V20H14V18H21A2,2 0 0,0 23,16V4C23,2.89 22.1,2 21,2Z"/></suki:SukiSideMenuItem.Icon>
+   <suki:SukiSideMenuItem.PageContent><local:RunMonitorView/></suki:SukiSideMenuItem.PageContent>
+  </suki:SukiSideMenuItem>
+
+  <suki:SukiSideMenuItem Header="桌面分身" AutomationProperties.Name="桌面分身">
+   <suki:SukiSideMenuItem.Icon><PathIcon Data="M3,3 L13,3 13,11 3,11 Z M7,7 L17,7 17,15 7,15 Z M9,15 L9,18 15,18 15,15"/></suki:SukiSideMenuItem.Icon>
+   <suki:SukiSideMenuItem.PageContent><local:DesktopCloneView/></suki:SukiSideMenuItem.PageContent>
+  </suki:SukiSideMenuItem>
+
+  <suki:SukiSideMenuItem Header="工具箱" AutomationProperties.Name="工具箱">
+   <suki:SukiSideMenuItem.Icon><PathIcon Data="M3,6 L17,6 17,18 3,18 Z M7,6 L7,2 13,2 13,6 M3,11 L17,11 M8,10 L12,10 12,13 8,13 Z"/></suki:SukiSideMenuItem.Icon>
+   <suki:SukiSideMenuItem.PageContent><local:ToolsView/></suki:SukiSideMenuItem.PageContent>
+  </suki:SukiSideMenuItem>
+
+  <suki:SukiSideMenuItem Header="场景回放" AutomationProperties.Name="场景回放">
+   <suki:SukiSideMenuItem.Icon><PathIcon Data="M4,2 L18,10 4,18 Z"/></suki:SukiSideMenuItem.Icon>
+   <suki:SukiSideMenuItem.PageContent>
+    <Grid Classes="page" RowDefinitions="Auto,Auto,*">
+     <TextBlock Text="场景回放" Classes="heading"/>
+     <Border Grid.Row="1" Classes="card">
+      <StackPanel Classes="options">
+       <TextBlock Text="选择场景" Classes="section"/>
+       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <ComboBox ItemsSource="{Binding Scenarios}" SelectedItem="{Binding SelectedScenario}" IsEnabled="{Binding CanConfigure}" AutomationProperties.Name="回放场景">
+         <ComboBox.ItemTemplate><DataTemplate x:DataType="local:ScenarioItem"><TextBlock Text="{Binding DisplayName}"/></DataTemplate></ComboBox.ItemTemplate>
+        </ComboBox>
+        <Button Grid.Column="1" Content="运行场景" ToolTip.Tip="离线验证，不操作游戏" Classes="primary" Command="{Binding ReplayCommand}" MinWidth="136"/>
+       </Grid>
+      </StackPanel>
+     </Border>
+     <Border Grid.Row="2" Classes="card" VerticalAlignment="Top" IsVisible="{Binding HasReplayResult}">
+      <StackPanel Classes="options">
+       <TextBlock Text="验证结果" Classes="section"/>
+       <TextBlock Text="{Binding ReplaySummary}" TextWrapping="Wrap" LineHeight="24"/>
+       <TextBlock Text="{Binding Error}" Classes="error"/>
+      </StackPanel>
+     </Border>
+    </Grid>
+   </suki:SukiSideMenuItem.PageContent>
+  </suki:SukiSideMenuItem>
+
+  <suki:SukiSideMenuItem Header="设置" AutomationProperties.Name="设置">
+   <suki:SukiSideMenuItem.Icon><PathIcon Data="M2,4 L18,4 18,6 2,6 Z M2,10 L18,10 18,12 2,12 Z M2,16 L18,16 18,18 2,18 Z M5,2 L7,2 7,8 5,8 Z M13,8 L15,8 15,14 13,14 Z M7,14 L9,14 9,20 7,20 Z"/></suki:SukiSideMenuItem.Icon>
+   <suki:SukiSideMenuItem.PageContent>
+    <Grid Classes="page" RowDefinitions="Auto,*,Auto">
+     <TextBlock Text="设置" Classes="heading"/>
+     <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Classes="cards" Margin="0,0,10,0" IsEnabled="{Binding CanConfigure}">
+       <Border Classes="card">
+        <StackPanel Classes="options">
+         <TextBlock Text="游戏与资源" Classes="section" Margin="0,0,0,4"/>
+         <Grid Classes="option" ColumnDefinitions="160,*,Auto,Auto" ColumnSpacing="10">
+          <TextBlock Text="游戏安装目录"/>
+          <TextBox Grid.Column="1" Text="{Binding GameDirectory}" Name="GameDirectoryBox" AutomationProperties.Name="游戏安装目录"/>
+          <Button Grid.Column="2" Content="浏览" Click="BrowseGameDirectory"/>
+          <Button Grid.Column="3" Content="搜索" Command="{Binding SearchGameDirectoryCommand}"/>
+         </Grid>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="资源仓库"/><TextBox Grid.Column="1" Text="{Binding RepositoryRoot}" AutomationProperties.Name="资源仓库"/></Grid>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="OCR 模型目录"/><TextBox Grid.Column="1" Text="{Binding OcrModelsDirectory}" AutomationProperties.Name="OCR 模型目录" PlaceholderText="PP-OCRv4 模型所在目录"/></Grid>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="游戏语言"/>
+          <ComboBox Grid.Column="1" ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}" AutomationProperties.Name="游戏语言">
+           <ComboBox.ItemTemplate><DataTemplate x:DataType="local:ChoiceItem"><TextBlock Text="{Binding Name}"/></DataTemplate></ComboBox.ItemTemplate>
+          </ComboBox>
+         </Grid>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="游戏主题"/>
+          <ComboBox Grid.Column="1" ItemsSource="{Binding Themes}" SelectedItem="{Binding SelectedTheme}" AutomationProperties.Name="游戏主题">
+           <ComboBox.ItemTemplate><DataTemplate x:DataType="local:ChoiceItem"><TextBlock Text="{Binding Name}"/></DataTemplate></ComboBox.ItemTemplate>
+          </ComboBox>
+         </Grid>
+        </StackPanel>
+       </Border>
+       <Border Classes="card">
+        <StackPanel Classes="options">
+         <TextBlock Text="AAALC" Classes="section" Margin="0,0,0,4"/>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="启动页"/>
+          <ComboBox Grid.Column="1" ItemsSource="{Binding StartPages}" SelectedItem="{Binding SelectedStartPage}" AutomationProperties.Name="启动页">
+           <ComboBox.ItemTemplate><DataTemplate x:DataType="local:ChoiceItem"><TextBlock Text="{Binding Name}"/></DataTemplate></ComboBox.ItemTemplate>
+          </ComboBox>
+         </Grid>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="启动时查找游戏窗口"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding FindWindowsOnStartup}" AutomationProperties.Name="启动时查找游戏窗口"/></Grid>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="开始任务时切到运行监控"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding ShowMonitorOnRun}" AutomationProperties.Name="开始任务时切到运行监控"/></Grid>
+         <Grid Classes="option" ColumnDefinitions="160,*,Auto" ColumnSpacing="12"><TextBlock Text="配置目录"/>
+          <TextBlock Grid.Column="1" Text="{Binding ProfileDirectory}" Classes="muted" TextTrimming="PathSegmentEllipsis" VerticalAlignment="Center" ToolTip.Tip="{Binding ProfileDirectory}"/>
+          <Button Grid.Column="2" Content="打开" Command="{Binding OpenProfileDirectoryCommand}"/>
+         </Grid>
+         <Grid Classes="option" ColumnDefinitions="160,*,Auto" ColumnSpacing="12"><TextBlock Text="运行记录目录"/>
+          <TextBlock Grid.Column="1" Text="{Binding DataDirectory}" Classes="muted" TextTrimming="PathSegmentEllipsis" VerticalAlignment="Center" ToolTip.Tip="{Binding DataDirectory}"/>
+          <Button Grid.Column="2" Content="打开" Command="{Binding OpenDataDirectoryCommand}"/>
+         </Grid>
+        </StackPanel>
+       </Border>
+       <Border Classes="card" IsVisible="{Binding IsAngela}" Name="AngelaMemoryCard">
+        <Grid Classes="option" ColumnDefinitions="*,Auto">
+         <local:AngelaMemoryLabel/>
+         <ToggleSwitch Grid.Column="1" IsChecked="{Binding RememberAngela}" Name="AngelaMemoryToggle" AutomationProperties.Name="记忆同步，下次启动生效"/>
+        </Grid>
+       </Border>
+      </StackPanel>
+     </ScrollViewer>
+     <Grid Grid.Row="2" Classes="actions" ColumnDefinitions="*,Auto">
+      <TextBlock Text="{Binding Error}" Classes="error"/>
+      <StackPanel Grid.Column="1">
+       <Button Content="保存设置" Command="{Binding SaveSettingsCommand}" Classes="primary" MinWidth="136"/>
+      </StackPanel>
+     </Grid>
+    </Grid>
+   </suki:SukiSideMenuItem.PageContent>
+  </suki:SukiSideMenuItem>
+
+  <suki:SukiSideMenuItem Header="关于" AutomationProperties.Name="关于">
+   <suki:SukiSideMenuItem.Icon><PathIcon Data="M10,1 A9,9 0 1 1 9.99,1 Z M10,3 A7,7 0 1 0 10.01,3 Z M9,8 L11,8 11,15 9,15 Z M9,5 L11,5 11,7 9,7 Z"/></suki:SukiSideMenuItem.Icon>
+   <suki:SukiSideMenuItem.PageContent><local:AboutView/></suki:SukiSideMenuItem.PageContent>
+  </suki:SukiSideMenuItem>
+ </suki:SukiSideMenu>
+</Window>

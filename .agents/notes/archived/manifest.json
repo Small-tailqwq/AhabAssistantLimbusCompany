@@ -1,4 +1,7 @@
 {
   "version": 1,
-  "files": {}
+  "files": {
+    "architecture/2026-05-03-mirror-team-queue-normalization.md": "sha256:28d83811f6b8f12e1f16b340efe69a57a1943d446012078974196afaf865e648",
+    "architecture/2026-05-05-updater-bootstrap-protocol.md": "sha256:100cfd5ab94b54f26c160948a22914b3c08ba88efef60a68d3d9656ed527a18f"
+  }
 }

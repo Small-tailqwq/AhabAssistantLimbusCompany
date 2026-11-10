@@ -1,0 +1,19 @@
+{
+  "base_head": "cee28c37cc7e496759e2df786b03dd5027c8dede",
+  "sync_commit": null,
+  "verified_date": "2026-11-09",
+  "baseline": "uncommitted-working-tree",
+  "tlc_version": "1.7.4",
+  "files": {
+    "src/AALC.Runtime/Mirror/MirrorRunner.cs": "474436c7335e9317948d6395ddba6365c92c5f7ae67cb702b6c40bcf574a013d",
+    "src/AALC.Runtime/Mirror/MirrorSettlementFlow.cs": "4a378f4c65ac05dfc1756ba459449250d32096480dc9d4a8ee143529899ab193",
+    "src/AALC.Runtime/Mirror/MirrorEntryFlow.cs": "1f298e880ab9e68ed9cd6331471385a665eb616631cfbdf625403d684f55bdc3",
+    "src/AALC.Core/Features/Mirror/MirrorOptions.cs": "acceeca671cebe57e3ab2b6f71913077ae19292b412d0c86a707da135b2be161",
+    "src/AALC.Runtime/Automation/GameSession.cs": "c4510e2e0219090e17d892fd0be868f980f714a2cba1ca843dbe8675494673e3",
+    "src/AALC.Runtime/Automation/Contracts.cs": "9f33413906175b5ecbbab9646c8db4aa10bd91346942df25e543e330ee54749e",
+    "src/AALC.Runtime/Daily/DailyNavigation.cs": "085cb57d65dac8285cc644ee1f6fd738c1c6dace993ff78e23a7669129886657",
+    "src/AALC.Desktop/MainViewModel.Mirror.cs": "eb15a6568d747b2d9560de24467771834bbab389b32bb934a1f6708747d159fc",
+    "src/AALC.Cli/MirrorCommands.cs": "769357ba283a13ca83de09f8caf697ff4b2b73346ecf735e42e553ec89b4cb98",
+    "docs/mirror-flow.md": "70084c155aee9439f9a86ec9929355e51dc26257432175888ff34f4e63f09b83"
+  }
+}

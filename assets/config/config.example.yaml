@@ -1,0 +1,245 @@
+config_version: 1781049600 # 配置文件版本号 (时间戳)
+
+# 游戏设置
+game_title_name: LimbusCompany # 游戏窗口标题。
+game_process_name: LimbusCompany.exe # 游戏进程名。
+
+game_path: C:\Program Files (x86)\Steam\steamapps\common\Limbus Company\LimbusCompany.exe # 游戏启动路径。
+startup_wait_timeout_pc: 120 # PC启动游戏后等待主界面的超时时间(秒)
+
+language_in_game: en # 游戏语言
+after_completion: 0 # 脚本结束后的操作
+keep_after_completion: False # 是否保持脚本结束后的操作
+language_in_program: "" # 程序语言
+shutdown_hotkey: "<ctrl>+q" # 关闭快捷键
+pause_hotkey: "<alt>+p" # 暂停快捷键
+resume_hotkey: "<alt>+r" # 继续快捷键
+
+announcement: 1715990400 # 公告板时间戳
+
+memory_protection: False # 内存占用保护
+
+background_click: True # 是否使用后台点击
+win_input_type: "background" # 键鼠操控方式
+
+auto_hard_mirror: False # 周四自动切换困难镜牢
+last_auto_change: 1715990400 # 上次自动切换困难镜牢的时间戳
+hard_mirror_chance: 0 # 困难镜牢剩余次数
+timezone: null # 当前时区相对于东九区的偏移量，如东八区为1，东九区为0，东十区为-1
+
+zoom_scale: 0 # 缩放比例
+window_position_x: 0 # 窗口位置x
+window_position_y: 0 # 窗口位置y
+theme_mode: AUTO # 应用主题：AUTO, LIGHT, DARK
+autostart: False # 自启动
+autodaily: False # 启用定时执行
+autodaily_task: [False, False, False, False]
+autodaily_task_exit: [False, False, False, False, False, False, False]
+autodaily_time: "00:00" # 定时执行时间 (HH:mm)
+autodaily2: False # 启用定时执行2
+autodaily2_task: [False, False, False, False]
+autodaily2_task_exit: [False, False, False, False, False, False, False]
+autodaily_time2: "00:00" # 定时执行时间2 (HH:mm)
+autodaily3: False # 启用定时执行3
+autodaily3_task: [False, False, False, False]
+autodaily3_task_exit: [False, False, False, False, False, False, False]
+autodaily_time3: "00:00" # 定时执行时间3 (HH:mm)
+autodaily4: False # 启用定时执行4
+autodaily4_task: [False, False, False, False]
+autodaily4_task_exit: [False, False, False, False, False, False, False]
+autodaily_time4: "00:00" # 定时执行时间4 (HH:mm)
+minimize_to_tray: False # 最小化到托盘
+after_completion_actions: [] # 脚本结束后的前置动作（可多选）：exit_game/exit_emulator/exit_aalc
+after_completion_power_action: "none" # 脚本结束后的最终动作（单选）：none/sleep/hibernate/lock/shutdown
+
+# 脚本运行速度设置
+screenshot_interval: 0.85 # 截图间隔时间
+mouse_action_interval: 0.5 # 鼠标操作间隔时间
+mouse_down_duration: 0.1 # 鼠标按下持续时间
+use_post_message: False # 是否使用PostMessage进行输入
+
+resonate_with_Ahab: False # 是否播放亚哈语录
+
+# 实验性功能
+lab_mouse_logitech: False # 实验室功能：通过独立罗技驱动 DLL 进行硬件级键鼠输入模拟，需填入正确 DLL 路径才能生效
+logitech_dll_path: "" # 罗技驱动 DLL 的绝对路径，启用硬件键鼠模拟必填
+logitech_bionic_trajectory: True # 罗技驱动专用：是否启用仿生轨迹与仿生点击偏移
+lab_mouse_razer: False # 实验室功能：通过独立雷蛇驱动 DLL 进行硬件级键鼠输入模拟，需填入正确 DLL 路径才能生效
+razer_dll_path: "" # 雷蛇驱动 DLL 的绝对路径，启用硬件键鼠模拟必填
+razer_bionic_trajectory: True # 雷蛇驱动专用：是否启用仿生轨迹与仿生点击偏移
+lab_screenshot_obs: False # 实验室功能：通过 OBS WebSocket 截图，规避 ScreenCaptureAnalytics 检测
+obs_host: "localhost" # OBS WebSocket 服务地址
+obs_port: 4455 # OBS WebSocket 服务端口
+obs_password: "" # OBS WebSocket 密码（未设置密码则留空）
+obs_source_name: "" # OBS 中捕获游戏窗口的源名称（必填）
+obs_image_format: "jpg" # OBS 截图编码格式，推荐 jpg；png 更稳但通常更慢
+obs_image_quality: 80 # OBS 截图压缩质量，0 压缩更高，100 压缩更低；仅对有损格式生效
+desktop_clone_enabled: False # 从主界面启动任务时，改为在 Windows Child Session 桌面分身中运行
+desktop_clone_show_on_start: True # 创建桌面分身时自动显示 RDP 桌面窗口
+desktop_clone_suppress_autoruns: True # 创建桌面分身时临时抑制 Run 键自启动（实验性）：登录窗口期设置 Explorer 策略、分身就绪后恢复；启动文件夹与登录类计划任务不受影响
+desktop_clone_toolbar_items: ["mute", "input"] # 分身窗口顶部显示的快捷工具；可选 mute（关闭声音）、input（关闭输入）
+desktop_clone_sync_logs: True # 将分身 AALC 的 INFO 及以上日志同步到主控日志面板
+desktop_clone_ignore_remote_control_warning: False # 启动桌面分身时不再提示正在运行的远程控制软件（如 UU远程、ToDesk）风险
+lab_simulator_launch_accelerator: False # 模拟器启动加速器：启动游戏前检测加速是否生效
+lab_simulator_accelerator_preset: custom # 模拟器加速器预设："custom" 或 "leigod"
+lab_simulator_accelerator_package: "" # 模拟器加速器包名，自定义预设时需要手动填写
+lab_simulator_accelerator_tap_x: 0 # 模拟器加速器加速按钮 X 坐标
+lab_simulator_accelerator_tap_y: 0 # 模拟器加速器加速按钮 Y 坐标
+lab_simulator_accelerator_delay: 3.0 # 模拟器加速器启动后等待时间（秒）
+
+# 调试功能
+debug_mode: False # 调试模式总开关；关闭时应同步关闭所有子调试开关
+debug_mirror_route: False # 镜牢寻路调试：输出额外日志并保存路线图调试截图
+debug_thread_dungeon: False # 纽本调试：保存纽本流程截图到 logs/thread_dungeon_debug
+debug_retry: False # 重试调试：在尝试退出、重启镜牢时输出识别情况的日志断点
+debug_shop: False # 商店调试：保存商店流程截图到 logs/shop_debug
+debug_mirror_event: False # 镜牢事件调试：保存事件分支流程截图到 logs/event_debug
+experimental_keep_screen_awake: False # 运行期间阻止系统与显示器休眠，任务结束自动恢复
+experimental_hdr_warning: True # 任务启动时检测游戏显示器 HDR 状态并提示潜在识别问题
+# 模拟器设置
+simulator: False # 是否使用模拟器
+simulator_type: 0 # 0:mumu , 10:其他 。TODO:蓝迭 , 雷电 , 夜神 , 逍遥
+simulator_port: 0 # 端口
+mumu_instance_number: -1 # mumu模拟器的实例编号
+start_emulator_timeout: 120 # 启动模拟器超时时间
+startup_wait_timeout_simulator: 180 # 模拟器启动游戏后等待主界面的超时时间(秒)
+adb_reconnect_on_error: True # ADB或minitouch连接失效时自动重连
+
+# 自动更新
+check_update: True
+update_channel: stable # 更新通道：stable/canary
+update_use_system_proxy: False # 使用系统代理进行更新
+update_prerelease_enable: False
+update_source: GitHub # 更新源
+mirrorchyan_cdk: "" # Mirror酱 CDK
+image_resource_sync: True # 是否启用图片资源自动同步
+image_resource_source: Auto # 图片资源同步源，可选 Auto / Gitee / GitHub
+
+# 保存启动后的页面
+default_page: 0
+
+# 是否进行自动窗口设置
+set_windows: True # 是否进行自动窗口设置
+set_win_size: 1080 # 设置使用的分辨率,1080:1920*1080,1440:2560*1440,2160:3840*2160,720:1280*720,900:1600*900,1800:3200*1800
+set_win_position: free # 是否自动设置窗口的位置
+set_reduce_miscontact: True # 是否防止误触
+
+select_team_by_order: False # 是否按顺序(而非名称)选择队伍
+
+# 是否进行日常本
+daily_task: False # 是否进行日常本
+set_EXP_count: 1 # 设置经验本的次数
+set_thread_count: 3 # 设置纽本的次数
+daily_teams: 1 # 设置日常本使用的队伍
+use_continuous_combat: False # 是否使用连续作战
+use_continuous_combat_select: 1 # 一场连续作战的最大次数
+targeted_teaming_EXP: False
+EXP_day_1_2: 1
+EXP_day_3_4: 1
+EXP_day_5_6: 1
+EXP_day_7: 1
+targeted_teaming_thread: False
+thread_day_1: 1
+thread_day_2: 1
+thread_day_3: 1
+thread_day_4: 1
+thread_day_5: 1
+thread_day_6: 1
+thread_day_7: 1
+
+# 是否自动获取奖励
+get_reward: False # 是否进行获取奖励
+set_get_prize_actions:
+  - mail
+  - daily_weekly
+  # 可选: pass_level（通行证等级奖励）
+
+# 是否自动购买体力
+buy_enkephalin: False # 是否自动购买体力
+set_lunacy_to_enkephalin: 2 # 0 不购买，1 购买一次，2 购买两次，3 购买三次
+Dr_Grandet_mode: False
+skip_enkephalin: False # 跳过换体
+
+# 是否进行自动镜牢
+mirror: False # 是否进行自动镜牢
+set_mirror_count: 1 # 镜牢的次数
+hard_mirror: False # 进行困难镜牢
+no_weekly_bonuses: False # 不使用每周加成
+floor_3_exit: False # 只打三层
+infinite_dungeons: False # 无限刷牢
+save_rewards: False # 保存奖励不领
+hard_mirror_single_bonuses: False # 困难镜牢使用单次加成
+select_event_pack: False # 第五层选择（最左边）活动卡包
+skip_event_pack: False # 第五层跳过（最左边）活动卡包
+re_claim_rewards: False # 再次执行领取奖励任务
+not_skip_whitegossypium: False # 不跳过白棉花
+fight_to_last_man: False # 战斗直到全灭
+teams_be_select_num: 0 # 被选中的队伍数量
+teams_be_select: [False] # 被选中的队伍
+teams_order: [0] # 队伍的顺序
+teams_active_queue: [] # 镜牢启用队伍的执行队列（单一事实源）
+mirror_keyboard_navigation: False # 使用键盘进行镜牢寻路
+mirror_keyboard_simple_pathfinding: False # 简单键盘寻路（始终按↑，避免鼠标拖动）
+mirror_resource_collection: False # 镜牢资源收集模式（收集卡包地图截图用于模型训练）
+
+# 队伍设置
+teams:
+  '1':
+    team_system: 0 # 队伍使用的体系
+    team_number: 1 # 使用的队伍序号
+    shop_strategy: 0 # 商店策略
+    sinners_be_select: 0 # 有几名罪人被选中
+    chosen_sinners: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # 有哪几名罪人被选中
+    sinner_order: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # 罪人被选中的顺序
+    system_burn: False # 弃置燃烧饰品
+    system_bleed: False # 弃置流血饰品
+    system_tremor: False # 弃置震颤饰品
+    system_rupture: False # 弃置破裂饰品
+    system_poise: False # 弃置呼吸饰品
+    system_sinking: False # 弃置沉沦饰品
+    system_charge: False # 弃置充能饰品
+    system_slash: False # 弃置斩击饰品
+    system_pierce: False # 弃置穿刺饰品
+    system_blunt: False # 弃置打击饰品
+    do_not_heal: False # 不治疗
+    do_not_buy: False # 不购买
+    do_not_fuse: False # 不合成
+    do_not_sell: False # 不出售
+    do_not_enhance: False # 不升级
+    only_aggressive_fuse: False # 合成只采取激进策略
+    do_not_system_fuse: False # 不合成体系饰品
+    only_system_fuse: False # 只合成体系饰品
+    avoid_skill_3: False # 避免使用3技能
+    re_formation_each_floor: False # 每个楼层重新编队
+    use_starlight: False # 开局星光换钱
+    aggressive_also_enhance: False # 激进合成期间也升级饰品
+    aggressive_save_systems: False # 激进合成保留体系饰品
+    defense_first_round: False # 第一回合全员防御
+    fixed_team_use: False # 固定队伍用途
+    fixed_team_use_select: 0 # 固定队伍用途的选择项
+    reward_cards: False # 奖励卡优先度
+    reward_cards_select: 0 # 自定义奖励卡优先度
+    opening_bonus: [1, 1, 1, 1, 0, 0, 0, 0, 0, 0] # 开局星光加成：0 未选中，1 基础，2 +，3 ++
+    after_level_IV: False # 自定义合成四级后的操作
+    after_level_IV_select: 0 # 合成四级后的操作
+    shopping_strategy: False # 自定义购物策略
+    shopping_strategy_select: 0 # 购物策略
+    opening_items: False # 自定义开局道具
+    opening_items_select: 0 # 开局道具选择顺序
+    opening_items_system: 0 # 开局道具体系
+    second_system: False # 启用第二体系
+    second_system_select: 0 # 第二体系
+    second_system_setting: 0 # 第二体系启用时间
+    second_system_action: [0, 0, 0, 0] # 第二体系行动模式
+    skill_replacement: False # 自定义技能替换
+    skill_replacement_select: 0 # 技能替换设置
+    skill_replacement_mode: 0 # 技能替换模式
+    ignore_shop: [0, 0, 0, 0, 0] # 忽略商店楼层
+    use_custom_theme_pack_weight: False # 使用队伍自定义主题包权重
+    remark_name: # 队伍备注名
+    use_team_code: False # 使用编队码
+    team_code: "" # 编队码
+    total_mirror_time_hard: [] # 困难镜牢总用时
+    mirror_hard_count: 0 # 困难镜牢次数
+    total_mirror_time_normal: [] # 普通镜牢总用时
+    mirror_normal_count: 0 # 普通镜牢次数

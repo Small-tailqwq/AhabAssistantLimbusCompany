@@ -1,0 +1,12 @@
+{
+  "base_head": "cee28c37cc7e496759e2df786b03dd5027c8dede",
+  "sync_commit": null,
+  "verified_date": "2026-11-09",
+  "baseline": "uncommitted-working-tree",
+  "tlc_version": "1.7.4",
+  "files": {
+    "src/AALC.Runtime/DesktopClone/DesktopCloneController.cs": "ce3db5782ba30d951372a8b9c85163cc9fdcdae07034463dd297cd0948908c17",
+    "src/AALC.Runtime/DesktopClone/CloneContracts.cs": "56d60bf94d1c0fa16e9af9506035897c5087ac7e666dcc0fca124f75f74415de",
+    "src/AALC.Desktop/MainViewModel.Clone.cs": "b1f92c43fc4c577811bfa76dc622f3520e4637010de9663e1d49274396d6501d"
+  }
+}

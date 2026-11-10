@@ -8,15 +8,15 @@ fork 的工具箱包含汉化、新手提示和截图等独立能力。直接引
 
 ## 决策
 
-[工具箱](../../../../dotnet/docs/tools.md)使用 C# 与 Avalonia，保留零协汉化、Windows 新手提示和游戏截图三个入口。[MainViewModel.Tools](../../../../dotnet/src/AALC.Desktop/MainViewModel.Tools.cs)复用主窗口的任务互斥、取消与关闭收尾；网络和存档访问由用户操作触发。游戏程序路径单独保存在 AAALC profile 的 `GameExecutablePath`，不导入 Python 配置。
+[工具箱](../../../../docs/tools.md)使用 C# 与 Avalonia，保留零协汉化、Windows 新手提示和游戏截图三个入口。[MainViewModel.Tools](../../../../src/AALC.Desktop/MainViewModel.Tools.cs)复用主窗口的任务互斥、取消与关闭收尾；网络和存档访问由用户操作触发。游戏程序路径单独保存在 AAALC profile 的 `GameExecutablePath`，不导入 Python 配置。
 
 页面的信息层级和结果展示遵循[AAALC 界面设计原则](../architecture/2026-10-27-aaalc-interface-design.md)。
 
-[LlcLocalization](../../../../dotnet/src/AALC.Runtime/Tools/LlcLocalization.cs)查询实际 Release 附件，保留旧版 `.llc_version` 标记，按字符串比较版本。下载及解压在安装目录旁完成，只有完整包通过摘要与路径检查后才提交。更新以完整语言目录替换旧目录，旧目录保留为带时间和随机后缀的备份。这个目录边界使已从上游包移除的文件不继续参与游戏加载，也使安装失败可恢复到同一份旧包。
+[LlcLocalization](../../../../src/AALC.Runtime/Tools/LlcLocalization.cs)查询实际 Release 附件，保留旧版 `.llc_version` 标记，按字符串比较版本。下载及解压在安装目录旁完成，只有完整包通过摘要与路径检查后才提交。更新以完整语言目录替换旧目录，旧目录保留为带时间和随机后缀的备份。这个目录边界使已从上游包移除的文件不继续参与游戏加载，也使安装失败可恢复到同一份旧包。
 
-[TutorialSave](../../../../dotnet/src/AALC.Runtime/Tools/TutorialSave.cs)只处理存档数据模型和 AES 编码；[GameFiles](../../../../dotnet/src/AALC.Platform.Windows/Tools/GameFiles.cs)负责 Windows 注册表密钥读取、当前用户的存档发现与备份替换。关闭提示沿用 fork 的模型范围，保留未知字段与现有教程 ID；恢复提示翻转相应布尔状态，保留公告已读历史。完整恢复以原始加密存档备份为依据。注册表仅用于读取密钥。
+[TutorialSave](../../../../src/AALC.Runtime/Tools/TutorialSave.cs)只处理存档数据模型和 AES 编码；[GameFiles](../../../../src/AALC.Platform.Windows/Tools/GameFiles.cs)负责 Windows 注册表密钥读取、当前用户的存档发现与备份替换。关闭提示沿用 fork 的模型范围，保留未知字段与现有教程 ID；恢复提示翻转相应布尔状态，保留公告已读历史。完整恢复以原始加密存档备份为依据。注册表仅用于读取密钥。
 
-截图复用已有 `GameWindow`，遵守游戏窗口所有权和[非 C 盘证据目录](../../../../dotnet/src/AALC.Runtime/EvidencePaths.cs)约定。截图无需初始化模板或 OCR，保存原始客户区尺寸的 PNG。
+截图复用已有 `GameWindow`，遵守游戏窗口所有权和[非 C 盘证据目录](../../../../src/AALC.Runtime/RecordingStorage.cs)约定。截图无需初始化模板或 OCR，保存原始客户区尺寸的 PNG。
 
 ## 曾考虑的替代方案
 

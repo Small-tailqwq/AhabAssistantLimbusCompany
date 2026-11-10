@@ -1,0 +1,16 @@
+{
+  "base_head": "cee28c37cc7e496759e2df786b03dd5027c8dede",
+  "sync_commit": null,
+  "verified_date": "2026-11-09",
+  "baseline": "uncommitted-working-tree",
+  "tlc_version": "1.7.4",
+  "files": {
+    "src/AALC.Runtime/Daily/DailyRunner.cs": "846026244309a35ec366335814a6ce1d67374832c4eee267956e1bab25309344",
+    "src/AALC.Runtime/Daily/LuxcavationFlow.cs": "fc581384265be564e36f3ec3ccec0ddba6be3f7bb3546829d1eb1000adacdda7",
+    "src/AALC.Runtime/Daily/DailyNavigation.cs": "085cb57d65dac8285cc644ee1f6fd738c1c6dace993ff78e23a7669129886657",
+    "src/AALC.Runtime/Automation/BattleFlow.cs": "61a91068d6636b8910011de772082088f7549db32206be279f0e9901af200ed9",
+    "src/AALC.Runtime/Automation/GameSession.cs": "c4510e2e0219090e17d892fd0be868f980f714a2cba1ca843dbe8675494673e3",
+    "src/AALC.Runtime/Replay/DailyScenarioSession.cs": "b0e27f73742489054a607d2bc83b4fb90602ae76e8eaa019b6bdafed434590ce",
+    "scenarios/daily/daily-exp-thread-three.json": "1d09137e72f5fb1ab4c9d2d91cb11bb578fd47a6d50de6166582626b4cb725a2"
+  }
+}

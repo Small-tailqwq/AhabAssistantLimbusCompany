@@ -1,0 +1,74 @@
+<UserControl x:Class="AALC.Desktop.DesktopCloneView"
+ xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:local="using:AALC.Desktop" x:DataType="local:MainViewModel">
+ <Grid Classes="page" RowDefinitions="Auto,*,Auto">
+  <TextBlock Text="桌面分身" Classes="heading"/>
+  <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+   <StackPanel Classes="cards" Margin="0,0,10,0">
+    <Border Classes="card">
+     <StackPanel Classes="options">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+       <Ellipse Classes="status" Classes.running="{Binding CloneActive}" VerticalAlignment="Center"/>
+       <TextBlock Grid.Column="1" Text="{Binding CloneStatus}" Classes="section" TextTrimming="CharacterEllipsis">
+        <ToolTip.Tip><TextBlock Text="{Binding CloneStatus}" Classes="tooltip"/></ToolTip.Tip>
+       </TextBlock>
+      </Grid>
+      <Grid Classes="option" ColumnDefinitions="*,Auto" IsVisible="{Binding CloneNeedsElevation}">
+       <TextBlock Text="需要管理员权限" Classes="error"/>
+       <Button Grid.Column="1" Content="以管理员身份重启" Command="{Binding RestartElevatedCommand}"/>
+      </Grid>
+      <Grid Classes="option" ColumnDefinitions="*,Auto" IsVisible="{Binding CloneCanEnableRemoteDesktop}">
+       <TextBlock Text="Windows 远程桌面未开启" Classes="error"/>
+       <Button Grid.Column="1" Content="开启远程桌面" Command="{Binding EnableCloneRemoteDesktopCommand}" IsEnabled="{Binding CloneIdle}"/>
+      </Grid>
+     </StackPanel>
+    </Border>
+    <Border Classes="card" IsVisible="{Binding CloneConfirming}">
+     <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+      <TextBlock Text="{Binding CloneConfirmation}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+      <Button Grid.Column="1" Content="取消" Command="{Binding CancelCloneConfirmationCommand}" MinWidth="90"/>
+      <Button Grid.Column="2" Content="{Binding CloneConfirmLabel}" Command="{Binding ConfirmCloneCommand}"
+       Classes="primary" Classes.danger="{Binding CloneConfirmationDanger}" MinWidth="120"/>
+     </Grid>
+    </Border>
+    <Border Classes="card">
+     <StackPanel Classes="options">
+      <Grid Classes="option" ColumnDefinitions="*,Auto"><TextBlock Text="任务在分身内运行"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding RunTasksInClone}" IsEnabled="{Binding CanConfigure}" AutomationProperties.Name="任务在分身内运行"/></Grid>
+      <Grid Classes="option" ColumnDefinitions="*,Auto"><TextBlock Text="启动时显示窗口"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding ShowCloneOnStart}" AutomationProperties.Name="启动时显示窗口"/></Grid>
+      <Grid Classes="option" ColumnDefinitions="*,Auto"><TextBlock Text="不再提示远程控制软件风险"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding IgnoreCloneRemoteWarning}" AutomationProperties.Name="不再提示远程控制软件风险"/></Grid>
+     </StackPanel>
+    </Border>
+    <Border Classes="card">
+     <StackPanel Classes="options">
+      <TextBlock Text="分身窗口" Classes="section" Margin="0,0,0,4"/>
+      <TextBlock Text="连接分身后可调整窗口" Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !CloneConnected}"/>
+      <Grid Classes="option" ColumnDefinitions="*,Auto" IsEnabled="{Binding CloneConnected}"><TextBlock Text="显示窗口"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding CloneWindowVisible}" AutomationProperties.Name="显示分身窗口"/></Grid>
+      <Grid Classes="option" ColumnDefinitions="*,Auto" IsEnabled="{Binding CloneConnected}"><TextBlock Text="关闭声音"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding CloneMuted}" AutomationProperties.Name="关闭分身声音"/></Grid>
+      <Grid Classes="option" ColumnDefinitions="*,Auto" IsEnabled="{Binding CloneConnected}"><TextBlock Text="关闭输入"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding CloneInputBlocked}" AutomationProperties.Name="关闭分身输入"/></Grid>
+     </StackPanel>
+    </Border>
+    <Border Classes="card" IsVisible="{Binding CloneChecked}">
+     <StackPanel Classes="options">
+      <TextBlock Text="环境" Classes="section" Margin="0,0,0,4"/>
+      <ItemsControl ItemsSource="{Binding CloneChecks}">
+       <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:CloneCheckRow">
+        <Grid ColumnDefinitions="160,*" ColumnSpacing="12" Margin="0,3">
+         <TextBlock Text="{Binding Name}" Classes="muted"/>
+         <TextBlock Grid.Column="1" Text="{Binding Detail}" TextWrapping="Wrap" Classes.error="{Binding Failed}" Classes.highlight="{Binding Warning}"/>
+        </Grid>
+       </DataTemplate></ItemsControl.ItemTemplate>
+      </ItemsControl>
+     </StackPanel>
+    </Border>
+   </StackPanel>
+  </ScrollViewer>
+  <Grid Grid.Row="2" Classes="actions" ColumnDefinitions="*,Auto">
+   <TextBlock Text="{Binding CloneError}" Classes="error"/>
+   <StackPanel Grid.Column="1">
+    <Button Content="兼容性检查" Command="{Binding CheckCloneCommand}" MinWidth="110"/>
+    <Button Classes="danger" Content="停止并注销" Command="{Binding StopCloneCommand}" IsVisible="{Binding CloneActive}" MinWidth="110"/>
+    <Button Content="启动分身" Command="{Binding StartCloneCommand}" Classes="primary" MinWidth="136"/>
+   </StackPanel>
+  </Grid>
+ </Grid>
+</UserControl>

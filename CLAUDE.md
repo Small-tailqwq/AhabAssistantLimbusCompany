@@ -1,5 +1,5 @@
-# AAALC — Agent 指引
+# AAALC
 
-项目规则以根目录 [AGENTS.md](AGENTS.md) 为唯一来源。完整读取该文件；本文件只做转发，不维护副本。
+完整读取 [AGENTS.md](AGENTS.md)，按其中入口直接读取 `.agents/skills/` 下的相关技能。
 
 @AGENTS.md
