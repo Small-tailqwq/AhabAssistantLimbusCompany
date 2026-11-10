@@ -3,7 +3,7 @@ name: Depends Export Workflow
 on:
   push:
     branches:
-      - main
+      - ahab
     paths:
       - "uv.lock"
 

@@ -16,7 +16,7 @@ on:
       - "scripts/agent_notes.py"
       - "scripts/link_skills.py"
   push:
-    branches: [main]
+    branches: [ahab]
     paths:
       - "AGENTS.md"
       - ".agents/**"

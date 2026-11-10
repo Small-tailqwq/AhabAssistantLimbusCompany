@@ -3,7 +3,7 @@ name: CI Build
 on:
   pull_request:
     branches:
-      - main
+      - ahab
     paths: # 仅源码/依赖/构建配置变更才触发 CI
       - "app/**/*.py"
       - "tasks/**/*.py"
@@ -18,7 +18,7 @@ on:
       - "scripts/build.py"
   push:
     branches:
-      - main
+      - ahab
     paths: # 仅源码/依赖/构建配置变更才触发 CI
       - "app/**/*.py"
       - "tasks/**/*.py"

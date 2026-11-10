@@ -3,14 +3,14 @@ name: i18n 完整性检查
 on:
   pull_request:
     branches:
-      - main
+      - ahab
     paths:
       - "app/**/*.py"
       - "tasks/**/*.py"
       - "i18n/**"
   push:
     branches:
-      - main
+      - ahab
     paths:
       - "app/**/*.py"
       - "tasks/**/*.py"
