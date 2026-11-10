@@ -291,6 +291,37 @@ public sealed class GameSessionTests
     }
 
     [Fact]
+    public async Task TransientCaptureFailuresAreRetriedWithoutSendingInput()
+    {
+        var clock = new Clock();
+        var input = new Input(clock);
+        var events = new List<RunEvent>();
+        var vision = new Vision(id => Frame(id)) { CaptureFailures = 2 };
+        var session = new GameSession(vision, input, clock, events.Add, TimeSpan.FromMinutes(1));
+
+        var frame = await session.ObserveAsync([], default);
+
+        Assert.Equal(1, frame.Identity.Id);
+        Assert.Equal(3, vision.Captures);
+        Assert.Equal(2, events.Count(item => item.Rule == "automation.observe.retry"));
+        Assert.Equal(TimeSpan.FromSeconds(3), clock.Elapsed);
+        Assert.Empty(input.Actions);
+    }
+
+    [Fact]
+    public async Task PersistentCaptureFailuresReachTheRunnerAfterBoundedRetries()
+    {
+        var clock = new Clock();
+        var vision = new Vision(id => Frame(id)) { CaptureFailures = int.MaxValue };
+        var session = new GameSession(vision, new Input(clock), clock, _ => { }, TimeSpan.FromMinutes(1));
+
+        await Assert.ThrowsAsync<GameTransientException>(() => session.ObserveAsync([], default).AsTask());
+
+        Assert.Equal(6, vision.Captures);
+        Assert.Equal(TimeSpan.FromSeconds(15), clock.Elapsed);
+    }
+
+    [Fact]
     public async Task OcrFinishingAtTheDeadlineCannotClickTheRecognizedRetryButton()
     {
         var clock = new Clock();
@@ -396,8 +427,13 @@ public sealed class GameSessionTests
         public List<TextPreprocessing> PreprocessingModes { get; } = [];
         public Func<GameFrame, IReadOnlyList<RecognizedText>> Text { get; init; } = _ => [];
         public Action? OnRead { get; init; }
-        public ValueTask<GameFrame> ObserveAsync(IReadOnlyList<ImageQuery> queries, CancellationToken ct) =>
-            ValueTask.FromResult(frames(++sequence));
+        public int CaptureFailures { get; init; }
+        public int Captures { get; private set; }
+        public ValueTask<GameFrame> ObserveAsync(IReadOnlyList<ImageQuery> queries, CancellationToken ct)
+        {
+            if (++Captures <= CaptureFailures) throw new GameTransientException("测试模拟截图超时");
+            return ValueTask.FromResult(frames(++sequence));
+        }
         public ValueTask<IReadOnlyList<RecognizedText>> ReadTextAsync(GameFrame frame, CancellationToken ct,
             PixelRect? region = null, int scale = 1, TextPreprocessing preprocessing = TextPreprocessing.None)
         {

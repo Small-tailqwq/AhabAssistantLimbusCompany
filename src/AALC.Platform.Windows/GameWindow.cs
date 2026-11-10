@@ -148,14 +148,14 @@ public sealed class GameWindow : IScreenCapture, IMailInput, IGameInput, IDispos
         lock (gate)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (capturing is { IsCompleted: false }) throw new InvalidOperationException("前一次截图尚未结束");
+            if (capturing is { IsCompleted: false }) throw new GameTransientException("前一次截图尚未结束");
             var rect = ValidateWindow();
             var id = Interlocked.Increment(ref sequence);
             pending = capturing = Task.Run(() => Capture(rect, id), CancellationToken.None);
         }
         PixelFrame frame;
         try { frame = await pending.WaitAsync(TimeSpan.FromSeconds(15), cancellationToken); }
-        catch (TimeoutException exception) { throw new TimeoutException("等待游戏截图超过 15 秒", exception); }
+        catch (TimeoutException exception) { throw new GameTransientException("等待游戏截图超过 15 秒", exception); }
         lastFrame = frame.Identity.Id;
         return frame;
     }
@@ -210,7 +210,7 @@ public sealed class GameWindow : IScreenCapture, IMailInput, IGameInput, IDispos
     {
         lock (gate)
         {
-            if (clicking is { IsCompleted: false }) throw new InvalidOperationException("前一次输入尚未结束");
+            if (clicking is { IsCompleted: false }) throw new GameTransientException("前一次输入尚未结束");
             clicking = operation();
             return new(clicking);
         }
@@ -221,9 +221,9 @@ public sealed class GameWindow : IScreenCapture, IMailInput, IGameInput, IDispos
         cancellationToken.ThrowIfCancellationRequested();
         var rect = ValidateWindow();
         if (frame.Window != info.Handle || frame.Id != lastFrame || frame.Width != rect.Right || frame.Height != rect.Bottom)
-            throw new InvalidOperationException("输入依据的画面已失效");
+            throw new GameTransientException("输入依据的画面已失效");
         if (Stopwatch.GetElapsedTime(frame.CapturedAt) > TimeSpan.FromSeconds(5))
-            throw new InvalidOperationException("识别画面已过期");
+            throw new GameTransientException("识别画面已过期");
         return rect;
     }
 
@@ -353,7 +353,8 @@ public sealed class GameWindow : IScreenCapture, IMailInput, IGameInput, IDispos
         if (Native.SendMessageTimeout((nint)info.Handle, message, wParam, lParam, 3, 1500, out _) == 0)
         {
             var error = Marshal.GetLastWin32Error();
-            throw new Win32Exception(error, $"游戏窗口输入未确认：消息 0x{message:X4}，错误 {error}，等待上限 1500 ms");
+            throw new GameTransientException($"游戏窗口输入未确认：消息 0x{message:X4}，错误 {error}，等待上限 1500 ms",
+                new Win32Exception(error));
         }
     }
 

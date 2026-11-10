@@ -21,6 +21,8 @@ public sealed class MirrorRunner(IGameSession session, IMirrorMapReader mapReade
         .. Combat.Select(asset => new ImageQuery(asset)), .. MirrorEventFlow.PageQueries,
         new("mirror/claim_reward/battle_statistics_assets.png")];
 
+    private const int MaxTransientFailures = 10;
+
     public static TimeSpan TimeoutFor(MirrorOptions options)
     {
         MirrorPlan.Validate(options);
@@ -47,23 +49,41 @@ public sealed class MirrorRunner(IGameSession session, IMirrorMapReader mapReade
                 var solo = team.DefenseForSolo ? new SoloDefenseState(team.DefenseForSoloTurns) : null;
                 session.Report("mirror.run.begin", $"第 {run + 1}/{options.Runs} 轮 · {team.Name} · 游戏队伍 {team.GameTeamNumber}");
                 MirrorSettlementResult result;
+                var settlement = new MirrorSettlementProgress();
+                var restartedAfterSubmit = false;
                 var blockedInputs = 0;
+                var transientFailures = 0;
                 while (true)
                 {
                     try
                     {
+                        if (settlement.Submitted)
+                        {
+                            // 模块已提交：不再经入口重新开局，直接从结算页接续，避免多开一轮或重复支付。
+                            if (restartedAfterSubmit)
+                            {
+                                if (!settlement.Acknowledged)
+                                    return Finish(RunOutcome.Failed, "结算奖励已提交但回执未确认时游戏重启，请核对奖励后再继续");
+                                session.Report("mirror.settlement.resumed", "回执已确认后游戏重启，本轮按已领取处理");
+                                result = new(true, true, "回执已确认，游戏重启后按已领取处理");
+                                break;
+                            }
+                            result = await MirrorSettlementFlow.RunAsync(session, options, settlement, ct);
+                            break;
+                        }
                         if (!await MirrorEntryFlow.RunAsync(session, team, ct))
                         {
                             if (await RecoverAsync("镜牢入口未完成", ct)) continue;
                             return Finish(RunOutcome.Failed, "镜牢入口未完成");
                         }
-                        result = await RunDungeonAsync(options, team, solo, ct);
+                        result = await RunDungeonAsync(options, team, solo, settlement, ct);
                         // 未通关的中途失败（卡死、页面无法确认等）重启游戏后经入口“继续”回到当前进度。
                         if (!result.Cleared && await RecoverAsync(result.Reason, ct)) continue;
                         break;
                     }
                     catch (GameRestartedException exception)
                     {
+                        restartedAfterSubmit |= settlement.Submitted;
                         session.Report("mirror.run.resume", $"{exception.Message}，游戏已重启，回到主界面后继续镜牢");
                         if (!await DailyNavigation.ReturnHomeAsync(session, ct)) return Finish(RunOutcome.Failed, "游戏重启后未能返回主界面");
                     }
@@ -73,13 +93,28 @@ public sealed class MirrorRunner(IGameSession session, IMirrorMapReader mapReade
                         session.Report("mirror.run.input-blocked", $"{exception.Message}，稍后从当前页面继续");
                         await session.DelayAsync(TimeSpan.FromSeconds(15), ct);
                     }
+                    catch (GameTransientException exception) when (++transientFailures <= MaxTransientFailures)
+                    {
+                        // 截图超时、画面过期、窗口消息未确认：不确定动作是否生效，重新观察后按当前页面接续。
+                        session.Report("mirror.run.transient", $"{exception.Message}，稍后从当前页面继续（{transientFailures}/{MaxTransientFailures}）");
+                        await session.DelayAsync(TimeSpan.FromSeconds(3), ct);
+                    }
+                    catch (GameTransientException exception)
+                    {
+                        // 瞬时错误持续出现，游戏可能已卡死：重启后接续，重启次数仍受会话限制。
+                        transientFailures = 0;
+                        restartedAfterSubmit |= settlement.Submitted;
+                        if (!await RecoverAsync(exception.Message, ct)) return Finish(RunOutcome.Failed, exception.Message);
+                    }
                 }
                 if (!result.Cleared || options.ClaimRewards && !result.Claimed)
                     return Finish(RunOutcome.Failed, result.Reason);
                 if (!result.Claimed) return Finish(RunOutcome.Completed, result.Reason + "；队伍队列保持当前顺序");
                 queue = MirrorPlan.Rotate(queue, teamIndex);
-                if (saveQueue is not null) await saveQueue(queue, ct);
+                // 领取已在游戏内完成，轮换必须落盘；停止请求在保存之后再生效。
+                if (saveQueue is not null) await saveQueue(queue, CancellationToken.None);
                 session.Report("mirror.queue.rotated", $"第 {run + 1} 轮结算完成，队伍移至队尾");
+                ct.ThrowIfCancellationRequested();
             }
             return Finish(RunOutcome.Completed, $"已完成 {options.Runs} 轮镜牢并领取结算奖励");
         }
@@ -98,7 +133,8 @@ public sealed class MirrorRunner(IGameSession session, IMirrorMapReader mapReade
         return await DailyNavigation.ReturnHomeAsync(session, ct);
     }
 
-    private async Task<MirrorSettlementResult> RunDungeonAsync(MirrorOptions options, MirrorTeamOptions team, SoloDefenseState? solo, CancellationToken ct)
+    private async Task<MirrorSettlementResult> RunDungeonAsync(MirrorOptions options, MirrorTeamOptions team, SoloDefenseState? solo,
+        MirrorSettlementProgress settlement, CancellationToken ct)
     {
         var route = new MirrorRouteFlow(session, mapReader);
         var started = session.Elapsed;
@@ -111,7 +147,7 @@ public sealed class MirrorRunner(IGameSession session, IMirrorMapReader mapReade
             var frame = await session.ObserveAsync(Queries, ct);
             if (frame.Find(MirrorSettlementFlow.Complete) is not null || frame.Find(MirrorSettlementFlow.Clear) is not null
                 || frame.Find(MirrorSettlementFlow.Claim) is not null)
-                return await MirrorSettlementFlow.RunAsync(session, options, ct);
+                return await MirrorSettlementFlow.RunAsync(session, options, settlement, ct);
             var rewards = await MirrorRewardFlow.HandleAsync(session, frame, team.Rewards, ct);
             if (rewards.Failed) return Failed("镜牢奖励选择未完成");
             if (rewards.Handled) { unknown = 0; continue; }

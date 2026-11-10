@@ -5,6 +5,15 @@ namespace AALC.Runtime.Mirror;
 
 public sealed record MirrorSettlementResult(bool Cleared, bool Claimed, string Reason);
 
+/// <summary>一轮镜牢结算的进度。由运行器按轮持有，跨越重启、拒绝输入和瞬时错误，
+/// 使已提交的模块不会再次提交，已确认的回执不会因重新入口而多开一轮。</summary>
+public sealed class MirrorSettlementProgress
+{
+    public bool Cleared { get; set; }
+    public bool Submitted { get; set; }
+    public bool Acknowledged { get; set; }
+}
+
 public static class MirrorSettlementFlow
 {
     private const string Root = "mirror/claim_reward/";
@@ -19,36 +28,41 @@ public static class MirrorSettlementFlow
         new("home/drive_assets.png"), new("mirror/road_to_mir/enter_mirror_assets.png", .78),
         new("base/leave_up_assets.png"), new("base/leave_up_confirm_assets.png")];
 
-    public static async Task<MirrorSettlementResult> RunAsync(IGameSession s, MirrorOptions options, CancellationToken ct)
+    private const int MaxOpenClicks = 3;
+    private static readonly TimeSpan OpenRetryDelay = TimeSpan.FromSeconds(3);
+
+    public static Task<MirrorSettlementResult> RunAsync(IGameSession s, MirrorOptions options, CancellationToken ct) =>
+        RunAsync(s, options, new MirrorSettlementProgress(), ct);
+
+    public static async Task<MirrorSettlementResult> RunAsync(IGameSession s, MirrorOptions options,
+        MirrorSettlementProgress progress, CancellationToken ct)
     {
-        var cleared = false;
-        var opened = false;
-        var submitted = false;
-        var acknowledged = false;
+        var openClicks = 0;
+        var nextOpenClick = TimeSpan.Zero;
         int? previousWeeklyCount = null;
         var waitingWeekly = 0;
         for (var attempt = 0; attempt < 65; attempt++)
         {
             var frame = await s.ObserveAsync(Queries, ct);
-            if (frame.Find(Complete) is not null || frame.Find(Clear) is not null) cleared = true;
+            if (frame.Find(Complete) is not null || frame.Find(Clear) is not null) progress.Cleared = true;
             if (await MirrorEntryFlow.ClickFirstAsync(s, frame, ["base/leave_up_confirm_assets.png", "base/leave_up_assets.png"],
                 "mirror.settlement.upgrade", ct)) continue;
-            if (cleared && !options.ClaimRewards)
+            if (progress.Cleared && !options.ClaimRewards)
             {
                 s.Report("mirror.settlement.pending", "镜牢已通关，结算奖励保留待领取");
                 return new(true, false, "已通关，结算奖励待领取");
             }
             if (frame.Find("home/drive_assets.png") is not null || frame.Find("mirror/road_to_mir/enter_mirror_assets.png") is not null)
-                return new(cleared, cleared && submitted && acknowledged, "奖励确认后返回镜牢入口");
-            if (submitted && await MirrorEntryFlow.ClickFirstAsync(s, frame,
+                return new(progress.Cleared, progress.Cleared && progress.Submitted && progress.Acknowledged, "奖励确认后返回镜牢入口");
+            if (progress.Submitted && await MirrorEntryFlow.ClickFirstAsync(s, frame,
                 [Root + "claim_rewards_confirm_assets.png", Root + "rewards_acquired_assets.png", "battle/battle_finish_confirm_assets.png"],
                 "mirror.settlement.acknowledge", ct))
             {
-                acknowledged = true;
+                progress.Acknowledged = true;
                 await s.DelayAsync(TimeSpan.FromMilliseconds(400), ct);
                 continue;
             }
-            if (cleared && !submitted && frame.Find(UseModules) is { } use)
+            if (progress.Cleared && !progress.Submitted && frame.Find(UseModules) is { } use)
             {
                 var bonuses = frame.FindAll(Weekly).OrderBy(hit => hit.Center.X).ToArray();
                 if (previousWeeklyCount is { } previous && bonuses.Length >= previous)
@@ -68,15 +82,19 @@ public static class MirrorSettlementFlow
                 }
                 s.Report("mirror.settlement.spend-modules", "领取本轮镜牢结算奖励");
                 await s.ClickAsync(frame, use.Center, "mirror.settlement.use-modules", ct);
-                submitted = true;
+                // 发送成功才记为已提交；输入抛出后由运行器重新观察，按钮仍在说明模块尚未支付。
+                progress.Submitted = true;
             }
-            else if (cleared && !opened && !submitted && frame.Find(Claim) is { } claim)
+            else if (progress.Cleared && !progress.Submitted && openClicks < MaxOpenClicks && s.Elapsed >= nextOpenClick
+                && frame.Find(Claim) is { } claim)
             {
+                // 打开领取面板不消耗资源；面板未出现时冷却后重点，避免一次点击丢失后空转到上限。
                 await s.ClickAsync(frame, claim.Center, "mirror.settlement.open", ct);
-                opened = true;
+                openClicks++;
+                nextOpenClick = s.Elapsed + OpenRetryDelay;
             }
             await s.DelayAsync(TimeSpan.FromMilliseconds(500), ct);
         }
-        return new(cleared, false, submitted ? "奖励已提交，尚未确认领取完成" : "未能确认镜牢通关结算");
+        return new(progress.Cleared, false, progress.Submitted ? "奖励已提交，尚未确认领取完成" : "未能确认镜牢通关结算");
     }
 }

@@ -50,6 +50,10 @@ public sealed class GameRestartedException(string reason) : Exception(reason);
 /// <summary>系统拒绝移动真实光标，输入未生效；通常在高权限窗口占据前台时出现，可稍后重试。</summary>
 public sealed class GameInputBlockedException(string reason) : Exception(reason);
 
+/// <summary>截图或输入的瞬时失败：画面过期、截图未返回、上一次截图或输入未结束、窗口消息未确认。
+/// 游戏本身未必异常；输入抛出时不保证已生效，调用方应重新观察并按当前页面接续，不能假定动作已完成。</summary>
+public sealed class GameTransientException(string reason, Exception? inner = null) : Exception(reason, inner);
+
 public interface IGameRestarter
 {
     /// <summary>返回时新游戏窗口已可截图和输入。</summary>
