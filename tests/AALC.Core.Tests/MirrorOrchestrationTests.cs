@@ -375,6 +375,42 @@ public sealed class MirrorOrchestrationTests
     }
 
     [Fact]
+    public async Task AnUnconfirmedSubmissionThatLandedResumesTheReceiptInsteadOfReenteringTheMirror()
+    {
+        var inner = new Session([
+            Stage("mirror.settlement.use-modules", MirrorSettlementFlow.Clear, MirrorSettlementFlow.UseModules),
+            Stage("mirror.settlement.acknowledge", Receipt),
+            Stage(null, Entrance)]);
+        var session = new FlakySession(inner, "mirror.settlement.use-modules") { FailAfterSending = true };
+        var saved = new List<MirrorTeamOptions[]>();
+
+        var result = await new MirrorRunner(session, new NoMapReader(),
+            (queue, _) => { saved.Add(queue.ToArray()); return Task.CompletedTask; })
+            .RunAsync(new() { ClaimRewards = true, Teams = Teams() }, default);
+
+        Assert.Equal(0, inner.Restarts);
+        Assert.Single(inner.Inputs, input => input.Rule == "mirror.settlement.use-modules");
+        Assert.Equal(RunOutcome.Completed, result.Outcome);
+    }
+
+    [Fact]
+    public async Task ASubmissionThatFailedBeforeSendingIsRetriedFromTheSettlementPage()
+    {
+        var inner = new Session([
+            Stage("mirror.settlement.use-modules", MirrorSettlementFlow.Clear, MirrorSettlementFlow.UseModules),
+            Stage("mirror.settlement.acknowledge", Receipt),
+            Stage(null, Entrance)]);
+        var session = new FlakySession(inner, "mirror.settlement.use-modules");
+
+        var result = await new MirrorRunner(session, new NoMapReader())
+            .RunAsync(new() { ClaimRewards = true, Teams = Teams() }, default);
+
+        Assert.Equal(RunOutcome.Completed, result.Outcome);
+        Assert.Equal(0, inner.Restarts);
+        Assert.Single(inner.Inputs, input => input.Rule == "mirror.settlement.use-modules");
+    }
+
+    [Fact]
     public async Task PersistentTransientFailuresStopWhenTheGameCannotBeRestarted()
     {
         var inner = new Session([
@@ -1638,6 +1674,7 @@ public sealed class MirrorOrchestrationTests
     private sealed class FlakySession(Session inner, string failingRule, int failures = 1) : IGameSession
     {
         public int Failures { get; private set; }
+        public bool FailAfterSending { get; init; }
         public TimeSpan Elapsed => inner.Elapsed;
         public int Observations => inner.Observations;
         public ValueTask<GameFrame> ObserveAsync(IReadOnlyList<ImageQuery> queries, CancellationToken ct) => inner.ObserveAsync(queries, ct);
@@ -1648,6 +1685,7 @@ public sealed class MirrorOrchestrationTests
             if (rule == failingRule && Failures < failures)
             {
                 Failures++;
+                if (FailAfterSending) inner.ClickAsync(frame, target, rule, ct);
                 throw new GameTransientException("测试模拟识别画面已过期");
             }
             return inner.ClickAsync(frame, target, rule, ct);

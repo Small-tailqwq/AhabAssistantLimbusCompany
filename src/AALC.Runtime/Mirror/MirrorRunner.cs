@@ -57,7 +57,7 @@ public sealed class MirrorRunner(IGameSession session, IMirrorMapReader mapReade
                 {
                     try
                     {
-                        if (settlement.Submitted)
+                        if (settlement.SubmitStarted)
                         {
                             // 模块已提交：不再经入口重新开局，直接从结算页接续，避免多开一轮或重复支付。
                             if (restartedAfterSubmit)
@@ -83,7 +83,7 @@ public sealed class MirrorRunner(IGameSession session, IMirrorMapReader mapReade
                     }
                     catch (GameRestartedException exception)
                     {
-                        restartedAfterSubmit |= settlement.Submitted;
+                        restartedAfterSubmit |= settlement.SubmitStarted;
                         session.Report("mirror.run.resume", $"{exception.Message}，游戏已重启，回到主界面后继续镜牢");
                         if (!await DailyNavigation.ReturnHomeAsync(session, ct)) return Finish(RunOutcome.Failed, "游戏重启后未能返回主界面");
                     }
@@ -103,7 +103,7 @@ public sealed class MirrorRunner(IGameSession session, IMirrorMapReader mapReade
                     {
                         // 瞬时错误持续出现，游戏可能已卡死：重启后接续，重启次数仍受会话限制。
                         transientFailures = 0;
-                        restartedAfterSubmit |= settlement.Submitted;
+                        restartedAfterSubmit |= settlement.SubmitStarted;
                         if (!await RecoverAsync(exception.Message, ct)) return Finish(RunOutcome.Failed, exception.Message);
                     }
                 }

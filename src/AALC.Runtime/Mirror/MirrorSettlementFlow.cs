@@ -10,6 +10,8 @@ public sealed record MirrorSettlementResult(bool Cleared, bool Claimed, string R
 public sealed class MirrorSettlementProgress
 {
     public bool Cleared { get; set; }
+    /// <summary>使用模块的点击已开始发送；点击中途出错时可能已生效，只能经结算页或人工核对接续。</summary>
+    public bool SubmitStarted { get; set; }
     public bool Submitted { get; set; }
     public bool Acknowledged { get; set; }
 }
@@ -54,11 +56,12 @@ public static class MirrorSettlementFlow
             }
             if (frame.Find("home/drive_assets.png") is not null || frame.Find("mirror/road_to_mir/enter_mirror_assets.png") is not null)
                 return new(progress.Cleared, progress.Cleared && progress.Submitted && progress.Acknowledged, "奖励确认后返回镜牢入口");
-            if (progress.Submitted && await MirrorEntryFlow.ClickFirstAsync(s, frame,
+            if (progress.SubmitStarted && await MirrorEntryFlow.ClickFirstAsync(s, frame,
                 [Root + "claim_rewards_confirm_assets.png", Root + "rewards_acquired_assets.png", "battle/battle_finish_confirm_assets.png"],
                 "mirror.settlement.acknowledge", ct))
             {
-                progress.Acknowledged = true;
+                // 出现回执说明模块已支付，即使提交点击本身未确认。
+                progress.Submitted = progress.Acknowledged = true;
                 await s.DelayAsync(TimeSpan.FromMilliseconds(400), ct);
                 continue;
             }
@@ -81,8 +84,10 @@ public static class MirrorSettlementFlow
                     continue;
                 }
                 s.Report("mirror.settlement.spend-modules", "领取本轮镜牢结算奖励");
+                // 发送前记下已开始：点击抛出时可能已生效，运行器须回到结算页而不是重新入口。
+                // 发送成功才记为已提交；重新观察时按钮仍在，说明模块尚未支付，可再点一次。
+                progress.SubmitStarted = true;
                 await s.ClickAsync(frame, use.Center, "mirror.settlement.use-modules", ct);
-                // 发送成功才记为已提交；输入抛出后由运行器重新观察，按钮仍在说明模块尚未支付。
                 progress.Submitted = true;
             }
             else if (progress.Cleared && !progress.Submitted && openClicks < MaxOpenClicks && s.Elapsed >= nextOpenClick
@@ -95,6 +100,6 @@ public static class MirrorSettlementFlow
             }
             await s.DelayAsync(TimeSpan.FromMilliseconds(500), ct);
         }
-        return new(progress.Cleared, false, progress.Submitted ? "奖励已提交，尚未确认领取完成" : "未能确认镜牢通关结算");
+        return new(progress.Cleared, false, progress.SubmitStarted ? "奖励已提交，尚未确认领取完成" : "未能确认镜牢通关结算");
     }
 }
