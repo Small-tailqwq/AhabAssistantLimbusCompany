@@ -338,8 +338,9 @@ public sealed class GameWindow : IScreenCapture, IMailInput, IGameInput, IDispos
             && original.Y >= origin.Y && original.Y < origin.Y + client.Bottom)
             original = new Native.Point { X = origin.X + 1, Y = origin.Y + 1 };
         // 恢复失败不影响已发送的输入，也不能盖掉 finally 外正在传播的原始异常。
+        // 点击已经送达，这里的消息未确认不能让调用方以为点击失败而重做。
         Native.SetCursorPos(original.X, original.Y);
-        Send(0x0200, 0, 0);
+        Native.SendMessageTimeout((nint)info.Handle, 0x0200, 0, 0, 3, 1500, out _);
     }
 
     private static void MoveCursor(int x, int y)

@@ -35,15 +35,18 @@ public static class BattleFlow
         new("base/leave_up_assets.png"), new("base/leave_up_confirm_assets.png")];
 
     public static async Task<bool> RunAsync(IGameSession s, int combatCount, bool events, CancellationToken ct,
-        BattlePurpose purpose = BattlePurpose.Luxcavation, bool avoidSkill3 = false, SoloDefenseState? solo = null)
+        BattlePurpose purpose = BattlePurpose.Luxcavation, bool avoidSkill3 = false, SoloDefenseState? solo = null,
+        Action? victorySeen = null)
     {
         s.Report("battle.start", "开始战斗");
         if (!await StartAsync(s, ct)) return false;
-        return await ContinueAsync(s, combatCount, events, ct, purpose, avoidSkill3, solo);
+        return await ContinueAsync(s, combatCount, events, ct, purpose, avoidSkill3, solo, victorySeen);
     }
 
+    /// <param name="victorySeen">看到胜利结算、点击确认之前调用：确认点击可能已生效却抛出瞬时错误，调用方须在此记下本批已胜利。</param>
     public static async Task<bool> ContinueAsync(IGameSession s, int combatCount, bool events, CancellationToken ct,
-        BattlePurpose purpose = BattlePurpose.Luxcavation, bool avoidSkill3 = false, SoloDefenseState? solo = null)
+        BattlePurpose purpose = BattlePurpose.Luxcavation, bool avoidSkill3 = false, SoloDefenseState? solo = null,
+        Action? victorySeen = null)
     {
         s.Report("battle.fight", "等待战斗回合与结算");
         var beginning = s.Elapsed;
@@ -137,6 +140,7 @@ public static class BattleFlow
             if (settlement is { } settlementPoint)
             {
                 s.Report("battle.settlement", "确认战斗胜利结算");
+                victorySeen?.Invoke();
                 await s.ClickAsync(frame, settlementPoint, "battle.confirm-settlement", ct);
                 if (purpose == BattlePurpose.Luxcavation) return true;
                 unknown = 0;

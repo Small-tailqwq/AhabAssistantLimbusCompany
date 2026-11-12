@@ -33,6 +33,8 @@ dotnet run --project .agents/skills/verify-daily-resume/scripts/Probe.csproj -- 
 
 当前基线：`NoRepeatedBatch`、`KeepCompletedCheckpoint` 均通过。生产探针覆盖完成记录前后重启、继续下一批经验本、继续纺锤本；实际开战批数等于计划批数，退出 0。
 
+生产探针另含两个瞬时错误用例（模型未覆盖）：`NoRepeatAfterTransientSettlementClick` 让 `battle.confirm-settlement` 点击生效后抛 `GameTransientException`，检查重试不再开战；`ResumeBattleAfterTransientStartClick` 让 `battle.start` 点击生效后抛错，检查重试在 `ReturnHomeAsync` 遇到进行中的战斗时接着打完，开战与结算各一次。
+
 ## 边界与维护
 
 - 有限模型只含一批、一次重启、至多两次开战。假定重启成功后仍可见胜利结算；不验证游戏服务端扣费、奖励发放、视觉识别或跨进程持久化。

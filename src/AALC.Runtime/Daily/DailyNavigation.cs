@@ -14,7 +14,10 @@ public static class DailyNavigation
         new("scenes/story_skip_confirm_assets.png"), new("scenes/story_skip_assets.png"), new("scenes/story_meun_assets.png"),
         new("battle/setting_assets.png")];
 
-    public static async Task<bool> ReturnHomeAsync(IGameSession s, CancellationToken ct, Action? settlementConfirmed = null)
+    /// <param name="settlementConfirmed">看到残留胜利结算、点击确认之前调用；点击可能已生效却抛出瞬时错误。</param>
+    /// <param name="resumeBattle">遇到尚未结束的战斗时调用一次以接着打完；为空或已用过则按原样报错停止。</param>
+    public static async Task<bool> ReturnHomeAsync(IGameSession s, CancellationToken ct, Action? settlementConfirmed = null,
+        Func<CancellationToken, Task<bool>>? resumeBattle = null)
     {
         s.Report("daily.home.begin", "返回游戏主界面");
         var attempt = 0;
@@ -97,8 +100,13 @@ public static class DailyNavigation
             attempt++;
             if (BattleFlow.SettlementConfirmation(text) is { } settlement)
             {
-                await s.ClickAsync(frame, settlement, "daily.home.confirm-settlement", ct);
                 settlementConfirmed?.Invoke();
+                await s.ClickAsync(frame, settlement, "daily.home.confirm-settlement", ct);
+            }
+            else if (frame.Find("battle/setting_assets.png") is not null && resumeBattle is { } resume)
+            {
+                resumeBattle = null;
+                if (!await resume(ct)) return false;
             }
             else if (frame.Find("battle/setting_assets.png") is not null)
             {
