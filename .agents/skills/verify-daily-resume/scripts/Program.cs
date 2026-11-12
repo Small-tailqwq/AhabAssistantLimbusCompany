@@ -34,6 +34,31 @@ foreach (var (name, beforeCheckpoint, secondBatch, threadBatch) in new[]
     Console.WriteLine($"{(pass ? "PASS" : "FAIL")} {name}: outcome={result.Outcome}, restarts={(session.Faulted ? 1 : 0)}, battleStarts={starts}, plannedBatches={planned}, recoveredSettlements={recovered}, reason={result.Reason}");
     if (!pass) failures++;
 }
+// 结算确认点击已生效、随后输入调用（恢复光标等）抛瞬时错误：重试不应再开一批。
+{
+    DailyScenarioStep[] steps = [.. source.Steps.Take(10), .. source.Steps.Take(10), source.Steps[^1]];
+    var scenario = source with { Options = source.Options with { ExpCount = 3, ThreadCount = 0 }, Steps = steps };
+    var session = new TransientAfterClickProbe(new(scenario), "battle.confirm-settlement");
+    var result = await new DailyRunner(session, _ => throw new InvalidOperationException()).RunAsync(scenario.Options, default);
+    var starts = session.Inner.Actions.Count(action => action.Rule == "battle.start");
+    var pass = result.Outcome == RunOutcome.Completed && session.Faulted && starts == 1;
+    Console.WriteLine($"{(pass ? "PASS" : "FAIL")} NoRepeatAfterTransientSettlementClick: outcome={result.Outcome}, transientFaults={(session.Faulted ? 1 : 0)}, battleStarts={starts}, plannedBatches=1, reason={result.Reason}");
+    if (!pass) failures++;
+}
+// 开战点击已生效、随后抛瞬时错误：重试应接着打完这场战斗，而不是报“尚未结束的战斗”停止或再开一批。
+{
+    var first = source.Steps.Take(10).ToArray();
+    first[7] = first[7] with { Targets = [.. first[7].Targets, new("battle/setting_assets.png", new(1240, 40))] };
+    DailyScenarioStep[] steps = [.. first, .. source.Steps.Take(10), source.Steps[^1]];
+    var scenario = source with { Options = source.Options with { ExpCount = 3, ThreadCount = 0 }, Steps = steps };
+    var session = new TransientAfterClickProbe(new(scenario), "battle.start");
+    var result = await new DailyRunner(session, _ => throw new InvalidOperationException()).RunAsync(scenario.Options, default);
+    var starts = session.Inner.Actions.Count(action => action.Rule == "battle.start");
+    var settled = session.Inner.Actions.Count(action => action.Rule == "battle.confirm-settlement");
+    var pass = result.Outcome == RunOutcome.Completed && session.Faulted && starts == 1 && settled == 1;
+    Console.WriteLine($"{(pass ? "PASS" : "FAIL")} ResumeBattleAfterTransientStartClick: outcome={result.Outcome}, transientFaults={(session.Faulted ? 1 : 0)}, battleStarts={starts}, settlements={settled}, plannedBatches=1, reason={result.Reason}");
+    if (!pass) failures++;
+}
 return failures == 0 ? 0 : 1;
 
 sealed class RestartProbe(DailyScenarioSession inner, bool beforeCheckpoint) : IGameSession
@@ -57,6 +82,31 @@ sealed class RestartProbe(DailyScenarioSession inner, bool beforeCheckpoint) : I
     public ValueTask<IReadOnlyList<RecognizedText>> ReadTextAsync(GameFrame frame, CancellationToken ct, PixelRect? region = null,
         int scale = 1, TextPreprocessing preprocessing = TextPreprocessing.None) => inner.ReadTextAsync(frame, ct, region, scale, preprocessing);
     public ValueTask ClickAsync(GameFrame frame, PixelPoint target, string rule, CancellationToken ct) => inner.ClickAsync(frame, target, rule, ct);
+    public ValueTask KeyAsync(GameFrame frame, GameKey key, string rule, CancellationToken ct) => inner.KeyAsync(frame, key, rule, ct);
+    public ValueTask DragAsync(GameFrame frame, PixelPoint from, PixelPoint to, TimeSpan duration, string rule, CancellationToken ct) => inner.DragAsync(frame, from, to, duration, rule, ct);
+    public ValueTask DelayAsync(TimeSpan duration, CancellationToken ct) => inner.DelayAsync(duration, ct);
+    public void Report(string rule, string message) => inner.Report(rule, message);
+}
+
+sealed class TransientAfterClickProbe(DailyScenarioSession inner, string failingRule) : IGameSession
+{
+    public DailyScenarioSession Inner => inner;
+    public bool Faulted { get; private set; }
+    public TimeSpan Elapsed => inner.Elapsed;
+    public int Observations => inner.Observations;
+    public ValueTask<GameFrame> ObserveAsync(IReadOnlyList<ImageQuery> queries, CancellationToken ct) => inner.ObserveAsync(queries, ct);
+    public ValueTask<IReadOnlyList<RecognizedText>> ReadTextAsync(GameFrame frame, CancellationToken ct, PixelRect? region = null,
+        int scale = 1, TextPreprocessing preprocessing = TextPreprocessing.None) => inner.ReadTextAsync(frame, ct, region, scale, preprocessing);
+    public async ValueTask ClickAsync(GameFrame frame, PixelPoint target, string rule, CancellationToken ct)
+    {
+        // 点击先生效，再模拟 GameWindow.RestoreCursor 的窗口消息未确认。
+        await inner.ClickAsync(frame, target, rule, ct);
+        if (!Faulted && rule == failingRule)
+        {
+            Faulted = true;
+            throw new GameTransientException("synthetic unconfirmed window message after the click landed");
+        }
+    }
     public ValueTask KeyAsync(GameFrame frame, GameKey key, string rule, CancellationToken ct) => inner.KeyAsync(frame, key, rule, ct);
     public ValueTask DragAsync(GameFrame frame, PixelPoint from, PixelPoint to, TimeSpan duration, string rule, CancellationToken ct) => inner.DragAsync(frame, from, to, duration, rule, ct);
     public ValueTask DelayAsync(TimeSpan duration, CancellationToken ct) => inner.DelayAsync(duration, ct);

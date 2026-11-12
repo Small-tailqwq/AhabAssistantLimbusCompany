@@ -15,13 +15,13 @@ public static class LuxcavationFlow
         new("home/drive_assets.png"), new("base/renew_confirm_assets.png")];
 
     public static async Task<bool> RunAsync(IGameSession s, LuxcavationKind kind, int combatCount, int team,
-        DailyOptions options, CancellationToken ct)
+        DailyOptions options, CancellationToken ct, Action? victorySeen = null)
     {
         var name = kind == LuxcavationKind.Experience ? "经验本" : "纺锤本";
         s.Report("daily.luxcavation.enter", $"进入{name}，本批 {combatCount} 场");
         if (!await EnterAsync(s, kind, combatCount, ct)) return false;
         if (!await TeamSelection.RunAsync(s, team, options.SelectTeamByOrder, ct)) return false;
-        return await BattleFlow.RunAsync(s, combatCount, options.HandleChoiceEvents, ct);
+        return await BattleFlow.RunAsync(s, combatCount, options.HandleChoiceEvents, ct, victorySeen: victorySeen);
     }
 
     private static async Task<bool> EnterAsync(IGameSession s, LuxcavationKind kind, int count, CancellationToken ct)

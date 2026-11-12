@@ -10,6 +10,7 @@ public sealed class DailyRunner(IGameSession session, Func<CancellationToken, Ta
     {
         public HashSet<string> Done { get; } = [];
         public string? PendingBatch { get; set; }
+        public int PendingCount { get; set; }
 
         public void CompleteBatch()
         {
@@ -84,7 +85,16 @@ public sealed class DailyRunner(IGameSession session, Func<CancellationToken, Ta
     {
         ct.ThrowIfCancellationRequested();
         var done = progress.Done;
-        if (!await DailyNavigation.ReturnHomeAsync(session, ct, progress.CompleteBatch))
+        // 上一次在采光批次中途因瞬时错误或重启中断：残留结算记为本批完成；战斗仍在进行则接着打完，不重新开一批。
+        Func<CancellationToken, Task<bool>>? resumeBattle = progress.PendingBatch is null ? null : async token =>
+        {
+            session.Report("daily.battle.resume", $"检测到中断的采光战斗（{progress.PendingBatch}），继续打完");
+            if (!await BattleFlow.ContinueAsync(session, progress.PendingCount, options.HandleChoiceEvents, token,
+                victorySeen: progress.CompleteBatch)) return false;
+            progress.CompleteBatch();
+            return true;
+        };
+        if (!await DailyNavigation.ReturnHomeAsync(session, ct, progress.CompleteBatch, resumeBattle))
             return finish(RunOutcome.Failed, "无法返回游戏主界面");
         if (options.ConvertModules && !done.Contains("modules"))
         {
@@ -102,7 +112,9 @@ public sealed class DailyRunner(IGameSession session, Func<CancellationToken, Ta
                 {
                     if (done.Contains($"{kind}.{index}")) continue;
                     progress.PendingBatch = $"{kind}.{index}";
-                    if (!await LuxcavationFlow.RunAsync(session, kind, batches[index], team, options, ct))
+                    progress.PendingCount = batches[index];
+                    // 看到胜利结算即记为完成：确认点击可能已生效却抛出瞬时错误，重试时结算页已关闭，无从再确认。
+                    if (!await LuxcavationFlow.RunAsync(session, kind, batches[index], team, options, ct, progress.CompleteBatch))
                         return finish(RunOutcome.Failed, $"{(kind == LuxcavationKind.Experience ? "经验" : "纺锤")}采光未完成");
                     progress.CompleteBatch();
                 }
