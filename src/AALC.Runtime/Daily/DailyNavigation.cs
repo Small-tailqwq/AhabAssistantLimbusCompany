@@ -56,7 +56,7 @@ public static class DailyNavigation
                     s.ExtendDeadline(wait);
                     await s.DelayAsync(wait, ct);
                 }
-                if (await s.RestartGameAsync("游戏显示维护提示", ct)) return await ReturnHomeAsync(s, ct, settlementConfirmed);
+                if (await s.RestartGameAsync("游戏显示维护提示", ct)) return await ReturnHomeAsync(s, ct, settlementConfirmed, resumeBattle);
                 s.Report("daily.home.maintenance", "游戏显示维护提示，请处理后重新运行");
                 return false;
             }
@@ -100,6 +100,7 @@ public static class DailyNavigation
             attempt++;
             if (BattleFlow.SettlementConfirmation(text) is { } settlement)
             {
+                resumeBattle = null;
                 settlementConfirmed?.Invoke();
                 await s.ClickAsync(frame, settlement, "daily.home.confirm-settlement", ct);
             }
@@ -124,7 +125,7 @@ public static class DailyNavigation
             await s.DelayAsync(TimeSpan.FromMilliseconds(500), ct);
         }
         // 与旧版 back_init_menu 一致：无法返回主界面时重启游戏后重新尝试，次数由会话限制。
-        if (await s.RestartGameAsync("多次尝试后仍未返回主界面", ct)) return await ReturnHomeAsync(s, ct, settlementConfirmed);
+        if (await s.RestartGameAsync("多次尝试后仍未返回主界面", ct)) return await ReturnHomeAsync(s, ct, settlementConfirmed, resumeBattle);
         s.Report("daily.home.timeout", "多次尝试后仍未返回主界面");
         return false;
     }

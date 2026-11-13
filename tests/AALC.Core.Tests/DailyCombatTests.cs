@@ -127,6 +127,26 @@ public sealed class DailyCombatTests
         Assert.DoesNotContain("battle.start", session.Reports);
     }
 
+    [Theory]
+    [InlineData("base/notification_close_assets.png")]
+    [InlineData("home/back_assets.png")]
+    public async Task ReturningHomeKeepsPendingBattleAcrossNavigationRestart(string beforeRestart)
+    {
+        var restarted = false;
+        var resumed = 0;
+        var session = new FakeSession(() => !restarted ? new([beforeRestart])
+            : resumed == 0 ? new(["battle/setting_assets.png"])
+            : new(["home/mail_assets.png", "home/window_assets.png"]));
+        session.Restart = () => restarted = true;
+
+        Assert.True(await DailyNavigation.ReturnHomeAsync(session, default, resumeBattle: _ =>
+        {
+            resumed++;
+            return Task.FromResult(true);
+        }));
+        Assert.Equal(1, resumed);
+    }
+
     [Fact]
     public async Task AMirrorTurnWaitsForTheRisingPanelBeforeChainingSkills()
     {
@@ -749,6 +769,8 @@ public sealed class DailyCombatTests
     {
         private readonly Dictionary<long, RecognizedText[]> texts = [];
         public Action<string>? Action { get; set; }
+        public Func<bool>? Restart { get; set; }
+        public ValueTask<bool> RestartGameAsync(string reason, CancellationToken ct) => ValueTask.FromResult(Restart?.Invoke() ?? false);
         public List<string> Actions { get; } = [];
         public List<string> Reports { get; } = [];
         public List<PixelPoint> Clicks { get; } = [];
