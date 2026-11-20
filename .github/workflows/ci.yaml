@@ -51,6 +51,13 @@ jobs:
         run: dotnet build ${{ matrix.solution }} -c Release
       - name: Run unit tests
         run: dotnet test tests/AALC.Core.Tests/AALC.Core.Tests.csproj -c Release --no-build
+      - name: Verify Windows desktop opens the daily page
+        if: runner.os == 'Windows'
+        timeout-minutes: 2
+        run: |
+          dotnet run --no-build -c Release --project src/AALC.Desktop -- --profile "$env:RUNNER_TEMP/profile" --startup-report "$env:RUNNER_TEMP/ready.json" --exit-after-ready
+          $ready = Get-Content "$env:RUNNER_TEMP/ready.json" -Raw | ConvertFrom-Json
+          if (-not $ready.windowVisible -or $ready.currentPage -ne "日常任务") { throw "Unexpected start page: $($ready.currentPage)" }
       - name: Exercise native macOS template matching
         if: runner.os == 'macOS'
         run: dotnet run --no-build -c Release --project src/AALC.Cli -- match assets/images/default/share/home/mail_assets.png home/mail_assets.png
@@ -67,4 +74,4 @@ jobs:
           test -f "$resources/scenarios/mail-rewards.json"
           test -z "$(find AAALC.app \( -iname '*onnx*' -o -iname '*clonehost*' -o -name Avalonia.Win32.dll -o -name AALC.Platform.Windows.dll \))"
           ./AAALC.app/Contents/MacOS/AAALC --profile "$RUNNER_TEMP/profile" --startup-report ready.json --exit-after-ready
-          python3 -c 'import json; assert json.load(open("ready.json"))["windowVisible"]'
+          python3 -c 'import json; ready=json.load(open("ready.json")); assert ready["windowVisible"] and ready["currentPage"] == "工具箱", ready'

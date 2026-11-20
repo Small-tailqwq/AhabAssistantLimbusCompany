@@ -24,12 +24,12 @@ dotnet test tests/AALC.Core.Tests/AALC.Core.Tests.csproj -c Release
 macOS 入口不连接原生游戏窗口，启动时也不连接 ADB。移植依据为[旧 mac 分支的通用模拟器后端](https://github.com/Small-tailqwq/AhabAssistantLimbusCompany/blob/c819d6e17f8ef3017195353115692c1143a766ed/module/automation/input_handlers/simulator/simulator_control.py)：保留本机端口、游戏包名、设备截图及触控语义，不加载 Windows MuMu IPC、不安装 minitouch。
 
 1. 安装 [Android SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools)，在模拟器中启用 ADB 调试并授权连接。AAALC 支持 `ANDROID_HOME/platform-tools/adb`、默认 Android SDK、Homebrew 或 PATH 中的 adb；也可在启动前用 `AALC_ADB` 指定可执行文件。
-2. 在模拟器中打开 Limbus Company（`com.ProjectMoon.LimbusCompany`）。输入模拟器**实际的本机 ADB 端口**，点击“连接”；已经连接的设备只需“刷新”。多个设备时明确选择序列号。
-3. “保存截图”只读前台游戏。领取邮件前请回到游戏主页，将模拟器设为至少 1280×720 的 16:9 全屏横屏，并选择匹配的游戏语言。运行期间不要切换应用、旋转屏幕或手动操作。
+2. 在模拟器中打开 Limbus Company（`com.ProjectMoon.LimbusCompany`）。在侧栏底部点“连接…”进入设置，输入模拟器**实际的本机 ADB 端口**，点击“连接”。已经连接的设备只需点侧栏刷新；多个设备时选择目标序列号。
+3. 打开“工具箱”进行截图或领取邮件。截图只读前台游戏；领取邮件前回到游戏主页，将模拟器设为至少 1280×720 的 16:9 全屏横屏，并选择匹配的游戏语言。运行期间不要切换应用、旋转屏幕或手动操作。
 
 截图和邮件共用生产观察/输入接口。每次运行独占选中设备；点击前校验连接、前台游戏窗口、最新帧、尺寸、五秒时效和坐标，不重发不确定的输入。断连或连接身份变化后需刷新并重新选择。停止按钮、Esc 或 CLI Ctrl+C 请求取消。
 
-端口框中的 `127.0.0.1` 是固定前缀，只需输入端口号。桌面版默认读取随包邮件资源；如需替换，可展开“高级设置”修改资源目录。
+macOS 与 Windows 共用主窗口。“运行监控”查看游戏画面和日志，“场景回放”可在没有设备时验证邮件场景。游戏语言、主题和资源仓库都在“设置 → 游戏与资源”，资源默认随包提供。日常、镜牢和桌面分身等 Windows 专属页面不在 Mac 上显示。
 
 数据根默认为 `~/Library/Application Support/AAALC`，可用绝对路径 `AALC_DATA_ROOT` 覆盖。截图在 `screenshots/`，邮件过程与结果在 `recordings/mail/`。macOS CLI 的设备命令：
 

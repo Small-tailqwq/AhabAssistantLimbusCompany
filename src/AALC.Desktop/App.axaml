@@ -10,6 +10,7 @@
     <ResourceInclude Source="/Styles/Expander.axaml"/>
     <ResourceInclude Source="/Styles/Hyperlink.axaml"/>
     <ResourceInclude Source="/Styles/Button.axaml"/>
+    <ResourceInclude Source="/Windows/PlatformViews.axaml"/>
    </ResourceDictionary.MergedDictionaries>
   </ResourceDictionary>
  </Application.Resources>

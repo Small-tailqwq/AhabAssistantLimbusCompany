@@ -26,9 +26,9 @@ python3 scripts/build_macos.py --arch x86_64 # 从 Mac 交叉打 Intel 包
 
 | 随轻量桌面包 | 按需使用独立 CLI，不随桌面包 | Windows 专属，不打入桌面包 |
 |---|---|---|
-| 原生 Avalonia 窗口、配置、运行状态与预览 | 邮件、日常和镜牢离线回放 | Win32、Steam、桌面分身和 RDP 宿主 |
+| 主线 SukiUI 窗口、设置、运行监控与预览 | 邮件、日常和镜牢离线回放 | Win32、Steam、桌面分身和 RDP 宿主 |
 | ADB 设备选择、截图、单击、取消 | 多模板匹配、截图回归、OCR 和模型 | Win32 输入、游戏安装和本地文件工具 |
-| 中英文及明暗邮件模板、邮件录制和合成回放 | 完整资源可指向源码仓库或外部目录 | Windows GUI 与 MCP、战斗用素材 |
+| 中英文及明暗邮件模板、邮件录制和合成回放 | 完整资源可指向源码仓库或外部目录 | Windows 专属页面、MCP、战斗用素材 |
 
 需要完整 CLI 时执行 `dotnet run --project src/AALC.Cli -c Release -- <命令>`；它依赖 ONNX Runtime，但桌面包只引用模板视觉程序集。打包脚本对可达的业务代码和 .NET 运行时执行 IL 裁剪，去掉通用原生库的另一 CPU 切片后重新签名；配置和回放使用源生成 JSON 保留所需字段。脚本分别输出启动器、完整 .app、ZIP 的字节数。操作步骤见 [macOS 安卓模拟器](application.md#macos-安卓模拟器)。
 

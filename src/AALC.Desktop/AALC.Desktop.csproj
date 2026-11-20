@@ -6,7 +6,7 @@
     <ApplicationManifest Condition="'$(AalcMacOS)' != 'true'">app.manifest</ApplicationManifest>
     <ApplicationIcon Condition="'$(AalcMacOS)' != 'true'">Assets/Logo.ico</ApplicationIcon>
   </PropertyGroup>
-  <ItemGroup Condition="'$(AalcMacOS)' != 'true'">
+  <ItemGroup>
     <AvaloniaResource Include="Assets/LogoAngelaIce.ico" />
     <AvaloniaResource Include="Assets/LogoAngelaGold.ico" />
   </ItemGroup>
@@ -21,7 +21,7 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Condition="'$(AalcMacOS)' != 'true'" Include="Avalonia.Desktop" Version="12.0.3" />
     <PackageReference Condition="'$(AalcMacOS)' != 'true'" Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3" />
-    <PackageReference Condition="'$(AalcMacOS)' != 'true'" Include="SukiUI" Version="7.0.1" />
+    <PackageReference Include="SukiUI" Version="7.0.1" />
   </ItemGroup>
   <!-- 分身用 dynamic 调用任务计划和 WMI，裁剪发布时保留 C# 运行时绑定。 -->
   <ItemGroup Condition="'$(AalcMacOS)' != 'true'"><TrimmerRootAssembly Include="Microsoft.CSharp" /></ItemGroup>
@@ -38,13 +38,12 @@
   </ItemGroup>
   <ItemGroup Condition="'$(AalcMacOS)' == 'true'">
     <PackageReference Include="Avalonia.Native" Version="12.0.3" />
-    <AvaloniaResource Include="Assets/Logo.png" />
-    <PackageReference Include="Avalonia.Themes.Simple" Version="12.0.3" />
     <PackageReference Include="Avalonia.Skia" Version="12.0.3" />
     <PackageReference Include="Avalonia.HarfBuzz" Version="12.0.3" />
-    <Compile Remove="*.cs" />
-    <Compile Include="Program.cs;App.axaml.cs;FrameBitmap.cs" />
-    <AvaloniaXaml Remove="*.axaml;Styles/Expander.axaml;Styles/Logos.axaml;Styles/Hyperlink.axaml" />
+    <Compile Remove="*.cs;Windows/**/*.cs" />
+    <Compile Include="Program.cs;App.axaml.cs;FrameBitmap.cs;MainViewModel.App.cs;DesktopChoices.cs;MainWindow.axaml.cs;RunMonitorView.axaml.cs;AboutView.axaml.cs;ToolsView.axaml.cs;AngelaMemoryLabel.axaml.cs;RunEventDisplay.cs;ExpandPresenter.cs" />
+    <AvaloniaXaml Remove="*.axaml;Windows/**/*.axaml" />
+    <AvaloniaXaml Include="MainWindow.axaml;RunMonitorView.axaml;AboutView.axaml;ToolsView.axaml;AngelaMemoryLabel.axaml" />
     <Content Include="../../assets/images/**/mail/*;../../assets/images/**/home/mail_assets.*" CopyToPublishDirectory="PreserveNewest">
       <Link>$([MSBuild]::MakeRelative('$(MSBuildProjectDirectory)/../..', '%(FullPath)'))</Link>
     </Content>

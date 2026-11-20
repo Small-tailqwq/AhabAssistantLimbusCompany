@@ -9,7 +9,7 @@ using AALC.Runtime.Configuration;
 
 namespace AALC.Desktop;
 
-internal sealed record StartupReport(string Kind, double ReadyMonotonicSeconds, bool WindowVisible,
+internal sealed record StartupReport(string Kind, double ReadyMonotonicSeconds, bool WindowVisible, string? CurrentPage,
     string?[] LoadedAssemblies, string Measurement);
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
@@ -32,13 +32,11 @@ public partial class App : Application
             }
             var profile = Argument("--profile");
             var store = profile is null ? SettingsStore.OpenDefault() : new SettingsStore(profile);
-#if WINDOWS
             var viewModel = new MainViewModel(store);
             var window = new MainWindow(viewModel);
+#if WINDOWS
             viewModel.StartAgentServer();
             desktop.Exit += (_, _) => { viewModel.DisposeAgentServer(); ThumbnailCache.Dispose(); viewModel.DisposeClone(); };
-#else
-            var window = new Mac.EmulatorWindow(new Mac.EmulatorViewModel(store));
 #endif
             desktop.MainWindow = window;
             var reported = false;
@@ -53,7 +51,7 @@ public partial class App : Application
                         var path = Path.GetFullPath(report);
                         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                         var ready = new StartupReport(OperatingSystem.IsMacOS() ? "avalonia-native" : "avalonia-suki", (double)Stopwatch.GetTimestamp() / Stopwatch.Frequency,
-                            window.IsVisible, AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetName().Name).Order().ToArray(),
+                            window.IsVisible, window.CurrentPage, AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetName().Name).Order().ToArray(),
                             "Opened, two animation-frame callbacks, then ApplicationIdle callback");
                         File.WriteAllText(path, JsonSerializer.Serialize(ready, StartupJson.Default.StartupReport));
                     }

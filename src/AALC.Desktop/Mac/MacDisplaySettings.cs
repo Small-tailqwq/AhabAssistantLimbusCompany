@@ -10,10 +10,12 @@ internal static class MacDisplaySettings
     [DllImport(ObjC, EntryPoint = "objc_msgSend")] private static extern nint GetObject(nint receiver, nint selector);
     [DllImport(ObjC, EntryPoint = "objc_msgSend")] private static extern byte GetBool(nint receiver, nint selector);
 
-    public static (bool ReduceMotion, bool ReduceTransparency) Read()
+    public static bool ReduceMotion
     {
-        var workspace = GetObject(objc_getClass("NSWorkspace"), sel_registerName("sharedWorkspace"));
-        return (GetBool(workspace, sel_registerName("accessibilityDisplayShouldReduceMotion")) != 0,
-            GetBool(workspace, sel_registerName("accessibilityDisplayShouldReduceTransparency")) != 0);
+        get
+        {
+            var workspace = GetObject(objc_getClass("NSWorkspace"), sel_registerName("sharedWorkspace"));
+            return GetBool(workspace, sel_registerName("accessibilityDisplayShouldReduceMotion")) != 0;
+        }
     }
 }
