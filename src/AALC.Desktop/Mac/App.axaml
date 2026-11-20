@@ -11,6 +11,7 @@
     <GradientStop Offset="0" Color="#293B4E"/><GradientStop Offset=".55" Color="#1C2C3C"/><GradientStop Offset="1" Color="#162231"/>
    </LinearGradientBrush>
    <x:Double x:Key="MacPreviewHeight">210</x:Double>
+   <BoxShadows x:Key="MacFieldFocusShadow">0 0 0 2 #448CABFF</BoxShadows>
    <ResourceDictionary.MergedDictionaries>
     <ResourceInclude Source="/Styles/Tokens.axaml"/>
     <ResourceInclude Source="/Styles/Button.axaml"/>
@@ -20,5 +21,6 @@
  <Application.Styles>
   <SimpleTheme/>
   <StyleInclude Source="/Styles/Controls.axaml"/>
+  <StyleInclude Source="/Mac/Fields.axaml"/>
  </Application.Styles>
 </Application>

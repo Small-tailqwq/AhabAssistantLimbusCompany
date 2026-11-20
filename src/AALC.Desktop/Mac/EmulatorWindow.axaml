@@ -41,28 +41,38 @@
       <TextBlock Classes="kicker" Text="01   /   DEVICE"/>
       <TextBlock Classes="section" Text="连接设备"/>
       <TextBlock Classes="muted" TextWrapping="Wrap" Text="在模拟器中开启 ADB。已连接的设备可直接刷新。"/>
-      <TextBlock Classes="caption" Text="本机 ADB 端口"/>
+      <TextBlock Classes="field-label" Text="本机 ADB 端口"/>
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource RowSpacing}">
-       <TextBox Text="{Binding Port}" PlaceholderText="例如 5555" AutomationProperties.Name="本机 ADB 端口"/>
-       <Button Grid.Column="1" Content="连接" Command="{Binding ConnectCommand}"/>
+       <TextBox Classes="field" Text="{Binding Port}" PlaceholderText="5555" AutomationProperties.Name="本机 ADB 端口">
+        <TextBox.InnerLeftContent>
+         <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" Text="127.0.0.1 : " IsHitTestVisible="False"/>
+        </TextBox.InnerLeftContent>
+       </TextBox>
+       <Button Grid.Column="1" Classes="primary" Content="连接" Command="{Binding ConnectCommand}"/>
       </Grid>
-      <TextBlock Classes="caption" Text="目标模拟器"/>
+      <TextBlock Classes="field-label" Text="目标模拟器"/>
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource RowSpacing}">
-       <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding Selected}" PlaceholderText="未选择" AutomationProperties.Name="目标模拟器">
+       <ComboBox Classes="field" ItemsSource="{Binding Devices}" SelectedItem="{Binding Selected}" PlaceholderText="选择已连接的设备" AutomationProperties.Name="目标模拟器">
         <ComboBox.ItemTemplate><DataTemplate x:DataType="android:AdbDevice">
          <TextBlock Text="{Binding Serial}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Serial}"/>
         </DataTemplate></ComboBox.ItemTemplate>
        </ComboBox>
        <Button Grid.Column="1" Content="刷新" Command="{Binding RefreshCommand}"/>
       </Grid>
-      <Separator/>
-      <TextBlock Classes="caption" Text="模板语言与主题"/>
-      <Grid ColumnDefinitions="*,*" ColumnSpacing="{DynamicResource RowSpacing}">
-       <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding Language}" AutomationProperties.Name="游戏语言"/>
-       <ComboBox Grid.Column="1" ItemsSource="{Binding Themes}" SelectedItem="{Binding Theme}" AutomationProperties.Name="图像主题"/>
+      <Border Height="1" Background="{DynamicResource BorderDefaultBrush}" Margin="0,8"/>
+      <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource RowSpacing}" ColumnSpacing="{DynamicResource RowSpacing}">
+       <TextBlock Classes="field-label" Text="游戏语言"/>
+       <TextBlock Grid.Column="1" Classes="field-label" Text="模板主题"/>
+       <ComboBox Grid.Row="1" Classes="field" ItemsSource="{Binding Languages}" SelectedItem="{Binding Language}" AutomationProperties.Name="游戏语言"/>
+       <ComboBox Grid.Row="1" Grid.Column="1" Classes="field" ItemsSource="{Binding Themes}" SelectedItem="{Binding Theme}" AutomationProperties.Name="模板主题"/>
       </Grid>
-      <TextBlock Classes="caption" Text="资源目录"/>
-      <TextBox Text="{Binding Repository}" AutomationProperties.Name="资源目录" ToolTip.Tip="{Binding Repository}"/>
+      <Expander Header="高级设置" Padding="0,8,0,0" BorderThickness="0" Background="Transparent"
+       HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+       <StackPanel Classes="options">
+        <TextBlock Classes="field-label" Text="资源目录"/>
+        <TextBox Classes="field" Text="{Binding Repository}" AutomationProperties.Name="资源目录" ToolTip.Tip="{Binding Repository}"/>
+       </StackPanel>
+      </Expander>
      </StackPanel>
     </Border>
     <StackPanel Name="Tools" Classes="cards">
@@ -93,7 +103,7 @@
      <Border Classes="card">
       <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="{DynamicResource RowSpacing}" RowSpacing="{DynamicResource RowSpacing}">
        <TextBlock Classes="section" Text="离线邮件回放"/>
-       <ComboBox Grid.Row="1" ItemsSource="{Binding Scenarios}" SelectedItem="{Binding Scenario}" IsEnabled="{Binding Idle}" AutomationProperties.Name="离线邮件场景"/>
+       <ComboBox Grid.Row="1" Classes="field" ItemsSource="{Binding Scenarios}" SelectedItem="{Binding Scenario}" IsEnabled="{Binding Idle}" AutomationProperties.Name="离线邮件场景"/>
        <Button Grid.Row="1" Grid.Column="1" Content="回放" Command="{Binding ReplayCommand}"/>
       </Grid>
      </Border>

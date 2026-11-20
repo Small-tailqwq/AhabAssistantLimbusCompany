@@ -12,20 +12,25 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace AALC.Desktop.Mac;
 
+public sealed record FieldOption(string Value, string Label)
+{
+    public override string ToString() => Label;
+}
+
 public partial class EmulatorViewModel : ObservableObject
 {
     private readonly SettingsStore store;
     private readonly AdbClient adb = AdbClient.Local();
     private CancellationTokenSource? stopping;
     public Task? Active { get; private set; }
-    public string[] Languages { get; } = ["en", "zh_cn"];
-    public string[] Themes { get; } = ["default", "dark"];
-    public string[] Scenarios { get; } = ["mail-empty", "mail-rewards", "mail-unknown"];
-    [ObservableProperty] private string scenario = "mail-rewards";
-    [ObservableProperty] private string theme;
+    public IReadOnlyList<FieldOption> Languages { get; } = [new("en", "English"), new("zh_cn", "简体中文")];
+    public IReadOnlyList<FieldOption> Themes { get; } = [new("default", "默认"), new("dark", "深色")];
+    public IReadOnlyList<FieldOption> Scenarios { get; } = [new("mail-rewards", "有待领取奖励"), new("mail-empty", "没有新邮件"), new("mail-unknown", "无法识别的画面")];
+    [ObservableProperty] private FieldOption scenario;
+    [ObservableProperty] private FieldOption theme;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(HasPreview))] private WriteableBitmap? preview;
     public bool HasPreview => Preview is not null;
-    [ObservableProperty] private string language;
+    [ObservableProperty] private FieldOption language;
     [ObservableProperty] private string repository;
     [ObservableProperty] private string port = "";
     [ObservableProperty] private string status = "请启动模拟器和游戏，然后刷新设备。";
@@ -46,8 +51,10 @@ public partial class EmulatorViewModel : ObservableObject
     {
         this.store = store;
         var settings = store.Load();
-        theme = settings.GameTheme;
-        language = File.Exists(Path.Combine(store.DirectoryPath, "settings.json")) ? settings.GameLanguage : "en";
+        scenario = Scenarios[0];
+        theme = Themes.FirstOrDefault(o => o.Value == settings.GameTheme) ?? Themes[0];
+        language = File.Exists(Path.Combine(store.DirectoryPath, "settings.json"))
+            ? Languages.FirstOrDefault(o => o.Value == settings.GameLanguage) ?? Languages[0] : Languages[0];
         var resources = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "Resources"));
         repository = new[] { settings.RepositoryRoot, resources, AppContext.BaseDirectory,
             RepositoryPaths.Discover(Environment.CurrentDirectory), RepositoryPaths.Discover(AppContext.BaseDirectory) }
@@ -95,8 +102,8 @@ public partial class EmulatorViewModel : ObservableObject
     {
         var selected = Selected!;
         var root = Repository;
-        var language = Language;
-        var theme = Theme;
+        var language = Language.Value;
+        var theme = Theme.Value;
         return RunAsync(token => Task.Run(async () =>
         {
             if (!Directory.Exists(Path.Combine(root, "assets", "images"))) throw new DirectoryNotFoundException("请选择含 assets/images 的资源仓库。");
@@ -124,7 +131,7 @@ public partial class EmulatorViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(Idle))]
     private Task ReplayAsync()
     {
-        var path = Path.Combine(Repository, "scenarios", Scenario + ".json");
+        var path = Path.Combine(Repository, "scenarios", Scenario.Value + ".json");
         return RunAsync(token => Task.Run(async () =>
         {
             var replay = new ScenarioSession(MailScenario.Load(path));
