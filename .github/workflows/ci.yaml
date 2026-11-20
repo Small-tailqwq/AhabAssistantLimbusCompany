@@ -1,6 +1,7 @@
 name: .NET Build
 
 on:
+  workflow_dispatch:
   pull_request:
     branches: [angela]
     paths:
@@ -33,6 +34,7 @@ permissions:
 
 jobs:
   build:
+    name: build (${{ matrix.os }}, ${{ matrix.solution }})
     strategy:
       fail-fast: false
       matrix:
@@ -41,12 +43,19 @@ jobs:
             solution: AAALC.slnx
           - os: macos-latest
             solution: AAALC.macOS.slnf
+            rid: osx-arm64
+          - os: macos-15-intel
+            solution: AAALC.macOS.slnf
+            rid: osx-x64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+      - name: Install Intel OpenCV dependency
+        if: matrix.rid == 'osx-x64'
+        run: test -f /usr/local/opt/libavif/lib/libavif.16.dylib || brew install libavif
       - name: Build solution
         run: dotnet build ${{ matrix.solution }} -c Release
       - name: Run unit tests
@@ -63,11 +72,13 @@ jobs:
         run: dotnet run --no-build -c Release --project src/AALC.Cli -- match assets/images/default/share/home/mail_assets.png home/mail_assets.png
       - name: Verify lightweight macOS app outside the checkout
         if: runner.os == 'macOS'
+        timeout-minutes: 10
         shell: bash
         run: |
           python3 scripts/build_macos.py
-          unzip -q artifacts/publish/AAALC-osx-*.zip -d "$RUNNER_TEMP/install"
+          unzip -q "artifacts/publish/AAALC-${{ matrix.rid }}.zip" -d "$RUNNER_TEMP/install"
           cd "$RUNNER_TEMP/install"
+          test "$(lipo -archs AAALC.app/Contents/MacOS/AAALC)" = "$(uname -m)"
           codesign --verify --deep --strict AAALC.app
           resources=AAALC.app/Contents/Resources
           test -f "$resources/assets/images/default/share/home/mail_assets.png"
@@ -75,3 +86,11 @@ jobs:
           test -z "$(find AAALC.app \( -iname '*onnx*' -o -iname '*clonehost*' -o -name Avalonia.Win32.dll -o -name AALC.Platform.Windows.dll \))"
           ./AAALC.app/Contents/MacOS/AAALC --profile "$RUNNER_TEMP/profile" --startup-report ready.json --exit-after-ready
           python3 -c 'import json; ready=json.load(open("ready.json")); assert ready["windowVisible"] and ready["currentPage"] == "工具箱", ready'
+      - name: Upload verified macOS ZIP
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: AAALC-${{ matrix.rid }}
+          path: artifacts/publish/AAALC-${{ matrix.rid }}.zip
+          if-no-files-found: error
+          compression-level: 0

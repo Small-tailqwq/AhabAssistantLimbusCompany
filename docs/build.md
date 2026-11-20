@@ -51,6 +51,6 @@ python scripts/build_dotnet.py fdd
 
 压缩包内包含 `AAALC.exe`、`app/`、`assets/` 和 `scenarios/`。必须完整解压，不能只复制 exe。`app/` 存放运行时和程序集，`app/clone-host/` 存放 RDP 宿主。模型来自 `assets/models/ocr/`。
 
-当前 CI 构建与测试解决方案；发布目录和压缩包由本地打包脚本生成。
+主线及针对主线的 PR 运行 `.NET Build` CI，也可以在 Actions 手动运行。macOS 在 Apple Silicon 和 Intel runner 上分别编译、测试、执行模板匹配，并从解压包验证签名和启动页。通过后在该次运行的 **Artifacts** 下载 `AAALC-osx-arm64` 或 `AAALC-osx-x64`，解开外层产物后再解压其中的应用 ZIP。这些 CI 产物不会自动发布为 GitHub Release；Windows 发布包仍由本地脚本生成。
 
 发布包另含 `mcp/AAALC.Mcp.exe`，用于 [Agent 连接](agent-control.md)。`full` 与 `trimmed` 包中的 MCP 自带运行时；`fdd` 包中的 MCP 使用机器上的 .NET 10。
