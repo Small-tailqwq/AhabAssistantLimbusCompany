@@ -19,6 +19,30 @@ dotnet test tests/AALC.Core.Tests/AALC.Core.Tests.csproj -c Release
 
 桌面设置默认位于数据根下的 `profile/settings.json`（默认 `D:\AALCData\profile`，随 `AALC_DATA_ROOT` 变化），避免从打包应用启动时 AppData 被 MSIX 重定向到各自包目录。新位置没有配置时自动复制旧的 `%LOCALAPPDATA%/AALC.Next/settings.json`；`AALC_DATA_ROOT` 所在盘不存在时仍使用旧目录。`--profile <目录>` 指定独立配置目录；日常选项、资源路径和 OCR 模型目录保存在此目录，不导入或覆盖 Python 的 `config.yaml`。首次启动自动查找包含 `assets/images` 的仓库，设置页可修改资源位置、游戏语言、图像主题和模型目录。
 
+## macOS 安卓模拟器
+
+macOS 入口不连接原生游戏窗口，启动时也不连接 ADB。移植依据为[旧 mac 分支的通用模拟器后端](https://github.com/Small-tailqwq/AhabAssistantLimbusCompany/blob/c819d6e17f8ef3017195353115692c1143a766ed/module/automation/input_handlers/simulator/simulator_control.py)：保留本机端口、游戏包名、设备截图及触控语义，不加载 Windows MuMu IPC、不安装 minitouch。
+
+1. 安装 [Android SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools)，在模拟器中启用 ADB 调试并授权连接。AAALC 支持 `ANDROID_HOME/platform-tools/adb`、默认 Android SDK、Homebrew 或 PATH 中的 adb；也可在启动前用 `AALC_ADB` 指定可执行文件。
+2. 在模拟器中打开 Limbus Company（`com.ProjectMoon.LimbusCompany`）。在侧栏底部点“连接…”进入设置，输入模拟器**实际的本机 ADB 端口**，点击“连接”。已经连接的设备只需点侧栏刷新；多个设备时选择目标序列号。
+3. 打开“工具箱”进行截图或领取邮件。截图只读前台游戏；领取邮件前回到游戏主页，将模拟器设为至少 1280×720 的 16:9 全屏横屏，并选择匹配的游戏语言。运行期间不要切换应用、旋转屏幕或手动操作。
+
+截图和邮件共用生产观察/输入接口。每次运行独占选中设备；点击前校验连接、前台游戏窗口、最新帧、尺寸、五秒时效和坐标，不重发不确定的输入。断连或连接身份变化后需刷新并重新选择。停止按钮、Esc 或 CLI Ctrl+C 请求取消。
+
+macOS 与 Windows 共用主窗口。“运行监控”查看游戏画面和日志，“场景回放”可在没有设备时验证邮件场景。游戏语言、主题和资源仓库都在“设置 → 游戏与资源”，资源默认随包提供。日常、镜牢和桌面分身等 Windows 专属页面不在 Mac 上显示。
+
+数据根默认为 `~/Library/Application Support/AAALC`，可用绝对路径 `AALC_DATA_ROOT` 覆盖。截图在 `screenshots/`，邮件过程与结果在 `recordings/mail/`。macOS CLI 的设备命令：
+
+```sh
+dotnet run --project src/AALC.Cli -- devices
+dotnet run --project src/AALC.Cli -- capture <设备序列号> "$HOME/frame.png"
+dotnet run --project src/AALC.Cli -- mail <设备序列号> . en
+```
+
+“运行监控”显示最近游戏帧；也可以在未连接设备时选择空邮箱、领取奖励或未知画面的离线场景。独立 CLI 另提供日常和镜牢回放、截图回归、模板及 OCR 诊断，无需把 OCR 运行库或整套素材装进桌面包。两种架构的依赖与打包清单见[构建说明](build.md#macos-构建与发布目录)。
+
+旧版的按键、连续拖动和游戏重启并未迁移；日常与镜牢实战、Steam 启停、桌面分身、Agent/MCP、本地汉化和存档工具仅在 Windows 提供。合成 ADB 测试验证截图、输入保护和邮件流程，不代表真实模拟器或各游戏版本已通过验收。
+
 ## 一键启动
 
 “一键启动”页选择日常、收菜（换饼）与镜牢，点击后自动启动游戏并按顺序执行已配置任务。日常与收菜同时勾选时合并为一次日常流程并启用换饼，狂气兑换遵循日常配置，不重复消费。单独收菜只执行换饼及配置的狂气兑换。前一项失败或取消后不再启动下一项；镜牢保留结算奖励时计划在结算页结束。计划保存在 profile 的 `Launch`，也可在此页单独启动、关闭游戏。
@@ -96,4 +120,4 @@ xUnit 覆盖邮件、日常、镜牢、配置、取消和离线回放契约；�
 
 主桌面中文客户端已验证普通镜牢单轮通关并保留奖励、经验与纺锤采光、邮件和通行证领取、模块转换及第一档狂气换体。镜牢领取后的中断恢复仍有已知问题，见[镜牢验证与定位](mirror-flow.md#验证与定位)。
 
-镜牢策略范围见 [镜牢流程](mirror-flow.md#当前策略范围)，分身检查入口见 [桌面分身](desktop-clone.md#验证范围)。模拟器、OBS 后端和自动更新不在当前发布入口内。
+镜牢策略范围见 [镜牢流程](mirror-flow.md#当前策略范围)，分身检查入口见 [桌面分身](desktop-clone.md#验证范围)。模拟器仅支持上述 macOS ADB 子集；OBS 后端和自动更新不在当前发布入口内。

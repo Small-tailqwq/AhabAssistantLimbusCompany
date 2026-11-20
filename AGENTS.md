@@ -1,6 +1,6 @@
 # AAALC — Agent 指引
 
-AAALC 是 Windows 桌面自动化项目，主线使用 .NET 10、Avalonia、SukiUI 与 CommunityToolkit.Mvvm。
+AAALC 是 .NET 10 / Avalonia 桌面自动化项目。Windows 使用原生窗口、SukiUI；macOS 通过 ADB 操作安卓模拟器，轻量包范围见 [构建说明](docs/build.md)。
 `origin` → Small-tailqwq/AhabAssistantLimbusCompany；`upstream` → KIYI671/AhabAssistantLimbusCompany。
 
 ## 执行边界
@@ -22,6 +22,7 @@ AAALC 是 Windows 桌面自动化项目，主线使用 .NET 10、Avalonia、Suki
 | `src/AALC.Runtime/` | 任务编排、配置、观察与输入接口、录制和回放 |
 | `src/AALC.Vision/` | 模板匹配、OCR、地图识别 |
 | `src/AALC.Platform.Windows/` | Windows 窗口、截图、输入、桌面分身 |
+| `src/AALC.Platform.Android/`、`src/AALC.Vision.Templates/` | ADB 设备接入与不依赖 OCR 的共用模板视觉 |
 | `src/AALC.Desktop/`、`src/AALC.Cli/` | 桌面和命令行组合入口 |
 | `src/AALC.CloneHost/` | 独立的 .NET Framework 4.8 RDP 宿主 |
 | `tests/`、`scenarios/` | xUnit、截图用例定义、离线流程场景 |
@@ -69,6 +70,7 @@ AAALC 是 Windows 桌面自动化项目，主线使用 .NET 10、Avalonia、Suki
 
 ```powershell
 dotnet build AAALC.slnx -c Release
+# macOS: dotnet build AAALC.macOS.slnf -c Release
 dotnet test tests/AALC.Core.Tests/AALC.Core.Tests.csproj -c Release
 dotnet run --project src/AALC.Desktop -c Release
 dotnet run --project src/AALC.Cli -c Release -- replay scenarios/mail-rewards.json

@@ -8,7 +8,7 @@
 | 命令行真实运行与回放 | [Program.cs](../src/AALC.Cli/Program.cs)：`mail`、`replay` |
 | 任务时间、取消、日志、输入调用 | [MailRunner.cs](../src/AALC.Runtime/Mail/MailRunner.cs)：`RunAsync` |
 | 纯观察决策 | [MailFlow.cs](../src/AALC.Core/Features/Mail/MailFlow.cs)：`Decide` |
-| 截图与四个控件识别 | [MailObserver.cs](../src/AALC.Vision/MailObserver.cs)：`ObserveAsync`、`Assets` |
+| 截图与四个控件识别 | [MailObserver.cs](../src/AALC.Vision.Templates/MailObserver.cs)：`ObserveAsync`、`Assets` |
 | 合成观察、预期动作与验收 | [MailScenario.cs](../src/AALC.Runtime/Replay/MailScenario.cs)：`ScenarioSession`、`Evaluate` |
 
 真实入口要求用户先启动游戏、恢复并选择目标窗口，退出旧版程序，并准备好可用的资源目录。可识别的起始观察为主页邮箱入口、邮箱领取按钮或奖励确认；当前入口不负责游戏启动、登录或从任意页面返回主页。

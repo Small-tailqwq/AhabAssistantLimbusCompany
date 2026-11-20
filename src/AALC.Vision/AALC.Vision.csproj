@@ -1,9 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="../AALC.Runtime/AALC.Runtime.csproj" />
-    <PackageReference Include="OpenCvSharp4" Version="4.11.0.20250507" />
-    <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.11.0.20250507" />
+    <ProjectReference Include="../AALC.Vision.Templates/AALC.Vision.Templates.csproj" />
     <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.20.1" />
   </ItemGroup>
 </Project>
-

@@ -1,0 +1,28 @@
+<Application x:Class="AALC.Desktop.App"
+ xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:suki="https://github.com/kikipoulet/SukiUI" RequestedThemeVariant="Dark">
+ <Application.Resources>
+  <ResourceDictionary>
+   <FontFamily x:Key="AppFont">PingFang SC</FontFamily>
+   <ResourceDictionary.MergedDictionaries>
+    <ResourceInclude Source="/Styles/Tokens.axaml"/>
+    <ResourceInclude Source="/Styles/Logos.axaml"/>
+    <ResourceInclude Source="/Styles/Expander.axaml"/>
+    <ResourceInclude Source="/Styles/Hyperlink.axaml"/>
+    <ResourceInclude Source="/Styles/Button.axaml"/>
+    <ResourceInclude Source="/Mac/PlatformViews.axaml"/>
+   </ResourceDictionary.MergedDictionaries>
+  </ResourceDictionary>
+ </Application.Resources>
+ <Application.Styles>
+  <suki:SukiTheme ThemeColor="Blue"/>
+  <StyleInclude Source="/Styles/Controls.axaml"/>
+  <!-- SukiUI 的外层 Border 固定 Padding=5，使可见背景与输入行对齐。 -->
+  <Style Selector="ComboBox /template/ suki|GlassCard#border"><Setter Property="Margin" Value="-5"/></Style>
+  <Style Selector="TextBox, ComboBox"><Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}"/></Style>
+  <Style Selector="TextBox:focus-within, ComboBox:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/></Style>
+  <Style Selector="Image.game-frame"><Setter Property="Opacity" Value="0"/></Style>
+  <Style Selector="Image.game-frame.available"><Setter Property="Opacity" Value="1"/></Style>
+  <Style Selector="Window.motion Image.game-frame"><Setter Property="Transitions"><Transitions><DoubleTransition Property="Opacity" Duration="0:0:0.18" Easing="CubicEaseOut"/></Transitions></Setter></Style>
+ </Application.Styles>
+</Application>

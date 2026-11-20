@@ -2,7 +2,9 @@
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using AALC.Core.Features.Mirror;
+#if WINDOWS
 using AALC.Platform.Windows;
+#endif
 using AALC.Runtime.Automation;
 using AALC.Runtime.Configuration;
 using AALC.Runtime.Mail;
@@ -15,6 +17,7 @@ namespace AALC.Cli;
 
 internal static class MirrorCommands
 {
+#if WINDOWS
     public static async Task<int> RunAsync(string[] args, string? root, JsonSerializerOptions json, CancellationToken ct)
     {
         var flags = Parse(args, ["--options", "--profile", "--pid", "--root", "--models"]);
@@ -71,6 +74,8 @@ internal static class MirrorCommands
         Console.WriteLine(JsonSerializer.Serialize(new { output, result }, json));
         return result.Outcome == RunOutcome.Completed ? 0 : 1;
     }
+
+#endif
 
     public static async Task<int> ReplayAsync(string[] args, JsonSerializerOptions json, CancellationToken ct)
     {

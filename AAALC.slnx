@@ -3,7 +3,9 @@
     <Project Path="src/AALC.Core/AALC.Core.csproj" />
     <Project Path="src/AALC.Runtime/AALC.Runtime.csproj" />
     <Project Path="src/AALC.Vision/AALC.Vision.csproj" />
+    <Project Path="src/AALC.Vision.Templates/AALC.Vision.Templates.csproj" />
     <Project Path="src/AALC.Platform.Windows/AALC.Platform.Windows.csproj" />
+    <Project Path="src/AALC.Platform.Android/AALC.Platform.Android.csproj" />
     <Project Path="src/AALC.Cli/AALC.Cli.csproj" />
     <Project Path="src/AALC.Mcp/AALC.Mcp.csproj" />
     <Project Path="src/AALC.CloneHost/AALC.CloneHost.csproj" />
@@ -13,4 +15,3 @@
     <Project Path="tests/AALC.Core.Tests/AALC.Core.Tests.csproj" />
   </Folder>
 </Solution>
-

@@ -1,29 +1,34 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>WinExe</OutputType><TargetFramework>net10.0-windows</TargetFramework>
+    <OutputType>WinExe</OutputType><TargetFramework Condition="'$(AalcMacOS)' != 'true'">net10.0-windows</TargetFramework>
     <AssemblyName>AAALC</AssemblyName>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>Assets/Logo.ico</ApplicationIcon>
+    <ApplicationManifest Condition="'$(AalcMacOS)' != 'true'">app.manifest</ApplicationManifest>
+    <ApplicationIcon Condition="'$(AalcMacOS)' != 'true'">Assets/Logo.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <AvaloniaResource Include="Assets/Logo.ico" />
     <AvaloniaResource Include="Assets/LogoAngelaIce.ico" />
     <AvaloniaResource Include="Assets/LogoAngelaGold.ico" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../AALC.Runtime/AALC.Runtime.csproj" />
-    <ProjectReference Include="../AALC.Vision/AALC.Vision.csproj" />
-    <ProjectReference Include="../AALC.Platform.Windows/AALC.Platform.Windows.csproj" />
+    <AvaloniaResource Include="Assets/Logo.ico" />
+    <Compile Include="../Shared/AttachedGameTasks.cs" Link="AttachedGameTasks.cs" />
+    <ProjectReference Condition="'$(AalcMacOS)' != 'true'" Include="../AALC.Vision/AALC.Vision.csproj" />
+    <ProjectReference Condition="'$(AalcMacOS)' == 'true'" Include="../AALC.Vision.Templates/AALC.Vision.Templates.csproj" />
+    <ProjectReference Condition="'$(AalcMacOS)' != 'true'" Include="../AALC.Platform.Windows/AALC.Platform.Windows.csproj" />
+    <ProjectReference Condition="'$(AalcMacOS)' == 'true'" Include="../AALC.Platform.Android/AALC.Platform.Android.csproj" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-    <PackageReference Include="Avalonia.Desktop" Version="12.0.3" />
-    <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3" />
+    <PackageReference Condition="'$(AalcMacOS)' != 'true'" Include="Avalonia.Desktop" Version="12.0.3" />
+    <PackageReference Condition="'$(AalcMacOS)' != 'true'" Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3" />
     <PackageReference Include="SukiUI" Version="7.0.1" />
   </ItemGroup>
   <!-- 分身用 dynamic 调用任务计划和 WMI，裁剪发布时保留 C# 运行时绑定。 -->
-  <ItemGroup><TrimmerRootAssembly Include="Microsoft.CSharp" /></ItemGroup>
+  <ItemGroup Condition="'$(AalcMacOS)' != 'true'"><TrimmerRootAssembly Include="Microsoft.CSharp" /></ItemGroup>
   <!-- RDP 宿主是 net48 独立进程，只取构建产物，不作为程序集引用。 -->
-  <ItemGroup>
+  <ItemGroup Condition="'$(AalcMacOS)' != 'true'">
+    <Compile Remove="Mac/**/*.cs" />
+    <AvaloniaXaml Remove="Mac/**/*.axaml" />
     <ProjectReference Include="../AALC.CloneHost/AALC.CloneHost.csproj" ReferenceOutputAssembly="false" Private="false"
       SetTargetFramework="TargetFramework=net48" SkipGetTargetFrameworkProperties="true" GlobalPropertiesToRemove="RuntimeIdentifier;SelfContained;PublishTrimmed;TrimMode" />
     <None Include="../AALC.CloneHost/bin/$(Configuration)/net48/AAALC.CloneHost.exe" Link="clone-host/AAALC.CloneHost.exe"
@@ -31,5 +36,18 @@
     <None Include="../AALC.CloneHost/bin/$(Configuration)/net48/AAALC.CloneHost.exe.config" Link="clone-host/AAALC.CloneHost.exe.config"
       CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
+  <ItemGroup Condition="'$(AalcMacOS)' == 'true'">
+    <PackageReference Include="Avalonia.Native" Version="12.0.3" />
+    <PackageReference Include="Avalonia.Skia" Version="12.0.3" />
+    <PackageReference Include="Avalonia.HarfBuzz" Version="12.0.3" />
+    <Compile Remove="*.cs;Windows/**/*.cs" />
+    <Compile Include="Program.cs;App.axaml.cs;FrameBitmap.cs;MainViewModel.App.cs;DesktopChoices.cs;MainWindow.axaml.cs;RunMonitorView.axaml.cs;AboutView.axaml.cs;ToolsView.axaml.cs;AngelaMemoryLabel.axaml.cs;RunEventDisplay.cs;ExpandPresenter.cs" />
+    <AvaloniaXaml Remove="*.axaml;Windows/**/*.axaml" />
+    <AvaloniaXaml Include="MainWindow.axaml;RunMonitorView.axaml;AboutView.axaml;ToolsView.axaml;AngelaMemoryLabel.axaml" />
+    <Content Include="../../assets/images/**/mail/*;../../assets/images/**/home/mail_assets.*" CopyToPublishDirectory="PreserveNewest">
+      <Link>$([MSBuild]::MakeRelative('$(MSBuildProjectDirectory)/../..', '%(FullPath)'))</Link>
+    </Content>
+    <Content Include="../../scenarios/mail-*.json" Link="scenarios/%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <TrimmableAssembly Include="AALC.Runtime;AALC.Core;AALC.Vision.Templates" />
+  </ItemGroup>
 </Project>
-

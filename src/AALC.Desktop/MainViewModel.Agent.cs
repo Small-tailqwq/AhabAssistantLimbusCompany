@@ -257,7 +257,7 @@ public partial class MainViewModel
             Status = previousStatus;
         }
         var frame = capturedFrame ?? agentFrame ?? throw new InvalidOperationException("运行器尚未产生截图，请稍后重试");
-        using var bitmap = CreateBitmap(frame);
+        using var bitmap = FrameBitmap.Create(frame);
         using var output = new MemoryStream();
         bitmap.Save(output);
         var directory = EvidencePaths.RequireExternalPath(Path.Combine(EvidencePaths.ResolveRoot(), "screenshots"));

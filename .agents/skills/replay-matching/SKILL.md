@@ -11,7 +11,7 @@ description: 用 AAALC 的 .NET 生产视觉管线重放截图、模板匹配和
 
 读取 [视觉接口](../../../docs/vision.md)；涉及测试集或真实录制时再读 [截图回归](../../../docs/screenshot-regression.md)。
 
-实现入口为 `src/AALC.Vision/TemplateMatcher.cs`、`GameObserver.cs` 与 `MirrorScenarioVision.cs`。匹配值必须来自相应生产路径，不能用裸 OpenCV 匹配替代。
+实现入口为 `src/AALC.Vision.Templates/TemplateMatcher.cs` 及 `src/AALC.Vision/` 的 `GameObserver.cs`、`MirrorScenarioVision.cs`。匹配值必须来自相应生产路径，不能用裸 OpenCV 匹配替代。
 
 在仓库根目录运行：
 

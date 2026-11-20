@@ -1,0 +1,157 @@
+<ResourceDictionary x:Class="AALC.Desktop.WindowsPlatformViews"
+ xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:suki="https://github.com/kikipoulet/SukiUI" xmlns:platform="using:AALC.Platform.Windows" xmlns:local="using:AALC.Desktop">
+ <DataTemplate x:Key="LaunchPage" x:DataType="local:MainViewModel">
+  <suki:SukiSideMenuItem Header="一键启动" AutomationProperties.Name="一键启动">
+   <suki:SukiSideMenuItem.Icon><PathIcon Data="M5,2 L19,10 5,18 Z"/></suki:SukiSideMenuItem.Icon>
+   <suki:SukiSideMenuItem.PageContent>
+    <Grid Classes="page" RowDefinitions="Auto,*,Auto">
+     <TextBlock Text="一键启动" Classes="heading"/>
+     <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Classes="cards" Margin="0,0,10,0" IsEnabled="{Binding CanConfigure}">
+       <Border Classes="card">
+        <StackPanel Classes="options">
+         <TextBlock Text="执行任务" Classes="section"/>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="日常"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding LaunchDaily}"/></Grid>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="收菜（换饼）"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding LaunchHarvest}"/></Grid>
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="镜牢"/><ToggleSwitch Grid.Column="1" IsChecked="{Binding LaunchMirror}"/></Grid>
+        </StackPanel>
+       </Border>
+       <Border Classes="card">
+        <StackPanel Classes="options">
+         <TextBlock Text="游戏" Classes="section"/>
+         <WrapPanel ItemSpacing="10" LineSpacing="10">
+          <Button Content="启动游戏" Command="{Binding LaunchGameCommand}"/>
+          <Button Content="关闭游戏" Command="{Binding CloseGameCommand}"/>
+          <Button Content="收菜" Command="{Binding RunHarvestCommand}"/>
+         </WrapPanel>
+        </StackPanel>
+       </Border>
+      </StackPanel>
+     </ScrollViewer>
+     <Grid Grid.Row="2" Classes="actions" ColumnDefinitions="*,Auto">
+      <TextBlock Text="{Binding Error}" Classes="error"/>
+      <StackPanel Grid.Column="1">
+       <Button Content="保存配置" Command="{Binding SaveLaunchSettingsCommand}"/>
+       <Button Content="停止" Classes="danger" Command="{Binding StopCommand}" IsVisible="{Binding IsRunning}" ToolTip.Tip="停止 (Esc)"/>
+       <Button Content="一键启动" Classes="primary" Command="{Binding RunLaunchCommand}" MinWidth="136"/>
+      </StackPanel>
+     </Grid>
+    </Grid>
+   </suki:SukiSideMenuItem.PageContent>
+  </suki:SukiSideMenuItem>
+ </DataTemplate>
+ <DataTemplate x:Key="DailyPage" x:DataType="local:MainViewModel">
+  <suki:SukiSideMenuItem Header="日常任务" AutomationProperties.Name="日常任务">
+   <suki:SukiSideMenuItem.Icon><PathIcon Data="M3,3 L17,3 17,19 3,19 Z M6,7 L14,7 M6,11 L14,11 M6,15 L11,15"/></suki:SukiSideMenuItem.Icon>
+   <suki:SukiSideMenuItem.PageContent>
+    <Grid Classes="page" RowDefinitions="Auto,*,Auto">
+     <TextBlock Text="日常任务" Classes="heading"/>
+     <local:DailyConfigurationView Grid.Row="1"/>
+     <Grid Grid.Row="2" Classes="actions" ColumnDefinitions="*,Auto">
+      <TextBlock Text="{Binding Error}" Classes="error"/>
+      <StackPanel Grid.Column="1">
+       <Button Content="保存配置" Command="{Binding SaveDailySettingsCommand}" MinWidth="100"/>
+       <Button Classes="danger" Content="停止" Command="{Binding StopCommand}" IsVisible="{Binding IsRunning}" MinWidth="90" ToolTip.Tip="停止 (Esc)"/>
+       <Button Content="开始日常" Command="{Binding RunDailyCommand}" Classes="primary" MinWidth="136"/>
+      </StackPanel>
+     </Grid>
+    </Grid>
+   </suki:SukiSideMenuItem.PageContent>
+  </suki:SukiSideMenuItem>
+ </DataTemplate>
+ <DataTemplate x:Key="MirrorPage" x:DataType="local:MainViewModel">
+  <suki:SukiSideMenuItem Header="镜牢" AutomationProperties.Name="镜牢">
+   <suki:SukiSideMenuItem.Icon><PathIcon Data="M3,3 L17,3 17,17 3,17 Z M7,7 L13,7 13,13 7,13 Z M10,0 L10,3 M10,17 L10,20"/></suki:SukiSideMenuItem.Icon>
+   <suki:SukiSideMenuItem.PageContent>
+    <Grid Classes="page" RowDefinitions="Auto,*,Auto">
+     <TextBlock Text="镜牢" Classes="heading"/>
+     <local:MirrorConfigurationView Grid.Row="1"/>
+     <Grid Grid.Row="2" Classes="actions" ColumnDefinitions="*,Auto">
+      <TextBlock Text="{Binding Error}" Classes="error"/>
+      <StackPanel Grid.Column="1">
+       <Button Content="保存配置" Command="{Binding SaveMirrorSettingsCommand}" MinWidth="100"/>
+       <Button Classes="danger" Content="停止" Command="{Binding StopCommand}" IsVisible="{Binding IsRunning}" MinWidth="90" ToolTip.Tip="停止 (Esc)"/>
+       <Button Content="开始镜牢" Command="{Binding RunMirrorCommand}" Classes="primary" MinWidth="136"/>
+      </StackPanel>
+     </Grid>
+    </Grid>
+   </suki:SukiSideMenuItem.PageContent>
+  </suki:SukiSideMenuItem>
+ </DataTemplate>
+ <DataTemplate x:Key="ClonePage" x:DataType="local:MainViewModel">
+  <suki:SukiSideMenuItem Header="桌面分身" AutomationProperties.Name="桌面分身">
+   <suki:SukiSideMenuItem.Icon><PathIcon Data="M3,3 L13,3 13,11 3,11 Z M7,7 L17,7 17,15 7,15 Z M9,15 L9,18 15,18 15,15"/></suki:SukiSideMenuItem.Icon>
+   <suki:SukiSideMenuItem.PageContent><local:DesktopCloneView/></suki:SukiSideMenuItem.PageContent>
+  </suki:SukiSideMenuItem>
+ </DataTemplate>
+ <DataTemplate x:Key="DeviceSelector" x:DataType="local:MainViewModel">
+   <StackPanel Spacing="10">
+    <TextBlock Text="游戏窗口" Classes="caption"/>
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+     <ComboBox ItemsSource="{Binding Windows}" SelectedItem="{Binding SelectedWindow}" IsEnabled="{Binding CanConfigure}"
+      PlaceholderText="未选择" AutomationProperties.Name="游戏窗口">
+      <ComboBox.ItemTemplate><DataTemplate x:DataType="platform:GameWindowInfo">
+       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource RowSpacing}">
+        <ToolTip.Tip><TextBlock Text="{Binding}" Classes="tooltip"/></ToolTip.Tip>
+        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis"/>
+        <TextBlock Grid.Column="1" Text="{Binding ProcessId}" Classes="muted" VerticalAlignment="Center"/>
+       </Grid>
+      </DataTemplate></ComboBox.ItemTemplate>
+     </ComboBox>
+     <Button Grid.Column="1" Classes="icon" Command="{Binding RefreshWindowsCommand}" ToolTip.Tip="刷新窗口" AutomationProperties.Name="刷新窗口">
+      <PathIcon Data="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
+     </Button>
+    </Grid>
+   </StackPanel>
+ </DataTemplate>
+ <DataTemplate x:Key="GameConnectionSettings" x:DataType="local:MainViewModel">
+         <Grid Classes="option" ColumnDefinitions="160,*,Auto,Auto" ColumnSpacing="10">
+          <TextBlock Text="游戏安装目录"/>
+          <TextBox Grid.Column="1" Text="{Binding GameDirectory}" Name="GameDirectoryBox" AutomationProperties.Name="游戏安装目录"/>
+          <Button Grid.Column="2" Content="浏览" Click="BrowseGameDirectory"/>
+          <Button Grid.Column="3" Content="搜索" Command="{Binding SearchGameDirectoryCommand}"/>
+         </Grid>
+ </DataTemplate>
+ <DataTemplate x:Key="OcrSettings" x:DataType="local:MainViewModel">
+         <Grid Classes="option" ColumnDefinitions="160,*"><TextBlock Text="OCR 模型目录"/><TextBox Grid.Column="1" Text="{Binding OcrModelsDirectory}" AutomationProperties.Name="OCR 模型目录" PlaceholderText="PP-OCRv4 模型所在目录"/></Grid>
+ </DataTemplate>
+ <DataTemplate x:Key="WindowsTools" x:DataType="local:MainViewModel">
+   <StackPanel Classes="cards">
+    <Border Classes="card">
+     <StackPanel Classes="options">
+      <TextBlock Text="零协汉化" Classes="section"/>
+      <Grid ColumnDefinitions="*,*" ColumnSpacing="20">
+       <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding HasInstalledLocalization}"><TextBlock Text="当前版本" Classes="muted"/><TextBlock Text="{Binding InstalledLocalization}"/></StackPanel>
+       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" IsVisible="{Binding HasLatestLocalization}"><TextBlock Text="最新版本" Classes="muted"/><TextBlock Text="{Binding LatestLocalization}"/></StackPanel>
+      </Grid>
+      <Expander Header="更新说明" Classes="plain" IsVisible="{Binding HasLocalizationNotes}">
+       <TextBlock Text="{Binding LocalizationNotes}" TextWrapping="Wrap"/>
+      </Expander>
+      <WrapPanel Orientation="Horizontal" ItemSpacing="10" LineSpacing="10">
+       <Button Content="检查更新" Command="{Binding CheckLocalizationCommand}"/>
+       <Button Content="安装 / 更新" Command="{Binding InstallLocalizationCommand}" Classes="primary"/>
+       <HyperlinkButton Content="零协汉化 · CC BY-NC-SA 4.0" NavigateUri="https://github.com/LocalizeLimbusCompany/LocalizeLimbusCompany" VerticalAlignment="Center"/>
+      </WrapPanel>
+     </StackPanel>
+    </Border>
+    <Border Classes="card">
+     <StackPanel Classes="options">
+      <TextBlock Text="新手提示" Classes="section"/>
+      <TextBlock Text="修改存档前请退出游戏，原文件保留备份。" Classes="muted" TextWrapping="Wrap"/>
+      <WrapPanel Orientation="Horizontal" ItemSpacing="10">
+       <Button Content="关闭提示" Command="{Binding DisableTutorialsCommand}"/>
+       <Button Content="恢复提示" Command="{Binding EnableTutorialsCommand}" ToolTip.Tip="重新开启提示，保留已读公告列表"/>
+      </WrapPanel>
+     </StackPanel>
+    </Border>
+    <Border Classes="card" IsVisible="{Binding HasToolMessages}">
+     <ItemsControl ItemsSource="{Binding ToolMessages}">
+      <ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String">
+       <SelectableTextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="12" Margin="0,4"/>
+      </DataTemplate></ItemsControl.ItemTemplate>
+     </ItemsControl>
+    </Border>
+   </StackPanel>
+ </DataTemplate>
+</ResourceDictionary>

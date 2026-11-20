@@ -9,7 +9,7 @@ dotnet src/AALC.Cli/bin/Debug/net10.0-windows/AAALC.Cli.dll read-text <截图> <
 dotnet src/AALC.Cli/bin/Debug/net10.0-windows/AAALC.Cli.dll recognize <文字裁剪> <PP-OCRv4_rec.onnx> <字典.txt>
 ```
 
-`match` 每行输出一种搜索模式的 JSON，包括资源键、实际相对路径、分数、中心点和裁剪前 bbox。截图高度决定模板缩放；缩小时使用 AREA，放大时使用 LINEAR。截图与模板的灰度转换由 [TemplateMatcher](../src/AALC.Vision/TemplateMatcher.cs) 统一实现。`assets.png` 后缀资源先按非零灰度 bbox 裁剪。`Clam` 与 `Normal` 在 bbox 周围分别保留至少 30、100 像素的搜索边距，随截图高度缩放；`Aggressive` 搜索整帧。
+`match` 每行输出一种搜索模式的 JSON，包括资源键、实际相对路径、分数、中心点和裁剪前 bbox。截图高度决定模板缩放；缩小时使用 AREA，放大时使用 LINEAR。截图与模板的灰度转换由 [TemplateMatcher](../src/AALC.Vision.Templates/TemplateMatcher.cs) 统一实现。`assets.png` 后缀资源先按非零灰度 bbox 裁剪。`Clam` 与 `Normal` 在 bbox 周围分别保留至少 30、100 像素的搜索边距，随截图高度缩放；`Aggressive` 搜索整帧。
 
 资源解析按指定语言和主题查找候选，优先 WebP，再读取 PNG。`Match` 返回候选中的最高分供诊断；邮件观察器使用 0.8 阈值。
 

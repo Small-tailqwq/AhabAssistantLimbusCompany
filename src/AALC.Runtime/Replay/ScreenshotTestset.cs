@@ -79,7 +79,8 @@ public sealed record ScreenshotTestset(int Version, ScreenshotCase[] Cases, Scre
         if (string.IsNullOrWhiteSpace(relativePath) || Path.IsPathRooted(relativePath))
             throw new InvalidDataException("测试集文件必须使用相对路径");
         var path = EvidencePaths.RequireExternalPath(Path.Combine(root, relativePath));
-        if (!path.StartsWith(Path.TrimEndingDirectorySeparator(root) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+        if (!path.StartsWith(Path.TrimEndingDirectorySeparator(root) + Path.DirectorySeparatorChar,
+            OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
             throw new InvalidDataException("测试集文件超出数据目录");
         return path;
     }

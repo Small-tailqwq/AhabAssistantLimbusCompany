@@ -1,0 +1,31 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:local="using:AALC.Desktop" xmlns:android="using:AALC.Platform.Android">
+ <DataTemplate x:Key="DeviceSelector" x:DataType="local:MainViewModel">
+   <StackPanel Spacing="10">
+    <Grid ColumnDefinitions="*,Auto">
+     <TextBlock Text="目标模拟器" Classes="caption" VerticalAlignment="Center"/>
+     <Button Grid.Column="1" Content="连接…" Command="{Binding ConnectionSettingsCommand}" ToolTip.Tip="在设置中连接本机 ADB"/>
+    </Grid>
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+     <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}" IsEnabled="{Binding CanConfigure}"
+      PlaceholderText="未选设备" AutomationProperties.Name="目标模拟器">
+      <ComboBox.ItemTemplate><DataTemplate x:DataType="android:AdbDevice">
+        <TextBlock Text="{Binding Serial}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Serial}"/>
+       </DataTemplate></ComboBox.ItemTemplate>
+     </ComboBox>
+     <Button Grid.Column="1" Classes="icon" Command="{Binding RefreshDevicesCommand}" ToolTip.Tip="刷新设备" AutomationProperties.Name="刷新设备">
+      <PathIcon Data="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
+     </Button>
+    </Grid>
+   </StackPanel>
+ </DataTemplate>
+ <DataTemplate x:Key="GameConnectionSettings" x:DataType="local:MainViewModel">
+   <Grid Classes="option" ColumnDefinitions="160,*,Auto" ColumnSpacing="10">
+    <TextBlock Text="本机 ADB 端口"/>
+    <TextBox Grid.Column="1" Text="{Binding Port}" AutomationProperties.Name="本机 ADB 端口" PlaceholderText="5555">
+     <TextBox.InnerLeftContent><TextBlock Text="127.0.0.1 : " Classes="muted" VerticalAlignment="Center"/></TextBox.InnerLeftContent>
+    </TextBox>
+    <Button Grid.Column="2" Content="连接" Command="{Binding ConnectCommand}"/>
+   </Grid>
+ </DataTemplate>
+</ResourceDictionary>

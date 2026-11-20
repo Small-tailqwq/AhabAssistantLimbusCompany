@@ -6,8 +6,10 @@
 |---|---|
 | `src/AALC.Core` | 业务规则与不可变配置 |
 | `src/AALC.Runtime` | 生产流程、外部效果接口、配置和录制 |
-| `src/AALC.Vision` | OpenCV/ONNX Runtime 视觉实现 |
+| `src/AALC.Vision.Templates` | 可独立发布的 OpenCV 模板识别与邮件观察 |
+| `src/AALC.Vision` | 在模板之上的 OCR、图谱与截图回归，依赖 ONNX Runtime |
 | `src/AALC.Platform.Windows` | Windows 窗口、输入、截图与分身 |
+| `src/AALC.Platform.Android` | macOS 入口使用的 ADB 设备发现、截图与触控 |
 | `src/AALC.Desktop`、`src/AALC.Cli` | Avalonia 与命令行入口 |
 | `src/AALC.Mcp` | stdio MCP 服务，通过当前用户管道连接桌面端 |
 | `src/AALC.CloneHost` | 独立 net48 RDP ActiveX 宿主 |

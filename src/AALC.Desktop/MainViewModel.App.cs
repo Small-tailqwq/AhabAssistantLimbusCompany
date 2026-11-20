@@ -7,7 +7,9 @@ using Avalonia.Media;
 using Avalonia.Platform;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+#if WINDOWS
 using AALC.Platform.Windows;
+#endif
 using AALC.Runtime;
 using AALC.Runtime.Configuration;
 
@@ -67,7 +69,12 @@ public partial class MainViewModel
         LogoVariant = Random.Shared.Next(1, 3);
     }
 
-    public ChoiceItem[] StartPages { get; } = [new("launch", "一键启动"), new("daily", "日常任务"), new("mirror", "镜牢"), new("monitor", "运行监控")];
+    public ChoiceItem[] StartPages { get; } =
+#if WINDOWS
+        [new("launch", "一键启动"), new("daily", "日常任务"), new("mirror", "镜牢"), new("monitor", "运行监控")];
+#else
+        [new("tools", "工具箱"), new("monitor", "运行监控"), new("replay", "场景回放"), new("settings", "设置")];
+#endif
     [ObservableProperty] private ChoiceItem? selectedStartPage;
     [ObservableProperty] private bool showMonitorOnRun = true;
     [ObservableProperty] private bool findWindowsOnStartup = true;
@@ -119,9 +126,11 @@ public partial class MainViewModel
             new("SukiUI", Package("SukiUI"), "MIT"),
             new("CommunityToolkit.Mvvm", Package("CommunityToolkit.Mvvm"), "MIT"),
             new("OpenCvSharp", Package("OpenCvSharp4"), "Apache-2.0"),
+#if WINDOWS
             new("ONNX Runtime", Package("Microsoft.ML.OnnxRuntime"), "MIT"),
             new("PaddleOCR 模型", "PP-OCRv4", "Apache-2.0"),
             new("零协汉化（可选安装）", "—", "CC BY-NC-SA 4.0"),
+#endif
         ];
     }
 
@@ -162,6 +171,7 @@ public partial class MainViewModel
 
     private AppSettings GetAppSettings() => new(SelectedStartPage?.Key ?? "daily", ShowMonitorOnRun, FindWindowsOnStartup, RememberAngela);
 
+#if WINDOWS
     /// <summary>启动后静默查找游戏窗口；找不到不提示错误，避免首屏出现红字。</summary>
     public void FindWindowsAtStartup()
     {
@@ -173,6 +183,7 @@ public partial class MainViewModel
         }
         catch { }
     }
+#endif
 
     [RelayCommand] private void OpenProfileDirectory() => OpenDirectory(() => ProfileDirectory);
     [RelayCommand] private void OpenDataDirectory() => OpenDirectory(EvidencePaths.ResolveRoot);
