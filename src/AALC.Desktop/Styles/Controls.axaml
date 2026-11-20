@@ -1,13 +1,12 @@
 <!-- 语义样式：页面只组合这些类名，不在局部重复定义尺寸或颜色。 -->
-<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
- xmlns:suki="https://github.com/kikipoulet/SukiUI">
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
  <!-- 窗口使用系统原生标题栏，背景与前景由令牌提供。 -->
  <Style Selector=":is(Window)">
   <Setter Property="Icon" Value="avares://AAALC/Assets/Logo.ico"/>
   <Setter Property="Background" Value="{DynamicResource SurfaceWindowBrush}"/><Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
  </Style>
  <!-- 文本层级 -->
- <Style Selector="TextBlock"><Setter Property="FontFamily" Value="Microsoft YaHei UI"/></Style>
+ <Style Selector="TextBlock"><Setter Property="FontFamily" Value="{DynamicResource AppFont}"/></Style>
  <Style Selector="TextBlock.heading"><Setter Property="FontSize" Value="{DynamicResource FontSizeHeading}"/><Setter Property="FontWeight" Value="SemiBold"/></Style>
  <Style Selector="TextBlock.section"><Setter Property="FontSize" Value="{DynamicResource FontSizeSection}"/><Setter Property="FontWeight" Value="SemiBold"/></Style>
  <Style Selector="TextBlock.muted"><Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/><Setter Property="FontSize" Value="13"/></Style>
@@ -78,10 +77,8 @@
  <Style Selector="Button.icon PathIcon"><Setter Property="Width" Value="14"/><Setter Property="Height" Value="14"/></Style>
 
  <!-- 输入控件统一 40 高。 -->
- <Style Selector="ComboBox"><Setter Property="Margin" Value="0"/><Setter Property="Height" Value="{DynamicResource ControlHeight}"/><Setter Property="MinHeight" Value="{DynamicResource ControlHeight}"/><Setter Property="HorizontalAlignment" Value="Stretch"/><Setter Property="FontFamily" Value="Microsoft YaHei UI"/></Style>
- <!-- SukiUI 7.0.1 的外层 Border 固定 Padding=5，抵消后让可见背景与输入行对齐。 -->
- <Style Selector="ComboBox /template/ suki|GlassCard#border"><Setter Property="Margin" Value="-5"/></Style>
- <Style Selector="TextBox"><Setter Property="Margin" Value="0"/><Setter Property="Height" Value="{DynamicResource ControlHeight}"/><Setter Property="MinHeight" Value="{DynamicResource ControlHeight}"/><Setter Property="FontFamily" Value="Microsoft YaHei UI"/></Style>
+ <Style Selector="ComboBox"><Setter Property="Margin" Value="0"/><Setter Property="Height" Value="{DynamicResource ControlHeight}"/><Setter Property="MinHeight" Value="{DynamicResource ControlHeight}"/><Setter Property="HorizontalAlignment" Value="Stretch"/><Setter Property="FontFamily" Value="{DynamicResource AppFont}"/></Style>
+ <Style Selector="TextBox"><Setter Property="Margin" Value="0"/><Setter Property="Height" Value="{DynamicResource ControlHeight}"/><Setter Property="MinHeight" Value="{DynamicResource ControlHeight}"/><Setter Property="FontFamily" Value="{DynamicResource AppFont}"/></Style>
  <Style Selector="NumericUpDown"><Setter Property="Margin" Value="0"/><Setter Property="Height" Value="{DynamicResource ControlHeight}"/><Setter Property="MinHeight" Value="{DynamicResource ControlHeight}"/><Setter Property="HorizontalAlignment" Value="Stretch"/><Setter Property="FormatString" Value="0"/><Setter Property="Increment" Value="1"/></Style>
 
  <!-- 游戏内选择块（星光、观测饰品）：默认无底，选中为金色。 -->

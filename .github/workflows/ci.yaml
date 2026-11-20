@@ -7,7 +7,10 @@ on:
       - "src/**"
       - "tests/**"
       - "scenarios/**"
+      - "assets/images/**"
+      - "scripts/build_macos.py"
       - "AAALC.slnx"
+      - "AAALC.macOS.slnf"
       - "global.json"
       - "Directory.Build.props"
       - ".github/workflows/ci.yaml"
@@ -17,7 +20,10 @@ on:
       - "src/**"
       - "tests/**"
       - "scenarios/**"
+      - "assets/images/**"
+      - "scripts/build_macos.py"
       - "AAALC.slnx"
+      - "AAALC.macOS.slnf"
       - "global.json"
       - "Directory.Build.props"
       - ".github/workflows/ci.yaml"
@@ -27,13 +33,38 @@ permissions:
 
 jobs:
   build:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            solution: AAALC.slnx
+          - os: macos-latest
+            solution: AAALC.macOS.slnf
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
       - name: Build solution
-        run: dotnet build AAALC.slnx -c Release
+        run: dotnet build ${{ matrix.solution }} -c Release
       - name: Run unit tests
         run: dotnet test tests/AALC.Core.Tests/AALC.Core.Tests.csproj -c Release --no-build
+      - name: Exercise native macOS template matching
+        if: runner.os == 'macOS'
+        run: dotnet run --no-build -c Release --project src/AALC.Cli -- match assets/images/default/share/home/mail_assets.png home/mail_assets.png
+      - name: Verify lightweight macOS app outside the checkout
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          python3 scripts/build_macos.py
+          unzip -q artifacts/publish/AAALC-osx-*.zip -d "$RUNNER_TEMP/install"
+          cd "$RUNNER_TEMP/install"
+          codesign --verify --deep --strict AAALC.app
+          resources=AAALC.app/Contents/Resources
+          test -f "$resources/assets/images/default/share/home/mail_assets.png"
+          test -f "$resources/scenarios/mail-rewards.json"
+          test -z "$(find AAALC.app \( -iname '*onnx*' -o -iname '*clonehost*' -o -name Avalonia.Win32.dll -o -name AALC.Platform.Windows.dll \))"
+          ./AAALC.app/Contents/MacOS/AAALC --profile "$RUNNER_TEMP/profile" --startup-report ready.json --exit-after-ready
+          python3 -c 'import json; assert json.load(open("ready.json"))["windowVisible"]'

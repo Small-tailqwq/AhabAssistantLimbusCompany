@@ -1,0 +1,24 @@
+<Application x:Class="AALC.Desktop.App"
+ xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ RequestedThemeVariant="Dark">
+ <Application.Resources>
+  <ResourceDictionary>
+   <FontFamily x:Key="AppFont">PingFang SC</FontFamily>
+   <LinearGradientBrush x:Key="MacGlassTint" StartPoint="0%,0%" EndPoint="100%,100%">
+    <GradientStop Offset="0" Color="#E72D3A50"/><GradientStop Offset=".62" Color="#E81B2635"/><GradientStop Offset="1" Color="#EF171F2D"/>
+   </LinearGradientBrush>
+   <LinearGradientBrush x:Key="MacMonitorBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+    <GradientStop Offset="0" Color="#293B4E"/><GradientStop Offset=".55" Color="#1C2C3C"/><GradientStop Offset="1" Color="#162231"/>
+   </LinearGradientBrush>
+   <x:Double x:Key="MacPreviewHeight">210</x:Double>
+   <ResourceDictionary.MergedDictionaries>
+    <ResourceInclude Source="/Styles/Tokens.axaml"/>
+    <ResourceInclude Source="/Styles/Button.axaml"/>
+   </ResourceDictionary.MergedDictionaries>
+  </ResourceDictionary>
+ </Application.Resources>
+ <Application.Styles>
+  <SimpleTheme/>
+  <StyleInclude Source="/Styles/Controls.axaml"/>
+ </Application.Styles>
+</Application>

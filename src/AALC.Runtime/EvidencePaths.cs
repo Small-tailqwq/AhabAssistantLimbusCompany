@@ -3,7 +3,9 @@ namespace AALC.Runtime;
 public static class EvidencePaths
 {
     public static string ResolveRoot() => RequireExternalPath(
-        Environment.GetEnvironmentVariable("AALC_DATA_ROOT") ?? @"D:\AALCData");
+        Environment.GetEnvironmentVariable("AALC_DATA_ROOT") ?? (OperatingSystem.IsMacOS()
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library", "Application Support", "AAALC")
+            : @"D:\AALCData"));
 
     public static string RequireExternalPath(string path) => Resolve(path, 0);
 
@@ -12,12 +14,21 @@ public static class EvidencePaths
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         if (links >= 40) throw new IOException("证据目录包含过多目录链接");
         var full = Path.GetFullPath(path);
+        if (OperatingSystem.IsMacOS())
+        {
+            if (!Path.IsPathFullyQualified(path)) throw new InvalidDataException("证据路径须使用绝对路径");
+            return ResolveLinks(full, "/", links);
+        }
         if (full.StartsWith(@"\\?\", StringComparison.Ordinal)) full = full[4..];
         if (full.Length < 3 || !char.IsAsciiLetter(full[0]) || full[1] != ':' || full[2] != '\\')
             throw new InvalidDataException("证据路径须使用可确认的本地非 C 盘路径");
         if (char.ToUpperInvariant(full[0]) == 'C') throw new InvalidDataException("证据和截图禁止写入 C 盘，请使用 D 盘或设置 AALC_DATA_ROOT");
 
-        var current = full[..3];
+        return ResolveLinks(full, full[..3], links);
+    }
+
+    private static string ResolveLinks(string full, string current, int links)
+    {
         var parts = full[current.Length..].Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
         for (var index = 0; index < parts.Length; index++)
         {

@@ -1,6 +1,6 @@
 using AALC.Runtime.Automation;
 using System.Runtime.InteropServices;
-using AALC.Core.Features.Mail;
+using AALC.Core.Automation;
 using AALC.Runtime.Mail;
 using OpenCvSharp;
 using AALC.Core.Features.Daily;
@@ -189,4 +189,3 @@ public sealed class TemplateMatcher(string repositoryRoot, TemplateOptions optio
         cache.Clear();
     }
 }
-

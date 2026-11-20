@@ -6,6 +6,9 @@ using AALC.Runtime.Mail;
 namespace AALC.Runtime.Replay;
 
 public sealed record ScenarioStep(MailControl[] Visible, MailControl? ExpectedClick = null);
+[JsonSerializable(typeof(MailScenario))]
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, UseStringEnumConverter = true)]
+internal partial class ScenarioJson : JsonSerializerContext;
 public sealed record MailScenario(string Id, string Evidence, string Source, ScenarioStep[] Steps,
     RunOutcome ExpectedOutcome = RunOutcome.Completed, bool HoldLastFrame = false,
     string ExpectedReason = "mail.returned-home")
@@ -16,7 +19,7 @@ public sealed record MailScenario(string Id, string Evidence, string Source, Sce
         Converters = { new JsonStringEnumConverter() }
     };
     public static MailScenario Load(string path) =>
-        JsonSerializer.Deserialize<MailScenario>(File.ReadAllText(path), Json)
+        JsonSerializer.Deserialize(File.ReadAllText(path), ScenarioJson.Default.MailScenario)
         ?? throw new InvalidDataException("场景文件为空");
 }
 
@@ -88,4 +91,3 @@ public sealed class ScenarioSession(MailScenario scenario) : IMailObserver, IMai
         return ValueTask.CompletedTask;
     }
 }
-

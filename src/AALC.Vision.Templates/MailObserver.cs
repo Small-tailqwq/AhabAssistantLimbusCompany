@@ -39,4 +39,3 @@ public sealed class MailObserver(IScreenCapture capture, TemplateMatcher matcher
         return new(frame.Identity, hits);
     }
 }
-

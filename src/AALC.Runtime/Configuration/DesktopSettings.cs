@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using AALC.Core.Features.Daily;
 using AALC.Core.Features.Mirror;
 
@@ -17,6 +18,10 @@ public sealed record AppSettings(string StartPage = "daily", bool ShowMonitorOnR
 
 /// <summary>桌面分身的行为偏好。</summary>
 public sealed record CloneSettings(bool RunTasksInClone = false, bool ShowWindowOnStart = true, bool IgnoreRemoteControlWarning = false);
+
+[JsonSerializable(typeof(DesktopSettings))]
+[JsonSourceGenerationOptions(WriteIndented = true)]
+internal partial class SettingsJson : JsonSerializerContext;
 
 public sealed class SettingsStore(string directory)
 {
@@ -49,14 +54,13 @@ public sealed class SettingsStore(string directory)
     public string DirectoryPath { get; } = Path.GetFullPath(directory);
     private string SettingsPath => Path.Combine(DirectoryPath, "settings.json");
     public DesktopSettings Load() => File.Exists(SettingsPath)
-        ? JsonSerializer.Deserialize<DesktopSettings>(File.ReadAllText(SettingsPath)) ?? throw new InvalidDataException("配置为空")
+        ? JsonSerializer.Deserialize(File.ReadAllText(SettingsPath), SettingsJson.Default.DesktopSettings) ?? throw new InvalidDataException("配置为空")
         : new();
     public void Save(DesktopSettings settings)
     {
         Directory.CreateDirectory(DirectoryPath);
         var temporary = SettingsPath + ".tmp";
-        File.WriteAllText(temporary, JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true }));
+        File.WriteAllText(temporary, JsonSerializer.Serialize(settings, SettingsJson.Default.DesktopSettings));
         File.Move(temporary, SettingsPath, overwrite: true);
     }
 }
-

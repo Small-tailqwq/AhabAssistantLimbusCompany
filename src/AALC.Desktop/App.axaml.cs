@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -7,6 +8,13 @@ using Avalonia.Threading;
 using AALC.Runtime.Configuration;
 
 namespace AALC.Desktop;
+
+internal sealed record StartupReport(string Kind, double ReadyMonotonicSeconds, bool WindowVisible,
+    string?[] LoadedAssemblies, string Measurement);
+
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+[JsonSerializable(typeof(StartupReport))]
+internal partial class StartupJson : JsonSerializerContext;
 
 public partial class App : Application
 {
@@ -23,11 +31,16 @@ public partial class App : Application
                 return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
             }
             var profile = Argument("--profile");
-            var viewModel = new MainViewModel(profile is null ? SettingsStore.OpenDefault() : new SettingsStore(profile));
+            var store = profile is null ? SettingsStore.OpenDefault() : new SettingsStore(profile);
+#if WINDOWS
+            var viewModel = new MainViewModel(store);
             var window = new MainWindow(viewModel);
-            desktop.MainWindow = window;
             viewModel.StartAgentServer();
             desktop.Exit += (_, _) => { viewModel.DisposeAgentServer(); ThumbnailCache.Dispose(); viewModel.DisposeClone(); };
+#else
+            var window = new Mac.EmulatorWindow(new Mac.EmulatorViewModel(store));
+#endif
+            desktop.MainWindow = window;
             var reported = false;
             window.Opened += (_, _) =>
             {
@@ -39,13 +52,10 @@ public partial class App : Application
                     {
                         var path = Path.GetFullPath(report);
                         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-                        File.WriteAllText(path, JsonSerializer.Serialize(new
-                        {
-                            kind = "avalonia-suki", readyMonotonicSeconds = (double)Stopwatch.GetTimestamp() / Stopwatch.Frequency,
-                            windowVisible = window.IsVisible,
-                            loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetName().Name).Order().ToArray(),
-                            measurement = "Opened, two animation-frame callbacks, then ApplicationIdle callback"
-                        }));
+                        var ready = new StartupReport(OperatingSystem.IsMacOS() ? "avalonia-native" : "avalonia-suki", (double)Stopwatch.GetTimestamp() / Stopwatch.Frequency,
+                            window.IsVisible, AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetName().Name).Order().ToArray(),
+                            "Opened, two animation-frame callbacks, then ApplicationIdle callback");
+                        File.WriteAllText(path, JsonSerializer.Serialize(ready, StartupJson.Default.StartupReport));
                     }
                     if (args.Contains("--exit-after-ready")) desktop.Shutdown();
                 }, DispatcherPriority.ApplicationIdle)));

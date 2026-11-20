@@ -3,7 +3,10 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using AALC.Core.Features.Daily;
 using AALC.Core.Features.Mail;
+#if WINDOWS
 using AALC.Platform.Windows;
+#endif
+using AALC.Shared;
 using AALC.Runtime;
 using AALC.Runtime.Daily;
 using AALC.Runtime.Automation;
@@ -17,20 +20,15 @@ internal static class DailyCommands
 {
     public static async Task<int> CaptureAsync(string[] args, JsonSerializerOptions json, CancellationToken ct)
     {
-        if (args.Length != 3 || !int.TryParse(args[1], out var pid)) throw new ArgumentException("capture <进程ID> <输出.png>");
+        if (args.Length != 3) throw new ArgumentException($"capture <{PlatformDevice.Identifier}> <输出.png>");
         var path = EvidencePaths.RequireExternalPath(args[2]);
-        var selected = GameWindow.Find().SingleOrDefault(window => window.ProcessId == pid)
-            ?? throw new InvalidOperationException("未找到指定的 Limbus Company 窗口");
-        using var window = new GameWindow(selected);
-        var frame = await window.CaptureAsync(ct);
-        using var bgra = new Mat(frame.Identity.Height, frame.Identity.Width, MatType.CV_8UC4);
-        Marshal.Copy(frame.Bgra, 0, bgra.Data, frame.Bgra.Length);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        Cv2.ImWrite(EvidencePaths.RequireExternalPath(path), bgra);
+        using var window = await PlatformDevice.AttachAsync(args[1], ct);
+        var frame = await AttachedGameTasks.CaptureAsync(window, path, ct);
         Console.WriteLine(JsonSerializer.Serialize(new { path, frame.Identity }, json));
         return 0;
     }
 
+#if WINDOWS
     public static async Task<int> RunAsync(string[] args, string? root, JsonSerializerOptions json, CancellationToken ct)
     {
         if (args.Length is < 3 or > 5 || !int.TryParse(args[1], out var pid))
@@ -90,6 +88,8 @@ internal static class DailyCommands
         session.Report("daily.run." + outcome.ToString().ToLowerInvariant(), reason);
         return new(outcome, reason, session.Observations, session.Elapsed.TotalMilliseconds);
     }
+
+#endif
 
     public static int ReadText(string[] args, JsonSerializerOptions json, CancellationToken ct)
     {

@@ -201,18 +201,8 @@ public partial class MainViewModel : ObservableObject
         RequestMonitor();
         await RunAsync(async token =>
         {
-            var directory = EvidencePaths.RequireExternalPath(Path.Combine(EvidencePaths.ResolveRoot(), "recordings", "mail", DateTime.Now.ToString("yyyyMMdd-HHmmss-fff")));
-            Directory.CreateDirectory(directory);
-            using var events = new StreamWriter(Path.Combine(directory, "events.jsonl")) { AutoFlush = true };
-            void Report(RunEvent item) { events.WriteLine(JsonSerializer.Serialize(item)); Publish(item); }
             using var window = new GameWindow(selected);
-            await window.EnsureResolutionAsync(message => Report(new("", 0, "Mail", "game.resolution", "Progress", null, 0, message)), token);
-            using var matcher = new TemplateMatcher(root, options);
-            var observer = new MailObserver(window, matcher, directory);
-            observer.FrameCaptured += UpdatePreview;
-            var result = await new MailRunner(observer, window, new SystemRunClock()).RunAsync(TimeSpan.FromSeconds(30), Report, token);
-            File.WriteAllText(Path.Combine(directory, "result.json"), JsonSerializer.Serialize(result));
-            return result;
+            return await AALC.Shared.AttachedGameTasks.MailAsync(window, root, options, Publish, UpdatePreview, token);
         });
     }
 
@@ -259,22 +249,11 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    private static WriteableBitmap CreateBitmap(PixelFrame frame)
-    {
-        var bitmap = new WriteableBitmap(new PixelSize(frame.Identity.Width, frame.Identity.Height),
-            new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Opaque);
-        using (var buffer = bitmap.Lock())
-            for (var y = 0; y < frame.Identity.Height; y++)
-                Marshal.Copy(frame.Bgra, y * frame.Identity.Width * 4,
-                    buffer.Address + y * buffer.RowBytes, frame.Identity.Width * 4);
-        return bitmap;
-    }
-
     private void UpdatePreview(PixelFrame frame) => Dispatcher.UIThread.Invoke(() =>
     {
         agentFrame = frame;
         var old = Preview;
-        Preview = CreateBitmap(frame);
+        Preview = FrameBitmap.Create(frame);
         old?.Dispose();
         FrameLabel = $"{frame.Identity.Width} × {frame.Identity.Height} · 第 {frame.Identity.Id} 帧";
     });
@@ -297,4 +276,3 @@ public partial class MainViewModel : ObservableObject
         ElapsedLabel = $"{item.ElapsedMilliseconds / 1000:0.0} s";
     });
 }
-

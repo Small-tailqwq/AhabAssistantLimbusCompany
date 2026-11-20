@@ -3,6 +3,7 @@
  xmlns:suki="https://github.com/kikipoulet/SukiUI" RequestedThemeVariant="Dark">
  <Application.Resources>
   <ResourceDictionary>
+   <FontFamily x:Key="AppFont">Microsoft YaHei UI</FontFamily>
    <ResourceDictionary.MergedDictionaries>
     <ResourceInclude Source="/Styles/Tokens.axaml"/>
     <ResourceInclude Source="/Styles/Logos.axaml"/>
@@ -15,5 +16,7 @@
  <Application.Styles>
   <suki:SukiTheme ThemeColor="Blue"/>
   <StyleInclude Source="/Styles/Controls.axaml"/>
+  <!-- SukiUI 的外层 Border 固定 Padding=5，使可见背景与输入行对齐。 -->
+  <Style Selector="ComboBox /template/ suki|GlassCard#border"><Setter Property="Margin" Value="-5"/></Style>
  </Application.Styles>
 </Application>

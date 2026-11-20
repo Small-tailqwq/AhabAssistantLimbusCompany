@@ -1,0 +1,10 @@
+{
+  "solution": {
+    "path": "AAALC.slnx",
+    "projects": [
+      "src/AALC.Desktop/AALC.Desktop.csproj",
+      "src/AALC.Cli/AALC.Cli.csproj",
+      "tests/AALC.Core.Tests/AALC.Core.Tests.csproj"
+    ]
+  }
+}

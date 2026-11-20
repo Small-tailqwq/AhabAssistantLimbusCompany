@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../AALC.Runtime/AALC.Runtime.csproj" />
+    <PackageReference Include="OpenCvSharp4" Version="4.11.0.20250507" />
+    <PackageReference Condition="'$(AalcMacOS)' != 'true'" Include="OpenCvSharp4.runtime.win" Version="4.11.0.20250507" />
+    <PackageReference Condition="'$(AalcMacOS)' == 'true' And '$(RuntimeIdentifier)' != 'osx-x64'" Include="Sdcb.OpenCvSharp4.mini.runtime.osx-arm64" Version="4.11.0.35" />
+    <PackageReference Condition="'$(AalcMacOS)' == 'true' And '$(RuntimeIdentifier)' != 'osx-arm64'" Include="Sdcb.OpenCvSharp4.mini.runtime.osx-x64" Version="4.11.0.35" />
+  </ItemGroup>
+</Project>

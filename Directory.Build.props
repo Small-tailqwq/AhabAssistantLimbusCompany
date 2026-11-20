@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <LangVersion>14</LangVersion>
     <Product>AAALC</Product>
+    <!-- 显式发布 RID 优先于构建主机；不带 RID 时按本机选择入口。 -->
+    <AalcMacOS Condition="$(RuntimeIdentifier.StartsWith('osx-')) Or ('$(RuntimeIdentifier)' == '' And $([MSBuild]::IsOSPlatform('OSX')))">true</AalcMacOS>
   </PropertyGroup>
 </Project>
-

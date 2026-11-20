@@ -97,7 +97,7 @@ public partial class MainViewModel
             var directory = EvidencePaths.RequireExternalPath(Path.Combine(EvidencePaths.ResolveRoot(), "screenshots"));
             Directory.CreateDirectory(directory);
             var path = EvidencePaths.RequireExternalPath(Path.Combine(directory, $"screenshot_{DateTime.Now:yyyyMMdd-HHmmss-fff}.png"));
-            using (var bitmap = CreateBitmap(frame))
+            using (var bitmap = FrameBitmap.Create(frame))
             using (var output = new FileStream(path, FileMode.CreateNew)) bitmap.Save(output);
             UpdatePreview(frame);
             return $"截图已保存：{path}";

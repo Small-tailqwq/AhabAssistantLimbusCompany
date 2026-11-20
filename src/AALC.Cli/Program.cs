@@ -1,7 +1,7 @@
 ﻿using AALC.Runtime.Automation;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using AALC.Platform.Windows;
+using AALC.Shared;
 using AALC.Runtime;
 using AALC.Runtime.Mail;
 using AALC.Runtime.Replay;
@@ -20,20 +20,17 @@ using var cancellation = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) => { e.Cancel = true; cancellation.Cancel(); };
 try
 {
-    DpiAwareness.EnsurePerMonitorV2();
-    if (args.Length == 0) throw new ArgumentException("命令：screenshot-test | mirror | mirror-replay | daily | daily-battle | daily-replay | mail | replay | windows | capture | clone-verify | clone-mirror | match | match-many | read-text | recognize；参数见 docs/application.md");
+#if WINDOWS
+    AALC.Platform.Windows.DpiAwareness.EnsurePerMonitorV2();
+#endif
+    if (args.Length == 0) throw new ArgumentException("命令：screenshot-test | mirror-replay | daily-replay | mail | replay | capture | match | match-many | read-text | recognize；平台命令：" + PlatformDevice.Commands + "；参数见 docs/application.md");
     var root = RepositoryPaths.Discover(Environment.CurrentDirectory) ?? RepositoryPaths.Discover(AppContext.BaseDirectory);
     switch (args[0])
     {
         case "screenshot-test":
             return await ScreenshotCommands.RunAsync(args, root, json, cancellation.Token);
-        case "mirror":
-            return await MirrorCommands.RunAsync(args, root, json, cancellation.Token);
         case "mirror-replay":
             return await MirrorCommands.ReplayAsync(args, json, cancellation.Token);
-        case "daily":
-        case "daily-battle":
-            return await DailyCommands.RunAsync(args, root, json, cancellation.Token);
         case "read-text":
             return DailyCommands.ReadText(args, json, cancellation.Token);
         case "capture":
@@ -91,33 +88,35 @@ try
             Console.WriteLine(JsonSerializer.Serialize(recognizer.Recognize(crop), json));
             return 0;
         }
+#if WINDOWS
+        case "mirror":
+            return await MirrorCommands.RunAsync(args, root, json, cancellation.Token);
+        case "daily":
+        case "daily-battle":
+            return await DailyCommands.RunAsync(args, root, json, cancellation.Token);
         case "clone-verify":
             return await CloneCommands.VerifyAsync(args, root, cancellation.Token);
         case "clone-mirror":
             return await CloneCommands.MirrorAsync(args, cancellation.Token);
         case "windows":
-            Console.WriteLine(JsonSerializer.Serialize(GameWindow.Find(), json));
+            Console.WriteLine(JsonSerializer.Serialize(AALC.Platform.Windows.GameWindow.Find(), json));
             return 0;
+#else
+        case "devices":
+            Console.WriteLine(JsonSerializer.Serialize(await AALC.Platform.Android.AdbClient.Local().DevicesAsync(cancellation.Token), json));
+            return 0;
+        case "mirror": case "daily": case "daily-battle": case "windows": case "clone-verify": case "clone-mirror":
+            throw new PlatformNotSupportedException("此命令需要 Windows 原生游戏窗口；macOS 请使用 devices、capture、mail 或离线回放。");
+#endif
         case "mail":
         {
-            if (args.Length is < 2 or > 3 || !int.TryParse(args[1], out var pid)) throw new ArgumentException("mail <进程ID> [仓库]");
-            var selected = GameWindow.Find().SingleOrDefault(window => window.ProcessId == pid)
-                ?? throw new InvalidOperationException("未找到指定的 Limbus Company 窗口");
-            root = args.Length == 3 ? Path.GetFullPath(args[2]) : root ?? throw new ArgumentException("找不到资源仓库");
-            var output = EvidencePaths.RequireExternalPath(Path.Combine(EvidencePaths.ResolveRoot(), "recordings", "mail", DateTime.Now.ToString("yyyyMMdd-HHmmss-fff")));
-            Directory.CreateDirectory(output);
-            using var events = new StreamWriter(Path.Combine(output, "events.jsonl")) { AutoFlush = true };
-            using var window = new GameWindow(selected);
-            await window.EnsureResolutionAsync(Console.WriteLine, cancellation.Token);
-            using var matcher = new TemplateMatcher(root, new());
-            var observer = new MailObserver(window, matcher, output);
-            var result = await new MailRunner(observer, window, new SystemRunClock()).RunAsync(TimeSpan.FromSeconds(30), e =>
-            {
-                var line = JsonSerializer.Serialize(e, json);
-                Console.WriteLine(line);
-                events.WriteLine(line);
-            }, cancellation.Token);
-            File.WriteAllText(Path.Combine(output, "result.json"), JsonSerializer.Serialize(result, json));
+            if (args.Length is < 2 or > 4) throw new ArgumentException($"mail <{PlatformDevice.Identifier}> [仓库] [en|zh_cn]");
+            root = args.Length >= 3 ? Path.GetFullPath(args[2]) : root ?? throw new ArgumentException("找不到资源仓库");
+            var language = args.Length == 4 ? args[3] : OperatingSystem.IsMacOS() ? "en" : "zh_cn";
+            if (language is not ("en" or "zh_cn")) throw new ArgumentException("游戏语言须为 en 或 zh_cn");
+            using var device = await PlatformDevice.AttachAsync(args[1], cancellation.Token);
+            var result = await AttachedGameTasks.MailAsync(device, root, new(language), e => Console.WriteLine(JsonSerializer.Serialize(e, json)),
+                null, cancellation.Token, json);
             return result.Outcome == RunOutcome.Completed ? 0 : 1;
         }
         default: throw new ArgumentException($"未知命令 {args[0]}");
@@ -128,4 +127,3 @@ catch (Exception exception)
     Console.Error.WriteLine(JsonSerializer.Serialize(new { error = exception.ToString() }, json));
     return 2;
 }
-

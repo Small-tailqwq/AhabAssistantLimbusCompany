@@ -16,7 +16,7 @@ public sealed record GameWindowInfo(int ProcessId, long Handle, string Title)
     public override string ToString() => $"{Title}  ({ProcessId})";
 }
 
-public sealed class GameWindow : IScreenCapture, IMailInput, IGameInput, IDisposable
+public sealed class GameWindow : IAttachedGame, IGameInput
 {
     private readonly GameWindowInfo info;
     private readonly Semaphore lease;
@@ -422,4 +422,3 @@ public sealed class GameWindow : IScreenCapture, IMailInput, IGameInput, IDispos
         [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] internal static extern bool PostMessage(nint window, uint message, nuint wParam, nint lParam);
     }
 }
-

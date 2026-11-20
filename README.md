@@ -8,7 +8,7 @@ AI 驱动的 AALC · Limbus Company 桌面自动化
 
 AI-powered ~~Ahab~~ Angela Assistant for Limbus Company
 
-Windows x64 · .NET 10 · Avalonia · SukiUI
+Windows x64 / macOS（安卓模拟器） · .NET 10 · Avalonia · SukiUI
 
 [功能与运行说明](docs/application.md) · [文档索引](docs/README.md) · [反馈问题](https://github.com/Small-tailqwq/AhabAssistantLimbusCompany/issues)
 
@@ -20,14 +20,16 @@ AAALC 是基于 [AALC](https://github.com/KIYI671/AhabAssistantLimbusCompany) �
 
 ## 从源码运行
 
-安装 Windows x64 的 .NET 10 SDK（版本见 [global.json](global.json)），在仓库根目录执行：
+安装对应平台的 .NET 10 SDK（版本见 [global.json](global.json)），在仓库根目录执行：
 
 ```powershell
-dotnet build AAALC.slnx -c Release
+# Windows 使用 AAALC.slnx；macOS 使用 AAALC.macOS.slnf
 dotnet run --project src/AALC.Desktop -c Release
 ```
 
-游戏图片位于 `assets/images/`。OCR 模型放在 `assets/models/ocr/`，所需文件见 [模型说明](assets/models/ocr/README.md)，也可在设置页指定已有模型目录。配置默认写入数据根下的 `profile/settings.json`；录制与截图的数据位置见 [运行说明](docs/application.md)。
+macOS 使用[安卓模拟器入口](docs/application.md#macos-安卓模拟器)：可连接本机 ADB、保存截图、领取邮件；不启动 Steam 或运行日常、镜牢战斗。Windows 继续使用原生窗口。
+
+游戏图片位于 `assets/images/`。OCR 模型放在 `assets/models/ocr/`，所需文件见 [模型说明](assets/models/ocr/README.md)，也可在 Windows 设置页指定已有模型目录。配置默认写入数据根下的 `profile/settings.json`；录制与截图的数据位置见 [运行说明](docs/application.md)。
 
 ```powershell
 dotnet test tests/AALC.Core.Tests/AALC.Core.Tests.csproj -c Release
@@ -58,7 +60,7 @@ artifacts/                 本地构建产物（忽略）
 
 ## 打包与版本
 
-使用 `python scripts/build_dotnet.py full` 打包；模式、依赖与产物位置见 [构建说明](docs/build.md)。
+Windows 使用 `python scripts/build_dotnet.py full`，macOS 使用 `python3 scripts/build_macos.py`；命令、Intel 视觉库依赖及产物见 [构建说明](docs/build.md)。
 
 Python 旧版保存在 `ahab` 分支。
 
